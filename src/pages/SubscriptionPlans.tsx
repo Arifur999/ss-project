@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { CheckCircle2, Crown, Globe, Send, ShieldCheck, Sparkles, Star, Users } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { supabase } from '../lib/supabase'
+import { choosePlan as choosePlanRequest } from '../services/admin.services'
 import { Lang, useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -147,39 +147,13 @@ export default function SubscriptionPlans() {
         ? addMonths(now, 1)
         : addMonths(now, 12)
     const isTrial = planId === 'free_trial'
-    const payload = {
-      owner_id: user.id,
-      business_name: subscription?.business_name || user.user_metadata?.business_name || profile?.full_name || 'My Business',
-      owner_email: user.email || '',
-      status: isTrial ? 'active' : 'pending',
-      plan: isTrial ? 'Trial' : planId === 'monthly' ? 'Starter' : 'Enterprise',
-      trial_start: now.toISOString(),
-      trial_end: addDays(now, 7).toISOString(),
-      active_until: isTrial ? expiry.toISOString() : null,
-      plan_type: planId,
-      plan_status: isTrial ? 'active' : 'expired',
-      start_date: now.toISOString(),
-      expiry_date: expiry.toISOString(),
-      blocked_reason: '',
-      updated_at: now.toISOString(),
-    }
 
-    let result = await supabase
-      .from('owner_subscriptions')
-      .upsert(payload, { onConflict: 'owner_id' })
-      .select()
-      .maybeSingle()
-
-    if (result.error && isMissingExpiryDateColumn(result.error)) {
-      result = await supabase
-        .from('owner_subscriptions')
-        .upsert(withoutExpiryDate(payload), { onConflict: 'owner_id' })
-        .select()
-        .maybeSingle()
-    }
-
-    if (result.error) {
-      toast.error(result.error.message)
+    try {
+      // POST /subscriptions/choose-plan: trial activates instantly, paid
+      // plans go pending and create a payment record for the super admin.
+      await choosePlanRequest({ plan_type: planId })
+    } catch (error: any) {
+      toast.error(error.message)
       setLoadingPlan(null)
       return
     }

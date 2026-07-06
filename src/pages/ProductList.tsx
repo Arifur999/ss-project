@@ -9,6 +9,7 @@ import { useLang } from '../context/LanguageContext'
 import { addRecycleItem } from '../lib/recycleBin'
 import { useAuth } from '../context/AuthContext'
 import { createOpeningStockBatch } from '../lib/fifoInventory'
+import { deleteProduct as deleteProductRequest } from '../services/product.services'
 
 interface Product {
   id: string
@@ -222,58 +223,13 @@ export default function ProductList() {
     setSelectedIds(prev => prev.filter(id => products.some(product => product.id === id)))
   }, [products])
 
-  async function ensureInventory(productId: string, openingQty?: number) {
-    const { data: existing, error: lookupError } = await supabase
-      .from('inventory')
-      .select('id')
-      .eq('product_id', productId)
-      .is('branch_id', null)
-      .maybeSingle()
-
-    if (lookupError) throw lookupError
-    if (existing) {
-      return
-    }
-
-    const { error } = await supabase.from('inventory').insert({
-      product_id: productId,
-      available_qty: openingQty || 0,
-      upcoming_qty: 0,
-    })
-    if (error) throw error
+  async function ensureInventory(_productId: string, _openingQty?: number) {
+    // Inventory rows are bootstrapped by the backend on product create.
   }
 
-  async function updateOpeningStockBatch(productId: string, openingQty: number, dpPrice: number, mrpPrice: number) {
-    const { data: existingBatch, error: lookupError } = await supabase
-      .from('inventory_batches')
-      .select('id')
-      .eq('product_id', productId)
-      .eq('source_type', 'opening_stock')
-      .maybeSingle()
-
-    if (lookupError && !String(lookupError.message || '').includes('inventory_batches')) throw lookupError
-
-    if (existingBatch) {
-      const { error } = await supabase
-        .from('inventory_batches')
-        .update({
-          received_qty: openingQty,
-          remaining_qty: openingQty,
-          dp_price: dpPrice || 0,
-          mrp_price: mrpPrice || 0,
-        })
-        .eq('id', existingBatch.id)
-      if (error) throw error
-      return
-    }
-
-    await createOpeningStockBatch({
-      productId,
-      qty: openingQty || 0,
-      dpPrice: dpPrice || 0,
-      mrpPrice: mrpPrice || 0,
-      userId: user?.id,
-    })
+  async function updateOpeningStockBatch(_productId: string, _openingQty: number, _dpPrice: number, _mrpPrice: number) {
+    // Opening stock batches are synced by the backend on product update
+    // (PATCH /products/:id adjusts batch + inventory when opening_qty changes).
   }
 
   function isMissingOpeningQtyColumn(error: any) {
@@ -793,13 +749,9 @@ export default function ProductList() {
         })
       }
 
-      for (const ids of chunkArray(selectedProducts.map(product => product.id), bulkDeleteChunkSize)) {
-        const { error } = await supabase
-          .from('products')
-          .update({ is_active: false })
-          .in('id', ids)
-
-        if (error) throw error
+      // Server-side soft delete puts each product into the recycle bin.
+      for (const product of selectedProducts) {
+        await deleteProductRequest(product.id)
       }
 
       setSelectedIds([])

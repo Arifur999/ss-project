@@ -177,35 +177,9 @@ export default function PlaceOrder() {
     return next
   }
 
-  async function createQuickProductInventory(productId: string, openingQty: number, costPrice: number, sellingPrice: number) {
-    const qty = Number(openingQty || 0)
-    const { data: existing, error: lookupError } = await supabase
-      .from('inventory')
-      .select('id')
-      .eq('product_id', productId)
-      .is('branch_id', null)
-      .maybeSingle()
-
-    if (lookupError) throw lookupError
-    if (!existing) {
-      const { error } = await supabase.from('inventory').insert({
-        product_id: productId,
-        branch_id: null,
-        available_qty: qty,
-        upcoming_qty: 0,
-      })
-      if (error) throw error
-    }
-
-    if (qty > 0) {
-      await createOpeningStockBatch({
-        productId,
-        qty,
-        dpPrice: Number(costPrice || 0),
-        mrpPrice: Number(sellingPrice || 0),
-        userId: user?.id,
-      })
-    }
+  async function createQuickProductInventory(_productId: string, _openingQty: number, _costPrice: number, _sellingPrice: number) {
+    // The backend bootstraps inventory + opening stock batch when the
+    // product is created (POST /products) - nothing to do client-side.
   }
 
   async function handleAddProduct() {

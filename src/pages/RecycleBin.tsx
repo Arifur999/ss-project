@@ -5,7 +5,8 @@ import PageHeader from '../components/PageHeader'
 import { confirmAction } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
-import { getRecycleItems, RecycleBinItem, removeRecycleItem } from '../lib/recycleBin'
+import { RecycleBinItem } from '../lib/recycleBin'
+import { deleteRecycleBinItemPermanently, getRecycleBinItems, restoreRecycleBinItem } from '../services/admin.services'
 
 type TabKey =
   | 'balance'
@@ -94,29 +95,12 @@ export default function RecycleBin() {
   async function loadAll() {
     setLoading(true)
     try {
-      const localRows = getRecycleItems()
-      const productRes = await supabase
-        .from('products')
-        .select('*, suppliers(id, name, company_name)')
-        .eq('is_active', false)
-        .order('product_code')
-
-      if (productRes.error) throw productRes.error
-
-      const localProductIds = new Set(localRows.filter(item => item.type === 'products').map(item => item.data?.id))
-      const inactiveProducts: RecycleBinItem[] = (productRes.data || [])
-        .filter(product => !localProductIds.has(product.id))
-        .map(product => ({
-          id: `products:${product.id}`,
-          type: 'products',
-          title: product.name || '-',
-          subtitle: product.product_code || '-',
-          amount: Number(product.selling_price || 0),
-          deleted_at: product.updated_at || product.created_at || new Date().toISOString(),
-          data: product,
-        }))
-
-      setRows([...localRows, ...inactiveProducts])
+      // Server-backed recycle bin (snapshots are captured on every delete).
+      const items = await getRecycleBinItems()
+      setRows((items || []).map((item: any) => ({
+        ...item,
+        table: item.table_name,
+      })))
     } catch (error: any) {
       toast.error(error.message || 'Failed to load recycle bin')
     } finally {
@@ -124,79 +108,10 @@ export default function RecycleBin() {
     }
   }
 
-  async function adjustInventory(productId: string, qtyChange: number) {
-    if (!productId || !qtyChange) return
-    const { data: inv } = await supabase.from('inventory').select('*').eq('product_id', productId).maybeSingle()
-    if (inv) {
-      await supabase
-        .from('inventory')
-        .update({
-          available_qty: Math.max(0, Number(inv.available_qty || 0) + qtyChange),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', inv.id)
-    }
-  }
-
-  async function restoreDue(row: RecycleBinItem) {
-    const payment = cleanRecord(row.data, ['accounts', 'customers'])
-    const { error } = await supabase.from('customer_payments').insert(payment)
-    if (error) throw error
-  }
-
-  async function restoreProduct(row: RecycleBinItem) {
-    const { error } = await supabase.from('products').update({ is_active: true }).eq('id', row.data.id)
-    if (error) throw error
-  }
-
-  async function restoreSale(row: RecycleBinItem) {
-    const { error } = await supabase
-      .from('sales')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
-      .eq('id', row.data.id)
-    if (error) throw error
-
-    for (const item of row.data.sale_items || []) {
-      await adjustInventory(item.product_id, -Number(item.qty || 0))
-    }
-  }
-
-  async function restorePurchase(row: RecycleBinItem) {
-    const purchase = cleanRecord(row.data, ['purchase_items'])
-    const purchaseItems = row.data.purchase_items || []
-
-    const { error: purchaseError } = await supabase.from('purchases').insert(purchase)
-    if (purchaseError) throw purchaseError
-
-    for (const item of purchaseItems) {
-      const receives = item.purchase_receives || []
-      const itemPayload = cleanRecord(item, ['purchase_receives'])
-      const { error: itemError } = await supabase.from('purchase_items').insert(itemPayload)
-      if (itemError) throw itemError
-
-      if (receives.length > 0) {
-        const { error: receiveError } = await supabase.from('purchase_receives').insert(receives)
-        if (receiveError) throw receiveError
-      }
-    }
-  }
-
-  async function restoreGeneric(row: RecycleBinItem) {
-    if (!row.table) return
-    const payload = cleanRecord(row.data, ['accounts', 'customers', 'employees', 'loan_lenders'])
-    const { error } = await supabase.from(row.table).insert(payload)
-    if (error) throw error
-  }
-
   async function restore(row: RecycleBinItem) {
     try {
-      if (row.type === 'due') await restoreDue(row)
-      if (row.type === 'products') await restoreProduct(row)
-      if (row.type === 'sales') await restoreSale(row)
-      if (row.type === 'purchases') await restorePurchase(row)
-      if (!['due', 'products', 'sales', 'purchases'].includes(row.type)) await restoreGeneric(row)
-
-      removeRecycleItem(row.id)
+      // The server re-inserts the snapshot into its original table.
+      await restoreRecycleBinItem(row.id)
       toast.success('Restored successfully')
       loadAll()
     } catch (error: any) {
@@ -205,29 +120,7 @@ export default function RecycleBin() {
   }
 
   async function deleteRecycleRow(row: RecycleBinItem) {
-    if (row.type === 'products') {
-      const { error } = await supabase.from('products').delete().eq('id', row.data.id)
-      if (error) throw error
-    }
-
-    if (row.type === 'sales') {
-      const { error } = await supabase.from('sales').delete().eq('id', row.data.id)
-      if (error) throw error
-    }
-
-    if (row.type === 'due') {
-      await supabase.from('customer_payments').delete().eq('id', row.data.id)
-    }
-
-    if (row.type === 'purchases') {
-      await supabase.from('purchases').delete().eq('id', row.data.id)
-    }
-
-    if (!['due', 'products', 'sales', 'purchases'].includes(row.type) && row.table) {
-      await supabase.from(row.table).delete().eq('id', row.data.id)
-    }
-
-    removeRecycleItem(row.id)
+    await deleteRecycleBinItemPermanently(row.id)
   }
 
   async function permanentDelete(row: RecycleBinItem) {
