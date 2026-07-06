@@ -4,7 +4,7 @@ import { AlertTriangle, Ban, CheckCircle2, CreditCard, RefreshCw, ShieldCheck, T
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { LiveOwner, OwnerStatus, daysLeft, formatDate, loadOwners } from './superAdminLive'
-import { supabase } from '../../lib/supabase'
+import { updateOwnerSubscription } from '../../services/admin.services'
 
 function isMissingExpiryDateColumn(error: any) {
   const message = String(error?.message || '')
@@ -58,11 +58,6 @@ export default function SuperAdminDashboard() {
   }
 
   async function updateOwnerStatus(owner: LiveOwner, status: 'active' | 'blocked') {
-    if (setupMissing) {
-      toast.error('Apply the Supabase owner subscription migration first')
-      return
-    }
-
     const now = new Date()
     const expiry = new Date(now)
     expiry.setMonth(expiry.getMonth() + 1)
@@ -76,23 +71,11 @@ export default function SuperAdminDashboard() {
       start_date: status === 'active' ? now.toISOString() : owner.startDate,
       expiry_date: status === 'active' ? expiry.toISOString() : owner.expiryDate,
       blocked_reason: status === 'blocked' ? 'Blocked by super admin' : '',
-      updated_at: new Date().toISOString(),
     }
 
-    let { error } = await supabase
-      .from('owner_subscriptions')
-      .update(payload)
-      .eq('owner_id', owner.owner_id)
-
-    if (error && isMissingExpiryDateColumn(error)) {
-      const retry = await supabase
-        .from('owner_subscriptions')
-        .update(withoutExpiryDate(payload))
-        .eq('owner_id', owner.owner_id)
-      error = retry.error
-    }
-
-    if (error) {
+    try {
+      await updateOwnerSubscription(owner.owner_id, payload)
+    } catch (error: any) {
       toast.error(error.message)
       return
     }

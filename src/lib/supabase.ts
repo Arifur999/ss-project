@@ -27,7 +27,7 @@ const TABLES: Record<string, TableConfig> = {
   shareholders: { list: '/shareholders', create: '/shareholders', update: (id) => `/shareholders/${id}`, remove: (id) => `/shareholders/${id}` },
   accounts: { list: '/accounts', create: '/accounts', update: (id) => `/accounts/${id}`, remove: (id) => `/accounts/${id}` },
   account_transfers: { list: '/account-transfers', create: '/account-transfers', remove: (id) => `/account-transfers/${id}` },
-  monthly_targets: { list: '/monthly-targets', upsertPut: '/monthly-targets', remove: (id) => `/monthly-targets/${id}` },
+  monthly_targets: { list: '/monthly-targets', upsertPut: '/monthly-targets', update: (id) => `/monthly-targets/${id}`, remove: (id) => `/monthly-targets/${id}` },
   expense_categories: { list: '/expense-categories', create: '/expense-categories', update: (id) => `/expense-categories/${id}`, remove: (id) => `/expense-categories/${id}` },
   suppliers: { list: '/suppliers', create: '/suppliers', update: (id) => `/suppliers/${id}`, remove: (id) => `/suppliers/${id}` },
   customers: { list: '/customers', create: '/customers', update: (id) => `/customers/${id}`, remove: (id) => `/customers/${id}` },
@@ -39,7 +39,7 @@ const TABLES: Record<string, TableConfig> = {
   expenses: { list: '/expenses', create: '/expenses', update: (id) => `/expenses/${id}`, remove: (id) => `/expenses/${id}` },
   other_incomes: { list: '/other-incomes', create: '/other-incomes', update: (id) => `/other-incomes/${id}`, remove: (id) => `/other-incomes/${id}` },
   purchases: { list: '/purchases', update: (id) => `/purchases/${id}`, remove: (id) => `/purchases/${id}` },
-  purchase_items: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_items' } },
+  purchase_items: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_items' }, update: (id) => `/purchases/items/${id}` },
   purchase_receives: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_receives' } },
   supplier_payments: { list: '/supplier-payments', create: '/supplier-payments', update: (id) => `/supplier-payments/${id}`, remove: (id) => `/supplier-payments/${id}` },
   inventory: { list: '/inventory' },
@@ -52,7 +52,7 @@ const TABLES: Record<string, TableConfig> = {
   customer_payments: { list: '/customer-payments', create: '/customer-payments', update: (id) => `/customer-payments/${id}`, remove: (id) => `/customer-payments/${id}` },
   employees: { list: '/employees', create: '/employees', update: (id) => `/employees/${id}`, remove: (id) => `/employees/${id}` },
   salary_transactions: { list: '/salary-transactions', create: '/salary-transactions', update: (id) => `/salary-transactions/${id}`, remove: (id) => `/salary-transactions/${id}` },
-  attendance: { list: '/attendance', upsertPut: '/attendance', remove: (id) => `/attendance/${id}` },
+  attendance: { list: '/attendance', upsertPut: '/attendance', update: (id) => `/attendance/${id}`, remove: (id) => `/attendance/${id}` },
   owner_subscriptions: { list: '/subscriptions/my' },
   // Team profiles (owner-only endpoint; other roles degrade to an empty list).
   profiles: { list: '/users/list' },
@@ -290,12 +290,48 @@ const authShim = {
   },
 }
 
-// Realtime channels don't exist over REST - pages refresh after their own
-// actions, so subscriptions become inert stubs.
+// Supabase realtime pushed table changes to subscribed pages so they could
+// auto-reload. Over REST we emulate that with light polling: every callback
+// registered via .on() fires on an interval while the channel is subscribed,
+// so dashboards refresh without a manual reload.
+const CHANNEL_POLL_INTERVAL_MS = 10000
+
 class ChannelShim {
-  on(_event: string, _filter: any, _callback?: any) { return this }
-  subscribe(_callback?: any) { return this }
-  unsubscribe() { return Promise.resolve('ok') }
+  private callbacks: Array<() => void> = []
+  private timer: ReturnType<typeof setInterval> | null = null
+
+  on(_event: string, _filter: any, callback?: any) {
+    const handler = typeof _filter === 'function' ? _filter : callback
+    if (typeof handler === 'function') {
+      this.callbacks.push(() => {
+        try {
+          handler({})
+        } catch {
+          // A failing page callback must not kill the polling loop.
+        }
+      })
+    }
+    return this
+  }
+
+  subscribe(_callback?: any) {
+    if (!this.timer && this.callbacks.length > 0) {
+      this.timer = setInterval(() => {
+        if (document.visibilityState === 'hidden') return
+        this.callbacks.forEach(cb => cb())
+      }, CHANNEL_POLL_INTERVAL_MS)
+    }
+    return this
+  }
+
+  unsubscribe() {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
+    this.callbacks = []
+    return Promise.resolve('ok')
+  }
 }
 
 export const supabase = {
@@ -306,7 +342,10 @@ export const supabase = {
   channel(_name: string) {
     return new ChannelShim()
   },
-  removeChannel(_channel: any) {
+  removeChannel(channel: any) {
+    if (channel && typeof channel.unsubscribe === 'function') {
+      channel.unsubscribe()
+    }
     return Promise.resolve('ok')
   },
 }
