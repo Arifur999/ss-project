@@ -1,3 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Recycle bin metadata bridge.
+//
+// The old app kept deleted-record snapshots in localStorage: pages called
+// addRecycleItem({...}) right before deleting the row. The server now stores
+// the snapshot itself when a DELETE arrives - this module just holds the
+// page-computed display metadata (type/title/subtitle/amount) for a moment so
+// the API layer can attach it to the DELETE request body.
+
 export type RecycleBinType = string
 
 export interface RecycleBinItem {
@@ -11,31 +20,39 @@ export interface RecycleBinItem {
   table?: string
 }
 
-const STORAGE_KEY = 'furniture_recycle_bin_items'
-
-export function getRecycleItems(type?: RecycleBinType): RecycleBinItem[] {
-  try {
-    const items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as RecycleBinItem[]
-    const sorted = items.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime())
-    return type ? sorted.filter(item => item.type === type) : sorted
-  } catch {
-    return []
-  }
+interface PendingMeta {
+  type: string
+  title?: string
+  subtitle?: string
+  amount?: number
 }
+
+const pendingMeta = new Map<string, PendingMeta>()
 
 export function addRecycleItem(item: Omit<RecycleBinItem, 'id' | 'deleted_at'>) {
-  const items = getRecycleItems()
-  const id = `${item.type}:${item.data?.id || Date.now()}`
-  const nextItem: RecycleBinItem = {
-    ...item,
-    id,
-    deleted_at: new Date().toISOString(),
-  }
-  const nextItems = [nextItem, ...items.filter(existing => existing.id !== id)]
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems))
+  const rowId = item.data?.id
+  if (!rowId) return
+  pendingMeta.set(String(rowId), {
+    type: item.type,
+    title: item.title,
+    subtitle: item.subtitle,
+    amount: item.amount,
+  })
 }
 
-export function removeRecycleItem(id: string) {
-  const items = getRecycleItems().filter(item => item.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+// Called by the API layer when it issues the DELETE for a row.
+export function consumeRecycleMeta(_table: string, rowId: string): PendingMeta | undefined {
+  const meta = pendingMeta.get(String(rowId))
+  if (meta) pendingMeta.delete(String(rowId))
+  return meta
+}
+
+// The RecycleBin page now loads items from the API (see admin.services.ts);
+// these remain only so old imports keep compiling.
+export function getRecycleItems(_type?: RecycleBinType): RecycleBinItem[] {
+  return []
+}
+
+export function removeRecycleItem(_id: string) {
+  // no-op: permanent deletion goes through the API
 }

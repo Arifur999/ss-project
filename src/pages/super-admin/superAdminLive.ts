@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase'
+import { getOwners } from '../../services/admin.services'
 
 export type OwnerPlan = 'Trial' | 'Starter' | 'Growth' | 'Enterprise'
 export type OwnerStatus = 'pending' | 'trial' | 'active' | 'expired' | 'blocked' | 'suspended'
@@ -144,44 +144,36 @@ export function isOwnerSubscriptionTableMissing(error: any) {
 }
 
 export async function loadOwners(): Promise<OwnerLoadResult> {
-  const subscriptionsRes = await supabase.from('owner_subscriptions').select('*').order('created_at', { ascending: false })
+  // GET /super-admin/owners returns each owner user with their subscription.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = await getOwners()
 
-  if (subscriptionsRes.error) {
-    if (isOwnerSubscriptionTableMissing(subscriptionsRes.error)) {
-      return { owners: [], setupMissing: true }
-    }
-    throw subscriptionsRes.error
-  }
+  const owners = rows
+    .filter((row) => row.subscription)
+    .map((row) => {
+      const subscription: OwnerSubscriptionRow = row.subscription
 
-  const profilesRes = await supabase.from('profiles').select('id, full_name, phone, role, is_active, created_at').eq('role', 'owner')
-  if (profilesRes.error) throw profilesRes.error
-
-  const profiles = new Map((profilesRes.data || []).map((profile: OwnerProfileRow) => [profile.id, profile]))
-
-  const owners = (subscriptionsRes.data || []).map((subscription: OwnerSubscriptionRow) => {
-    const profile = profiles.get(subscription.owner_id)
-
-    return {
-      id: subscription.id,
-      owner_id: subscription.owner_id,
-      name: profile?.full_name || '-',
-      business: subscription.business_name || '-',
-      email: subscription.owner_email || '-',
-      phone: profile?.phone || '-',
-      plan: subscription.plan,
-      planType: subscription.plan_type || (subscription.plan === 'Trial' ? 'free_trial' : 'monthly'),
-      status: subscription.status,
-      effectiveStatus: effectiveStatus(subscription),
-      trialStart: subscription.trial_start,
-      trialEnd: subscription.trial_end,
-      startDate: subscription.start_date || subscription.trial_start || subscription.created_at,
-      expiryDate: subscription.expiry_date || subscription.active_until || subscription.trial_end,
-      activeUntil: subscription.expiry_date || subscription.active_until,
-      blockedReason: subscription.blocked_reason || '',
-      joinedAt: subscription.created_at,
-      lastActive: subscription.last_active || null,
-    }
-  })
+      return {
+        id: subscription.id,
+        owner_id: subscription.owner_id,
+        name: row.full_name || '-',
+        business: subscription.business_name || '-',
+        email: subscription.owner_email || row.email || '-',
+        phone: row.phone || '-',
+        plan: subscription.plan,
+        planType: subscription.plan_type || (subscription.plan === 'Trial' ? 'free_trial' : 'monthly'),
+        status: subscription.status,
+        effectiveStatus: effectiveStatus(subscription),
+        trialStart: subscription.trial_start,
+        trialEnd: subscription.trial_end,
+        startDate: subscription.start_date || subscription.trial_start || subscription.created_at,
+        expiryDate: subscription.expiry_date || subscription.active_until || subscription.trial_end,
+        activeUntil: subscription.expiry_date || subscription.active_until,
+        blockedReason: subscription.blocked_reason || '',
+        joinedAt: subscription.created_at,
+        lastActive: row.last_active || null,
+      }
+    })
 
   return { owners, setupMissing: false }
 }

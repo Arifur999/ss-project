@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Save, Plus, Trash2, Building2, Users, CreditCard, Target, Truck, UserCog, Eye, EyeOff, ShieldCheck, ShieldX, Pencil, Camera, Crown, Briefcase, Package, Calculator, ShoppingCart, UserRoundPlus, BarChart3, Cog, Check, X, CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
@@ -68,36 +69,8 @@ export default function Settings() {
   useEffect(() => { loadAll() }, [])
   useEffect(() => { if (activeTab === 'users') loadUsers() }, [activeTab])
 
-  async function callManageUsers(action: string, init?: RequestInit) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not signed in')
-
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users/${action}`,
-      {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-          ...(init?.headers || {}),
-        },
-      }
-    )
-
-    if (!res.ok) throw new Error(`User function unavailable (${res.status})`)
-    return res.json()
-  }
-
-  async function loadUsersFromProfiles() {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, phone, role, is_active, created_at')
-      .in('role', ['owner', 'manager', 'sales_staff', 'accountant'])
-      .order('created_at', { ascending: true })
-
-    if (error) throw error
-    setUsers(data || [])
-  }
+  // Team management now goes through the backend API (replaces the old
+  // Supabase manage-users edge function).
 
   async function loadTargets() {
     const { data, error } = await supabase
@@ -144,18 +117,10 @@ export default function Settings() {
   async function loadUsers() {
     setUsersLoading(true)
     try {
-      const json = await callManageUsers('list')
-      if (json.users) {
-        setUsers(json.users)
-      } else {
-        await loadUsersFromProfiles()
-      }
+      const users = await listTeamUsers()
+      setUsers(users || [])
     } catch {
-      try {
-        await loadUsersFromProfiles()
-      } catch {
-        toast.error(t('settings_failedLoadUsers'))
-      }
+      toast.error(t('settings_failedLoadUsers'))
     } finally {
       setUsersLoading(false)
     }
@@ -163,17 +128,9 @@ export default function Settings() {
 
   async function updateUserRole(userId: string, role: string) {
     try {
-      const json = await callManageUsers('update', {
-        method: 'PUT',
-        body: JSON.stringify({ user_id: userId, role }),
-      })
-      if (!json.success) throw new Error(json.error || t('common_error'))
-    } catch {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role, updated_at: new Date().toISOString() })
-        .eq('id', userId)
-      if (error) return toast.error(error.message || t('common_error'))
+      await updateTeamUser({ user_id: userId, role })
+    } catch (error: any) {
+      return toast.error(error.message || t('common_error'))
     }
 
     toast.success(t('settings_roleUpdated'))
@@ -182,34 +139,22 @@ export default function Settings() {
 
   async function toggleUserActive(userId: string, is_active: boolean) {
     try {
-      await callManageUsers('update', {
-        method: 'PUT',
-        body: JSON.stringify({ user_id: userId, is_active }),
-      })
-    } catch {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active, updated_at: new Date().toISOString() })
-        .eq('id', userId)
-      if (error) return toast.error(error.message || t('common_error'))
+      await updateTeamUser({ user_id: userId, is_active })
+    } catch (error: any) {
+      return toast.error(error.message || t('common_error'))
     }
     loadUsers()
   }
 
   async function deleteUser(userId: string) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users/delete`,
-      {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId }),
-      }
-    )
-    const json = await res.json()
-    if (json.success) { toast.success(t('common_deleted')); setShowDeleteConfirm(null); loadUsers() }
-    else toast.error(json.error || t('common_error'))
+    try {
+      await deleteTeamUser(userId)
+      toast.success(t('common_deleted'))
+      setShowDeleteConfirm(null)
+      loadUsers()
+    } catch (error: any) {
+      toast.error(error.message || t('common_error'))
+    }
   }
 
   async function saveBusiness() {
@@ -978,31 +923,17 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
 
     setLoading(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return toast.error(t('common_error'))
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users/create`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            full_name: form.full_name,
-            email: form.email,
-            password: form.password,
-            phone: form.phone,
-            role: form.role,
-            is_active: form.status === 'active',
-            permissions,
-          }),
-        },
-      )
-      const json = await res.json()
-      if (json.success) {
-        toast.success(t('common_added'))
-        onClose()
-      } else {
-        toast.error(json.error || t('common_error'))
-      }
+      await createTeamUser({
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        role: form.role,
+      })
+      toast.success(t('common_added'))
+      onClose()
+    } catch (error: any) {
+      toast.error(error.message || t('common_error'))
     } finally {
       setLoading(false)
     }
@@ -1166,23 +1097,17 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
     }
     setLoading(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return toast.error(t('common_error'))
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users/create`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        }
-      )
-      const json = await res.json()
-      if (json.success) {
-        toast.success(t('common_added'))
-        onClose()
-      } else {
-        toast.error(json.error || t('common_error'))
-      }
+      await createTeamUser({
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        role: form.role,
+      })
+      toast.success(t('common_added'))
+      onClose()
+    } catch (error: any) {
+      toast.error(error.message || t('common_error'))
     } finally {
       setLoading(false)
     }

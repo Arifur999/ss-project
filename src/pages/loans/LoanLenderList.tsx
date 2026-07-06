@@ -225,7 +225,8 @@ export default function LoanLenderList() {
   }
 
   async function lenderHasTransactionHistory(item: any) {
-    const checks = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const checks: any[] = []
 
     if (item.id && isUuid(String(item.id))) {
       checks.push(

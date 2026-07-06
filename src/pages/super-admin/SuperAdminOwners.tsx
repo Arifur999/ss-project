@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'
 import { LiveOwner, OwnerPlan, OwnerStatus, PlanType, daysLeft, formatDate, formatLastActive, isOwnerOnline, loadOwners, planTypeLabel, registeredDays } from './superAdminLive'
-import { supabase } from '../../lib/supabase'
+import { grantTrialExtension, updateOwnerSubscription } from '../../services/admin.services'
 
 const statusClass: Record<OwnerStatus, string> = {
   pending: 'badge-orange',
@@ -119,25 +119,9 @@ export default function SuperAdminOwners() {
   }
 
   async function updateSubscription(ownerId: string, payload: Record<string, any>, successMessage: string) {
-    if (setupMissing) {
-      toast.error('Apply the Supabase owner subscription migration first')
-      return
-    }
-
-    let { error } = await supabase
-      .from('owner_subscriptions')
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq('owner_id', ownerId)
-
-    if (error && isMissingExpiryDateColumn(error)) {
-      const retry = await supabase
-        .from('owner_subscriptions')
-        .update({ ...withoutExpiryDate(payload), updated_at: new Date().toISOString() })
-        .eq('owner_id', ownerId)
-      error = retry.error
-    }
-
-    if (error) {
+    try {
+      await updateOwnerSubscription(ownerId, payload)
+    } catch (error: any) {
       toast.error(error.message)
       return
     }
@@ -180,37 +164,9 @@ export default function SuperAdminOwners() {
   }
 
   async function grantSevenDayTrial(owner: LiveOwner) {
-    if (setupMissing) {
-      toast.error('Apply the Supabase owner subscription migration first')
-      return
-    }
-
-    const { error } = await supabase.rpc('grant_owner_trial_extension', {
-      target_owner_id: owner.owner_id,
-    })
-
-    if (error) {
-      if (isMissingExpiryDateColumn(error)) {
-        const base = new Date(owner.expiryDate || owner.activeUntil || Date.now())
-        if (base.getTime() < Date.now()) base.setTime(Date.now())
-        base.setDate(base.getDate() + 7)
-        const fallback = await supabase
-          .from('owner_subscriptions')
-          .update({
-            status: 'active',
-            plan_status: 'active',
-            active_until: base.toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('owner_id', owner.owner_id)
-        if (!fallback.error) {
-          toast.success('Granted +7 days trial')
-          await refreshOwners()
-          return
-        }
-        toast.error(fallback.error.message)
-        return
-      }
+    try {
+      await grantTrialExtension(owner.owner_id)
+    } catch (error: any) {
       toast.error(error.message)
       return
     }
