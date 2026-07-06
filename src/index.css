@@ -1,0 +1,1079 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
+    background-color: #f0f4f8;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-slate-300 hover:bg-navy-700 hover:text-white;
+  }
+  .sidebar-link.active {
+    @apply bg-brand-green text-white;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-100 p-5;
+  }
+  .btn-primary {
+    @apply bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+  }
+  .btn-secondary {
+    @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+  }
+  .btn-danger {
+    @apply bg-brand-red hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+  }
+  .input {
+    @apply w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent bg-white;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-600 mb-1;
+  }
+  .table-header {
+    @apply sticky top-0 z-10 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wide;
+  }
+  table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f8fafc;
+  }
+  table thead tr,
+  table thead th {
+    background-color: inherit;
+  }
+  table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .table-row {
+    @apply border-b border-slate-50 hover:bg-slate-50 transition-colors;
+  }
+  .stat-card {
+    @apply card flex items-center gap-4;
+  }
+  .employee-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+  .employee-summary-grid .card {
+    min-width: 0;
+    padding: 18px;
+  }
+  .employee-summary-grid .card p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .employee-summary-grid .card [class*="w-10"] {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .badge-green {
+    @apply bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-red {
+    @apply bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-orange {
+    @apply bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-blue {
+    @apply bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 12mm 15mm;
+}
+
+.invoice-print-page {
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 0.28in;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.invoice-print-inner {
+  min-height: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 0.28in;
+  overflow: hidden;
+}
+
+.sales-invoice-print-page {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  padding: 4mm;
+}
+
+.sales-invoice-print-inner {
+  padding: 0.18in 0.24in;
+}
+
+.due-receipt-print-page {
+  width: 7in;
+  height: 6in;
+  margin: 0 auto;
+  padding: 12px;
+  box-shadow: none;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+.due-receipt-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border: 1px solid #1e293b;
+  padding: 14px;
+  overflow: hidden;
+  background: white;
+  box-sizing: border-box;
+  font-size: 11px;
+}
+
+.due-receipt-inner::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid #334155;
+  pointer-events: none;
+}
+
+.due-receipt-corner {
+  position: absolute;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  background: white;
+}
+
+.due-receipt-corner-tl { left: 3px; top: 3px; border-right: 1px solid #334155; border-bottom: 1px solid #334155; border-bottom-right-radius: 22px; }
+.due-receipt-corner-tr { right: 3px; top: 3px; border-left: 1px solid #334155; border-bottom: 1px solid #334155; border-bottom-left-radius: 22px; }
+.due-receipt-corner-bl { left: 3px; bottom: 3px; border-right: 1px solid #334155; border-top: 1px solid #334155; border-top-right-radius: 22px; }
+.due-receipt-corner-br { right: 3px; bottom: 3px; border-left: 1px solid #334155; border-top: 1px solid #334155; border-top-left-radius: 22px; }
+
+.due-receipt-header {
+  position: relative;
+  z-index: 2;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.due-receipt-header h1 {
+  margin-top: 2px;
+  font-size: 18px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.due-receipt-header p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.due-receipt-header .due-receipt-title {
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.due-receipt-header .due-receipt-contact,
+.due-receipt-header .due-receipt-address {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.due-receipt-ornament {
+  position: relative;
+  z-index: 2;
+  margin: 6px auto 8px;
+  width: 86%;
+  border-top: 1px solid #334155;
+  text-align: center;
+}
+
+.due-receipt-ornament span {
+  position: relative;
+  top: -9px;
+  display: inline-block;
+  width: 58px;
+  background: white;
+}
+
+.due-receipt-ornament span::before,
+.due-receipt-ornament span::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 8px;
+  background: #334155;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.due-receipt-meta,
+.due-receipt-customer {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  border-bottom: 1px solid #94a3b8;
+  padding-bottom: 8px;
+  font-size: 11px;
+}
+
+.due-receipt-customer {
+  margin-top: 8px;
+}
+
+.due-receipt-meta > div,
+.due-receipt-customer > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.due-receipt-icon {
+  display: none;
+  width: 4.8mm;
+  height: 4.8mm;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #0f172a;
+  border-radius: 1.5mm;
+  font-size: 0;
+  flex: 0 0 auto;
+}
+
+.due-receipt-financial {
+  position: relative;
+  z-index: 2;
+  margin-top: 12px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+
+.due-receipt-fin-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 29px;
+  border-bottom: 1px dashed #94a3b8;
+}
+
+.due-receipt-fin-row:last-child {
+  border-bottom: 0;
+}
+
+.due-receipt-fin-row > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+}
+
+.due-receipt-fin-row > div:last-child {
+  justify-content: flex-end;
+  border-left: 1px solid #94a3b8;
+  text-align: right;
+}
+
+.due-receipt-current-due {
+  border-top: 1px solid #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.due-receipt-current-due > div:last-child {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.due-receipt-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  border-top: 1px solid #334155;
+  padding-top: 8px;
+  text-align: right;
+  font-size: 11px;
+}
+
+.due-receipt-receiver-signature {
+  width: 170px;
+  margin-left: auto;
+  margin-right: 45px;
+  text-align: center;
+}
+
+.due-receipt-receiver-name {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.due-receipt-sign-line {
+  width: 100%;
+  margin: 0;
+  border-top: 1px dashed #64748b;
+}
+
+.due-receipt-receiver-label {
+  margin: 3px 0 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.due-receipt-thanks {
+  margin-top: 8px;
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  font-style: italic;
+}
+
+.product-tag-print-area {
+  display: none;
+}
+
+.customer-ledger-print {
+  display: none;
+}
+
+.expense-transactions-print {
+  display: none;
+}
+
+.product-tag-card {
+  position: relative;
+  width: 3in;
+  height: 7in;
+  min-width: 3in;
+  min-height: 7in;
+  max-width: 3in;
+  max-height: 7in;
+  display: block;
+  overflow: hidden;
+  border: 1px solid #000000;
+  background: #f3f8f7;
+  color: #000000;
+  box-sizing: border-box;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
+}
+
+.product-tag-top-heading {
+  position: absolute;
+  top: 0.12in;
+  left: 0.18in;
+  right: 0.18in;
+  height: 0.72in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #061923;
+  text-align: center;
+  font-size: clamp(0.18in, 0.24in, 0.26in);
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+  overflow: hidden;
+  white-space: normal;
+  text-wrap: balance;
+}
+
+.product-tag-section {
+  position: absolute;
+  left: 0.33in;
+  width: 2.34in;
+}
+
+.product-tag-name-section {
+  top: 1.03in;
+}
+
+.product-tag-description-section {
+  top: 2.42in;
+}
+
+.product-tag-regular-price-section {
+  top: 3.85in;
+}
+
+.product-tag-image-section {
+  position: absolute;
+  top: 5.05in;
+  left: 0.76in;
+  width: 1.48in;
+}
+
+.product-tag-label {
+  display: flex;
+  align-items: center;
+  height: 0.35in;
+  margin: 0;
+  border-radius: 0.04in;
+  background: #061923;
+  color: #ffffff;
+  padding: 0 0.2in;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.16in;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.product-tag-value-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.14in;
+  width: 100%;
+  border: 0;
+  border-radius: 0.04in;
+  background: #ffffff;
+  padding: 0.06in 0.1in;
+  text-align: center;
+  overflow: hidden;
+}
+
+.product-tag-name-box {
+  height: 0.62in;
+}
+
+.product-tag-description-box {
+  height: 0.9in;
+  flex-direction: column;
+  gap: 0.08in;
+}
+
+.product-tag-price-box {
+  height: 0.62in;
+}
+
+.product-tag-name,
+.product-tag-description-line,
+.product-tag-price {
+  margin: 0;
+  color: #000000;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.product-tag-name {
+  font-size: 0.16in;
+  font-weight: 600;
+}
+
+.product-tag-description-line {
+  font-size: 0.15in;
+  font-weight: 700;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-tag-price {
+  font-size: 0.26in;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.product-tag-image-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0.68in;
+  max-height: 0.85in;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.product-tag-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 0.85in;
+  object-fit: contain;
+}
+
+.product-tag-image-empty {
+  color: #64748b;
+  font-size: 0.08in;
+  font-weight: 700;
+}
+
+.product-tag-footer-row {
+  position: absolute;
+  left: 0.18in;
+  right: 0.18in;
+  bottom: 0.14in;
+  min-height: 0.58in;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-top: 1px solid #061923;
+  padding-top: 0.05in;
+  color: #061923;
+  text-align: center;
+  font-size: 0.095in;
+  font-weight: 700;
+  line-height: 1.16;
+  overflow: hidden;
+}
+
+.product-tag-footer-row span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@page product-tags {
+  size: A4 portrait;
+  margin: 0.25in;
+}
+
+@media print {
+  @page {
+    size: A4 !important;
+    margin: 12mm 15mm !important;
+  }
+
+  @page due-receipt {
+    size: 7in 6in !important;
+    size: 7in 6in portrait !important;
+    margin: 0 !important;
+  }
+
+  html,
+  body {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .no-print,
+  .print-hide,
+  aside,
+  header,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  .invoice-print-page,
+  .invoice-print-page * {
+    visibility: visible;
+  }
+
+  .invoice-print-page {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 6mm !important;
+    box-shadow: none;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .sales-invoice-print-page {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  .sales-invoice-print-inner {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 4mm 5mm !important;
+    border: 1px solid #cbd5e1 !important;
+    overflow: visible !important;
+  }
+
+  .invoice-print-inner {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .invoice-print-page table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .invoice-print-page th,
+  .invoice-print-page td {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  tr,
+  .invoice-card,
+  .summary-box,
+  .invoice-print-page table,
+  .invoice-print-page thead,
+  .invoice-print-page tbody,
+  .invoice-print-page tfoot {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .due-receipt-print-page {
+    page: due-receipt;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 7in !important;
+    height: 6in !important;
+    min-width: 7in !important;
+    min-height: 6in !important;
+    max-width: 7in !important;
+    max-height: 6in !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    transform-origin: top left;
+    transform: none !important;
+  }
+
+  .customer-ledger-print,
+  .customer-ledger-print * {
+    visibility: visible !important;
+  }
+
+  .customer-ledger-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .customer-ledger-print h1 {
+    margin: 0 0 12px;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 8px;
+    color: #0f172a;
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .customer-ledger-print h2 {
+    margin: 14px 0 8px;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .customer-ledger-print-profile {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #cbd5e1;
+    padding: 10px;
+  }
+
+  .customer-ledger-print-profile div {
+    min-width: 0;
+  }
+
+  .customer-ledger-print-profile span {
+    display: block;
+    margin-bottom: 2px;
+    color: #475569;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .customer-ledger-print-profile strong {
+    display: block;
+    color: #0f172a;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+
+  .customer-ledger-print table {
+    width: 100% !important;
+    border-collapse: collapse;
+    table-layout: fixed;
+    color: #0f172a;
+    font-size: 8px;
+  }
+
+  .customer-ledger-print th,
+  .customer-ledger-print td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 4px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .customer-ledger-print th {
+    background: #f1f5f9 !important;
+    color: #334155;
+    font-weight: 800;
+    text-align: left;
+  }
+
+  .customer-ledger-print th:nth-child(1),
+  .customer-ledger-print td:nth-child(1) {
+    width: 4%;
+  }
+
+  .customer-ledger-print th:nth-child(2),
+  .customer-ledger-print td:nth-child(2),
+  .customer-ledger-print th:nth-child(3),
+  .customer-ledger-print td:nth-child(3) {
+    width: 9%;
+  }
+
+  .customer-ledger-print th:nth-child(4),
+  .customer-ledger-print td:nth-child(4) {
+    width: 23%;
+  }
+
+  .customer-ledger-print th:nth-child(n+5),
+  .customer-ledger-print td:nth-child(n+5) {
+    width: 11%;
+    text-align: right;
+  }
+
+  .customer-ledger-print td strong,
+  .customer-ledger-print td span {
+    display: block;
+  }
+
+  .customer-ledger-print td span {
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 7px;
+  }
+
+  .expense-transactions-print,
+  .expense-transactions-print * {
+    visibility: visible !important;
+  }
+
+  .expense-transactions-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .expense-transactions-print h1 {
+    margin: 0 0 12px;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 8px;
+    color: #0f172a;
+    font-size: 24px;
+    font-weight: 800;
+    text-align: left;
+  }
+
+  .expense-transactions-print table {
+    width: 100% !important;
+    border-collapse: collapse;
+    table-layout: fixed;
+    color: #0f172a;
+    font-size: 9px;
+  }
+
+  .expense-transactions-print thead {
+    display: table-header-group;
+  }
+
+  .expense-transactions-print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .expense-transactions-print th,
+  .expense-transactions-print td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 4px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .expense-transactions-print th {
+    background: #f1f5f9 !important;
+    color: #334155;
+    font-weight: 800;
+    text-align: left;
+  }
+
+  .expense-transactions-print th:nth-child(1),
+  .expense-transactions-print td:nth-child(1) {
+    width: 4%;
+  }
+
+  .expense-transactions-print th:nth-child(2),
+  .expense-transactions-print td:nth-child(2) {
+    width: 12%;
+  }
+
+  .expense-transactions-print th:nth-child(3),
+  .expense-transactions-print td:nth-child(3) {
+    width: 22%;
+  }
+
+  .expense-transactions-print th:nth-child(4),
+  .expense-transactions-print td:nth-child(4) {
+    width: 12%;
+    text-align: right;
+  }
+
+  .expense-transactions-print th:nth-child(5),
+  .expense-transactions-print td:nth-child(5) {
+    width: 16%;
+  }
+
+  .due-receipt-print-page,
+  .due-receipt-print-page * {
+    box-sizing: border-box;
+  }
+
+  .due-receipt-print-page,
+  .due-receipt-print-page * {
+    visibility: visible;
+  }
+
+  .due-receipt-inner {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: calc(6in - 24px) !important;
+    overflow: hidden !important;
+  }
+
+  body.product-tag-printing {
+    width: 210mm !important;
+    height: auto !important;
+    background: #ffffff !important;
+  }
+
+  body.product-tag-printing * {
+    visibility: hidden !important;
+  }
+
+  body.product-tag-printing .product-list-screen,
+  body.product-tag-printing aside,
+  body.product-tag-printing .sidebar-link,
+  body.product-tag-printing .card,
+  body.product-tag-printing .modal,
+  body.product-tag-printing button {
+    display: none !important;
+  }
+
+  body.product-tag-printing .product-tag-print-area,
+  body.product-tag-printing .product-tag-print-area * {
+    visibility: visible !important;
+  }
+
+  body.product-tag-printing .product-tag-print-area {
+    page: product-tags;
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 3in);
+    grid-auto-rows: 7in;
+    gap: 0.16in;
+    width: 100% !important;
+    max-width: 7.7in !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body.product-tag-printing .product-tag-card {
+    position: relative !important;
+    display: block !important;
+    width: 3in !important;
+    height: 7in !important;
+    min-width: 3in !important;
+    min-height: 7in !important;
+    max-width: 3in !important;
+    max-height: 7in !important;
+    margin: 0 !important;
+    border: 1px solid #000000 !important;
+    background: #f3f8f7 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body.product-tag-printing .product-tag-card * {
+    visibility: visible !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body.product-tag-printing .product-tag-label {
+    display: flex !important;
+    align-items: center !important;
+    background: #061923 !important;
+    color: #ffffff !important;
+    border: 0 !important;
+  }
+
+  body.product-tag-printing .product-tag-value-box {
+    background: #ffffff !important;
+    border: 0 !important;
+  }
+
+  body.product-tag-printing .product-tag-image-box {
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  body.product-tag-printing .product-tag-image {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  body.product-tag-printing .product-tag-top-heading,
+  body.product-tag-printing .product-tag-footer-row {
+    display: flex !important;
+    color: #061923 !important;
+    background: transparent !important;
+  }
+
+  body.product-tag-printing .product-tag-footer-row {
+    border-top: 1px solid #061923 !important;
+  }
+
+  body.product-tag-printing .product-tag-name,
+  body.product-tag-printing .product-tag-description-line,
+  body.product-tag-printing .product-tag-price {
+    color: #000000 !important;
+  }
+
+  body.product-tag-printing .product-tag-description-line,
+  body.product-tag-printing .product-tag-footer-row span {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body.product-tag-printing .product-tag-card:nth-child(2n) {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+}
