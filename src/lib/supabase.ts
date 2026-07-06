@@ -54,6 +54,8 @@ const TABLES: Record<string, TableConfig> = {
   salary_transactions: { list: '/salary-transactions', create: '/salary-transactions', update: (id) => `/salary-transactions/${id}`, remove: (id) => `/salary-transactions/${id}` },
   attendance: { list: '/attendance', upsertPut: '/attendance', remove: (id) => `/attendance/${id}` },
   owner_subscriptions: { list: '/subscriptions/my' },
+  // Team profiles (owner-only endpoint; other roles degrade to an empty list).
+  profiles: { list: '/users/list' },
 }
 
 type Filter =
