@@ -26,6 +26,7 @@ export const getSubscriptionPayments = () => http.get<any[]>('/super-admin/payme
 export const updateSubscriptionPayment = (id: string, payload: any) => http.patch<any>(`/super-admin/payments/${id}`, payload)
 export const getAdminActivities = (limit = 100) => http.get<any[]>(`/super-admin/activities?limit=${limit}`)
 export const getSuperAdminStats = () => http.get<any>('/super-admin/stats')
+export const getSuperAdminReports = () => http.get<any>('/super-admin/reports')
 
 // ---------- Recycle bin ----------
 export const getRecycleBinItems = (type?: string) =>
