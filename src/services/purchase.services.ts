@@ -12,6 +12,10 @@ export const receivePurchaseItem = (purchaseId: string, payload: any) =>
   http.post<any>(`/purchases/${purchaseId}/receive`, payload)
 export const updatePurchaseReceive = (receiveId: string, receivedQty: number) =>
   http.patch<any>(`/purchases/receives/${receiveId}`, { received_qty: receivedQty })
+export const deletePurchaseReceive = (receiveId: string) =>
+  http.delete<any>(`/purchases/receives/${receiveId}`)
+export const setPurchaseItemReceivedQty = (itemId: string, receivedQty: number) =>
+  http.patch<any>(`/purchases/items/${itemId}/received-qty`, { received_qty: receivedQty })
 export const deletePurchase = (id: string, recycle?: RecycleMeta) => http.delete<any>(`/purchases/${id}`, { recycle })
 
 // ---------- Supplier payments ----------

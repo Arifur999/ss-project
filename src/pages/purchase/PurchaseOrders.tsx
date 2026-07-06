@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { createPurchase as createPurchaseRequest, deletePurchaseReceive, receivePurchaseItem, updatePurchaseReceive } from '../../services/purchase.services'
 import { createOpeningStockBatch, createReceiveStockBatch } from '../../lib/fifoInventory'
 
 interface PurchaseItem {
@@ -369,9 +370,9 @@ export default function PlaceOrder() {
     try {
       const sup = suppliers.find(s => s.id === form.supplier_id)
       const due = totalAmount
-      console.log('Saving purchase:', { si_no: form.si_no, supplier_id: form.supplier_id, date: form.date, totalAmount, due })
 
-      const { data: po, error } = await supabase.from('purchases').insert({
+      // One transactional request creates the purchase with all items.
+      await createPurchaseRequest({
         si_no: form.si_no,
         supplier_id: form.supplier_id,
         supplier_name: sup?.name || '',
@@ -382,43 +383,21 @@ export default function PlaceOrder() {
         net_amount: totalAmount,
         paid_amount: 0,
         due_amount: due,
-        created_by: user?.id,
-      }).select().maybeSingle()
+        items: items.map(i => ({
+          product_id: dbProductId(i.product_id),
+          product_code: i.product_code,
+          product_name: i.product_name,
+          dp_price: i.dp_price,
+          discount_pct: i.discount_pct,
+          actual_dp: i.actual_dp,
+          qty: i.qty,
+          total_amount: i.total_amount,
+          sp_pct: 0,
+          sp_amount: i.sp_amount,
+          received_qty: 0,
+        })),
+      })
 
-      if (error) {
-        console.error('Purchase insert error:', error)
-        return toast.error(`Error: ${error.message}`)
-      }
-
-      if (!po) {
-        console.error('No purchase returned')
-        return toast.error('Failed to create purchase')
-      }
-
-      console.log('Purchase created:', po.id)
-
-      const itemsToInsert = items.map(i => ({
-        purchase_id: po.id,
-        product_id: dbProductId(i.product_id),
-        product_code: i.product_code,
-        product_name: i.product_name,
-        dp_price: i.dp_price,
-        discount_pct: i.discount_pct,
-        actual_dp: i.actual_dp,
-        qty: i.qty,
-        total_amount: i.total_amount,
-        sp_pct: 0,
-        sp_amount: i.sp_amount,
-        received_qty: 0,
-      }))
-
-      const { error: itemError } = await supabase.from('purchase_items').insert(itemsToInsert)
-      if (itemError) {
-        console.error('Item insert error:', itemError)
-        return toast.error(`Items error: ${itemError.message}`)
-      }
-
-      console.log('Items inserted successfully')
       await touchOwnerActivity(true)
       toast.success(t('common_saved'))
       setShowModal(false)
@@ -437,64 +416,17 @@ export default function PlaceOrder() {
 
   async function saveReceive() {
     if (!receiveItem) return
-    const { data: pi } = await supabase
-      .from('purchase_items')
-      .select('*, products(selling_price)')
-      .eq('id', receiveItem.id)
-      .maybeSingle()
-    if (!pi) return
 
-    const { data: receiveRow, error: receiveError } = await supabase
-      .from('purchase_receives')
-      .insert({
-        purchase_id: receiveItem.purchase_id, purchase_item_id: receiveItem.id,
-        ...receiveForm, created_by: user?.id,
-      })
-      .select('id')
-      .maybeSingle()
-    if (receiveError) throw receiveError
-
-    const newReceivedQty = (pi.received_qty || 0) + receiveForm.received_qty
-    await supabase.from('purchase_items').update({ received_qty: newReceivedQty }).eq('id', receiveItem.id)
-
-    const { data: inv } = await supabase.from('inventory').select('*').eq('product_id', pi.product_id).maybeSingle()
-    if (inv) {
-      await supabase.from('inventory').update({
-        available_qty: inv.available_qty + receiveForm.received_qty,
-        upcoming_qty: Math.max(0, inv.upcoming_qty - receiveForm.received_qty),
-        updated_at: new Date().toISOString()
-      }).eq('id', inv.id)
-    } else {
-      await supabase.from('inventory').insert({
-        product_id: pi.product_id, branch_id: null,
-        available_qty: receiveForm.received_qty, upcoming_qty: 0,
-      })
-    }
-
-    await createReceiveStockBatch({
-      productId: pi.product_id,
-      purchaseItemId: pi.id,
-      purchaseReceiveId: receiveRow?.id,
-      qty: receiveForm.received_qty,
-      dpPrice: Number(pi.actual_dp || pi.dp_price || 0),
-      mrpPrice: Number((Array.isArray(pi.products) ? pi.products[0] : pi.products)?.selling_price || 0),
-      receiveDate: receiveForm.receive_date,
-      userId: user?.id,
+    // The backend records the receive, bumps item/inventory quantities,
+    // creates the FIFO batch and refreshes the shipping status atomically.
+    await receivePurchaseItem(receiveItem.purchase_id, {
+      purchase_item_id: receiveItem.id,
+      receive_date: receiveForm.receive_date,
+      receiver_name: receiveForm.receiver_name,
+      received_qty: receiveForm.received_qty,
+      condition: receiveForm.condition,
+      notes: receiveForm.notes,
     })
-
-    await supabase.from('inventory_history').insert({
-      product_id: pi.product_id, product_name: pi.product_name,
-      change_type: 'purchase_in', qty_change: receiveForm.received_qty,
-      reference_id: receiveItem.purchase_id, reference_type: 'purchase',
-      notes: `Received from purchase ${receiveItem.si_no}`, created_by: user?.id,
-    })
-
-    const { data: allItems } = await supabase.from('purchase_items').select('*').eq('purchase_id', receiveItem.purchase_id)
-    const allReceived = (allItems || []).every(i => (i.received_qty || 0) >= i.qty)
-    const someReceived = (allItems || []).some(i => (i.received_qty || 0) > 0)
-    await supabase.from('purchases').update({
-      shipping_status: allReceived ? 'received' : someReceived ? 'partial' : 'pending'
-    }).eq('id', receiveItem.purchase_id)
 
     await touchOwnerActivity(true)
     toast.success(t('common_saved'))
@@ -505,12 +437,8 @@ export default function PlaceOrder() {
   async function handleEditReceive() {
     if (!editingReceiveId || editReceiveQty < 0) return
     try {
-      const { error } = await supabase
-        .from('purchase_receives')
-        .update({ received_qty: editReceiveQty })
-        .eq('id', editingReceiveId)
-
-      if (error) throw error
+      // Adjusts receive qty, item totals, inventory and FIFO batch server-side.
+      await updatePurchaseReceive(editingReceiveId, editReceiveQty)
       await touchOwnerActivity(true)
       toast.success('Updated successfully')
       setShowEditReceiveModal(false)
@@ -525,12 +453,7 @@ export default function PlaceOrder() {
   async function handleDeleteReceive(receiveId: string) {
     if (!(await confirmAction({ message: 'Delete this receiving record?' }))) return
     try {
-      const { error } = await supabase
-        .from('purchase_receives')
-        .delete()
-        .eq('id', receiveId)
-
-      if (error) throw error
+      await deletePurchaseReceive(receiveId)
       await touchOwnerActivity(true)
       toast.success('Deleted successfully')
       loadAll()

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Download, Image } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { setInventoryDpPrice } from '../services/product.services'
 import PageHeader from '../components/PageHeader'
 import { useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'
@@ -267,35 +268,8 @@ export default function Inventory() {
         console.warn('Inventory rows could not be loaded', error)
         return []
       })
-      const inventoryProductIds = new Set((inventoryRows || []).map(inv => inv.product_id))
-      const missingProducts = (productRows || []).filter(product => !inventoryProductIds.has(product.id))
-      const creatableMissingProducts = missingProducts.filter(product => isUuid(product.id))
-
-      for (const chunk of chunkArray(creatableMissingProducts, insertChunkSize)) {
-        const { error } = await supabase.from('inventory').insert(chunk.map(product => ({
-          product_id: product.id,
-          available_qty: Number(openingQtyMap[product.id] || 0),
-          upcoming_qty: 0,
-          dp_price: product.cost_price || null,
-        })))
-        if (error && !isDuplicateError(error)) {
-          console.warn('Inventory rows could not be auto-created', error)
-        }
-      }
-
-      if (creatableMissingProducts.length > 0) {
-        inventoryRows = await fetchPaged<any>((from, to) =>
-          supabase
-            .from('inventory')
-            .select('*')
-            .is('branch_id', null)
-            .range(from, to)
-        ).catch(error => {
-          console.warn('Inventory rows could not be reloaded', error)
-          return inventoryRows
-        })
-      }
-
+      // Inventory rows are owned and auto-created by the backend now
+      // (product create bootstraps them) - no client-side reconciliation.
       const productById = new Map((productRows || []).map(product => [product.id, product]))
       const activeInventoryRows = (inventoryRows || [])
       .map(inv => ({ ...inv, products: productById.get(inv.product_id) || inv.products }))
@@ -342,25 +316,6 @@ export default function Inventory() {
       for (const r of enriched) initial[r.id] = r.dp_price != null ? String(r.dp_price) : ''
       setDpEdits(initial)
       writeInventoryCache({ search: searchRef.current, statusFilter })
-
-      for (const row of enriched) {
-        const current = (inventoryRows || []).find(inv => inv.id === row.id)
-        if (!current) continue
-        const currentDp = current.dp_price == null ? null : Number(current.dp_price)
-        const rowDp = row.dp_price == null ? null : Number(row.dp_price)
-        if (
-          Number(current.available_qty || 0) === Number(row.available_qty || 0) &&
-          currentDp === rowDp
-        ) continue
-
-        const { error: updateError } = await supabase
-          .from('inventory')
-          .update({ available_qty: row.available_qty, dp_price: row.dp_price, updated_at: new Date().toISOString() })
-          .eq('id', row.id)
-        if (updateError) {
-          console.warn('Inventory row could not be synced', updateError)
-        }
-      }
     } catch (error: any) {
       toast.error(error.message || 'ইনভেন্টরি লোড করা যায়নি')
       console.error(error)
@@ -381,20 +336,8 @@ export default function Inventory() {
     const num = val === '' ? null : Number(val)
     setSavingDp(prev => ({ ...prev, [row.id]: true }))
     try {
-      const { error } = await supabase.from('inventory').update({ dp_price: num }).eq('id', row.id)
-      if (error) throw error
-
-      if (num !== null) {
-        const { error: batchError } = await supabase
-          .from('inventory_batches')
-          .update({ dp_price: num })
-          .eq('product_id', row.product_id)
-          .eq('source_type', 'opening_stock')
-
-        if (batchError && !String(batchError.message || '').includes('inventory_batches')) {
-          throw batchError
-        }
-      }
+      // Updates the inventory row + opening stock batches server-side.
+      await setInventoryDpPrice(row.product_id, num)
       toast.success(t('inventory_dpSaved'))
       load()
     } catch (err: any) {

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { createReceiveStockBatch } from '../../lib/fifoInventory'
+import { deletePurchaseReceive, receivePurchaseItem, setPurchaseItemReceivedQty } from '../../services/purchase.services'
 
 interface PendingProduct {
   id: string
@@ -210,99 +211,16 @@ export default function ReceiveProduct() {
 
     setSubmitting(true)
     try {
-      const { data: receiveRow, error } = await supabase
-        .from('purchase_receives')
-        .insert({
-          purchase_item_id: selectedItem.id,
-          purchase_id: selectedItem.purchase_id,
-          receive_date: receiveDate,
-          received_qty: receiveQty,
-          receiver_name: receiverName,
-          condition: 'good',
-          notes: receiveNote,
-          created_by: user?.id,
-        })
-        .select('id')
-        .maybeSingle()
-
-      if (error) throw error
-
-      await supabase
-        .from('purchase_items')
-        .update({ received_qty: Number(selectedItem.received_qty || 0) + receiveQty })
-        .eq('id', selectedItem.id)
-
-      const { data: product } = await supabase
-        .from('products')
-        .select('selling_price')
-        .eq('id', selectedItem.product_id)
-        .maybeSingle()
-
-      const { data: inv } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('product_id', selectedItem.product_id)
-        .maybeSingle()
-
-      if (inv) {
-        await supabase.from('inventory').update({
-          available_qty: Number(inv.available_qty || 0) + receiveQty,
-          upcoming_qty: Math.max(0, Number(inv.upcoming_qty || 0) - receiveQty),
-          updated_at: new Date().toISOString(),
-        }).eq('id', inv.id)
-      } else {
-        await supabase.from('inventory').insert({
-          product_id: selectedItem.product_id,
-          branch_id: null,
-          available_qty: receiveQty,
-          upcoming_qty: 0,
-        })
-      }
-
-      await createReceiveStockBatch({
-        productId: selectedItem.product_id,
-        purchaseItemId: selectedItem.id,
-        purchaseReceiveId: receiveRow?.id,
-        qty: receiveQty,
-        dpPrice: Number(selectedItem.actual_dp || 0),
-        mrpPrice: Number(product?.selling_price || 0),
-        receiveDate,
-        userId: user?.id,
+      // The backend records the receive, updates the item/inventory/FIFO batch
+      // and refreshes the purchase shipping status in one transaction.
+      await receivePurchaseItem(selectedItem.purchase_id, {
+        purchase_item_id: selectedItem.id,
+        receive_date: receiveDate,
+        received_qty: receiveQty,
+        receiver_name: receiverName,
+        condition: 'good',
+        notes: receiveNote,
       })
-
-      await supabase.from('inventory_history').insert({
-        product_id: selectedItem.product_id,
-        product_name: selectedItem.product_name,
-        change_type: 'purchase_in',
-        qty_change: receiveQty,
-        reference_id: selectedItem.purchase_id,
-        reference_type: 'purchase',
-        notes: `Received from purchase ${selectedItem.si_no}`,
-        created_by: user?.id,
-      })
-
-      // Update purchase shipping status
-      const { data: allItems } = await supabase
-        .from('purchase_items')
-        .select('*, purchase_receives(received_qty)')
-        .eq('purchase_id', selectedItem.purchase_id)
-
-      if (allItems) {
-        const allReceived = allItems.every(i => {
-          const totalRcvd = (i.purchase_receives || []).reduce((sum: number, r: any) => sum + (r.received_qty || 0), 0)
-          return totalRcvd >= i.qty
-        })
-        const someReceived = allItems.some(i => {
-          const totalRcvd = (i.purchase_receives || []).reduce((sum: number, r: any) => sum + (r.received_qty || 0), 0)
-          return totalRcvd > 0
-        })
-
-        const newStatus = allReceived ? 'received' : someReceived ? 'partial' : 'pending'
-        await supabase
-          .from('purchases')
-          .update({ shipping_status: newStatus })
-          .eq('id', selectedItem.purchase_id)
-      }
 
       await touchOwnerActivity(true)
       toast.success('Product received successfully')
@@ -323,12 +241,16 @@ export default function ReceiveProduct() {
   async function deleteReceive(itemId: string) {
     setDeleting(true)
     try {
-      const { error } = await supabase
+      // Delete every receive row of this purchase item (server reverses
+      // inventory + FIFO effects per receive).
+      const { data: receives } = await supabase
         .from('purchase_receives')
-        .delete()
+        .select('id')
         .eq('purchase_item_id', itemId)
 
-      if (error) throw error
+      for (const receive of receives || []) {
+        await deletePurchaseReceive(receive.id)
+      }
 
       await touchOwnerActivity(true)
       toast.success('Record deleted successfully')
@@ -345,12 +267,7 @@ export default function ReceiveProduct() {
     if (editingId && editQty >= 0) {
       setSubmitting(true)
       try {
-        const { error } = await supabase
-          .from('purchase_items')
-          .update({ received_qty: editQty })
-          .eq('id', editingId)
-
-        if (error) throw error
+        await setPurchaseItemReceivedQty(editingId, editQty)
 
         await touchOwnerActivity(true)
         toast.success('Updated successfully')

@@ -16,6 +16,8 @@ export const getInventoryHistory = (productId?: string) =>
 export const getInventoryBatches = (productId?: string) =>
   http.get<any[]>(productId ? `/inventory/batches?product_id=${productId}` : '/inventory/batches')
 export const adjustInventory = (payload: any) => http.post<any>('/inventory/adjust', payload)
+export const setInventoryDpPrice = (productId: string, dpPrice: number | null) =>
+  http.patch<any>('/inventory/dp-price', { product_id: productId, dp_price: dpPrice })
 
 // ---------- Uploads ----------
 export const uploadImage = async (file: File) => {
