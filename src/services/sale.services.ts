@@ -8,6 +8,9 @@ export const createSale = (payload: any) => http.post<any>('/sales', payload)
 export const updateSale = (id: string, payload: any) => http.put<any>(`/sales/${id}`, payload)
 export const deleteSale = (id: string, recycle?: RecycleMeta) => http.delete<any>(`/sales/${id}`, { recycle })
 
+export const setManualSaleItemCost = (itemId: string, unitCost: number) =>
+  http.post<any>(`/sales/items/${itemId}/manual-cost`, { unit_cost: unitCost })
+
 // ---------- Deliveries ----------
 export const addSaleDelivery = (saleId: string, payload: any) => http.post<any>(`/sales/${saleId}/deliveries`, payload)
 export const deleteSaleDelivery = (deliveryId: string) => http.delete<any>(`/sales/deliveries/${deliveryId}`)

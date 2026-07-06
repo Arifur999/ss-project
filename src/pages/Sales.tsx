@@ -12,6 +12,7 @@ import { useLang } from '../context/LanguageContext'
 import { useLocation } from 'react-router-dom'
 import { addRecycleItem } from '../lib/recycleBin'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
+import { addSaleDelivery, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
 
 interface SaleItem {
   product_id: string
@@ -668,35 +669,9 @@ export default function Sales() {
     return next
   }
 
-  async function createQuickProductInventory(productId: string, openingQty: number, costPrice: number, sellingPrice: number) {
-    const qty = Number(openingQty || 0)
-    const { data: existing, error: lookupError } = await supabase
-      .from('inventory')
-      .select('id')
-      .eq('product_id', productId)
-      .is('branch_id', null)
-      .maybeSingle()
-
-    if (lookupError) throw lookupError
-    if (!existing) {
-      const { error } = await supabase.from('inventory').insert({
-        product_id: productId,
-        branch_id: null,
-        available_qty: qty,
-        upcoming_qty: 0,
-      })
-      if (error) throw error
-    }
-
-    if (qty > 0) {
-      await createOpeningStockBatch({
-        productId,
-        qty,
-        dpPrice: Number(costPrice || 0),
-        mrpPrice: Number(sellingPrice || 0),
-        userId: user?.id,
-      })
-    }
+  async function createQuickProductInventory(_productId: string, _openingQty: number, _costPrice: number, _sellingPrice: number) {
+    // The backend bootstraps inventory + opening stock batch when the
+    // product is created (POST /products) - nothing to do client-side.
   }
 
   async function handleAddProduct() {
@@ -846,23 +821,9 @@ export default function Sales() {
     return Math.max(0, storedDue, calculatedDue)
   }
 
-  async function adjustInventory(productId: string, qtyChange: number) {
-    if (!productId || !isUuid(productId) || !qtyChange) return
-    const { data: inv } = await supabase.from('inventory').select('*').eq('product_id', productId).is('branch_id', null).maybeSingle()
-    if (inv) {
-      await supabase.from('inventory').update({
-      available_qty: Number(inv.available_qty || 0) + qtyChange,
-      updated_at: new Date().toISOString(),
-    }).eq('id', inv.id)
-      return
-    }
-
-    await supabase.from('inventory').insert({
-      product_id: productId,
-      branch_id: null,
-      available_qty: qtyChange,
-      upcoming_qty: 0,
-    })
+  async function adjustInventory(_productId: string, _qtyChange: number) {
+    // Inventory rollbacks/deductions now happen inside the backend sale
+    // transactions (POST/PUT/DELETE /sales) - adjusting here would double-count.
   }
 
   async function applyFifoCostToSaleItem(row: any, source: SaleItem, qty: number) {
@@ -1134,45 +1095,29 @@ export default function Sales() {
     }))
 
     try {
+      // The backend saves the sale, items, payments, deliveries and runs the
+      // FIFO costing in one transaction (POST /sales, PUT /sales/:id).
+      const salePayload = {
+        ...saleValues,
+        items: validItems.map((item, idx) => ({
+          ...itemRows[idx],
+          delivered_qty: item.delivery_status === 'delivered' ? Number(item.qty || 0) : 0,
+        })),
+        payments: validPaymentRows.map(row => ({
+          date: form.date,
+          account_id: row.account_id,
+          account_name: '',
+          amount: row.amount,
+        })),
+      }
+
       if (editingSale) {
-        for (const item of editingSale.sale_items || []) {
-          await releaseFifoForSaleItem(item.id)
-          await adjustInventory(item.product_id, deliveredQty(item))
-        }
+        const savedSale = await updateSaleRequest(editingSale.id, salePayload)
 
-        let updatePayload: any = { ...saleValues, updated_at: new Date().toISOString() }
-        let updateResult = await supabase.from('sales').update(updatePayload).eq('id', editingSale.id)
-        if (updateResult.error && String(updateResult.error.message || '').includes('customer_address') && String(updateResult.error.message || '').includes('column')) {
-          const { customer_address, ...withoutCustomerAddress } = updatePayload
-          updatePayload = withoutCustomerAddress
-          updateResult = await supabase.from('sales').update(updatePayload).eq('id', editingSale.id)
-        }
-        if (updateResult.error) throw updateResult.error
-        
-        const { error: itemDeleteError } = await supabase.from('sale_items').delete().eq('sale_id', editingSale.id)
-        if (itemDeleteError) throw itemDeleteError
-        
-        const { data: insertedItems, error: itemInsertError } = await supabase
-          .from('sale_items')
-          .insert(itemRows.map(i => ({ ...i, sale_id: editingSale.id })))
-          .select()
-        if (itemInsertError) throw itemInsertError
-
-        rememberInsertedItemCosts(insertedItems || [], validItems)
-        await createInitialDeliveries(editingSale.id, editingSale.invoice_no, insertedItems || [], validItems)
-        await saveSalePayments(editingSale.id, saleValues.invoice_no, validPaymentRows)
-
-        const savedLedgerSale = ledgerSaleFromSavedSale(
-          { ...editingSale, id: editingSale.id },
-          saleValues,
-          insertedItems || [],
-          validItems,
-          previewSalePayments(editingSale.id, saleValues.invoice_no, validPaymentRows)
-        )
         await touchOwnerActivity(true)
         toast.success(t('common_updated'))
-        setSales(prev => prev.map(s => s.id === editingSale.id ? savedLedgerSale : s))
-        setSelectedSale(savedLedgerSale)
+        setSales(prev => prev.map(s => s.id === editingSale.id ? savedSale : s))
+        setSelectedSale(savedSale)
         setShowInvoice(true)
         setViewMode('history')
         await loadAll()
@@ -1180,49 +1125,12 @@ export default function Sales() {
         return
       }
 
-      let saleValuesForInsert = saleValues
-      let sale: any = null
-      let saleInsertError: any = null
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const { data, error } = await supabase.from('sales').insert({ ...saleValuesForInsert, created_by: user?.id }).select().maybeSingle()
-        if (!error && data) {
-          sale = data
-          saleInsertError = null
-          break
-        }
-        saleInsertError = error
-        const isDuplicateInvoice = String(error?.message || '').includes('sales_invoice_no_key') || error?.code === '23505'
-        const isMissingAddressColumn = String(error?.message || '').includes('customer_address') && String(error?.message || '').includes('column')
-        if (isMissingAddressColumn) {
-          const { customer_address, ...withoutCustomerAddress } = saleValuesForInsert as any
-          saleValuesForInsert = withoutCustomerAddress
-          continue
-        }
-        if (!isDuplicateInvoice) break
-        saleValuesForInsert = { ...saleValuesForInsert, invoice_no: await getAvailableInvoiceNo() }
-      }
-      if (saleInsertError || !sale) throw saleInsertError || new Error('Failed to save sale')
+      const savedSale = await createSaleRequest(salePayload)
 
-      const { data: insertedItems, error: itemsError } = await supabase
-        .from('sale_items')
-        .insert(itemRows.map(i => ({ ...i, sale_id: sale.id })))
-        .select()
-      if (itemsError) throw itemsError
-      rememberInsertedItemCosts(insertedItems || [], validItems)
-      await createInitialDeliveries(sale.id, sale.invoice_no, insertedItems || [], validItems)
-      await saveSalePayments(sale.id, sale.invoice_no, validPaymentRows)
-      
-      const savedLedgerSale = ledgerSaleFromSavedSale(
-        sale,
-        saleValuesForInsert,
-        insertedItems || [],
-        validItems,
-        previewSalePayments(sale.id, sale.invoice_no, validPaymentRows)
-      )
       await touchOwnerActivity(true)
       toast.success(t('sales_saved'))
-      setSales(prev => [savedLedgerSale, ...prev.filter(s => s.id !== sale.id)])
-      setSelectedSale(savedLedgerSale)
+      setSales(prev => [savedSale, ...prev.filter(s => s.id !== savedSale.id)])
+      setSelectedSale(savedSale)
       setShowInvoice(true)
       setViewMode('history')
       await loadAll()
@@ -1333,25 +1241,14 @@ export default function Sales() {
   async function deleteSale(sale: any) {
     if (!(await confirmAction({ message: `${t('common_delete')} ${sale.invoice_no}?` }))) return
     try {
-      addRecycleItem({
+      // The backend releases FIFO layers, restores inventory and snapshots
+      // the sale into the recycle bin in one transaction.
+      await deleteSaleRequest(sale.id, {
         type: 'sales',
         title: sale.customer_name || '-',
         subtitle: sale.invoice_no || '-',
         amount: Number(sale.net_amount || 0),
-        data: sale,
       })
-      const { error } = await supabase
-        .from('sales')
-        .update({
-          status: 'cancelled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', sale.id)
-      if (error) throw error
-      for (const item of sale.sale_items || []) {
-        await releaseFifoForSaleItem(item.id)
-        await adjustInventory(item.product_id, deliveredQty(item))
-      }
       await touchOwnerActivity(true)
       toast.success(t('common_deleted'))
       loadAll()
@@ -1493,72 +1390,18 @@ export default function Sales() {
     }
 
     try {
-      const deliveryPayload = {
-        sale_id: deliveryItem.sale_id,
+      // POST /sales/:id/deliveries records the delivery, bumps the item's
+      // delivered_qty and refreshes the sale delivery status atomically.
+      await addSaleDelivery(deliveryItem.sale_id, {
         sale_item_id: deliveryItem.id,
         delivery_date: deliveryForm.delivery_date,
         delivered_qty: deliveryForm.delivered_qty,
         delivered_by: deliveryForm.delivered_by,
         notes: deliveryForm.notes,
-        created_by: user?.id,
-      }
-      const { data: insertedDeliveryData, error: deliveryError } = await supabase
-        .from('sale_deliveries')
-        .insert(deliveryPayload)
-        .select()
-        .maybeSingle()
-      const deliveryTableMissing = isSaleDeliveriesMissing(deliveryError)
-      if (deliveryError && !deliveryTableMissing) throw deliveryError
-      const insertedDelivery = insertedDeliveryData || {
-        ...deliveryPayload,
-        id: `${deliveryItem.id}-${Date.now()}`
-      }
-      saveDeliveryFallback(deliveryItem.id, insertedDelivery)
+      })
 
-      const newDeliveredQty = deliveredQty(deliveryItem) + deliveryForm.delivered_qty
-      const { error: itemError } = await supabase
-        .from('sale_items')
-        .update({ delivered_qty: newDeliveredQty })
-        .eq('id', deliveryItem.id)
-      if (itemError && !String(itemError.message || '').includes('delivered_qty')) throw itemError
-
-      await applyFifoCostToSaleItem(deliveryItem, deliveryItem, deliveryForm.delivered_qty)
-      await adjustInventory(deliveryItem.product_id, -deliveryForm.delivered_qty)
-      if (deliveryItem.product_id) {
-        await supabase.from('inventory_history').insert({
-          product_id: deliveryItem.product_id,
-          product_name: deliveryItem.product_name,
-          change_type: 'sales_out',
-          qty_change: -deliveryForm.delivered_qty,
-          reference_id: deliveryItem.sale_id,
-          reference_type: 'sale_delivery',
-          notes: `Delivered for invoice ${deliveryItem.invoice_no}`,
-          created_by: user?.id
-        })
-      }
-
-      await refreshDeliveryStatus(deliveryItem.sale_id)
       await touchOwnerActivity(true)
       toast.success('Product delivered successfully')
-      setSales(prev => prev.map(sale => {
-        if (sale.id !== deliveryItem.sale_id) return sale
-
-        return {
-          ...sale,
-          sale_items: (sale.sale_items || []).map((item: any) => {
-            if (item.id !== deliveryItem.id) return item
-
-            return {
-              ...item,
-              delivered_qty: newDeliveredQty,
-              sale_deliveries: [
-                ...(item.sale_deliveries || []),
-                insertedDelivery
-              ]
-            }
-          })
-        }
-      }))
       setShowDeliveryModal(false)
       setDeliveryItem(null)
       setDeliveryForm({
@@ -1567,9 +1410,7 @@ export default function Sales() {
         delivered_qty: 1,
         notes: ''
       })
-      if (!deliveryTableMissing) {
-        await loadAll()
-      }
+      await loadAll()
     } catch (err: any) {
       toast.error(err.message || t('common_error'))
     }
@@ -1578,34 +1419,11 @@ export default function Sales() {
   async function updateSaleItemCost(itemId: string, costPrice: number) {
     saveStorageValue(costFallbackKey, itemId, costPrice)
 
-    const saleWithItem = sales.find(sale => (sale.sale_items || []).some((item: any) => item.id === itemId))
-    const item = saleWithItem?.sale_items?.find((saleItem: any) => saleItem.id === itemId)
-    let error: any = null
-
-    if (saleWithItem && item?.product_id) {
-      try {
-        await releaseFifoForSaleItem(itemId)
-        await setManualCostForSaleItem({
-          saleId: saleWithItem.id,
-          saleItemId: itemId,
-          productId: item.product_id,
-          qty: Number(item.qty || 0),
-          unitCost: costPrice,
-          userId: user?.id,
-        })
-      } catch (err: any) {
-        error = err
-      }
-    } else {
-      const result = await supabase
-        .from('sale_items')
-        .update({ cost_price: costPrice })
-        .eq('id', itemId)
-      error = result.error
-    }
-
-    if (error) {
-      toast.error(error.message || 'Failed to update purchase rate')
+    try {
+      // Server releases the old cost layers and re-applies the manual rate.
+      await setManualSaleItemCost(itemId, costPrice)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update purchase rate')
       return
     }
 

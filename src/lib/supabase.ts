@@ -45,7 +45,7 @@ const TABLES: Record<string, TableConfig> = {
   inventory: { list: '/inventory' },
   inventory_history: { list: '/inventory/history' },
   inventory_batches: { list: '/inventory/batches' },
-  sales: { list: '/sales', remove: (id) => `/sales/${id}` },
+  sales: { list: '/sales', update: (id) => `/sales/${id}`, remove: (id) => `/sales/${id}` },
   sale_items: { list: '', flattenFrom: { list: '/sales', key: 'sale_items' } },
   sale_deliveries: { list: '', flattenFrom: { list: '/sales', key: 'sale_deliveries' } },
   sale_payments: { list: '/sale-payments', create: '/sale-payments', update: (id) => `/sale-payments/${id}`, remove: (id) => `/sale-payments/${id}` },
