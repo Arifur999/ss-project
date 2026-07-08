@@ -21,7 +21,7 @@ export const submitManualPayment = (payload: { sender_number: string; trx_id: st
 // ---------- Platform settings (payment info + reminder template) ----------
 // Public-ish: any authenticated user can read where to send bKash payment.
 export const getPaymentInfo = () =>
-  http.get<{ bkash_number: string; bkash_qr_url: string; yearly_price: number }>('/platform-settings/payment-info')
+  http.get<{ bkash_number: string; bkash_qr_url: string; yearly_price: number; yearly_original_price: number }>('/platform-settings/payment-info')
 // Super admin only: full settings incl. the reminder email template.
 export const getPlatformSettings = () => http.get<any>('/platform-settings')
 export const savePlatformSettings = (payload: any) => http.put<any>('/platform-settings', payload)

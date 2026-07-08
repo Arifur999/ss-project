@@ -10,6 +10,7 @@ interface PlatformSettings {
   bkash_number: string
   bkash_qr_url: string
   yearly_price: number
+  yearly_original_price: number
   reminder_subject: string
   reminder_body: string
 }
@@ -71,6 +72,7 @@ export default function SuperAdminSettings() {
         bkash_number: settings.bkash_number,
         bkash_qr_url: settings.bkash_qr_url,
         yearly_price: Number(settings.yearly_price) || 0,
+        yearly_original_price: Number(settings.yearly_original_price) || 0,
         reminder_subject: settings.reminder_subject,
         reminder_body: settings.reminder_body,
       })
@@ -150,6 +152,21 @@ export default function SuperAdminSettings() {
                 value={settings.yearly_price}
                 onChange={e => updateField('yearly_price', Number(e.target.value))}
               />
+              <p className="mt-1 text-xs text-slate-400">This is what the owner actually pays.</p>
+            </div>
+
+            <div>
+              <label className="label">Original price shown crossed-out (৳)</label>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                value={settings.yearly_original_price}
+                onChange={e => updateField('yearly_original_price', Number(e.target.value))}
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Marketing only - shown struck-through next to the real price so the discount is visible. Must be higher than the price above or it won't show.
+              </p>
             </div>
 
             <div>

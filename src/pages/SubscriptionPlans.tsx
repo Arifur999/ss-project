@@ -13,6 +13,12 @@ function formatBDT(value: number) {
   return `৳${Number(value || 0).toLocaleString('en-BD')}`
 }
 
+// "20% OFF" / "২০% ছাড়" - computed from the two super-admin-set prices
+// rather than hardcoded, so it never drifts out of sync if either changes.
+function discountLabelText(percent: number, lang: Lang) {
+  return lang === 'bn' ? `${percent}% ছাড়` : `${percent}% OFF`
+}
+
 const planCopy = {
   en: {
     title: 'Choose Your Workspace Plan',
@@ -110,9 +116,10 @@ export default function SubscriptionPlans() {
   const { lang, setLang, t } = useLang()
   const navigate = useNavigate()
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null)
-  // The yearly price is set by the super admin (Settings -> Payment info)
-  // and fetched here so the card never shows a stale hard-coded number.
+  // Both prices are set by the super admin (Settings -> Payment info) and
+  // fetched here so the card never shows a stale hard-coded number.
   const [yearlyPrice, setYearlyPrice] = useState<number | null>(null)
+  const [yearlyOriginalPrice, setYearlyOriginalPrice] = useState<number | null>(null)
   const copy = (key: keyof typeof planCopy.en) => t(`plans_${key}`, planCopy[lang][key])
   // Every owner's free trial is spent automatically at registration, so this
   // is true for essentially everyone who lands here - it only ever turns
@@ -121,9 +128,22 @@ export default function SubscriptionPlans() {
 
   useEffect(() => {
     getPaymentInfo()
-      .then(info => setYearlyPrice(Number(info.yearly_price)))
-      .catch(() => setYearlyPrice(5750)) // sane fallback if settings can't load
+      .then(info => {
+        setYearlyPrice(Number(info.yearly_price))
+        setYearlyOriginalPrice(Number(info.yearly_original_price))
+      })
+      .catch(() => {
+        // sane fallback if settings can't load
+        setYearlyPrice(5780)
+        setYearlyOriginalPrice(7188)
+      })
   }, [])
+
+  // Only show the strikethrough treatment when it actually reads as a
+  // discount - guards against a misconfigured original price in settings.
+  const discountPercent = yearlyPrice && yearlyOriginalPrice && yearlyOriginalPrice > yearlyPrice
+    ? Math.round((1 - yearlyPrice / yearlyOriginalPrice) * 100)
+    : null
 
   const plans = useMemo(() => [
     {
@@ -131,6 +151,8 @@ export default function SubscriptionPlans() {
       eyebrow: 'FREE TRIAL',
       title: copy('freeTitle'),
       price: '৳0',
+      originalPrice: null as string | null,
+      discountLabel: null as string | null,
       features: featureCopy[lang].free,
       button: trialUsed ? copy('freeUsedButton') : copy('freeButton'),
       note: trialUsed ? copy('freeUsedNote') : null,
@@ -144,6 +166,8 @@ export default function SubscriptionPlans() {
       eyebrow: 'YEARLY PLAN',
       title: copy('yearlyTitle'),
       price: yearlyPrice === null ? '...' : `${formatBDT(yearlyPrice)} / year`,
+      originalPrice: discountPercent !== null && yearlyOriginalPrice ? formatBDT(yearlyOriginalPrice) : null,
+      discountLabel: discountPercent !== null ? discountLabelText(discountPercent, lang) : null,
       badge: copy('yearlyBadge'),
       features: featureCopy[lang].yearly,
       button: copy('yearlyButton'),
@@ -154,7 +178,7 @@ export default function SubscriptionPlans() {
       buttonClass: 'bg-emerald-600 text-white hover:bg-emerald-700',
       highlighted: true,
     },
-  ], [lang, t, yearlyPrice, trialUsed])
+  ], [lang, t, yearlyPrice, yearlyOriginalPrice, discountPercent, trialUsed])
 
   if (!user) return <Navigate to="/register" replace />
 
@@ -222,6 +246,16 @@ export default function SubscriptionPlans() {
               </div>
               <h2 className="text-xl font-black text-slate-950">{plan.title}</h2>
               <div className="mt-4">
+                {plan.originalPrice && (
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-400 line-through">{plan.originalPrice}</span>
+                    {plan.discountLabel && (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-black text-red-600">
+                        {plan.discountLabel}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <span className={`font-black ${plan.highlighted ? 'text-4xl text-emerald-700' : 'text-3xl text-slate-950'}`}>{plan.price}</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm text-slate-600">
