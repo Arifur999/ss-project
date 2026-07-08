@@ -75,7 +75,15 @@ function writeStoredOpeningQty(nextMap: Record<string, number>) {
 }
 
 function writeProductListCache(products: Product[]) {
-  localStorage.setItem(productListCacheKey, JSON.stringify(products))
+  // Best-effort only - a full product image can push this past the
+  // browser's localStorage quota. A throw here must never block the
+  // React state update that already happened (that's what actually
+  // makes the product visible), so swallow write failures.
+  try {
+    localStorage.setItem(productListCacheKey, JSON.stringify(products))
+  } catch {
+    // ignore quota/serialization errors - the cache is just a cold-start fallback
+  }
 }
 
 function readProductListCache() {
@@ -516,7 +524,10 @@ export default function ProductList() {
             .eq('is_active', true)
             .order('company_name')
             .range(from, to)
-        ),
+        // A transient failure here must not wipe out the product list below -
+        // Promise.all rejects as a whole otherwise, so setProducts would never
+        // run and a just-added product would stay invisible until reload.
+        ).catch(() => suppliers),
         fetchPaged<{ product_id: string; received_qty: number }>((from, to) =>
           supabase
             .from('inventory_batches')
@@ -616,6 +627,25 @@ export default function ProductList() {
         await ensureInventory(editingId, form.opening_qty || 0)
         await updateOpeningStockBatch(editingId, form.opening_qty || 0, form.cost_price || 0, form.selling_price || 0)
         rememberOpeningQty(editingId, form.opening_qty || 0)
+
+        // Same reasoning as the create path below: reflect the edit right
+        // away rather than waiting on loadData()'s parallel refetch.
+        const editedSupplier = suppliers.find(s => s.id === form.supplier_id)
+        setProducts(prev => {
+          const next = prev.map(p => p.id === editingId
+            ? {
+                ...p,
+                ...payload,
+                opening_qty: Number(form.opening_qty || 0),
+                suppliers: editedSupplier
+                  ? { id: editedSupplier.id, name: editedSupplier.name, company_name: editedSupplier.company_name }
+                  : p.suppliers,
+              }
+            : p)
+          writeProductListCache(next)
+          return next
+        })
+
         toast.success('Product updated')
       } else {
         const payload = { ...productPayload(true), is_active: true }
@@ -649,6 +679,25 @@ export default function ProductList() {
           userId: user?.id,
         })
         rememberOpeningQty(product.id, form.opening_qty || 0)
+
+        // Show the new product immediately instead of waiting on the
+        // loadData() refetch below - that refetch runs several parallel
+        // requests (suppliers, inventory, business settings) and any one of
+        // them being slow/flaky must not delay the product the user just
+        // added from appearing.
+        const createdSupplier = suppliers.find(s => s.id === form.supplier_id)
+        const optimisticProduct: Product = {
+          ...(product as Product),
+          opening_qty: Number((product as any).opening_qty ?? form.opening_qty ?? 0),
+          suppliers: (product as any).suppliers ?? (createdSupplier
+            ? { id: createdSupplier.id, name: createdSupplier.name, company_name: createdSupplier.company_name }
+            : null),
+        }
+        setProducts(prev => {
+          const next = [optimisticProduct, ...prev.filter(p => p.id !== optimisticProduct.id)]
+          writeProductListCache(next)
+          return next
+        })
 
         toast.success('Product added')
       }
