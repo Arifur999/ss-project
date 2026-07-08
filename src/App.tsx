@@ -70,11 +70,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       message: 'Your owner account is currently suspended. Please contact administration to restore access.',
       tone: 'bg-red-50 text-brand-red',
     },
-    expired: {
-      title: 'Billing checkout required',
-      message: 'Your trial/subscription has expired. Please contact administration or purchase a subscription to regain system access.',
-      tone: 'bg-orange-50 text-orange-600',
-    },
     none: {
       title: 'Account not ready',
       message: 'Your owner account setup is not complete yet. Please contact the super admin.',
@@ -91,6 +86,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     </div>
   )
   if (!user) return <Navigate to="/login" replace />
+  // Expired trial/subscription: send the owner straight to plan selection
+  // instead of a dead-end message - that's the only place they can actually
+  // pay and regain access, so there's nothing useful to show them here.
+  if (subscriptionStatus === 'expired') return <Navigate to="/choose-plan" replace />
   if (subscriptionLocked) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
