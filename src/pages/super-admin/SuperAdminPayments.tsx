@@ -18,6 +18,8 @@ interface PaymentRow {
   invoice: string
   owner: string
   method: string
+  senderNumber: string
+  trxId: string
   status: string
   date: string
   amount: number
@@ -42,6 +44,8 @@ export default function SuperAdminPayments() {
         invoice: row.invoice_no || row.id,
         owner: row.owner?.subscription?.business_name || row.owner?.full_name || row.owner?.email || '-',
         method: row.method || '-',
+        senderNumber: row.sender_number || '-',
+        trxId: row.trx_id || '-',
         status: row.status || 'pending',
         date: row.date ? new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
         amount: Number(row.amount || 0),
@@ -91,12 +95,14 @@ export default function SuperAdminPayments() {
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-sm">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead className="table-header">
               <tr>
                 <th className="px-4 py-3 text-left">Invoice</th>
                 <th className="px-4 py-3 text-left">Owner</th>
                 <th className="px-4 py-3 text-left">Method</th>
+                <th className="px-4 py-3 text-left">Sender bKash No.</th>
+                <th className="px-4 py-3 text-left">TrxID</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Date</th>
                 <th className="px-4 py-3 text-right">Amount</th>
@@ -106,12 +112,12 @@ export default function SuperAdminPayments() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">Loading payments...</td>
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">Loading payments...</td>
                 </tr>
               )}
               {!loading && payments.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">No subscription payments yet</td>
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">No subscription payments yet</td>
                 </tr>
               )}
               {!loading && payments.map(payment => (
@@ -119,6 +125,8 @@ export default function SuperAdminPayments() {
                   <td className="px-4 py-3 font-medium text-slate-800">{payment.invoice}</td>
                   <td className="px-4 py-3 text-slate-600">{payment.owner}</td>
                   <td className="px-4 py-3 text-slate-600">{payment.method}</td>
+                  <td className="px-4 py-3 text-slate-600">{payment.senderNumber}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{payment.trxId}</td>
                   <td className="px-4 py-3">
                     <span className={badgeClass[payment.status] || 'badge-orange'}>{payment.status}</span>
                   </td>

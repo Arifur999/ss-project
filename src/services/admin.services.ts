@@ -12,8 +12,20 @@ export const deleteTeamUser = (userId: string) => http.delete<any>('/users/delet
 
 // ---------- Subscription (owner) ----------
 export const getMySubscription = () => http.get<any>('/subscriptions/my')
-export const choosePlan = (payload: { plan_type: 'free_trial' | 'monthly' | 'yearly'; amount?: number; method?: string }) =>
+export const choosePlan = (payload: { plan_type: 'free_trial' | 'yearly' }) =>
   http.post<any>('/subscriptions/choose-plan', payload)
+// Step 2 of manual bKash checkout: submit the sender number + transaction id.
+export const submitManualPayment = (payload: { sender_number: string; trx_id: string }) =>
+  http.post<any>('/subscriptions/submit-payment', payload)
+
+// ---------- Platform settings (payment info + reminder template) ----------
+// Public-ish: any authenticated user can read where to send bKash payment.
+export const getPaymentInfo = () =>
+  http.get<{ bkash_number: string; bkash_qr_url: string; yearly_price: number }>('/platform-settings/payment-info')
+// Super admin only: full settings incl. the reminder email template.
+export const getPlatformSettings = () => http.get<any>('/platform-settings')
+export const savePlatformSettings = (payload: any) => http.put<any>('/platform-settings', payload)
+export const sendTestReminder = () => http.post<{ sent: boolean; subject: string; html: string }>('/platform-settings/test-reminder')
 
 // ---------- Super admin ----------
 export const getOwners = () => http.get<any[]>('/super-admin/owners')
