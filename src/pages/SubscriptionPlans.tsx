@@ -49,6 +49,8 @@ const planCopy = {
     doneTitle: 'Payment Submitted!',
     doneSubtitle: 'Your payment is now waiting for super admin approval. You will get full access as soon as it is approved.',
     goDashboard: 'Go to workspace',
+    freeUsedButton: 'Trial Already Used',
+    freeUsedNote: "You've already used your free trial. Please ask your super admin to grant a trial extension.",
   },
   bn: {
     title: 'আপনার ওয়ার্কস্পেস প্ল্যান নির্বাচন করুন',
@@ -82,6 +84,8 @@ const planCopy = {
     doneTitle: 'পেমেন্ট জমা হয়েছে!',
     doneSubtitle: 'আপনার পেমেন্ট এখন সুপার অ্যাডমিনের অনুমোদনের অপেক্ষায় আছে। অনুমোদন হলেই সম্পূর্ণ অ্যাক্সেস পাবেন।',
     goDashboard: 'ওয়ার্কস্পেসে যান',
+    freeUsedButton: 'ট্রায়াল ব্যবহৃত হয়ে গেছে',
+    freeUsedNote: 'আপনি ইতিমধ্যে আপনার ফ্রি ট্রায়াল ব্যবহার করে ফেলেছেন। ট্রায়াল বাড়ানোর জন্য আপনার সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।',
   },
 } satisfies Record<Lang, Record<string, string>>
 
@@ -102,7 +106,7 @@ const featureCopy = {
 const CHECKOUT_STORAGE_KEY = 'subscription_checkout_plan'
 
 export default function SubscriptionPlans() {
-  const { user, refreshAccount } = useAuth()
+  const { user, subscription, refreshAccount } = useAuth()
   const { lang, setLang, t } = useLang()
   const navigate = useNavigate()
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null)
@@ -110,6 +114,10 @@ export default function SubscriptionPlans() {
   // and fetched here so the card never shows a stale hard-coded number.
   const [yearlyPrice, setYearlyPrice] = useState<number | null>(null)
   const copy = (key: keyof typeof planCopy.en) => t(`plans_${key}`, planCopy[lang][key])
+  // Every owner's free trial is spent automatically at registration, so this
+  // is true for essentially everyone who lands here - it only ever turns
+  // false again if a super admin grants a fresh trial extension.
+  const trialUsed = Boolean(subscription?.trial_used)
 
   useEffect(() => {
     getPaymentInfo()
@@ -124,7 +132,9 @@ export default function SubscriptionPlans() {
       title: copy('freeTitle'),
       price: '৳0',
       features: featureCopy[lang].free,
-      button: copy('freeButton'),
+      button: trialUsed ? copy('freeUsedButton') : copy('freeButton'),
+      note: trialUsed ? copy('freeUsedNote') : null,
+      disabled: trialUsed,
       icon: <Sparkles size={22} />,
       cardClass: 'border-slate-200',
       buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
@@ -137,17 +147,25 @@ export default function SubscriptionPlans() {
       badge: copy('yearlyBadge'),
       features: featureCopy[lang].yearly,
       button: copy('yearlyButton'),
+      note: null as string | null,
+      disabled: false,
       icon: <Crown size={22} />,
       cardClass: 'border-emerald-400 ring-2 ring-emerald-100',
       buttonClass: 'bg-emerald-600 text-white hover:bg-emerald-700',
       highlighted: true,
     },
-  ], [lang, t, yearlyPrice])
+  ], [lang, t, yearlyPrice, trialUsed])
 
   if (!user) return <Navigate to="/register" replace />
 
   async function choosePlan(planId: PlanId) {
     if (!user) return
+    // Belt-and-suspenders: the button is already disabled for this case, but
+    // the backend is the real gate - this just avoids a round trip.
+    if (planId === 'free_trial' && trialUsed) {
+      toast.error(copy('freeUsedNote'))
+      return
+    }
     setLoadingPlan(planId)
     const isTrial = planId === 'free_trial'
 
@@ -217,12 +235,15 @@ export default function SubscriptionPlans() {
               <button
                 type="button"
                 onClick={() => choosePlan(plan.id)}
-                disabled={loadingPlan !== null}
+                disabled={loadingPlan !== null || plan.disabled}
                 className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-colors disabled:opacity-60 ${plan.buttonClass}`}
               >
                 {loadingPlan === plan.id ? copy('processing') : plan.button}
-                {loadingPlan !== plan.id && <Send size={16} />}
+                {loadingPlan !== plan.id && !plan.disabled && <Send size={16} />}
               </button>
+              {plan.note && (
+                <p className="mt-2 text-center text-xs text-slate-400">{plan.note}</p>
+              )}
             </section>
           ))}
         </div>

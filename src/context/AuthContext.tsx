@@ -47,6 +47,10 @@ interface OwnerSubscription {
   plan_status?: PlanStatus | null
   start_date?: string | null
   expiry_date?: string | null
+  // True from the moment an owner registers (the signup trial sets it).
+  // Once true, choosePlan() on the backend refuses free_trial forever -
+  // only a super admin's "grant trial extension" action can revive it.
+  trial_used?: boolean
   blocked_reason: string
   created_at: string
   updated_at: string
