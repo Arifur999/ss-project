@@ -38,25 +38,19 @@ export function readRememberedBusinessLogo() {
   return String(localStorage.getItem(BUSINESS_LOGO_STORAGE_KEY) || '').trim()
 }
 
+// Used on the public Login page - deliberately does NOT call the API.
+//
+// business_settings is per-owner in this multi-tenant app, so there is no
+// single "the business" to fetch before anyone has logged in (and the
+// endpoint requires auth anyway). Calling it here used to 401 in a loop
+// every ~10s (each 401 also triggered a doomed refresh-token attempt).
+// Instead we just read whatever name was cached from this browser's last
+// successful login, falling back to a generic default - Layout's
+// useBusinessBrand() (below) is what keeps that cache fresh while logged in.
 export function useBusinessBrandName() {
   const [businessName, setBusinessName] = useState(() => readRememberedBusinessName())
 
   useEffect(() => {
-    let cancelled = false
-
-    async function loadBusinessName() {
-      const { data, error } = await supabase
-        .from('business_settings')
-        .select('name_en, name_bn')
-        .maybeSingle()
-
-      if (cancelled || error) return
-
-      const nextName = resolveBusinessName(data)
-      setBusinessName(nextName)
-      rememberBusinessName(nextName)
-    }
-
     function handleStoredNameChange(event: Event) {
       const customEvent = event as CustomEvent<string>
       setBusinessName(cleanBusinessName(customEvent.detail) || readRememberedBusinessName())
@@ -68,20 +62,12 @@ export function useBusinessBrandName() {
       }
     }
 
-    loadBusinessName()
     window.addEventListener(BUSINESS_NAME_UPDATED_EVENT, handleStoredNameChange)
     window.addEventListener('storage', handleStorageChange)
 
-    const channel = supabase
-      .channel('business-settings-login-brand')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, loadBusinessName)
-      .subscribe()
-
     return () => {
-      cancelled = true
       window.removeEventListener(BUSINESS_NAME_UPDATED_EVENT, handleStoredNameChange)
       window.removeEventListener('storage', handleStorageChange)
-      supabase.removeChannel(channel)
     }
   }, [])
 
