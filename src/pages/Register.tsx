@@ -4,6 +4,7 @@ import { CheckCircle2, Eye, EyeOff, Globe, Lock, Mail, MapPin, Phone, Send, Stor
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { Lang, useLang } from '../context/LanguageContext'
+import OtpVerifyForm from '../components/OtpVerifyForm'
 
 const registerCopy = {
   en: {
@@ -69,6 +70,9 @@ export default function Register() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  // When set, the card switches to the OTP verification step: the account
+  // was created and a 6-digit code has been emailed to this address.
+  const [otpEmail, setOtpEmail] = useState('')
   const { registerOwner } = useAuth()
   const { lang, setLang, t } = useLang()
   const navigate = useNavigate()
@@ -95,7 +99,7 @@ export default function Register() {
 
     setLoading(true)
     try {
-      const { error, needsEmailConfirmation } = await registerOwner({
+      const { error, needsEmailConfirmation, email: pendingEmail } = await registerOwner({
         fullName: form.fullName.trim(),
         businessName: form.businessName.trim(),
         phone: form.phone.trim(),
@@ -106,8 +110,10 @@ export default function Register() {
       if (error) throw error
 
       if (needsEmailConfirmation) {
-        toast.success('Registration created. Please confirm your email, then sign in.')
-        navigate('/login')
+        // Account created - now the user must type the emailed 6-digit code.
+        // We stay on this page and swap the form for the OTP step.
+        toast.success(lang === 'bn' ? 'আপনার ইমেইলে একটি কোড পাঠানো হয়েছে' : 'A verification code was sent to your email')
+        setOtpEmail(pendingEmail || form.email.trim())
       } else {
         toast.success('Registration request submitted. Admin approval required.')
         navigate('/choose-plan')
@@ -148,6 +154,16 @@ export default function Register() {
 
       <div className="relative w-full max-w-[420px]">
         <div className="rounded-xl border border-white/50 bg-white p-4 shadow-2xl sm:p-5">
+          {/* Step 2 of registration: the account exists, now confirm the
+              emailed 6-digit code. Verifying also logs the new owner in,
+              after which they land on the plan selection page. */}
+          {otpEmail ? (
+            <OtpVerifyForm
+              email={otpEmail}
+              onVerified={() => navigate('/choose-plan')}
+            />
+          ) : (
+          <>
           <div className="mb-3 text-center">
             <h2 className="text-2xl font-black leading-tight text-slate-950 sm:text-[28px]">{regT('title')}</h2>
             <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-slate-500">
@@ -196,6 +212,8 @@ export default function Register() {
           <p className="mt-3 text-center text-xs text-slate-500">
             {footerPrefix} <Link to="/login" className="font-semibold text-brand-green hover:text-green-700">{footerAction}</Link>
           </p>
+          </>
+          )}
         </div>
       </div>
     </div>

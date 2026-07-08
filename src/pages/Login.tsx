@@ -5,6 +5,7 @@ import { SUBSCRIPTION_EXPIRED_LOGIN_MESSAGE, useAuth } from '../context/AuthCont
 import { useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'
 import { useBusinessBrandName } from '../lib/businessBrand'
+import OtpVerifyForm from '../components/OtpVerifyForm'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -12,6 +13,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [subscriptionBlockMessage, setSubscriptionBlockMessage] = useState('')
+  // When set, the card switches from the password form to the OTP form:
+  // the account exists but its email was never verified, and the backend
+  // has just sent a fresh 6-digit code to this address.
+  const [otpEmail, setOtpEmail] = useState('')
   const { signIn } = useAuth()
   const { lang, setLang, t } = useLang()
   const businessName = useBusinessBrandName()
@@ -22,8 +27,16 @@ export default function Login() {
     setLoading(true)
     setSubscriptionBlockMessage('')
     try {
-      const { error } = await signIn(email, password)
+      const { error, needsEmailConfirmation, email: pendingEmail } = await signIn(email, password)
       if (error) throw error
+
+      // Unverified account: switch this card to the OTP verification view.
+      if (needsEmailConfirmation) {
+        toast.success(lang === 'bn' ? 'আপনার ইমেইলে একটি কোড পাঠানো হয়েছে' : 'A verification code was sent to your email')
+        setOtpEmail(pendingEmail || email)
+        return
+      }
+
       navigate('/')
     } catch (err: unknown) {
       const message = (err as Error).message || t('common_error')
@@ -64,6 +77,17 @@ export default function Login() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {/* OTP verification view: replaces the password form when the
+              account's email still needs to be confirmed. A successful
+              verify also logs the user in (cookies already set). */}
+          {otpEmail ? (
+            <OtpVerifyForm
+              email={otpEmail}
+              onVerified={() => navigate('/')}
+              onBack={() => setOtpEmail('')}
+            />
+          ) : (
+          <>
           <h2 className="text-xl font-semibold text-slate-800 mb-6">{t('login_title')}</h2>
 
           {subscriptionBlockMessage && (
@@ -122,6 +146,8 @@ export default function Login() {
           <p className="mt-5 text-center text-sm text-slate-500">
             New owner? <Link to="/register" className="font-semibold text-brand-green hover:text-green-700">Register as owner</Link>
           </p>
+          </>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { getMeRequest, loginRequest, logoutRequest, registerOwnerRequest, touchActivityRequest } from '../services/auth.services'
+import {
+  getMeRequest,
+  loginRequest,
+  logoutRequest,
+  registerOwnerRequest,
+  resendOtpRequest,
+  touchActivityRequest,
+  verifyOtpRequest,
+} from '../services/auth.services'
 
 export type UserRole = 'super_admin' | 'owner' | 'manager' | 'sales_staff' | 'accountant'
 export type SubscriptionStatus = 'pending' | 'trial' | 'active' | 'expired' | 'blocked' | 'suspended'
@@ -62,9 +70,16 @@ interface AuthContextType {
   subscriptionLocked: boolean
   displayName: string
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+  // signIn can end in three ways: error, logged-in, or "verify your email
+  // first" (needsEmailConfirmation) when the account never confirmed its OTP.
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean; email?: string }>
   signOut: () => Promise<void>
-  registerOwner: (input: RegisterOwnerInput) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean }>
+  // Registration always requires OTP verification before the user is let in.
+  registerOwner: (input: RegisterOwnerInput) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean; email?: string }>
+  // Submit the emailed 6-digit code - on success the user is logged in.
+  verifyOtp: (email: string, otp: string) => Promise<{ error: Error | null }>
+  // Ask the server to email a fresh code (60s cooldown server-side).
+  resendOtp: (email: string) => Promise<{ error: Error | null }>
   refreshAccount: () => Promise<void>
   touchOwnerActivity: (force?: boolean) => Promise<void>
   canAccess: (permission: string) => boolean
@@ -140,10 +155,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn(email: string, password: string) {
     try {
-      const account = await loginRequest(email, password)
-      setUser(account.user)
-      setProfile(account.profile)
-      setSubscription(account.subscription)
+      const result = await loginRequest(email, password)
+
+      // Password was right but the email was never verified: the backend has
+      // already emailed a fresh OTP - hand control to the verification screen.
+      if ('needsEmailConfirmation' in result) {
+        return { error: null, needsEmailConfirmation: true, email: result.email }
+      }
+
+      // Fully verified account: cookies are set, hydrate the auth state.
+      setUser(result.user)
+      setProfile(result.profile)
+      setSubscription(result.subscription)
       return { error: null }
     } catch (error) {
       return { error: error instanceof Error ? error : new Error('Login failed') }
@@ -156,13 +179,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const account = await registerOwnerRequest(input)
-      setUser(account.user)
-      setProfile(account.profile)
-      setSubscription(account.subscription)
+      const result = await registerOwnerRequest(input)
+
+      // Registration ALWAYS ends at the OTP screen now - the account exists
+      // but stays locked until the emailed code is confirmed.
+      if ('needsEmailConfirmation' in result) {
+        return { error: null, needsEmailConfirmation: true, email: result.email }
+      }
+
+      // Defensive fallback (should not happen with the current backend).
+      setUser(result.user)
+      setProfile(result.profile)
+      setSubscription(result.subscription)
       return { error: null, needsEmailConfirmation: false }
     } catch (error) {
       return { error: error instanceof Error ? error : new Error('Registration failed') }
+    }
+  }
+
+  // Submit the 6-digit emailed code. On success the backend marks the email
+  // verified AND sets the auth cookies - so this doubles as the login step.
+  async function verifyOtp(email: string, otp: string) {
+    try {
+      const account = await verifyOtpRequest(email, otp)
+      setUser(account.user)
+      setProfile(account.profile)
+      setSubscription(account.subscription)
+      return { error: null }
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error('Verification failed') }
+    }
+  }
+
+  // Request a fresh code. The server enforces a 60-second cooldown and will
+  // answer with a descriptive error if pressed too soon.
+  async function resendOtp(email: string) {
+    try {
+      await resendOtpRequest(email)
+      return { error: null }
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error('Could not resend code') }
     }
   }
 
@@ -228,6 +284,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signOut,
       registerOwner,
+      verifyOtp,
+      resendOtp,
       refreshAccount,
       touchOwnerActivity,
       canAccess,
