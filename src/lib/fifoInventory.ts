@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // FIFO inventory costing moved to the backend.
 //
 // The server now runs all FIFO logic inside database transactions:

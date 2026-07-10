@@ -1,6 +1,5 @@
 import { http } from '../lib/httpClient'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const getProducts = () => http.get<any[]>('/products')
 export const getDeletedProducts = () => http.get<any[]>('/products?deleted=true')

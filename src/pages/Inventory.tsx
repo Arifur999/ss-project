@@ -258,7 +258,7 @@ export default function Inventory() {
       )
     }
 
-      let inventoryRows = await fetchPaged<any>((from, to) =>
+      const inventoryRows = await fetchPaged<any>((from, to) =>
         supabase
           .from('inventory')
           .select('*')

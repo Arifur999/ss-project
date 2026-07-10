@@ -1,7 +1,6 @@
 import { http } from '../lib/httpClient'
 import { RecycleMeta } from './finance.services'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const getPurchases = (statuses?: string[]) =>
   http.get<any[]>(statuses && statuses.length > 0 ? `/purchases?status=${statuses.join(',')}` : '/purchases')

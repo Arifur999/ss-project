@@ -1,6 +1,5 @@
 import { http } from '../lib/httpClient'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---------- Team management (owner) - replaces the manage-users edge function ----------
 export const listTeamUsers = () => http.get<any[]>('/users/list')

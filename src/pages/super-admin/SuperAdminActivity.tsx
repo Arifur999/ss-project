@@ -40,7 +40,6 @@ export default function SuperAdminActivity() {
   useEffect(() => {
     async function load() {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rows: any[] = await getAdminActivities(100)
         setActivities((rows || []).map(row => ({
           title: actionTitle(row.action),

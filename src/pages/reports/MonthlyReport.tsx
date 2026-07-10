@@ -157,7 +157,7 @@ export default function MonthlyReport() {
 
       const saleProductMap: Record<string, BreakdownRow> = {}
       sales.forEach((sale: any) => {
-        ;(sale.sale_items || []).forEach((item: any) => {
+        (sale.sale_items || []).forEach((item: any) => {
           const name = item.product_name || 'Unknown Product'
           const qty = Number(item.qty || 0)
           const amount = Number(item.total_amount || 0)
@@ -180,7 +180,7 @@ export default function MonthlyReport() {
 
       const purchaseProductMap: Record<string, BreakdownRow> = {}
       purchases.forEach((purchase: any) => {
-        ;(purchase.purchase_items || []).forEach((item: any) => {
+        (purchase.purchase_items || []).forEach((item: any) => {
           const name = item.product_name || 'Unknown Product'
           const qty = Number(item.qty || 0)
           const amount = Number(item.total_amount || 0)

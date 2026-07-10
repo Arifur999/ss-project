@@ -187,7 +187,7 @@ export default function YearlyReport() {
         }, 0)
         const purchaseOrderValue = monthPurchases.reduce((sum: number, purchase: any) => sum + Number(purchase.net_amount || purchase.total_amount || 0), 0)
         const purchaseStats = monthPurchases.reduce((stats: { incentive: number; deposit: number; qty: number }, purchase: any) => {
-          ;(purchase.purchase_items || []).forEach((item: any) => {
+          (purchase.purchase_items || []).forEach((item: any) => {
             const itemAmount = Number(item.total_amount || 0)
             const incentive = Number(item.sp_amount || 0)
             stats.incentive += incentive
@@ -232,7 +232,7 @@ export default function YearlyReport() {
         companyMap[company] = current
       })
       sales.forEach((sale: any) => {
-        ;(sale.sale_items || []).forEach((item: any) => {
+        (sale.sale_items || []).forEach((item: any) => {
           const company = companyName(productCompanyMap.get(item.product_id) || productCompanyMap.get(item.product_code))
           const current = companyMap[company] || { company, purchase: 0, sales: 0 }
           current.sales += Number(item.selling_price || 0) * Number(item.qty || 0) || Number(item.total_amount || 0)

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Supabase-compatible data layer backed by our Express API.
 //
 // The original app talked to Supabase directly from every page:

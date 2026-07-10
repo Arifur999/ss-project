@@ -307,7 +307,7 @@ export default function ReportSummary() {
       const totalSales = sales.reduce((sum: number, sale: any) => sum + amount(sale.net_amount || sale.subtotal), 0)
       const saleProductMap: Record<string, BreakdownRow> = {}
       sales.forEach((sale: any) => {
-        ;(sale.sale_items || []).forEach((item: any) => {
+        (sale.sale_items || []).forEach((item: any) => {
           const name = item.product_name || 'Unknown Product'
           const qty = amount(item.qty)
           const saleAmount = amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
@@ -330,7 +330,7 @@ export default function ReportSummary() {
 
       const purchaseProductMap: Record<string, BreakdownRow> = {}
       purchases.forEach((purchase: any) => {
-        ;(purchase.purchase_items || []).forEach((item: any) => {
+        (purchase.purchase_items || []).forEach((item: any) => {
           const name = item.product_name || 'Unknown Product'
           const qty = amount(item.qty)
           const rowAmount = amount(item.total_amount)

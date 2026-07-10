@@ -37,7 +37,6 @@ export default function SuperAdminPayments() {
   async function loadPayments() {
     setLoading(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows: any[] = await getSubscriptionPayments()
       setPayments((rows || []).map((row) => ({
         id: row.id,

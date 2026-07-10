@@ -125,7 +125,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadAccount()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // An owner's subscription can expire while the app is open - re-check near expiry.

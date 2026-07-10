@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Recycle bin metadata bridge.
 //
 // The old app kept deleted-record snapshots in localStorage: pages called

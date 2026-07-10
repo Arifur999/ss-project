@@ -1,7 +1,6 @@
 import { http } from '../lib/httpClient'
 import { RecycleMeta } from './finance.services'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const getEmployees = () => http.get<any[]>('/employees')
 export const createEmployee = (payload: any) => http.post<any>('/employees', payload)

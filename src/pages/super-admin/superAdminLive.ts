@@ -145,7 +145,6 @@ export function isOwnerSubscriptionTableMissing(error: any) {
 
 export async function loadOwners(): Promise<OwnerLoadResult> {
   // GET /super-admin/owners returns each owner user with their subscription.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = await getOwners()
 
   const owners = rows

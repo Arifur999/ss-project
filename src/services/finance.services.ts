@@ -1,6 +1,5 @@
 import { http } from '../lib/httpClient'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface RecycleMeta {
   type: string
