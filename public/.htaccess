@@ -1,0 +1,15 @@
+# Lives in public/ so `npm run build` copies it to dist/.htaccess
+# automatically on every build - no separate manual step to remember when
+# uploading to Hostinger.
+#
+# SPA fallback: this is a client-side-routed React app (react-router-dom).
+# Without this, visiting /products directly (not via in-app navigation) or
+# hitting refresh on it returns Apache's own 404, because no real
+# /products file exists on disk - only index.html + JS that renders it.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
