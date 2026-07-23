@@ -88,6 +88,7 @@
   "common_updated": "Updated!",
   "common_added": "Added!",
   "common_deleted": "Deleted!",
+  "common_confirmDelete": "Are you sure you want to delete this? This cannot be undone.",
   "common_error": "An error occurred",
   "common_signedOut": "Signed out",
   "common_account": "Account",
@@ -436,7 +437,7 @@
   "expTx_fillAllFields": "Please fill all required fields",
   "expTx_saved": "Expense saved!",
 
-  "invest_title": "Investment & Withdrawal",
+  "invest_title": "Shareholder capital in & out",
   "invest_subtitle": "Investment / Withdrawal",
   "invest_new": "New Entry",
   "invest_totalInvestment": "Total Investment",
@@ -556,7 +557,7 @@
   "yearly_colTotal": "Total",
 
   "settings_title": "Settings",
-  "settings_subtitle": "Settings — Business Configuration",
+  "settings_subtitle": "Business Configuration",
   "settings_tabBusiness": "Business Info",
   "settings_tabShareholders": "Shareholders",
   "settings_tabAccounts": "Accounts",

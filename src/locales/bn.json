@@ -88,6 +88,7 @@
   "common_updated": "আপডেট হয়েছে!",
   "common_added": "যোগ করা হয়েছে!",
   "common_deleted": "মুছে ফেলা হয়েছে!",
+  "common_confirmDelete": "আপনি কি নিশ্চিত এটি মুছে ফেলতে চান? এটি আর ফেরানো যাবে না।",
   "common_error": "একটি ত্রুটি হয়েছে",
   "common_signedOut": "সাইন আউট হয়েছে",
   "common_account": "অ্যাকাউন্ট",
@@ -436,7 +437,7 @@
   "expTx_fillAllFields": "সব তথ্য পূরণ করুন",
   "expTx_saved": "খরচ সংরক্ষণ হয়েছে!",
 
-  "invest_title": "বিনিয়োগ ও উত্তোলন",
+  "invest_title": "শেয়ারহোল্ডারের মূলধন জমা ও উত্তোলন",
   "invest_subtitle": "বিনিয়োগ / উত্তোলন",
   "invest_new": "নতুন এন্ট্রি",
   "invest_totalInvestment": "মোট বিনিয়োগ",
@@ -556,7 +557,7 @@
   "yearly_colTotal": "মোট",
 
   "settings_title": "সেটিংস",
-  "settings_subtitle": "সেটিংস — ব্যবসার কনফিগারেশন",
+  "settings_subtitle": "ব্যবসার কনফিগারেশন",
   "settings_tabBusiness": "ব্যবসার তথ্য",
   "settings_tabShareholders": "শেয়ারহোল্ডার",
   "settings_tabAccounts": "অ্যাকাউন্ট",

@@ -5,6 +5,7 @@ import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '.
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
+import { confirmAction } from '../components/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { rememberBusinessBrand, resolveBusinessName } from '../lib/businessBrand'
@@ -247,6 +248,29 @@ export default function Settings() {
     setTargets(await loadTargets())
   }
 
+  // Shared delete flow for the simple config tables (shareholders, accounts,
+  // suppliers). The old inline handlers fired the delete and immediately
+  // reloaded WITHOUT checking .error - so when the backend refused (e.g. a
+  // shareholder that still has investment records, blocked by an onDelete:
+  // Restrict foreign key), the row silently stayed and the user saw nothing
+  // happen. Now we confirm first and surface the real reason on failure.
+  async function deleteRow(table: string, id: string, linkedHint: string) {
+    const confirmed = await confirmAction({ message: t('common_confirmDelete') })
+    if (!confirmed) return
+
+    const { error } = await supabase.from(table).delete().eq('id', id)
+    if (error) {
+      const message = String(error.message || '')
+      // Foreign-key / linked-record rejections come back as a 409 from the
+      // backend; give a human explanation instead of the raw DB wording.
+      const isLinked = error.code === 409 || /linked|foreign|constraint/i.test(message)
+      toast.error(isLinked ? linkedHint : (message || t('common_error')))
+      return
+    }
+    toast.success(t('common_deleted'))
+    loadAll()
+  }
+
   async function toggleAccount(id: string, is_active: boolean) {
     await supabase.from('accounts').update({ is_active }).eq('id', id)
     loadAll()
@@ -459,7 +483,7 @@ export default function Settings() {
                           <td className="py-2 px-3 text-right">
                             <div className="flex gap-1 justify-end">
                               <button onClick={() => openModal('shareholder', sh)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={13} /></button>
-                              <button onClick={async () => { await supabase.from('shareholders').delete().eq('id', sh.id); loadAll() }} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
+                              <button onClick={() => deleteRow('shareholders', sh.id, 'This shareholder has investment or withdrawal records and cannot be deleted. Remove those entries first.')} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
                             </div>
                           </td>
                         </tr>
@@ -502,7 +526,7 @@ export default function Settings() {
                       <td className="py-2.5 px-4">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openModal('account', acc)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={13} /></button>
-                          <button onClick={async () => { await supabase.from('accounts').delete().eq('id', acc.id); loadAll() }} className="p-1.5 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
+                          <button onClick={() => deleteRow('accounts', acc.id, 'This account has linked transactions and cannot be deleted.')} className="p-1.5 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -547,7 +571,7 @@ export default function Settings() {
                       <td className="py-2 px-3">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => openModal('supplier', sup)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={13} /></button>
-                          <button onClick={async () => { await supabase.from('suppliers').delete().eq('id', sup.id); loadAll() }} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
+                          <button onClick={() => deleteRow('suppliers', sup.id, 'This supplier has linked purchases or payments and cannot be deleted.')} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>

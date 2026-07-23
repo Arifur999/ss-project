@@ -183,14 +183,20 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
     }
 
     if (state.action === 'update') {
-      // business_settings updates without an id go through the PUT upsert.
-      if (config.upsertPut && !state.filters.some((f) => f.kind === 'eq' && f.column === 'id')) {
+      const idFilter = state.filters.find((f) => f.kind === 'eq' && f.column === 'id') as { value: string } | undefined
+
+      // Upsert-only tables (business_settings) have a single PUT endpoint that
+      // upserts by owner - no per-id PATCH exists. Route every update there,
+      // whether or not an .eq('id', ...) filter was supplied (the backend
+      // ignores the id and keys off owner_id). Tables that ALSO have a real
+      // per-id update endpoint (monthly_targets, attendance) only take the PUT
+      // path when no id filter is present; with an id they PATCH below.
+      if (config.upsertPut && (!idFilter || !config.update)) {
         const response = await api.put(config.upsertPut, state.payload)
         return { data: state.wantsReturn ? response.data.data : null, error: null }
       }
 
       if (!config.update) throw new Error(`Update not supported for table: ${state.table}`)
-      const idFilter = state.filters.find((f) => f.kind === 'eq' && f.column === 'id') as { value: string } | undefined
       if (idFilter) {
         const response = await api.patch(config.update(idFilter.value), state.payload)
         return { data: state.wantsReturn ? response.data.data : null, error: null }
