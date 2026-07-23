@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { confirmAction } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
-import { formatCurrency } from '../lib/utils'
+import { useLang } from '../context/LanguageContext'
 import { RecycleBinItem } from '../lib/recycleBin'
 import { deleteRecycleBinItemPermanently, getRecycleBinItems, restoreRecycleBinItem } from '../services/admin.services'
 
@@ -75,6 +75,7 @@ function cleanRecord(record: any, ignoredKeys: string[]) {
 }
 
 export default function RecycleBin() {
+  const { formatCurr } = useLang()
   const [activeTab, setActiveTab] = useState<TabKey>('customers')
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<RecycleBinItem[]>([])
@@ -285,7 +286,7 @@ export default function RecycleBin() {
                   </span>
                 </td>
                 <td className={`py-3 px-4 text-right font-semibold ${row.amount > 0 ? 'text-brand-green' : 'text-slate-500'}`}>
-                  {formatCurrency(row.amount)}
+                  {formatCurr(row.amount)}
                 </td>
                 <td className="py-3 px-4 text-slate-600">{displayDate(row.deleted_at)}</td>
                 <td className="py-3 px-4 text-right">

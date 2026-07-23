@@ -64,8 +64,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [lang])
 
   const formatCurr = useCallback((n: number): string => {
-    const str = '৳' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-    return lang === 'bn' ? toBnDigits(str) : str
+    const amount = n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    // "৳" is a Bengali-script glyph and looks out of place inside English
+    // text, so use it only in Bangla; English uses the "Tk" abbreviation.
+    return lang === 'bn' ? '৳' + toBnDigits(amount) : 'Tk ' + amount
   }, [lang])
 
   const monthName = useCallback((m: number): string => {
