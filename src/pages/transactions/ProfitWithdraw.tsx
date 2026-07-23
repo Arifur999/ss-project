@@ -88,7 +88,8 @@ export default function ProfitWithdraw() {
         data: record,
       })
     }
-    await supabase.from('profit_withdrawals').delete().eq('id', id)
+    const { error } = await supabase.from('profit_withdrawals').delete().eq('id', id)
+    if (error) { toast.error(error.message || t('common_error')); return }
     toast.success(t('common_deleted'))
     loadAll()
   }

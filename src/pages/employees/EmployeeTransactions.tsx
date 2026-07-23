@@ -325,7 +325,8 @@ export default function EmployeeTransactions() {
     } else {
       await supabase.from('expenses').delete().ilike('notes', `%${salaryExpenseMarker(id)}%`)
     }
-    await supabase.from('salary_transactions').delete().eq('id', id)
+    const { error } = await supabase.from('salary_transactions').delete().eq('id', id)
+    if (error) { toast.error(error.message || t('common_error')); return }
     toast.success(t('common_deleted'))
     loadAll()
   }

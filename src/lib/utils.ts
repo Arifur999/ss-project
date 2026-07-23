@@ -1,10 +1,5 @@
 import { format } from 'date-fns'
 
-export function formatCurrency(amount: number): string {
-  if (isNaN(amount)) return '৳0'
-  return '৳' + amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-}
-
 export function formatDate(date: string | Date): string {
   if (!date) return ''
   return format(new Date(date), 'dd-MMM-yyyy')

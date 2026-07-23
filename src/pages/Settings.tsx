@@ -243,7 +243,8 @@ export default function Settings() {
   }
 
   async function deleteTarget(id: string) {
-    await supabase.from('monthly_targets').delete().eq('id', id)
+    const { error } = await supabase.from('monthly_targets').delete().eq('id', id)
+    if (error) { toast.error(error.message || t('common_error')); return }
     toast.success(t('common_deleted'))
     setTargets(await loadTargets())
   }

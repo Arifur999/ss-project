@@ -64,7 +64,8 @@ export default function InvestWithdraw() {
         data: record,
       })
     }
-    await supabase.from('investments').delete().eq('id', id)
+    const { error } = await supabase.from('investments').delete().eq('id', id)
+    if (error) { toast.error(error.message || t('common_error')); return }
     toast.success(t('common_deleted')); loadAll()
   }
 

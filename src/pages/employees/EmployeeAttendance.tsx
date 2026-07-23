@@ -165,7 +165,8 @@ export default function EmployeeAttendance() {
         data: attendanceRow,
       })
     }
-    await supabase.from('attendance').delete().eq('id', id)
+    const { error } = await supabase.from('attendance').delete().eq('id', id)
+    if (error) { toast.error(error.message || t('common_error')); return }
     toast.success(t('common_deleted'))
     loadAll()
   }
