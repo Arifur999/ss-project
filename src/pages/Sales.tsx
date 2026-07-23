@@ -178,10 +178,12 @@ export default function Sales() {
     product_code: '',
     name: '',
     image_url: '',
+    category: '',
     supplier_id: '',
     cost_price: 0,
-    discount: 0,
+    dp_discount: 0,
     selling_price: 0,
+    mrp_discount: 0,
     opening_qty: 0,
     size: '',
     weight: '',
@@ -688,10 +690,12 @@ export default function Sales() {
         product_code: productCode,
         name: productName,
         image_url: quickProductForm.image_url || null,
+        category: quickProductForm.category.trim() || null,
         supplier_id: quickProductForm.supplier_id || null,
         cost_price: Number(quickProductForm.cost_price || 0),
-        discount: Number(quickProductForm.discount || 0),
         selling_price: Number(quickProductForm.selling_price || 0),
+        dp_discount: Number(quickProductForm.dp_discount || 0),
+        mrp_discount: Number(quickProductForm.mrp_discount || 0),
         opening_qty: Number(quickProductForm.opening_qty || 0),
         size: quickProductForm.size || null,
         weight: quickProductForm.weight || null,
@@ -735,7 +739,7 @@ export default function Sales() {
       setInventoryMap(prev => ({ ...prev, [product.id]: openingQty }))
       setProductSearch(product.name)
       setShowQuickAddProduct(false)
-      setQuickProductForm({ product_code: '', name: '', image_url: '', supplier_id: '', cost_price: 0, discount: 0, selling_price: 0, opening_qty: 0, size: '', weight: '' })
+      setQuickProductForm({ product_code: '', name: '', image_url: '', category: '', supplier_id: '', cost_price: 0, dp_discount: 0, selling_price: 0, mrp_discount: 0, opening_qty: 0, size: '', weight: '' })
       toast.success('Product added. You can sell it now.')
     } catch (error: any) {
       toast.error(error.message || 'Failed to add product')
@@ -2957,23 +2961,35 @@ export default function Sales() {
             )}
           </div>
 
-          <div>
-            <label className="label">Supplier *</label>
-            <select
-              className="input"
-              value={quickProductForm.supplier_id}
-              onChange={e => setQuickProductForm({ ...quickProductForm, supplier_id: e.target.value })}
-            >
-              <option value="">Select a supplier</option>
-              {suppliers.map(supplier => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.company_name || supplier.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Supplier *</label>
+              <select
+                className="input"
+                value={quickProductForm.supplier_id}
+                onChange={e => setQuickProductForm({ ...quickProductForm, supplier_id: e.target.value })}
+              >
+                <option value="">Select a supplier</option>
+                {suppliers.map(supplier => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.company_name || supplier.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Category</label>
+              <input
+                type="text"
+                className="input"
+                value={quickProductForm.category}
+                onChange={e => setQuickProductForm({ ...quickProductForm, category: e.target.value })}
+                placeholder="e.g., Bed, Sofa, Chair"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">DP Rate (Cost)</label>
               <input
@@ -2983,19 +2999,20 @@ export default function Sales() {
                 className="input"
                 value={quickProductForm.cost_price || ''}
                 onChange={e => setQuickProductForm({ ...quickProductForm, cost_price: Number(e.target.value) })}
-                placeholder="0.00"
+                placeholder="0.00 (optional)"
               />
             </div>
             <div>
-              <label className="label">Discount</label>
+              <label className="label">DP Discount (%)</label>
               <input
                 type="number"
                 min="0"
+                max="100"
                 step="0.01"
                 className="input"
-                value={quickProductForm.discount || ''}
-                onChange={e => setQuickProductForm({ ...quickProductForm, discount: Number(e.target.value) })}
-                placeholder="0.00"
+                value={quickProductForm.dp_discount || ''}
+                onChange={e => setQuickProductForm({ ...quickProductForm, dp_discount: Number(e.target.value) })}
+                placeholder="0"
               />
             </div>
             <div>
@@ -3007,7 +3024,20 @@ export default function Sales() {
                 className="input"
                 value={quickProductForm.selling_price || ''}
                 onChange={e => setQuickProductForm({ ...quickProductForm, selling_price: Number(e.target.value) })}
-                placeholder="0.00"
+                placeholder="0.00 (optional)"
+              />
+            </div>
+            <div>
+              <label className="label">MRP Discount (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                className="input"
+                value={quickProductForm.mrp_discount || ''}
+                onChange={e => setQuickProductForm({ ...quickProductForm, mrp_discount: Number(e.target.value) })}
+                placeholder="0"
               />
             </div>
           </div>
@@ -3053,7 +3083,7 @@ export default function Sales() {
             <button
               onClick={() => {
                 setShowQuickAddProduct(false)
-                setQuickProductForm({ product_code: '', name: '', image_url: '', supplier_id: '', cost_price: 0, discount: 0, selling_price: 0, opening_qty: 0, size: '', weight: '' })
+                setQuickProductForm({ product_code: '', name: '', image_url: '', category: '', supplier_id: '', cost_price: 0, dp_discount: 0, selling_price: 0, mrp_discount: 0, opening_qty: 0, size: '', weight: '' })
               }}
               className="btn-secondary flex-1 justify-center"
             >
