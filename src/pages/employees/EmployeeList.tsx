@@ -62,7 +62,6 @@ export default function EmployeeList() {
   })
 
   useEffect(() => {
-    console.log('EmployeeList mounted, loading employees')
     loadEmployees()
   }, [])
 
@@ -78,9 +77,7 @@ export default function EmployeeList() {
 
   async function loadEmployees() {
     try {
-      console.log('Loading employees...')
       const { data, error } = await supabase.from('employees').select('*').order('join_date', { ascending: false })
-      console.log('Load response:', { data, error })
 
       if (error) {
         console.error('Load error:', error)
@@ -88,7 +85,6 @@ export default function EmployeeList() {
         return
       }
 
-      console.log('Employees loaded:', data?.length || 0)
       setEmployees(data || [])
     } catch (err: any) {
       console.error('Load catch:', err)
@@ -127,13 +123,9 @@ export default function EmployeeList() {
         is_active: true
       }
 
-      console.log('Saving with payload:', payload)
-
       let result
       if (editingId) {
-        console.log('Updating employee:', editingId)
         result = await saveEmployeePayload(payload, editingId)
-        console.log('Update result:', result)
         if (result.error) {
           console.error('Update error:', result.error)
           toast.error(`Update failed: ${result.error.message}`)
@@ -141,9 +133,7 @@ export default function EmployeeList() {
         }
         toast.success(t('common_updated'))
       } else {
-        console.log('Inserting new employee')
         result = await saveEmployeePayload(payload)
-        console.log('Insert result:', result)
         if (result.error) {
           console.error('Insert error:', result.error)
           toast.error(`Insert failed: ${result.error.message}`)
@@ -152,7 +142,6 @@ export default function EmployeeList() {
         toast.success(t('common_created'))
       }
 
-      console.log('Save successful, resetting form')
       setShowModal(false)
       setEditingId(null)
       setActionType('Join')
@@ -169,7 +158,6 @@ export default function EmployeeList() {
         is_active: true
       })
 
-      console.log('Reloading employees')
       await loadEmployees()
     } catch (err: any) {
       console.error('Save exception:', err)
@@ -223,7 +211,6 @@ export default function EmployeeList() {
   }
 
   function resetForm() {
-    console.log('Resetting form')
     setEditingId(null)
     setActionType('Join')
     setEmployeeSearch('')

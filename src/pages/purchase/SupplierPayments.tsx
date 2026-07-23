@@ -40,7 +40,6 @@ export default function SupplierPayments() {
 
   async function loadAll() {
     try {
-      console.log('Loading supplier payment data...')
       const [payRes, supRes, accRes] = await Promise.all([
         supabase.from('supplier_payments').select('*').order('date', { ascending: false }),
         supabase.from('suppliers').select('id, name').eq('is_active', true),
@@ -52,12 +51,6 @@ export default function SupplierPayments() {
         toast.error(payRes.error.message)
         return
       }
-
-      console.log('Data loaded:', {
-        payments: payRes.data?.length || 0,
-        suppliers: supRes.data?.length || 0,
-        accounts: accRes.data?.length || 0,
-      })
 
       const sortedPayments = [...(payRes.data || [])].sort((a, b) => {
         const dateDiff = new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
@@ -86,8 +79,6 @@ export default function SupplierPayments() {
     try {
       const sup = suppliers.find(s => s.id === form.supplier_id)
       const acc = accounts.find(a => a.id === form.account_id)
-
-      console.log('Saving supplier payment:', form)
 
       if (editingId) {
         const { error: updateError } = await supabase.from('supplier_payments').update({
@@ -134,7 +125,6 @@ export default function SupplierPayments() {
         return
       }
 
-      console.log('Payment saved successfully')
       toast.success(t('supplierPayments_saved'))
       setShowModal(false)
       resetForm()
