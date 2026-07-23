@@ -16,9 +16,13 @@ interface Product {
   product_code: string
   name: string
   image_url: string | null
+  category?: string | null
+  supplier_id?: string | null
   cost_price: number
   selling_price: number
-  discount?: number | null
+  discount?: number | null       // legacy flat amount - no longer edited
+  dp_discount?: number | null     // percentage discount on DP/cost
+  mrp_discount?: number | null    // percentage discount on MRP/selling
   opening_qty?: number | null
   size: string | null
   weight: string | null
@@ -36,11 +40,13 @@ interface CsvProductImportRow {
   code: string
   product_name: string
   image_link: string | null
+  category: string | null
   supplier_id: string
   supplier: string
   dp_rate: number
-  discount: number
+  dp_discount: number
   mrp: number
+  mrp_discount: number
   opening_qty: number
   size: string | null
   weight: string | null
@@ -56,7 +62,24 @@ interface BusinessSettings {
 
 const productOpeningQtyStorageKey = 'product_opening_qty_v1'
 const productListCacheKey = 'product_list_cache_v1'
-const productCsvHeaders = ['Code *', 'Product Name *', 'Image Link', 'Supplier *', 'DP Rate (Cost)', 'Discount', 'MRP (Selling)', 'Opening Qty', 'Size', 'Weight']
+const productCsvHeaders = ['Code *', 'Product Name *', 'Image Link', 'Category', 'Supplier *', 'DP Rate (Cost)', 'DP Discount %', 'MRP (Selling)', 'MRP Discount %', 'Opening Qty', 'Size', 'Weight']
+
+// One source of truth for a blank product form, reused by every reset site
+// so a field can never be forgotten in one place and left stale in another.
+const EMPTY_FORM = {
+  product_code: '',
+  name: '',
+  image_url: '',
+  category: '',
+  supplier_id: '',
+  cost_price: 0,
+  dp_discount: 0,
+  selling_price: 0,
+  mrp_discount: 0,
+  opening_qty: 0,
+  size: '',
+  weight: '',
+}
 const pageSize = 1000
 const bulkDeleteChunkSize = 200
 const importInventoryChunkSize = 25
@@ -210,18 +233,7 @@ export default function ProductList() {
   const csvInputRef = useRef<HTMLInputElement>(null)
   const ownerId = profile?.owner_id || user?.id || null
 
-  const [form, setForm] = useState({
-    product_code: '',
-    name: '',
-    image_url: '',
-    supplier_id: '',
-    cost_price: 0,
-    discount: 0,
-    selling_price: 0,
-    opening_qty: 0,
-    size: '',
-    weight: '',
-  })
+  const [form, setForm] = useState({ ...EMPTY_FORM })
 
   useEffect(() => {
     loadData()
@@ -274,10 +286,12 @@ export default function ProductList() {
       product_code: row.code,
       name: row.product_name,
       image_url: row.image_link,
+      category: row.category,
       supplier_id: row.supplier_id,
       cost_price: row.dp_rate,
-      discount: row.discount,
       selling_price: row.mrp,
+      dp_discount: row.dp_discount,
+      mrp_discount: row.mrp_discount,
       opening_qty: row.opening_qty,
       size: row.size,
       weight: row.weight,
@@ -380,10 +394,12 @@ export default function ProductList() {
         product_code: row.code,
         name: row.product_name,
         image_url: row.image_link,
+        category: row.category,
         supplier_id: row.supplier_id,
         cost_price: row.dp_rate,
-        discount: row.discount,
         selling_price: row.mrp,
+        dp_discount: row.dp_discount,
+        mrp_discount: row.mrp_discount,
         opening_qty: row.opening_qty,
         size: row.size,
         weight: row.weight,
@@ -456,10 +472,14 @@ export default function ProductList() {
       product_code: form.product_code.trim(),
       name: form.name.trim(),
       image_url: form.image_url || null,
+      category: form.category.trim() || null,
       supplier_id: form.supplier_id,
+      // Empty numeric fields go as null - the backend normalizes null to the
+      // column default, so DP Rate / MRP / discounts are all optional.
       cost_price: form.cost_price || null,
-      discount: form.discount || null,
       selling_price: form.selling_price || null,
+      dp_discount: form.dp_discount || null,
+      mrp_discount: form.mrp_discount || null,
       size: form.size || null,
       weight: form.weight || null,
       owner_id: ownerId,
@@ -486,10 +506,12 @@ export default function ProductList() {
       product_code: form.product_code.trim(),
       name: form.name.trim(),
       image_url: form.image_url || null,
+      category: form.category.trim() || null,
       supplier_id: form.supplier_id,
       cost_price: Number(form.cost_price || 0),
-      discount: Number(form.discount || 0),
       selling_price: Number(form.selling_price || 0),
+      dp_discount: Number(form.dp_discount || 0),
+      mrp_discount: Number(form.mrp_discount || 0),
       opening_qty: Number(form.opening_qty || 0),
       size: form.size || null,
       weight: form.weight || null,
@@ -588,7 +610,7 @@ export default function ProductList() {
         toast.success('Product updated')
         setShowModal(false)
         setEditingId(null)
-        setForm({ product_code: '', name: '', image_url: '', supplier_id: '', cost_price: 0, discount: 0, selling_price: 0, opening_qty: 0, size: '', weight: '' })
+        setForm({ ...EMPTY_FORM })
         return
       }
 
@@ -687,11 +709,25 @@ export default function ProductList() {
         // added from appearing.
         const createdSupplier = suppliers.find(s => s.id === form.supplier_id)
         const optimisticProduct: Product = {
-          ...(product as Product),
-          opening_qty: Number((product as any).opening_qty ?? form.opening_qty ?? 0),
-          suppliers: (product as any).suppliers ?? (createdSupplier
+          // The insert only returns { id }, so fill the rest from the form so
+          // the new row renders complete without waiting for loadData().
+          id: (product as any).id,
+          product_code: form.product_code.trim(),
+          name: form.name.trim(),
+          image_url: form.image_url || null,
+          category: form.category.trim() || null,
+          supplier_id: form.supplier_id || null,
+          cost_price: Number(form.cost_price || 0),
+          selling_price: Number(form.selling_price || 0),
+          dp_discount: Number(form.dp_discount || 0),
+          mrp_discount: Number(form.mrp_discount || 0),
+          opening_qty: Number(form.opening_qty || 0),
+          size: form.size || null,
+          weight: form.weight || null,
+          created_at: new Date().toISOString(),
+          suppliers: createdSupplier
             ? { id: createdSupplier.id, name: createdSupplier.name, company_name: createdSupplier.company_name }
-            : null),
+            : null,
         }
         setProducts(prev => {
           const next = [optimisticProduct, ...prev.filter(p => p.id !== optimisticProduct.id)]
@@ -704,7 +740,7 @@ export default function ProductList() {
 
       setShowModal(false)
       setEditingId(null)
-      setForm({ product_code: '', name: '', image_url: '', supplier_id: '', cost_price: 0, discount: 0, selling_price: 0, opening_qty: 0, size: '', weight: '' })
+      setForm({ ...EMPTY_FORM })
       loadData()
     } catch (error: any) {
       if (isDuplicateProductCodeError(error)) {
@@ -720,10 +756,12 @@ export default function ProductList() {
       product_code: product.product_code,
       name: product.name,
       image_url: product.image_url || '',
-      supplier_id: (product as any).suppliers?.id || '',
+      category: product.category || '',
+      supplier_id: (product as any).suppliers?.id || product.supplier_id || '',
       cost_price: product.cost_price || 0,
-      discount: (product as any).discount || 0,
       selling_price: product.selling_price || 0,
+      dp_discount: Number(product.dp_discount || 0),
+      mrp_discount: Number(product.mrp_discount || 0),
       opening_qty: openingQtyForProduct(product),
       size: product.size || '',
       weight: product.weight || '',
@@ -813,7 +851,7 @@ export default function ProductList() {
 
   function handleOpenNew() {
     setEditingId(null)
-    setForm({ product_code: '', name: '', image_url: '', supplier_id: '', cost_price: 0, discount: 0, selling_price: 0, opening_qty: 0, size: '', weight: '' })
+    setForm({ ...EMPTY_FORM })
     setShowModal(true)
   }
 
@@ -828,10 +866,12 @@ export default function ProductList() {
         p.product_code,
         p.name,
         p.image_url || '',
+        p.category || '',
         supplier,
         p.cost_price || 0,
-        (p as any).discount || 0,
+        Number(p.dp_discount || 0),
         p.selling_price || 0,
+        Number(p.mrp_discount || 0),
         openingQtyForProduct(p),
         p.size || '',
         p.weight || '',
@@ -846,8 +886,8 @@ export default function ProductList() {
     const supplierName = suppliers[0]?.company_name || suppliers[0]?.name || 'Supplier Name'
     downloadCsv('product-import-sample.csv', [
       productCsvHeaders,
-      ['SKU-001', 'Wooden Chair', 'https://example.com/chair.jpg', supplierName, 2500, 0, 3500, 10, '45x50cm', '5kg'],
-      ['SKU-002', 'Dining Table', '', supplierName, 12000, 500, 18000, 5, '6 seater', '35kg'],
+      ['SKU-001', 'Wooden Chair', 'https://example.com/chair.jpg', 'Chair', supplierName, 2500, 0, 3500, 5, 10, '45x50cm', '5kg'],
+      ['SKU-002', 'Dining Table', '', 'Table', supplierName, 12000, 2, 18000, 10, 5, '6 seater', '35kg'],
     ])
     toast.success('Sample CSV downloaded')
   }
@@ -869,10 +909,12 @@ export default function ProductList() {
           code: columnIndex(['Code', 'Product Code', 'SKU Number', 'SKU']),
           productName: columnIndex(['Product Name', 'Name']),
           imageLink: columnIndex(['Image Link', 'Image URL']),
+          category: columnIndex(['Category']),
           supplier: columnIndex(['Supplier', 'Supplier ID', 'Supplier Name', 'Supplier Company']),
           dpRate: columnIndex(['DP Rate (Cost)', 'DP Rate', 'DP', 'Cost Price', 'DP Rate Cost']),
-          discount: columnIndex(['Discount', 'Discount Amount']),
+          dpDiscount: columnIndex(['DP Discount %', 'DP Discount', 'DP Disc']),
           mrp: columnIndex(['MRP (Selling)', 'MRP', 'Selling Price', 'MRP Selling']),
+          mrpDiscount: columnIndex(['MRP Discount %', 'MRP Discount', 'MRP Disc', 'Discount', 'Discount Amount']),
           openingQty: columnIndex(['Opening Qty', 'Opening QTY', 'Opening Quantity']),
           size: columnIndex(['Size']),
           weight: columnIndex(['Weight']),
@@ -927,11 +969,13 @@ export default function ProductList() {
               code: value(row, indexes.code),
               product_name: value(row, indexes.productName),
               image_link: value(row, indexes.imageLink) || null,
+              category: value(row, indexes.category) || null,
               supplier_id: supplier?.id || '',
               supplier: supplierReference,
               dp_rate: parseCsvNumber(value(row, indexes.dpRate)),
-              discount: parseCsvNumber(value(row, indexes.discount)),
+              dp_discount: parseCsvNumber(value(row, indexes.dpDiscount)),
               mrp: parseCsvNumber(value(row, indexes.mrp)),
+              mrp_discount: parseCsvNumber(value(row, indexes.mrpDiscount)),
               opening_qty: parseCsvInteger(value(row, indexes.openingQty)),
               size: value(row, indexes.size) || null,
               weight: value(row, indexes.weight) || null,
@@ -1016,6 +1060,11 @@ export default function ProductList() {
     p.product_code.toLowerCase().includes(search.toLowerCase()) ||
     p.name.toLowerCase().includes(search.toLowerCase())
   )
+  // Distinct categories already in use, for the Category field's suggestion
+  // dropdown. Derived from the loaded products so it needs no extra request.
+  const categoryOptions = Array.from(
+    new Set(products.map(p => (p.category || '').trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b))
   const filteredIds = filteredProducts.map(product => product.id)
   const selectedCount = selectedIds.length
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.includes(id))
@@ -1120,11 +1169,11 @@ export default function ProductList() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">#</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Code</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Product Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Category</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600">Image</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Supplier</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">Opening QTY</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">DP Rate</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">Discount</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">MRP</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600">Print Tag</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600">Action</th>
@@ -1147,6 +1196,7 @@ export default function ProductList() {
                     <td className="px-6 py-4 text-sm text-slate-600">{index + 1}</td>
                     <td className="px-6 py-4 text-sm font-mono text-slate-700 font-medium">{product.product_code}</td>
                     <td className="px-6 py-4 text-sm text-slate-700 font-medium">{product.name}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{product.category || '-'}</td>
                     <td className="px-6 py-4 text-sm text-center">
                       {product.image_url ? (
                         <img
@@ -1161,9 +1211,18 @@ export default function ProductList() {
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{supplier}</td>
                     <td className="px-6 py-4 text-sm text-right text-slate-700">{openingQtyForProduct(product)}</td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">{formatCurr(product.cost_price || 0)}</td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-500">{formatCurr(Number(product.discount || 0))}</td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">{formatCurr(product.selling_price || 0)}</td>
+                    <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">
+                      {formatCurr(product.cost_price || 0)}
+                      {Number(product.dp_discount || 0) > 0 && (
+                        <span className="ml-1 text-xs font-normal text-brand-red">-{Number(product.dp_discount)}%</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">
+                      {formatCurr(product.selling_price || 0)}
+                      {Number(product.mrp_discount || 0) > 0 && (
+                        <span className="ml-1 text-xs font-normal text-brand-red">-{Number(product.mrp_discount)}%</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => openTagPrint(product)}
@@ -1242,23 +1301,43 @@ export default function ProductList() {
             )}
           </div>
 
-          <div>
-            <label className="label">Supplier *</label>
-            <select
-              className="input"
-              value={form.supplier_id}
-              onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
-            >
-              <option value="">Select a supplier</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.company_name || s.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Supplier *</label>
+              <select
+                className="input"
+                value={form.supplier_id}
+                onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
+              >
+                <option value="">Select a supplier</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.company_name || s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Category</label>
+              {/* Free-text with suggestions: existing categories show up in the
+                  dropdown, and typing a brand-new one just adds it. */}
+              <input
+                type="text"
+                className="input"
+                list="product-category-options"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="e.g., Bed, Sofa, Chair"
+              />
+              <datalist id="product-category-options">
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">DP Rate (Cost)</label>
               <input
@@ -1268,19 +1347,20 @@ export default function ProductList() {
                 className="input"
                 value={form.cost_price || ''}
                 onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })}
-                placeholder="0.00"
+                placeholder="0.00 (optional)"
               />
             </div>
             <div>
-              <label className="label">Discount</label>
+              <label className="label">DP Discount (%)</label>
               <input
                 type="number"
                 min="0"
+                max="100"
                 step="0.01"
                 className="input"
-                value={form.discount || ''}
-                onChange={(e) => setForm({ ...form, discount: Number(e.target.value) })}
-                placeholder="0.00"
+                value={form.dp_discount || ''}
+                onChange={(e) => setForm({ ...form, dp_discount: Number(e.target.value) })}
+                placeholder="0"
               />
             </div>
             <div>
@@ -1292,7 +1372,20 @@ export default function ProductList() {
                 className="input"
                 value={form.selling_price || ''}
                 onChange={(e) => setForm({ ...form, selling_price: Number(e.target.value) })}
-                placeholder="0.00"
+                placeholder="0.00 (optional)"
+              />
+            </div>
+            <div>
+              <label className="label">MRP Discount (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                className="input"
+                value={form.mrp_discount || ''}
+                onChange={(e) => setForm({ ...form, mrp_discount: Number(e.target.value) })}
+                placeholder="0"
               />
             </div>
           </div>
