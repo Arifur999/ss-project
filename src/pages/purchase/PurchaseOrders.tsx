@@ -640,19 +640,19 @@ export default function PlaceOrder() {
           <section className="card p-5">
             <h2 className="mb-4 text-base font-bold text-navy-800">Purchase Items</h2>
             <div className="overflow-x-auto rounded-lg border border-slate-100">
-              <table className="w-full min-w-[1080px] text-xs">
+              <table className="w-full min-w-[1240px] text-xs">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase text-navy-800">
-                  <tr>
+                  <tr className="whitespace-nowrap">
                     <th className="px-3 py-3 text-left">#</th>
                     <th className="px-3 py-3 text-left">Product Code</th>
                     <th className="px-3 py-3 text-left">Product</th>
-                    <th className="px-3 py-3 text-right">DP Amount<br />(৳)</th>
-                    <th className="px-3 py-3 text-right">Discount<br />%</th>
+                    <th className="px-3 py-3 text-right">DP Amount</th>
+                    <th className="px-3 py-3 text-right">Discount %</th>
                     <th className="px-3 py-3 text-right">Actual DP</th>
                     <th className="px-3 py-3 text-right">Quantity</th>
                     <th className="px-3 py-3 text-right">Total</th>
-                    <th className="px-3 py-3 text-right">SP Amount<br />(৳)</th>
-                    <th className="px-3 py-3 text-right">Actual Deposit<br />Amount</th>
+                    <th className="px-3 py-3 text-right">SP Amount</th>
+                    <th className="px-3 py-3 text-right">Actual Deposit Amount</th>
                     <th className="px-3 py-3 text-center">Status</th>
                     <th className="px-3 py-3 text-center">Action</th>
                   </tr>
@@ -661,7 +661,7 @@ export default function PlaceOrder() {
                   {items.map((item, idx) => {
                     const productImage = products.find(p => p.id === item.product_id)?.image_url
                     return (
-                      <tr key={idx} className="border-t border-slate-100 bg-white">
+                      <tr key={idx} className="whitespace-nowrap border-t border-slate-100 bg-white">
                         <td className="px-3 py-3 font-semibold text-slate-500">{idx + 1}</td>
                         <td className="px-3 py-3">
                           <input className="input h-10 w-24 text-xs" value={item.product_code} onChange={e => updateItem(idx, 'product_code', e.target.value)} list={`product-codes-new-${idx}`} />
