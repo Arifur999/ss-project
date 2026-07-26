@@ -75,18 +75,49 @@ function afterDiscount(price: number, discountPct: number) {
   return Math.round(net * 100) / 100
 }
 
+const CODE_HEADER_KEYS = ['code', 'productcode', 'prodcode', 'sku', 'skunumber', 'itemcode']
+const NAME_HEADER_KEYS = ['productname', 'name', 'prodname', 'itemname', 'description']
+
+// Real price-list sheets often have a title/effective-date band above the real
+// column headers, so the header row isn't always row 0. Scan the first rows for
+// the one that has both a code-like and a name-like column. Returns its index,
+// or -1 if none looks like a product header.
+function detectHeaderRow(rows: string[][]): number {
+  const limit = Math.min(rows.length, 30)
+  for (let i = 0; i < limit; i += 1) {
+    const keys = (rows[i] || []).map(headerKey)
+    const hasCode = keys.some(key => CODE_HEADER_KEYS.includes(key))
+    const hasName = keys.some(key => NAME_HEADER_KEYS.includes(key))
+    if (hasCode && hasName) return i
+  }
+  return -1
+}
+
 // Read an uploaded spreadsheet (.xlsx/.xls via SheetJS, or .csv) into a plain
 // array-of-string-rows so the rest of the import logic is format-agnostic.
+// For multi-sheet workbooks, pick the first sheet that actually has a product
+// header row - product-ish sheet names (Furniture/Product/Price/...) are tried
+// first, so a leading "Top-Sheet"/cover tab is skipped automatically.
 async function readSpreadsheet(file: File): Promise<string[][]> {
   const name = file.name.toLowerCase()
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
     const XLSX = await import('xlsx')
     const buffer = await file.arrayBuffer()
     const workbook = XLSX.read(buffer, { type: 'array' })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    if (!sheet) return []
-    const raw = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, blankrows: false, defval: '' })
-    return raw.map(row => (row || []).map(cell => (cell == null ? '' : String(cell))))
+    const toRows = (sheetName: string): string[][] => {
+      const sheet = workbook.Sheets[sheetName]
+      if (!sheet) return []
+      return XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, blankrows: false, defval: '' })
+        .map(row => (row || []).map(cell => (cell == null ? '' : String(cell))))
+    }
+    const names = workbook.SheetNames
+    const preferred = names.filter(n => /furniture|product|price|item|list|stock/i.test(n))
+    const ordered = [...preferred, ...names.filter(n => !preferred.includes(n))]
+    for (const sheetName of ordered) {
+      const rows = toRows(sheetName)
+      if (detectHeaderRow(rows) >= 0) return rows
+    }
+    return names[0] ? toRows(names[0]) : []
   }
   const text = await file.text()
   return parseCsv(text)
@@ -345,7 +376,8 @@ export default function ProductList() {
       name: row.product_name,
       image_url: row.image_link,
       category: row.category,
-      supplier_id: row.supplier_id,
+      // Backend expects a UUID or null - never an empty string.
+      supplier_id: row.supplier_id || null,
       cost_price: row.dp_rate,
       selling_price: row.mrp,
       dp_discount: row.dp_discount,
@@ -465,7 +497,9 @@ export default function ProductList() {
         created_at: now,
         suppliers: supplier
           ? { id: supplier.id, name: supplier.name, company_name: supplier.company_name }
-          : { id: row.supplier_id || row.supplier, name: row.supplier, company_name: row.supplier },
+          : (row.supplier
+            ? { id: row.supplier_id || row.supplier, name: row.supplier, company_name: row.supplier }
+            : null),
       } as Product
     })
   }
@@ -977,23 +1011,28 @@ export default function ProductList() {
 
     try {
       {
-        const csvRows = await readSpreadsheet(file)
-        if (csvRows.length < 2) return toast.error('File must have a header row and at least one data row')
+        const allRows = await readSpreadsheet(file)
+        // Find the real header row (a price list may have title/date rows above
+        // it, and multi-sheet workbooks were already narrowed to the right tab).
+        const headerRowIndex = detectHeaderRow(allRows)
+        if (headerRowIndex < 0) {
+          return toast.error('Could not find a header row with Code and Product Name columns')
+        }
 
-        const headers = csvRows[0].map(headerKey)
+        const headers = allRows[headerRowIndex].map(headerKey)
         const columnIndex = (names: string[]) => names.map(headerKey).map(name => headers.indexOf(name)).find(index => index >= 0) ?? -1
         const discountCols = resolveDiscountColumns(headers)
         const indexes = {
-          code: columnIndex(['Code', 'Product Code', 'SKU Number', 'SKU']),
-          productName: columnIndex(['Product Name', 'Name']),
-          imageLink: columnIndex(['Image Link', 'Image URL']),
-          category: columnIndex(['Category']),
+          code: columnIndex(['Code', 'Product Code', 'Prod Code', 'ProdCode', 'SKU Number', 'SKU', 'Item Code']),
+          productName: columnIndex(['Product Name', 'Name', 'Prod Name', 'ProdName', 'Item Name', 'Description']),
+          imageLink: columnIndex(['Image Link', 'Image URL', 'Image']),
+          category: columnIndex(['Category', 'Group Name', 'GroupName', 'Group']),
           supplier: columnIndex(['Supplier', 'Supplier ID', 'Supplier Name', 'Supplier Company']),
           dpRate: columnIndex(['DP', 'DP Rate (Cost)', 'DP Rate', 'Cost Price', 'DP Rate Cost']),
           dpDiscount: discountCols.dp,
-          mrp: columnIndex(['MRP', 'MRP (Selling)', 'Selling Price', 'MRP Selling']),
+          mrp: columnIndex(['MRP', 'MRP (Selling)', 'Selling Price', 'MRP Selling', 'SP', 'Retail']),
           mrpDiscount: discountCols.mrp,
-          openingQty: columnIndex(['Opening Qty', 'Opening QTY', 'Opening Quantity']),
+          openingQty: columnIndex(['Opening Qty', 'Opening QTY', 'Opening Quantity', 'Qty', 'Quantity', 'Stock']),
           size: columnIndex(['Size']),
           weight: columnIndex(['Weight']),
         }
@@ -1005,8 +1044,10 @@ export default function ProductList() {
           return toast.error('Unable to identify current workspace owner')
         }
 
+        // Supplier & Image columns are optional - a bare price list has neither.
+        const hasSupplierColumn = indexes.supplier >= 0
         const value = (row: string[], index: number) => index >= 0 ? row[index]?.trim() || '' : ''
-        const rows = csvRows.slice(1)
+        const rows = allRows.slice(headerRowIndex + 1)
 
         const supplierByName = new Map<string, Supplier>()
         const supplierById = new Map<string, Supplier>()
@@ -1016,11 +1057,13 @@ export default function ProductList() {
           if (supplier.company_name) supplierByName.set(normalizeLookup(supplier.company_name), supplier)
         }
 
-        const supplierNames = Array.from(new Set(rows
+        // Only auto-create suppliers when the file actually has a Supplier
+        // column with non-blank values.
+        const supplierNames = hasSupplierColumn ? Array.from(new Set(rows
           .map(row => value(row, indexes.supplier))
           .filter(Boolean)
           .map(normalizeLookup)
-        ))
+        )) : []
 
         for (const supplierKey of supplierNames) {
           if (supplierByName.has(supplierKey)) continue
@@ -1039,9 +1082,13 @@ export default function ProductList() {
           .filter(({ row }) => value(row, indexes.code) && value(row, indexes.productName))
           .map(({ row, rowNumber }) => {
             const supplierReference = value(row, indexes.supplier)
-            const supplier = supplierById.get(supplierReference) || supplierByName.get(normalizeLookup(supplierReference))
-            if (!supplier) {
-              invalidRows.push(`row ${rowNumber}: supplier "${supplierReference || 'blank'}" not found`)
+            const supplier = supplierReference
+              ? (supplierById.get(supplierReference) || supplierByName.get(normalizeLookup(supplierReference)))
+              : undefined
+            // Only an error when a supplier name is given but can't be resolved;
+            // a blank/missing supplier is fine (product saved with no supplier).
+            if (supplierReference && !supplier) {
+              invalidRows.push(`row ${rowNumber}: supplier "${supplierReference}" not found`)
             }
             const imported: CsvProductImportRow = {
               code: value(row, indexes.code),
