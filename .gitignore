@@ -4,3 +4,7 @@ dist
 .env.local
 .env*
 .env
+
+# Local build/upload artifacts
+hostinger-upload.zip
+dist.zip
