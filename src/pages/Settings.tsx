@@ -199,7 +199,7 @@ export default function Settings() {
     setBusiness(payload)
     rememberBusinessBrand(payload)
     setBusinessEditable(false)
-    toast.success(t('common_saved'))
+    toast.success(t('settings_businessSaved'))
   }
 
   function clearBusinessError(field: keyof BusinessValidationErrors) {

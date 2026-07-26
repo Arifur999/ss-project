@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Edit2, Trash2, Plus, Search, Printer, Upload } from 'lucide-react'
+import { Edit2, Trash2, Plus, Search, Printer, Upload, Download, FileSpreadsheet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
@@ -62,7 +62,54 @@ interface BusinessSettings {
 
 const productOpeningQtyStorageKey = 'product_opening_qty_v1'
 const productListCacheKey = 'product_list_cache_v1'
-const productCsvHeaders = ['Code *', 'Product Name *', 'Image Link', 'Category', 'Supplier *', 'DP Rate (Cost)', 'DP Discount %', 'MRP (Selling)', 'MRP Discount %', 'Opening Qty', 'Size', 'Weight']
+// Import/export column layout. Note two "Discount" columns (DP side then MRP
+// side) and the derived "Actual DP"/"Actual MRP" (price after that discount).
+// On import the Actual columns are ignored - they're computed from DP/MRP and
+// the discount %. The two same-named Discount columns are told apart by
+// position (see resolveDiscountColumns).
+const productCsvHeaders = ['Code *', 'Product Name *', 'Image Link', 'Supplier *', 'Category', 'DP', 'Discount', 'Actual DP', 'MRP', 'Discount', 'Actual MRP', 'Opening Qty', 'Size', 'Weight']
+
+// Price after a percentage discount, rounded to 2 decimals.
+function afterDiscount(price: number, discountPct: number) {
+  const net = Number(price || 0) * (1 - Number(discountPct || 0) / 100)
+  return Math.round(net * 100) / 100
+}
+
+// Read an uploaded spreadsheet (.xlsx/.xls via SheetJS, or .csv) into a plain
+// array-of-string-rows so the rest of the import logic is format-agnostic.
+async function readSpreadsheet(file: File): Promise<string[][]> {
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    const XLSX = await import('xlsx')
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    if (!sheet) return []
+    const raw = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, blankrows: false, defval: '' })
+    return raw.map(row => (row || []).map(cell => (cell == null ? '' : String(cell))))
+  }
+  const text = await file.text()
+  return parseCsv(text)
+}
+
+// The layout has two columns both titled "Discount" - the first belongs to DP,
+// the second to MRP. Explicit "DP Discount"/"MRP Discount" headers win; plain
+// "Discount" columns are then assigned in order (1st -> DP, 2nd -> MRP).
+function resolveDiscountColumns(headers: string[]) {
+  const discountCols = headers
+    .map((header, index) => ({ header, index }))
+    .filter(({ header }) => header.includes('discount'))
+
+  let dp = discountCols.find(({ header }) => header.includes('dp'))?.index ?? -1
+  let mrp = discountCols.find(({ header }) => header.includes('mrp'))?.index ?? -1
+  const generic = discountCols
+    .filter(({ header }) => !header.includes('dp') && !header.includes('mrp'))
+    .map(({ index }) => index)
+
+  if (dp < 0) dp = generic[0] ?? -1
+  if (mrp < 0) mrp = generic.filter(index => index !== dp)[0] ?? -1
+  return { dp, mrp }
+}
 
 // One source of truth for a blank product form, reused by every reset site
 // so a field can never be forgotten in one place and left stale in another.
@@ -130,6 +177,17 @@ function downloadCsv(filename: string, rows: any[][]) {
   a.download = filename
   a.click()
   window.URL.revokeObjectURL(url)
+}
+
+// Write a real .xlsx (SheetJS) so downloads open cleanly in Excel and match
+// the format users upload from. SheetJS is loaded on demand (it's ~440KB) so
+// it never weighs down the initial app load - only when actually used here.
+async function downloadXlsx(filename: string, headers: string[], rows: any[][]) {
+  const XLSX = await import('xlsx')
+  const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Products')
+  XLSX.writeFile(workbook, filename)
 }
 
 function parseCsv(text: string) {
@@ -571,8 +629,12 @@ export default function ProductList() {
         ...product,
         opening_qty: Number(product.opening_qty ?? nextOpeningQtyMap[product.id] ?? 0),
       }))
-      const cachedProducts = readProductListCache()
-      const nextProducts = productsWithOpeningQty.length > 0 ? productsWithOpeningQty : cachedProducts
+      // A successful fetch is authoritative - trust it even when it's empty.
+      // (A real fetch failure throws inside fetchPaged and lands in catch
+      // below, leaving the current list untouched.) The old "fall back to the
+      // cached list when the fresh result is empty" logic meant deleting the
+      // last product just brought it back from stale localStorage.
+      const nextProducts = productsWithOpeningQty
 
       setProducts(nextProducts)
       writeProductListCache(nextProducts)
@@ -855,73 +917,89 @@ export default function ProductList() {
     setShowModal(true)
   }
 
-  function handleExportCSV() {
+  async function handleExportCSV() {
     if (filteredProducts.length === 0) {
       return toast.error('No products to export')
     }
 
-    const rows = filteredProducts.map((p, idx) => {
+    const rows = filteredProducts.map((p) => {
       const supplier = (p as any).suppliers?.company_name || (p as any).suppliers?.name || ''
+      const dp = Number(p.cost_price || 0)
+      const dpDisc = Number(p.dp_discount || 0)
+      const mrp = Number(p.selling_price || 0)
+      const mrpDisc = Number(p.mrp_discount || 0)
+      // Columns: Code, Name, Image, Supplier, Category, DP, Discount,
+      // Actual DP, MRP, Discount, Actual MRP, Opening Qty, Size, Weight
       return [
         p.product_code,
         p.name,
         p.image_url || '',
-        p.category || '',
         supplier,
-        p.cost_price || 0,
-        Number(p.dp_discount || 0),
-        p.selling_price || 0,
-        Number(p.mrp_discount || 0),
+        p.category || '',
+        dp,
+        dpDisc,
+        afterDiscount(dp, dpDisc),
+        mrp,
+        mrpDisc,
+        afterDiscount(mrp, mrpDisc),
         openingQtyForProduct(p),
         p.size || '',
         p.weight || '',
       ]
     })
 
-    downloadCsv(`product-list-${new Date().toISOString().split('T')[0]}.csv`, [productCsvHeaders, ...rows])
-    toast.success('CSV downloaded')
+    try {
+      await downloadXlsx(`product-list-${new Date().toISOString().split('T')[0]}.xlsx`, productCsvHeaders, rows)
+      toast.success('Excel downloaded')
+    } catch {
+      toast.error('Failed to export')
+    }
   }
 
-  function handleDownloadSampleCSV() {
+  async function handleDownloadSampleCSV() {
     const supplierName = suppliers[0]?.company_name || suppliers[0]?.name || 'Supplier Name'
-    downloadCsv('product-import-sample.csv', [
-      productCsvHeaders,
-      ['SKU-001', 'Wooden Chair', 'https://example.com/chair.jpg', 'Chair', supplierName, 2500, 0, 3500, 5, 10, '45x50cm', '5kg'],
-      ['SKU-002', 'Dining Table', '', 'Table', supplierName, 12000, 2, 18000, 10, 5, '6 seater', '35kg'],
-    ])
-    toast.success('Sample CSV downloaded')
+    try {
+      await downloadXlsx('product-import-sample.xlsx', productCsvHeaders, [
+        // Actual DP/MRP are shown for reference; they're ignored on import
+        // (recomputed from DP/MRP + Discount %).
+        ['SKU-001', 'Wooden Chair', 'https://example.com/chair.jpg', supplierName, 'Chair', 2500, 0, 2500, 3500, 10, 3150, 5, '45x50cm', '5kg'],
+        ['SKU-002', 'Dining Table', '', supplierName, 'Table', 12000, 2, 11760, 18000, 5, 17100, 10, '6 seater', '35kg'],
+      ])
+      toast.success('Sample Excel downloaded')
+    } catch {
+      toast.error('Failed to download sample')
+    }
   }
 
-  function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string
-        const csvRows = parseCsv(text)
-        if (csvRows.length < 2) return toast.error('CSV must have header and data rows')
+    try {
+      {
+        const csvRows = await readSpreadsheet(file)
+        if (csvRows.length < 2) return toast.error('File must have a header row and at least one data row')
 
         const headers = csvRows[0].map(headerKey)
         const columnIndex = (names: string[]) => names.map(headerKey).map(name => headers.indexOf(name)).find(index => index >= 0) ?? -1
+        const discountCols = resolveDiscountColumns(headers)
         const indexes = {
           code: columnIndex(['Code', 'Product Code', 'SKU Number', 'SKU']),
           productName: columnIndex(['Product Name', 'Name']),
           imageLink: columnIndex(['Image Link', 'Image URL']),
           category: columnIndex(['Category']),
           supplier: columnIndex(['Supplier', 'Supplier ID', 'Supplier Name', 'Supplier Company']),
-          dpRate: columnIndex(['DP Rate (Cost)', 'DP Rate', 'DP', 'Cost Price', 'DP Rate Cost']),
-          dpDiscount: columnIndex(['DP Discount %', 'DP Discount', 'DP Disc']),
-          mrp: columnIndex(['MRP (Selling)', 'MRP', 'Selling Price', 'MRP Selling']),
-          mrpDiscount: columnIndex(['MRP Discount %', 'MRP Discount', 'MRP Disc', 'Discount', 'Discount Amount']),
+          dpRate: columnIndex(['DP', 'DP Rate (Cost)', 'DP Rate', 'Cost Price', 'DP Rate Cost']),
+          dpDiscount: discountCols.dp,
+          mrp: columnIndex(['MRP', 'MRP (Selling)', 'Selling Price', 'MRP Selling']),
+          mrpDiscount: discountCols.mrp,
           openingQty: columnIndex(['Opening Qty', 'Opening QTY', 'Opening Quantity']),
           size: columnIndex(['Size']),
           weight: columnIndex(['Weight']),
         }
 
         if (indexes.code < 0 || indexes.productName < 0) {
-          return toast.error('CSV must include Code and Product Name columns')
+          return toast.error('File must include Code and Product Name columns')
         }
         if (!ownerId) {
           return toast.error('Unable to identify current workspace owner')
@@ -1018,13 +1096,13 @@ export default function ProductList() {
         toast.dismiss()
         toast.success(`${uniqueProducts.length} products imported/updated`)
         loadData()
-      } catch (error: any) {
-        console.error('CSV import failed', error)
-        toast.error(error.message || 'Failed to import CSV')
       }
+    } catch (error: any) {
+      console.error('Import failed', error)
+      toast.error(error.message || 'Failed to import file')
+    } finally {
+      if (csvInputRef.current) csvInputRef.current.value = ''
     }
-    reader.readAsText(file)
-    if (csvInputRef.current) csvInputRef.current.value = ''
   }
 
   function openTagPrint(product: Product) {
@@ -1110,10 +1188,16 @@ export default function ProductList() {
         title="Product List"
         subtitle="Manage your products"
         actions={
-          <div className="flex gap-2">
-            <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleImportCSV} className="hidden" />
+          <div className="flex flex-wrap gap-2">
+            <input ref={csvInputRef} type="file" accept=".xlsx,.xls,.csv,text/csv" onChange={handleImportCSV} className="hidden" />
+            <button onClick={handleDownloadSampleCSV} className="btn-secondary flex items-center gap-2 bg-white" title="Download a template Excel file with the correct columns">
+              <FileSpreadsheet size={16} /> Sample
+            </button>
+            <button onClick={handleExportCSV} className="btn-secondary flex items-center gap-2 bg-white" title="Export current products to Excel">
+              <Download size={16} /> Export
+            </button>
             <button onClick={() => csvInputRef.current?.click()} className="btn-secondary flex items-center gap-2 bg-white">
-              <Upload size={16} /> Upload CSV
+              <Upload size={16} /> Upload Excel
             </button>
             <button onClick={handleOpenNew} className="btn-primary flex items-center gap-2">
               <Plus size={16} /> Add Product
