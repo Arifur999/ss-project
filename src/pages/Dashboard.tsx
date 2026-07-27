@@ -16,6 +16,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
+import { readPageCache, writePageCache } from '../lib/pageCache'
 import {
   Bar,
   BarChart,
@@ -166,18 +167,26 @@ function pctChange(current: number, previous: number) {
   return ((current - previous) / Math.abs(previous)) * 100
 }
 
+const dashboardCacheKey = (rangeType: RangeType, customStart: string, customEnd: string) =>
+  `dashboard:${rangeType}:${customStart}:${customEnd}`
+
+const emptyDashboardData: DashboardData = {
+  ...emptyMetrics,
+  previous: emptyMetrics,
+  monthlySales: [],
+  topCustomers: [],
+  recentTransactions: [],
+  dueCollectionRows: [],
+}
+
 export default function Dashboard() {
   const { t, formatCurr, formatDateLong, formatDateShort, monthShort } = useLang()
   const { touchOwnerActivity } = useAuth()
-  const [data, setData] = useState<DashboardData>({
-    ...emptyMetrics,
-    previous: emptyMetrics,
-    monthlySales: [],
-    topCustomers: [],
-    recentTransactions: [],
-    dueCollectionRows: [],
-  })
-  const [loading, setLoading] = useState(true)
+  // Paint the last-known dashboard for the default range instantly; only show
+  // the spinner when there's nothing cached yet. loadDashboard() refetches.
+  const initialCached = readPageCache<DashboardData>(dashboardCacheKey('thisMonth', '', ''))
+  const [data, setData] = useState<DashboardData>(initialCached || emptyDashboardData)
+  const [loading, setLoading] = useState(!initialCached)
   const [rangeType, setRangeType] = useState<RangeType>('thisMonth')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
@@ -190,7 +199,16 @@ export default function Dashboard() {
 
   async function loadDashboard() {
     touchOwnerActivity()
-    setLoading(true)
+    // Show cached data for this exact range immediately (no spinner); only
+    // spin when this range has never been loaded on this device.
+    const cacheKey = dashboardCacheKey(rangeType, customStart, customEnd)
+    const cached = readPageCache<DashboardData>(cacheKey)
+    if (cached) {
+      setData(cached)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     const selectedRange = getRange(rangeType, customStart, customEnd)
     const previousRange = getPreviousRange(selectedRange)
 
@@ -326,7 +344,7 @@ export default function Dashboard() {
     const profitWithOtherIncome = totalProfit + totalOtherIncome
     const previousProfitWithOtherIncome = previousTotalProfit + previousTotalOtherIncome
 
-    setData({
+    const nextData: DashboardData = {
       totalSales,
       totalProfit: profitWithOtherIncome,
       totalPurchases,
@@ -365,7 +383,9 @@ export default function Dashboard() {
         date: payment.date,
         accountName: payment.account_name || '-',
       })),
-    })
+    }
+    setData(nextData)
+    writePageCache(cacheKey, nextData)
     setLoading(false)
   }
 

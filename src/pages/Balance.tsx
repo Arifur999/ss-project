@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import { useLang } from '../context/LanguageContext'
+import { readPageCache, writePageCache } from '../lib/pageCache'
+
+const BALANCE_CACHE_KEY = 'balance-accounts'
 
 interface AccountRow {
   id: string; name: string; type: string; opening_balance: number; is_active: boolean
@@ -28,8 +31,11 @@ function fallbackSalePayments() {
 
 export default function Balance() {
   const { t, formatCurr } = useLang()
-  const [accounts, setAccounts] = useState<AccountRow[]>([])
-  const [loading, setLoading] = useState(true)
+  // Paint last-known accounts instantly; only show the spinner on a true cold
+  // start (no cache yet). The background refetch below refreshes the numbers.
+  const cachedAccounts = readPageCache<AccountRow[]>(BALANCE_CACHE_KEY)
+  const [accounts, setAccounts] = useState<AccountRow[]>(cachedAccounts || [])
+  const [loading, setLoading] = useState(!cachedAccounts)
 
   useEffect(() => {
     loadBalance()
@@ -46,7 +52,6 @@ export default function Balance() {
   }, [])
 
   async function loadBalance() {
-    setLoading(true)
     const [accsRes, investRes, profitRes, loanRes, transferRes, expenseRes, salesRes, salePayRes, custPayRes, supplierPayRes, otherIncomeRes] = await Promise.all([
       supabase.from('accounts').select('*').order('sort_order'),
       supabase.from('investments').select('*'),
@@ -107,6 +112,7 @@ export default function Balance() {
     })
 
     setAccounts(rows)
+    writePageCache(BALANCE_CACHE_KEY, rows)
     setLoading(false)
   }
 

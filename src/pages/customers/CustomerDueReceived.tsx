@@ -296,14 +296,18 @@ export default function CustomerDueReceived() {
     if (error) return toast.error(error.message || t('common_error'))
 
     if (Number(discountAmount || 0) > 0 && discountCategory) {
-      const expenseAccount = accounts.find(account => account.id === validPaymentRows[0]?.account_id)
+      // A "discount allowed" is a non-cash cost: it still counts toward
+      // total expenses / net profit and the "Discount Allowed" report, but it
+      // must NOT reduce any cash/bank account balance (no money left the till).
+      // So the expense is recorded with NO account - Balance.tsx sums expenses
+      // per account_id, so a null-account expense never hits the balance.
       const { error: expenseError } = await supabase.from('expenses').insert({
         date: form.date,
         category_id: discountCategory.id,
         category_name: discountCategory.name,
         amount: Number(discountAmount || 0),
-        account_id: expenseAccount?.id || validPaymentRows[0]?.account_id,
-        account_name: expenseAccount?.name || '',
+        account_id: null,
+        account_name: '',
         notes: `Automatically generated from Customer Due Discount${customer?.name ? ` - ${customer.name}` : ''}`,
         created_by: user?.id,
       })
