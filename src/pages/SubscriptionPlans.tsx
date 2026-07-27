@@ -57,6 +57,17 @@ const planCopy = {
     goDashboard: 'Go to workspace',
     freeUsedButton: 'Trial Already Used',
     freeUsedNote: "You've already used your free trial. Please ask your super admin to grant a trial extension.",
+    // --- Free-trial info popup ---
+    trialPopupTitle: 'Start your 7-day free trial',
+    trialPopupSubtitle: 'Confirm your details and your trial will begin right away.',
+    trialName: 'Full Name',
+    trialEmail: 'Email',
+    trialPhone: 'Phone Number',
+    trialAddress: 'Address',
+    trialSubmit: 'Start Free Trial',
+    trialCancel: 'Cancel',
+    trialStarted: 'Your 7-day free trial has started!',
+    trialPopupRequired: 'Please fill in name, phone and address',
   },
   bn: {
     title: 'আপনার ওয়ার্কস্পেস প্ল্যান নির্বাচন করুন',
@@ -92,6 +103,16 @@ const planCopy = {
     goDashboard: 'ওয়ার্কস্পেসে যান',
     freeUsedButton: 'ট্রায়াল ব্যবহৃত হয়ে গেছে',
     freeUsedNote: 'আপনি ইতিমধ্যে আপনার ফ্রি ট্রায়াল ব্যবহার করে ফেলেছেন। ট্রায়াল বাড়ানোর জন্য আপনার সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।',
+    trialPopupTitle: '৭ দিনের ফ্রি ট্রায়াল শুরু করুন',
+    trialPopupSubtitle: 'আপনার তথ্য নিশ্চিত করুন, সাথে সাথেই ট্রায়াল শুরু হয়ে যাবে।',
+    trialName: 'পূর্ণ নাম',
+    trialEmail: 'ইমেইল',
+    trialPhone: 'ফোন নম্বর',
+    trialAddress: 'ঠিকানা',
+    trialSubmit: 'ফ্রি ট্রায়াল শুরু করুন',
+    trialCancel: 'বাতিল',
+    trialStarted: 'আপনার ৭ দিনের ফ্রি ট্রায়াল শুরু হয়েছে!',
+    trialPopupRequired: 'নাম, ফোন ও ঠিকানা পূরণ করুন',
   },
 } satisfies Record<Lang, Record<string, string>>
 
@@ -112,10 +133,16 @@ const featureCopy = {
 const CHECKOUT_STORAGE_KEY = 'subscription_checkout_plan'
 
 export default function SubscriptionPlans() {
-  const { user, subscription, refreshAccount } = useAuth()
+  const { user, profile, subscription, refreshAccount } = useAuth()
   const { lang, setLang, t } = useLang()
   const navigate = useNavigate()
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null)
+  // Free-trial lead-capture popup: opened from the trial card, collects the
+  // owner's contact info (for the super admin's follow-up) before starting
+  // the 7-day trial.
+  const [showTrialPopup, setShowTrialPopup] = useState(false)
+  const [trialForm, setTrialForm] = useState({ full_name: '', phone: '', address: '' })
+  const [startingTrial, setStartingTrial] = useState(false)
   // Both prices are set by the super admin (Settings -> Payment info) and
   // fetched here so the card never shows a stale hard-coded number.
   const [yearlyPrice, setYearlyPrice] = useState<number | null>(null)
@@ -182,40 +209,71 @@ export default function SubscriptionPlans() {
 
   if (!user) return <Navigate to="/register" replace />
 
-  async function choosePlan(planId: PlanId) {
+  // Trial card -> open the info popup (prefilled from the account). Yearly card
+  // -> go straight to the manual bKash checkout as before.
+  function handlePlanClick(planId: PlanId) {
     if (!user) return
-    // Belt-and-suspenders: the button is already disabled for this case, but
-    // the backend is the real gate - this just avoids a round trip.
-    if (planId === 'free_trial' && trialUsed) {
-      toast.error(copy('freeUsedNote'))
+    if (planId === 'free_trial') {
+      if (trialUsed) {
+        toast.error(copy('freeUsedNote'))
+        return
+      }
+      setTrialForm({
+        full_name: profile?.full_name || '',
+        phone: profile?.phone || '',
+        address: subscription?.address || '',
+      })
+      setShowTrialPopup(true)
       return
     }
-    setLoadingPlan(planId)
-    const isTrial = planId === 'free_trial'
+    choosePlan('yearly')
+  }
 
+  // Yearly checkout path (unchanged): flip the subscription to pending and
+  // hand off to the manual bKash checkout screen.
+  async function choosePlan(planId: PlanId) {
+    if (!user) return
+    setLoadingPlan(planId)
     try {
-      // POST /subscriptions/choose-plan: trial activates instantly, yearly
-      // flips the subscription to "pending" and sends the owner to the
-      // manual bKash checkout - no payment record is created yet.
       await choosePlanRequest({ plan_type: planId })
     } catch (error: any) {
       toast.error(error.message)
       setLoadingPlan(null)
       return
     }
-
     await refreshAccount()
     setLoadingPlan(null)
-
-    if (isTrial) {
-      toast.success(copy('freeButton'))
-      navigate('/', { replace: true })
-      return
-    }
-
     // selectedAt anchors the checkout page's 30-minute payment countdown.
     localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ planId, selectedAt: new Date().toISOString() }))
     navigate('/subscription-checkout', { replace: true, state: { planId } })
+  }
+
+  // Popup submit: save the contact info + start the 7-day trial, then enter
+  // the workspace.
+  async function startTrial(e: React.FormEvent) {
+    e.preventDefault()
+    if (!trialForm.full_name.trim() || !trialForm.phone.trim() || !trialForm.address.trim()) {
+      toast.error(copy('trialPopupRequired'))
+      return
+    }
+    setStartingTrial(true)
+    try {
+      await choosePlanRequest({
+        plan_type: 'free_trial',
+        full_name: trialForm.full_name.trim(),
+        phone: trialForm.phone.trim(),
+        address: trialForm.address.trim(),
+      })
+    } catch (error: any) {
+      toast.error(error.message)
+      setStartingTrial(false)
+      return
+    }
+    await refreshAccount()
+    setStartingTrial(false)
+    setShowTrialPopup(false)
+    toast.success(copy('trialStarted'))
+    navigate('/', { replace: true })
   }
 
   return (
@@ -268,7 +326,7 @@ export default function SubscriptionPlans() {
               </ul>
               <button
                 type="button"
-                onClick={() => choosePlan(plan.id)}
+                onClick={() => handlePlanClick(plan.id)}
                 disabled={loadingPlan !== null || plan.disabled}
                 className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-colors disabled:opacity-60 ${plan.buttonClass}`}
               >
@@ -282,6 +340,70 @@ export default function SubscriptionPlans() {
           ))}
         </div>
       </div>
+
+      {showTrialPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !startingTrial && setShowTrialPopup(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-slate-950">{copy('trialPopupTitle')}</h3>
+            <p className="mt-1 text-sm text-slate-500">{copy('trialPopupSubtitle')}</p>
+            <form onSubmit={startTrial} className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-700">{copy('trialName')}</label>
+                <input
+                  type="text"
+                  value={trialForm.full_name}
+                  onChange={e => setTrialForm({ ...trialForm, full_name: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-700">{copy('trialEmail')}</label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  readOnly
+                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-700">{copy('trialPhone')}</label>
+                <input
+                  type="text"
+                  value={trialForm.phone}
+                  onChange={e => setTrialForm({ ...trialForm, phone: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-700">{copy('trialAddress')}</label>
+                <textarea
+                  rows={2}
+                  value={trialForm.address}
+                  onChange={e => setTrialForm({ ...trialForm, address: e.target.value })}
+                  className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={startingTrial}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {startingTrial ? copy('processing') : copy('trialSubmit')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTrialPopup(false)}
+                  disabled={startingTrial}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {copy('trialCancel')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

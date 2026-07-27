@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, QrCode, Save, Send, UploadCloud, Wallet } from 'lucide-react'
+import { Mail, QrCode, RotateCcw, Save, Send, UploadCloud, Wallet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
-import { getPlatformSettings, savePlatformSettings, sendTestReminder } from '../../services/admin.services'
+import { getPlatformSettings, resetReminderTemplate, savePlatformSettings, sendTestReminder } from '../../services/admin.services'
 import { uploadImage } from '../../services/product.services'
 
 interface PlatformSettings {
@@ -26,6 +26,7 @@ export default function SuperAdminSettings() {
   const [saving, setSaving] = useState(false)
   const [uploadingQr, setUploadingQr] = useState(false)
   const [sendingTest, setSendingTest] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -82,6 +83,19 @@ export default function SuperAdminSettings() {
       toast.error(error.message || 'Failed to save settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleResetTemplate() {
+    setResetting(true)
+    try {
+      const updated = await resetReminderTemplate()
+      setSettings(updated)
+      toast.success('Reminder template reset to the latest default (with the Payment Now button)')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reset template')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -223,10 +237,19 @@ export default function SuperAdminSettings() {
               />
             </div>
 
-            <button type="button" className="btn-secondary w-full justify-center" onClick={handleSendTest} disabled={sendingTest}>
-              <Send size={16} />
-              {sendingTest ? 'Sending...' : 'Send test email to myself'}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button type="button" className="btn-secondary flex-1 justify-center" onClick={handleSendTest} disabled={sendingTest}>
+                <Send size={16} />
+                {sendingTest ? 'Sending...' : 'Send test email to myself'}
+              </button>
+              <button type="button" className="btn-secondary flex-1 justify-center" onClick={handleResetTemplate} disabled={resetting}>
+                <RotateCcw size={16} />
+                {resetting ? 'Resetting...' : 'Reset to default template'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">
+              "Reset to default" restores the built-in template, including the clickable "Payment Now" button.
+            </p>
           </div>
         </div>
       </div>

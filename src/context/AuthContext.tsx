@@ -38,6 +38,7 @@ interface OwnerSubscription {
   owner_id: string
   business_name: string
   owner_email: string
+  address?: string
   status: SubscriptionStatus
   plan: string
   trial_start: string

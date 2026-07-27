@@ -10,6 +10,7 @@ export interface OwnerSubscriptionRow {
   owner_id: string
   business_name: string
   owner_email: string
+  address?: string
   status: OwnerStatus
   plan: OwnerPlan
   trial_start: string
@@ -41,6 +42,7 @@ export interface LiveOwner {
   business: string
   email: string
   phone: string
+  address: string
   plan: OwnerPlan
   planType: PlanType
   status: OwnerStatus
@@ -159,6 +161,7 @@ export async function loadOwners(): Promise<OwnerLoadResult> {
         business: subscription.business_name || '-',
         email: subscription.owner_email || row.email || '-',
         phone: row.phone || '-',
+        address: subscription.address || '-',
         plan: subscription.plan,
         planType: subscription.plan_type || (subscription.plan === 'Trial' ? 'free_trial' : 'monthly'),
         status: subscription.status,
