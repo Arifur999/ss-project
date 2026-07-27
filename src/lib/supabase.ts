@@ -296,23 +296,29 @@ const authShim = {
 }
 
 // Supabase realtime pushed table changes to subscribed pages so they could
-// auto-reload. Over REST we emulate that with light polling: every callback
-// registered via .on() fires on an interval while the channel is subscribed,
-// so dashboards refresh without a manual reload.
-const CHANNEL_POLL_INTERVAL_MS = 10000
-
+// auto-reload. We deliberately do NOT poll on a timer - a fixed-interval
+// refetch made pages visibly re-load every few seconds (each callback ran
+// loadData -> setLoading(true) -> flicker), which was more annoying than
+// useful for a single-tenant admin app. Instead we refresh when the browser
+// tab regains focus/visibility: no reload while you're actively working, but
+// data is refreshed when you come back to it.
 class ChannelShim {
   private callbacks: Array<() => void> = []
-  private timer: ReturnType<typeof setInterval> | null = null
+  // Dedupe by the original handler reference - a page often registers the same
+  // loadData for several tables (.on(loans) .on(accounts) ...); without this
+  // one focus event would fire it once per table.
+  private rawHandlers = new Set<unknown>()
+  private onWake: (() => void) | null = null
 
   on(_event: string, _filter: any, callback?: any) {
     const handler = typeof _filter === 'function' ? _filter : callback
-    if (typeof handler === 'function') {
+    if (typeof handler === 'function' && !this.rawHandlers.has(handler)) {
+      this.rawHandlers.add(handler)
       this.callbacks.push(() => {
         try {
           handler({})
         } catch {
-          // A failing page callback must not kill the polling loop.
+          // A failing page callback must not break the refresh loop.
         }
       })
     }
@@ -320,21 +326,32 @@ class ChannelShim {
   }
 
   subscribe(_callback?: any) {
-    if (!this.timer && this.callbacks.length > 0) {
-      this.timer = setInterval(() => {
+    if (!this.onWake && this.callbacks.length > 0) {
+      let scheduled = false
+      this.onWake = () => {
         if (document.visibilityState === 'hidden') return
-        this.callbacks.forEach(cb => cb())
-      }, CHANNEL_POLL_INTERVAL_MS)
+        // Collapse the focus + visibilitychange burst into a single refresh.
+        if (scheduled) return
+        scheduled = true
+        setTimeout(() => {
+          scheduled = false
+          this.callbacks.forEach(cb => cb())
+        }, 0)
+      }
+      window.addEventListener('focus', this.onWake)
+      document.addEventListener('visibilitychange', this.onWake)
     }
     return this
   }
 
   unsubscribe() {
-    if (this.timer) {
-      clearInterval(this.timer)
-      this.timer = null
+    if (this.onWake) {
+      window.removeEventListener('focus', this.onWake)
+      document.removeEventListener('visibilitychange', this.onWake)
+      this.onWake = null
     }
     this.callbacks = []
+    this.rawHandlers.clear()
     return Promise.resolve('ok')
   }
 }
