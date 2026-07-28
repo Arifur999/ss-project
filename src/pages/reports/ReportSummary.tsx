@@ -11,6 +11,7 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -443,6 +444,14 @@ export default function ReportSummary() {
   const profitAchievedPct = pct(achievedProfit, data.profitTarget)
   const profitMargin = data.totalSales > 0 ? (data.profitLoss / data.totalSales) * 100 : 0
 
+  // Four-pillar overview chart: Target vs Sales, Profit vs Expense.
+  const performanceData = [
+    { name: 'Target', value: Number(data.salesTarget || 0), color: '#94a3b8' },
+    { name: 'Sales', value: Number(data.totalSales || 0), color: '#0b0b0f' },
+    { name: 'Profit', value: Number(data.grossProfit || 0), color: '#1D9E75' },
+    { name: 'Expense', value: Number(data.totalExpenses || 0), color: '#E24B4A' },
+  ]
+
   function ProgressCard({
     title,
     value,
@@ -717,6 +726,25 @@ export default function ReportSummary() {
             </div>
 
             <div className="grid w-full grid-cols-1 gap-4">
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div className="bg-slate-800 px-4 py-3 text-center">
+                  <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">Performance Overview</h2>
+                </div>
+                <div className="px-3 py-5 sm:px-5">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={performanceData} margin={{ top: 26, right: 12, left: 4, bottom: 4 }} barCategoryGap="32%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#334155', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
+                      <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={96}>
+                        {performanceData.map(entry => <Cell key={entry.name} fill={entry.color} />)}
+                        <LabelList dataKey="value" position="top" formatter={(value: number) => formatCurr(value)} style={{ fontSize: 11, fontWeight: 700, fill: '#0f172a' }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
               <ReportBreakdownTable
                 title="Sales & Profit"
                 rows={data.salesBreakdown}

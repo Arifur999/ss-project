@@ -716,7 +716,10 @@
     min-height: 6in !important;
     max-width: 7in !important;
     max-height: 6in !important;
-    margin: 0 !important;
+    /* margin:auto with all four insets pinned to 0 centers the fixed-size
+       receipt box on the page (both axes) when the printer falls back to A4
+       instead of honouring the custom 7x6in page size. */
+    margin: auto !important;
     padding: 12px !important;
     box-shadow: none !important;
     overflow: hidden !important;

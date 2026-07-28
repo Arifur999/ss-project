@@ -47,6 +47,9 @@ type LedgerEntry = {
   entry_type: 'sale' | 'payment' | 'return' | 'voucher'
   reference: string
   description: string
+  product_name?: string | null
+  qty?: number
+  txIndex?: number
   previous_due: number
   purchase: number
   discount: number
@@ -279,7 +282,7 @@ export default function CustomerLedger() {
         const [salesRes, paymentsRes] = await Promise.all([
           supabase
             .from('sales')
-            .select('id, invoice_no, date, created_at, net_amount, discount_amount, paid_amount, due_amount, notes')
+            .select('id, invoice_no, date, created_at, net_amount, discount_amount, paid_amount, due_amount, notes, sale_items(product_name, qty, total_amount)')
             .eq('customer_id', selectedCustomerId)
             .eq('status', 'completed')
             .order('date', { ascending: true })
@@ -296,41 +299,107 @@ export default function CustomerLedger() {
         if (paymentsRes.error) throw paymentsRes.error
 
         const profile = dashboardCustomer as CustomerProfile
-        const rawEntries = [
-          ...(salesRes.data || []).map((sale: any) => ({
-            id: sale.id,
-            date: sale.date,
-            created_at: sale.created_at,
-            entry_type: 'sale' as const,
-            reference: sale.invoice_no || '-',
-            description: 'Invoice sale',
-            purchase: saleGrossAmount(sale),
-            discount: Number(sale.discount_amount || 0),
-            payment: Number(sale.paid_amount || 0),
-          })),
-          ...(paymentsRes.data || []).map((payment: any) => ({
-            id: payment.id,
-            date: payment.date,
-            created_at: payment.created_at,
-            entry_type: 'payment' as const,
-            reference: payment.invoice_no || payment.notes || 'Due voucher',
-            description: payment.account_name ? `Due received - ${payment.account_name}` : 'Due received',
-            purchase: 0,
-            discount: dueCollectionDiscount(payment),
-            payment: Number(payment.amount || 0),
-          })),
+
+        // Build one date-sorted stream of sale + payment transactions, then
+        // expand each sale into ONE ROW PER PRODUCT. A multi-product invoice
+        // therefore shows each item on its own ledger line; the sale-level
+        // discount/payment attach to the item's last row so the running due
+        // still reconciles exactly (sum of line total_amount = sale gross).
+        type Tx =
+          | { kind: 'sale'; date: string; created_at?: string; sale: any }
+          | { kind: 'payment'; date: string; created_at?: string; payment: any }
+
+        const transactions: Tx[] = [
+          ...(salesRes.data || []).map((sale: any) => ({ kind: 'sale' as const, date: sale.date, created_at: sale.created_at, sale })),
+          ...(paymentsRes.data || []).map((payment: any) => ({ kind: 'payment' as const, date: payment.date, created_at: payment.created_at, payment })),
         ].sort(sortLedgerEntries)
 
         let runningDue = Number(profile?.opening_due || 0)
-        const nextLedger = rawEntries.map(entry => {
-          const previousDue = runningDue
-          runningDue = Math.max(0, runningDue + entry.purchase - entry.discount - entry.payment)
-          return {
-            ...entry,
-            previous_due: previousDue,
-            current_due: runningDue,
+        let txIndex = 0
+        const nextLedger: LedgerEntry[] = []
+
+        for (const tx of transactions) {
+          txIndex += 1
+          if (tx.kind === 'payment') {
+            const payment = tx.payment
+            const discount = dueCollectionDiscount(payment)
+            const paid = Number(payment.amount || 0)
+            const previousDue = runningDue
+            runningDue = Math.max(0, runningDue - discount - paid)
+            nextLedger.push({
+              id: payment.id,
+              date: payment.date,
+              created_at: payment.created_at,
+              entry_type: 'payment',
+              reference: payment.invoice_no || payment.notes || 'Due voucher',
+              description: payment.account_name ? `Due received - ${payment.account_name}` : 'Due received',
+              txIndex,
+              previous_due: previousDue,
+              purchase: 0,
+              discount,
+              payment: paid,
+              current_due: runningDue,
+            })
+            continue
           }
-        })
+
+          const sale = tx.sale
+          const items: any[] = Array.isArray(sale.sale_items) ? sale.sale_items : []
+          const saleDiscount = Number(sale.discount_amount || 0)
+          const salePayment = Number(sale.paid_amount || 0)
+
+          // 0 or 1 product: keep a single row (uses the sale's gross so it stays
+          // identical to the previous behaviour for single-item invoices).
+          if (items.length <= 1) {
+            const previousDue = runningDue
+            const purchase = saleGrossAmount(sale)
+            runningDue = Math.max(0, runningDue + purchase - saleDiscount - salePayment)
+            const onlyQty = Number(items[0]?.qty || 0)
+            nextLedger.push({
+              id: sale.id,
+              date: sale.date,
+              created_at: sale.created_at,
+              entry_type: 'sale',
+              reference: sale.invoice_no || '-',
+              description: items[0]?.product_name || 'Invoice sale',
+              product_name: items[0]?.product_name || null,
+              qty: onlyQty || undefined,
+              txIndex,
+              previous_due: previousDue,
+              purchase,
+              discount: saleDiscount,
+              payment: salePayment,
+              current_due: runningDue,
+            })
+            continue
+          }
+
+          items.forEach((item, itemIndex) => {
+            const isLast = itemIndex === items.length - 1
+            const linePurchase = Number(item.total_amount || 0)
+            const lineDiscount = isLast ? saleDiscount : 0
+            const linePayment = isLast ? salePayment : 0
+            const previousDue = runningDue
+            runningDue = Math.max(0, runningDue + linePurchase - lineDiscount - linePayment)
+            const qty = Number(item.qty || 0)
+            nextLedger.push({
+              id: `${sale.id}-${itemIndex}`,
+              date: sale.date,
+              created_at: sale.created_at,
+              entry_type: 'sale',
+              reference: sale.invoice_no || '-',
+              description: `${item.product_name || 'Product'}${qty ? ` × ${qty}` : ''}`,
+              product_name: item.product_name || null,
+              qty: qty || undefined,
+              txIndex,
+              previous_due: previousDue,
+              purchase: linePurchase,
+              discount: lineDiscount,
+              payment: linePayment,
+              current_due: runningDue,
+            })
+          })
+        }
 
         if (!cancelled) {
           setSelectedCustomer(profile)
@@ -404,7 +473,9 @@ export default function CustomerLedger() {
     window.print()
   }
 
-  const visibleLedger = [...ledger].reverse()
+  // Newest transaction first, but keep the product rows WITHIN a sale in their
+  // natural order (stable sort on the per-transaction index).
+  const visibleLedger = [...ledger].sort((a, b) => (b.txIndex ?? 0) - (a.txIndex ?? 0))
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
