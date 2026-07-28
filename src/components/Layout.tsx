@@ -107,9 +107,11 @@ export default function Layout() {
     {
       key: 'reports', label: t('nav_reports'), icon: <BarChart3 size={18} />,
       children: [
-        { key: 'monthly', label: t('nav_monthly'), icon: <Calendar size={16} />, path: '/reports/monthly' },
+        // The old MonthlyReport (/reports/monthly) page still exists and works
+        // by URL - only hidden from the sidebar. The Report summary page is now
+        // labelled "Monthly" here.
         { key: 'yearly', label: t('nav_yearly'), icon: <BarChart3 size={16} />, path: '/reports/yearly' },
-        { key: 'reportSummary', label: 'Report', icon: <FileBarChart size={16} />, path: '/reports' },
+        { key: 'reportSummary', label: t('nav_monthly'), icon: <FileBarChart size={16} />, path: '/reports' },
       ],
     },
     { key: 'marketing', label: t('nav_marketing'), icon: <Megaphone size={18} />, path: '/marketing' },
