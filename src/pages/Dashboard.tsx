@@ -84,12 +84,15 @@ const emptyMetrics = {
   netProfit: 0,
 }
 
+// Kept for the "Business Summary" donut fills. The palette is monochrome-graded
+// (slate ramp) with brand green for money-in categories and brand red for
+// money-out, so the chart reads on-theme with the black/white/grey reference.
 const toneClasses: Record<CardTone, { icon: string; soft: string; text: string; fill: string }> = {
-  green: { icon: 'bg-green-50 text-brand-green', soft: 'bg-green-50', text: 'text-brand-green', fill: '#22c55e' },
-  blue: { icon: 'bg-blue-50 text-blue-600', soft: 'bg-blue-50', text: 'text-blue-600', fill: '#2563eb' },
-  orange: { icon: 'bg-orange-50 text-orange-600', soft: 'bg-orange-50', text: 'text-orange-600', fill: '#f97316' },
-  purple: { icon: 'bg-purple-50 text-purple-600', soft: 'bg-purple-50', text: 'text-purple-600', fill: '#9333ea' },
-  red: { icon: 'bg-red-50 text-brand-red', soft: 'bg-red-50', text: 'text-brand-red', fill: '#ef4444' },
+  green: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-brand-green', fill: '#1D9E75' },
+  blue: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-slate-700', fill: '#334155' },
+  orange: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-slate-700', fill: '#94a3b8' },
+  purple: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-slate-700', fill: '#0f172a' },
+  red: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-brand-red', fill: '#E24B4A' },
 }
 
 function toDateInputValue(date: Date) {
@@ -401,12 +404,12 @@ export default function Dashboard() {
 
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-green border-t-transparent" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
     </div>
   )
 
   return (
-    <div className="min-h-full bg-slate-50 p-6">
+    <div className="min-h-full p-6">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{t('dashboard_title')}</h1>
@@ -447,7 +450,7 @@ export default function Dashboard() {
         <MetricCard title="Supplier Payments" value={formatCurr(data.supplierPayments)} icon={<CreditCard size={22} />} tone="purple" trend={pctChange(data.supplierPayments, data.previous.supplierPayments)} inverted />
         <MetricCard title="Due Collections" value={formatCurr(data.dueCollections)} icon={<CreditCard size={22} />} tone="purple" trend={pctChange(data.dueCollections, data.previous.dueCollections)} />
         <MetricCard title="Total Discount Allowed" value={formatCurr(data.totalDiscountAllowed)} icon={<Tag size={22} />} tone="orange" trend={pctChange(data.totalDiscountAllowed, data.previous.totalDiscountAllowed)} inverted />
-        <MetricCard title="Net Profit (Profit + Other Income - Expenses)" value={formatCurr(data.netProfit)} icon={<Target size={22} />} tone="green" trend={pctChange(data.netProfit, data.previous.netProfit)} wide />
+        <MetricCard title="Net Profit (Profit + Other Income - Expenses)" value={formatCurr(data.netProfit)} icon={<Target size={22} />} tone="green" trend={pctChange(data.netProfit, data.previous.netProfit)} wide hero />
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-5">
@@ -456,8 +459,8 @@ export default function Dashboard() {
             <div>
               <h2 className="font-bold text-slate-800">Sales & Profit Overview</h2>
               <div className="mt-3 flex items-center gap-5 text-xs text-slate-500">
-                <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-green-500" />Sales</span>
-                <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-blue-600" />Profit</span>
+                <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-slate-900" />Sales</span>
+                <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-brand-green" />Profit</span>
               </div>
             </div>
             <select className="input h-9 w-32 text-xs" value="monthly" aria-label="Chart interval" onChange={() => undefined}>
@@ -470,8 +473,8 @@ export default function Dashboard() {
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `${(Number(v) / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v: number) => formatCurr(v)} />
-              <Bar dataKey="sales" fill="#22c55e" radius={[5, 5, 0, 0]} name="Sales" />
-              <Bar dataKey="profit" fill="#2563eb" radius={[5, 5, 0, 0]} name="Profit" />
+              <Bar dataKey="sales" fill="#0b0b0f" radius={[5, 5, 0, 0]} name="Sales" />
+              <Bar dataKey="profit" fill="#1D9E75" radius={[5, 5, 0, 0]} name="Profit" />
             </BarChart>
           </ResponsiveContainer>
         </section>
@@ -479,7 +482,7 @@ export default function Dashboard() {
         <section className="card xl:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-bold text-slate-800">Top 10 Customers</h2>
-            <Link to="/customers/dashboard" className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600">View All</Link>
+            <Link to="/customers/dashboard" className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black">View All</Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-xs">
@@ -535,12 +538,12 @@ export default function Dashboard() {
         <section className="card">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-bold text-slate-800">Recent Transactions</h2>
-            <Link to="/reports/monthly" className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600">View All</Link>
+            <Link to="/reports/monthly" className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black">View All</Link>
           </div>
           <div className="space-y-3">
             {data.recentTransactions.map(item => (
               <div key={item.id} className="flex items-center gap-3">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses[item.tone].icon}`}>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                   {item.tone === 'green' ? <ShoppingCart size={18} /> : item.tone === 'blue' ? <CreditCard size={18} /> : item.tone === 'purple' ? <Users size={18} /> : <ClipboardList size={18} />}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -560,12 +563,12 @@ export default function Dashboard() {
         <section className="card">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-bold text-slate-800">Due Collections</h2>
-            <Link to="/customers/due-received" className="rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-600">View All</Link>
+            <Link to="/customers/due-received" className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black">View All</Link>
           </div>
           <div className="space-y-3">
             {data.dueCollectionRows.map(payment => (
               <div key={payment.id} className="flex items-center gap-3 border-b border-slate-50 pb-3 last:border-0 last:pb-0">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                   <CreditCard size={18} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -583,14 +586,38 @@ export default function Dashboard() {
   )
 }
 
-function MetricCard({ title, value, icon, tone, trend, inverted = false, wide = false }: { title: string; value: string; icon: React.ReactNode; tone: CardTone; trend: number; inverted?: boolean; wide?: boolean }) {
+function MetricCard({ title, value, icon, tone, trend, inverted = false, wide = false, hero = false }: { title: string; value: string; icon: React.ReactNode; tone: CardTone; trend: number; inverted?: boolean; wide?: boolean; hero?: boolean }) {
   const positive = inverted ? trend <= 0 : trend >= 0
   const trendText = `${trend >= 0 ? '+' : '-'}${Math.abs(trend).toFixed(1)}%`
+
+  // `hero` renders the black highlight tile (reference look). Trend stays
+  // green/red for money semantics, tuned lighter so it reads on black.
+  if (hero) {
+    return (
+      <section className={`card min-h-[132px] overflow-hidden border-slate-900 bg-slate-900 ${wide ? 'lg:col-span-1' : ''}`}>
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase text-slate-400">{title}</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</p>
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <p className={`text-xs font-bold ${positive ? 'text-brand-green-light' : 'text-brand-red'}`}>
+                {trendText} <span className="font-semibold text-slate-400">vs Last Period</span>
+              </p>
+              <Sparkline color={positive ? '#22c55e' : '#f87171'} />
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={`card min-h-[132px] overflow-hidden ${wide ? 'lg:col-span-1' : ''}`}>
       <div className="flex items-start gap-4">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone].icon}`}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
           {icon}
         </div>
         <div className="min-w-0 flex-1">
