@@ -11,7 +11,7 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -56,6 +56,15 @@ type ReportData = {
   expenseBreakdown: BreakdownRow[]
   supplierPaymentBreakdown: BreakdownRow[]
   otherIncomeBreakdown: BreakdownRow[]
+  dailyPerformance: DailyPerformanceRow[]
+}
+
+type DailyPerformanceRow = {
+  label: string
+  target: number
+  sales: number
+  profit: number
+  expense: number
 }
 
 type MonthlyTargetOption = {
@@ -88,6 +97,7 @@ const emptyReport: ReportData = {
   expenseBreakdown: [],
   supplierPaymentBreakdown: [],
   otherIncomeBreakdown: [],
+  dailyPerformance: [],
 }
 
 function isoDate(date: Date) {
@@ -409,6 +419,47 @@ export default function ReportSummary() {
       const profitWithdraw = withdrawals.reduce((sum: number, withdrawal: any) => sum + amount(withdrawal.amount), 0)
       const profitLoss = grossProfit + purchaseIncentive + totalOtherIncome - totalExpenses
 
+      // Daily performance series: one bucket per calendar day in the range with
+      // Sales / Profit / Expense, so the overview chart can show four bars per
+      // day (Target is the monthly sales target spread evenly across the days).
+      const dailyMap: Record<string, { sales: number; profit: number; expense: number }> = {}
+      const ensureDay = (key: string) => (dailyMap[key] || (dailyMap[key] = { sales: 0, profit: 0, expense: 0 }))
+      let cursor = range.start
+      let guard = 0
+      while (cursor <= range.end && guard < 400) {
+        ensureDay(cursor)
+        const step = new Date(`${cursor}T12:00:00`)
+        step.setDate(step.getDate() + 1)
+        cursor = isoDate(step)
+        guard += 1
+      }
+      sales.forEach((sale: any) => {
+        const key = String(sale.date || '').slice(0, 10)
+        if (!key) return
+        const bucket = ensureDay(key)
+        bucket.sales += amount(sale.net_amount || sale.subtotal)
+        bucket.profit += (sale.sale_items || []).reduce((sum: number, item: any) => {
+          const qty = amount(item.qty)
+          const saleAmount = amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
+          const unitCost = amount(item.cost_price)
+          return sum + (saleAmount - (unitCost > 0 ? unitCost * qty : 0))
+        }, 0)
+      })
+      expenses.forEach((expense: any) => {
+        const key = String(expense.date || '').slice(0, 10)
+        if (!key) return
+        ensureDay(key).expense += amount(expense.amount)
+      })
+      const dailyKeys = Object.keys(dailyMap).sort()
+      const dailyTarget = dailyKeys.length > 0 ? salesTarget / dailyKeys.length : 0
+      const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map(key => ({
+        label: String(Number(key.slice(8, 10))),
+        target: dailyTarget,
+        sales: dailyMap[key].sales,
+        profit: dailyMap[key].profit,
+        expense: dailyMap[key].expense,
+      }))
+
       setData({
         salesTarget,
         profitTarget,
@@ -430,6 +481,7 @@ export default function ReportSummary() {
         expenseBreakdown,
         supplierPaymentBreakdown,
         otherIncomeBreakdown,
+        dailyPerformance,
       })
       setLastUpdated(new Date())
     } catch (err: any) {
@@ -444,13 +496,9 @@ export default function ReportSummary() {
   const profitAchievedPct = pct(achievedProfit, data.profitTarget)
   const profitMargin = data.totalSales > 0 ? (data.profitLoss / data.totalSales) * 100 : 0
 
-  // Four-pillar overview chart: Target vs Sales, Profit vs Expense.
-  const performanceData = [
-    { name: 'Target', value: Number(data.salesTarget || 0), color: '#94a3b8' },
-    { name: 'Sales', value: Number(data.totalSales || 0), color: '#0b0b0f' },
-    { name: 'Profit', value: Number(data.grossProfit || 0), color: '#1D9E75' },
-    { name: 'Expense', value: Number(data.totalExpenses || 0), color: '#E24B4A' },
-  ]
+  // Width so 4 bars per day stay readable; scrolls horizontally when the month
+  // has many days on a narrow screen.
+  const chartInnerWidth = Math.max(680, data.dailyPerformance.length * 42)
 
   function ProgressCard({
     title,
@@ -730,19 +778,22 @@ export default function ReportSummary() {
                 <div className="bg-slate-800 px-4 py-3 text-center">
                   <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">Performance Overview</h2>
                 </div>
-                <div className="px-3 py-5 sm:px-5">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={performanceData} margin={{ top: 26, right: 12, left: 4, bottom: 4 }} barCategoryGap="32%">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#334155', fontWeight: 600 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
-                      <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
-                      <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={96}>
-                        {performanceData.map(entry => <Cell key={entry.name} fill={entry.color} />)}
-                        <LabelList dataKey="value" position="top" formatter={(value: number) => formatCurr(value)} style={{ fontSize: 11, fontWeight: 700, fill: '#0f172a' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="overflow-x-auto px-3 py-5 sm:px-5">
+                  <div style={{ minWidth: chartInnerWidth }}>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
+                        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
+                        <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} labelFormatter={label => `Day ${label}`} />
+                        <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
+                        <Bar dataKey="target" name="Target" fill="#94a3b8" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="expense" name="Expense" fill="#E24B4A" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </section>
               <ReportBreakdownTable

@@ -548,22 +548,22 @@ export default function CustomerDueReceived() {
               {groupedPayments.map((payment, index) => (
                 <tr key={payment.payment_ids.join('-')} className="table-row">
                   <td className="py-2.5 px-4 font-medium text-slate-500">{index + 1}</td>
-                  <td className="py-2.5 px-4">{formatDate(payment.date)}</td>
+                  <td className="py-2.5 px-4 whitespace-nowrap">{formatDate(payment.date)}</td>
                   <td className="py-2.5 px-4">
                     <p className="font-medium text-slate-800">{payment.customer_name}</p>
                     {payment.invoice_no && <p className="text-xs text-slate-400">{payment.invoice_no}</p>}
                   </td>
                   <td className="py-2.5 px-4 text-slate-500">{payment.customer_phone || '-'}</td>
                   <td className="py-2.5 px-4">{payment.payment_methods[0]?.account_name || '-'}</td>
-                  <td className="py-2.5 px-4 text-right font-semibold text-slate-800">
+                  <td className="py-2.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
                     {payment.payment_methods[0]?.amount ? formatCurr(payment.payment_methods[0].amount) : '-'}
                   </td>
                   <td className="py-2.5 px-4">{payment.payment_methods[1]?.account_name || '-'}</td>
-                  <td className="py-2.5 px-4 text-right font-semibold text-slate-800">
+                  <td className="py-2.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
                     {payment.payment_methods[1]?.amount ? formatCurr(payment.payment_methods[1].amount) : '-'}
                   </td>
-                  <td className="py-2.5 px-4 text-right font-semibold text-brand-green">{formatCurr(payment.total_received)}</td>
-                  <td className="py-2.5 px-4 text-right font-semibold text-brand-red">
+                  <td className="py-2.5 px-4 text-right font-semibold text-brand-green whitespace-nowrap">{formatCurr(payment.total_received)}</td>
+                  <td className="py-2.5 px-4 text-right font-semibold text-brand-red whitespace-nowrap">
                     {payment.discount ? formatCurr(payment.discount) : '-'}
                   </td>
                   <td className="py-2.5 px-4 text-slate-600">{payment.discount_category || '-'}</td>
