@@ -451,14 +451,27 @@ export default function ReportSummary() {
         ensureDay(key).expense += amount(expense.amount)
       })
       const dailyKeys = Object.keys(dailyMap).sort()
-      const dailyTarget = dailyKeys.length > 0 ? salesTarget / dailyKeys.length : 0
-      const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map(key => ({
-        label: String(Number(key.slice(8, 10))),
-        target: dailyTarget,
-        sales: dailyMap[key].sales,
-        profit: dailyMap[key].profit,
-        expense: dailyMap[key].expense,
-      }))
+      const totalDays = dailyKeys.length
+      // Adaptive "catch-up" daily target: each day's target is the still-unmet
+      // monthly target spread over the days that remain (including today):
+      //   target(day) = (monthlyTarget - salesAchievedOnPreviousDays) / daysLeft
+      // So overshooting one day lowers the following days' target, and a
+      // zero-sale day pushes the remaining days' target up.
+      let achievedSoFar = 0
+      const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map((key, index) => {
+        const remainingDays = totalDays - index
+        const remainingTarget = Math.max(0, salesTarget - achievedSoFar)
+        const target = remainingDays > 0 ? remainingTarget / remainingDays : 0
+        const daySales = dailyMap[key].sales
+        achievedSoFar += daySales
+        return {
+          label: String(Number(key.slice(8, 10))),
+          target,
+          sales: daySales,
+          profit: dailyMap[key].profit,
+          expense: dailyMap[key].expense,
+        }
+      })
 
       setData({
         salesTarget,
