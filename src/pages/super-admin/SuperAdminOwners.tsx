@@ -250,7 +250,7 @@ export default function SuperAdminOwners() {
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1640px] text-sm">
+          <table className="w-full min-w-[1720px] text-sm">
             <thead className="table-header">
               <tr>
                 <th className="px-4 py-3 text-left w-12">#</th>
@@ -262,7 +262,7 @@ export default function SuperAdminOwners() {
                 <th className="px-4 py-3 text-left">Activation Date</th>
                 <th className="px-4 py-3 text-left">Days Left</th>
                 <th className="px-4 py-3 text-left">Change Plan</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -318,9 +318,9 @@ export default function SuperAdminOwners() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap justify-end gap-1">
-                        <button onClick={() => grantSevenDayTrial(owner)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" title="Grant exactly 7 more days">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-nowrap items-center justify-end gap-1">
+                        <button onClick={() => grantSevenDayTrial(owner)} className="mr-1 shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" title="Grant exactly 7 more days">
                           Grant +7 Days Trial
                         </button>
                         <button onClick={() => setSelectedOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900" title="View">
