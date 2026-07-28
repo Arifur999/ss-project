@@ -1,10 +1,24 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, Eye, EyeOff, Globe, Lock, Mail, MapPin, Phone, Send, Store, User } from 'lucide-react'
+import { CheckCircle2, Eye, EyeOff, Lock, Mail, MapPin, Phone, Send, Store, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { Lang, useLang } from '../context/LanguageContext'
+import { useBusinessBrandName } from '../lib/businessBrand'
 import OtpVerifyForm from '../components/OtpVerifyForm'
+import AuthShell from '../components/AuthShell'
+
+// Marketing copy for the left brand panel of the registration screen.
+const panelCopy = {
+  en: {
+    heading: 'Grow your business, beautifully organised.',
+    subtitle: 'Create your workspace to manage inventory, sales, accounts and customers effortlessly.',
+  },
+  bn: {
+    heading: 'সুন্দরভাবে সাজানো, আপনার ব্যবসার প্রবৃদ্ধি।',
+    subtitle: 'স্টক, বিক্রি, হিসাব ও কাস্টমার সহজে পরিচালনা করতে আপনার ওয়ার্কস্পেস তৈরি করুন।',
+  },
+} satisfies Record<Lang, Record<string, string>>
 
 const registerCopy = {
   en: {
@@ -75,7 +89,9 @@ export default function Register() {
   const [otpEmail, setOtpEmail] = useState('')
   const { registerOwner } = useAuth()
   const { lang, setLang, t } = useLang()
+  const businessName = useBusinessBrandName()
   const navigate = useNavigate()
+  const copy = panelCopy[lang]
   const regT = (key: keyof typeof registerCopy.en) => t(`register_${key}`, registerCopy[lang][key])
   const placeholderT = (key: keyof typeof registerPlaceholders.en) => t(`register_placeholder_${key}`, registerPlaceholders[lang][key])
   const footerText = regT('footerLink')
@@ -130,42 +146,30 @@ export default function Register() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900 to-navy-800 p-4">
-      <div className="pointer-events-none absolute -left-20 bottom-16 h-72 w-72 rounded-full border border-white/10" />
-      <div className="pointer-events-none absolute -right-24 top-36 h-80 w-80 rounded-full border border-white/10" />
-      <div className="pointer-events-none absolute left-0 top-1/4 grid grid-cols-8 gap-4 opacity-30">
-        {Array.from({ length: 40 }, (_, index) => <span key={index} className="h-1 w-1 rounded-full bg-white/40" />)}
-      </div>
-      <div className="fixed top-4 right-4 flex items-center gap-1 bg-navy-700 rounded-lg p-0.5">
-        <Globe size={13} className="text-slate-400 ml-1.5" />
-        <button
-          onClick={() => setLang('en')}
-          className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${lang === 'en' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-white'}`}
-        >
-          EN
-        </button>
-        <button
-          onClick={() => setLang('bn')}
-          className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${lang === 'bn' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-white'}`}
-        >
-          বাংলা
-        </button>
-      </div>
-
-      <div className="relative w-full max-w-[420px]">
-        <div className="rounded-xl border border-white/50 bg-white p-4 shadow-2xl sm:p-5">
-          {/* Step 2 of registration: the account exists, now confirm the
-              emailed 6-digit code. Verifying also logs the new owner in,
-              after which they land on the plan selection page. */}
-          {otpEmail ? (
-            <OtpVerifyForm
-              email={otpEmail}
-              onVerified={() => navigate('/choose-plan')}
-            />
-          ) : (
-          <>
-          <div className="mb-3 text-center">
-            <h2 className="text-2xl font-black leading-tight text-slate-950 sm:text-[28px]">{regT('title')}</h2>
+    <AuthShell
+      image="/auth-register.jpg"
+      imageAlt={businessName}
+      brandName={businessName}
+      heading={copy.heading}
+      subtitle={copy.subtitle}
+      lang={lang}
+      setLang={setLang}
+    >
+      {/* Step 2 of registration: the account exists, now confirm the
+          emailed 6-digit code. Verifying also logs the new owner in,
+          after which they land on the plan selection page. */}
+      {otpEmail ? (
+        <OtpVerifyForm
+          email={otpEmail}
+          onVerified={() => navigate('/choose-plan')}
+        />
+      ) : (
+      <>
+          <div className="mb-5 text-center">
+            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-lg font-black text-white">
+              {(businessName.trim()[0] || 'B').toUpperCase()}
+            </div>
+            <h2 className="text-2xl font-black leading-tight text-slate-950">{regT('title')}</h2>
             <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-slate-500">
               {regT('subtitle')}
             </p>
@@ -209,14 +213,12 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="mt-3 text-center text-xs text-slate-500">
+          <p className="mt-4 text-center text-xs text-slate-500">
             {footerPrefix} <Link to="/login" className="font-semibold text-slate-900 hover:text-slate-600">{footerAction}</Link>
           </p>
-          </>
-          )}
-        </div>
-      </div>
-    </div>
+      </>
+      )}
+    </AuthShell>
   )
 }
 
@@ -239,7 +241,7 @@ function Field({ label, placeholder, value, onChange, icon, type = 'text', requi
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-xs text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
           required={required}
         />
       </div>
@@ -258,7 +260,7 @@ function TextAreaField({ label, placeholder, value, onChange, icon, required = f
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className="min-h-[64px] w-full resize-y rounded-md border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          className="min-h-[64px] w-full resize-y rounded-md border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-xs text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
           required={required}
         />
       </div>
@@ -277,7 +279,7 @@ function PasswordField({ label, placeholder, value, onChange, showPassword, setS
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-10 pr-10 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-10 pr-10 text-xs text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
           required
         />
         <button
