@@ -10,8 +10,8 @@
   }
   body {
     font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
-    background-color: #f0f4f8;
-    color: #1e293b;
+    background-color: #eef0f6;
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -37,26 +37,28 @@
 }
 
 @layer components {
+  /* White-sidebar theme (was dark navy). Active item = solid black pill. */
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-slate-300 hover:bg-navy-700 hover:text-white;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900;
   }
   .sidebar-link.active {
-    @apply bg-brand-green text-white;
+    @apply bg-slate-900 text-white;
   }
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-100 p-5;
+    @apply bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] border border-slate-200/70 p-5;
   }
+  /* Primary action = black (reference accent). */
   .btn-primary {
-    @apply bg-brand-green hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+    @apply bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 flex items-center gap-2;
   }
   .btn-secondary {
-    @apply bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+    @apply bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 flex items-center gap-2;
   }
   .btn-danger {
-    @apply bg-brand-red hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+    @apply bg-brand-red hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 flex items-center gap-2;
   }
   .input {
-    @apply w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent bg-white;
+    @apply w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-400 bg-white;
   }
   .label {
     @apply block text-xs font-medium text-slate-600 mb-1;
