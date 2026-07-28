@@ -141,7 +141,7 @@ export default function SuperAdminSettings() {
         {/* Manual bKash payment collection details, shown to owners on the checkout page */}
         <div className="card">
           <h2 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
-            <Wallet size={18} className="text-brand-green" />
+            <Wallet size={18} className="text-slate-700" />
             Payment settings (bKash)
           </h2>
 
@@ -206,7 +206,7 @@ export default function SuperAdminSettings() {
         {/* Expiry reminder email template - editable placeholders, live test send */}
         <div className="card">
           <h2 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
-            <Mail size={18} className="text-brand-green" />
+            <Mail size={18} className="text-slate-700" />
             Expiry reminder email
           </h2>
           <p className="mb-3 text-xs text-slate-500">

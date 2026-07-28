@@ -217,7 +217,7 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
     <div>
       {/* Header: icon + which inbox the code went to */}
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-brand-green">
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
           <MailCheck size={26} />
         </div>
         <h2 className="text-xl font-semibold text-slate-800">{copy.title}</h2>
@@ -243,8 +243,8 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
               onChange={e => handleBoxChange(index, e.target.value)}
               onKeyDown={e => handleKeyDown(index, e)}
               onFocus={e => e.target.select()}
-              className={`h-12 w-11 rounded-lg border text-center text-xl font-bold text-slate-900 transition-colors focus:border-brand-green focus:outline-none focus:ring-2 focus:ring-brand-green/30 disabled:opacity-50 sm:h-14 sm:w-12 ${
-                digit ? 'border-brand-green bg-green-50' : 'border-slate-300 bg-white'
+              className={`h-12 w-11 rounded-lg border text-center text-xl font-bold text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:opacity-50 sm:h-14 sm:w-12 ${
+                digit ? 'border-slate-900 bg-slate-50' : 'border-slate-300 bg-white'
               }`}
             />
           ))}
@@ -253,7 +253,7 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
         <button
           type="submit"
           disabled={verifying || code.length !== OTP_LENGTH}
-          className="w-full rounded-lg bg-brand-green py-2.5 font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+          className="w-full rounded-lg bg-slate-900 py-2.5 font-medium text-white transition-colors hover:bg-black disabled:opacity-50"
         >
           {verifying ? copy.verifying : copy.verify}
         </button>
@@ -265,7 +265,7 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
           type="button"
           onClick={handleResend}
           disabled={cooldown > 0 || resending}
-          className="flex items-center gap-1.5 font-semibold text-brand-green hover:text-green-700 disabled:cursor-not-allowed disabled:text-slate-400"
+          className="flex items-center gap-1.5 font-semibold text-slate-900 hover:text-slate-600 disabled:cursor-not-allowed disabled:text-slate-400"
         >
           <RotateCcw size={14} />
           {cooldown > 0 ? copy.resendIn(cooldown) : copy.resend}

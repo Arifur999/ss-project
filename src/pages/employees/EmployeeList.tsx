@@ -366,7 +366,7 @@ export default function EmployeeList() {
                 </td>
                 <td className="py-2.5 px-4 text-right">
                   <div className="flex gap-1 justify-end">
-                    <button onClick={() => editEmployee(emp)} className="text-blue-500 hover:text-blue-600"><Edit2 size={14} /></button>
+                    <button onClick={() => editEmployee(emp)} className="text-slate-500 hover:text-slate-700"><Edit2 size={14} /></button>
                     <button onClick={() => deleteEmployee(emp.id)} className="text-red-500 hover:text-red-600"><Trash2 size={14} /></button>
                   </div>
                 </td>

@@ -29,7 +29,7 @@ const statusClass: Record<OwnerStatus, string> = {
 const statusColors: Record<OwnerStatus, string> = {
   pending: '#f59e0b',
   active: '#1D9E75',
-  trial: '#2563eb',
+  trial: '#334155',
   expired: '#f59e0b',
   blocked: '#E24B4A',
   suspended: '#E24B4A',
@@ -127,7 +127,7 @@ export default function SuperAdminDashboard() {
   ]
 
   const toneClass: Record<string, string> = {
-    blue: 'bg-blue-100 text-blue-700',
+    blue: 'bg-slate-100 text-slate-700',
     green: 'bg-green-100 text-green-700',
     orange: 'bg-orange-100 text-orange-700',
     red: 'bg-red-100 text-red-700',
@@ -137,12 +137,12 @@ export default function SuperAdminDashboard() {
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-brand-green">Super Admin</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Super Admin</p>
           <h1 className="text-2xl font-bold text-slate-900">Platform Control Dashboard</h1>
               <p className="mt-1 text-sm text-slate-500">Registration requests, owner approval and account access</p>
         </div>
         <button onClick={refreshOwners} className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-          <RefreshCw size={16} className="text-blue-600" />
+          <RefreshCw size={16} className="text-slate-600" />
           Refresh
         </button>
       </div>
@@ -187,7 +187,7 @@ export default function SuperAdminDashboard() {
                 <h2 className="text-sm font-bold text-slate-800">Status Counts</h2>
                 <p className="text-xs text-slate-500">Pending, active, expired and blocked owners</p>
               </div>
-              <CreditCard size={17} className="text-brand-green" />
+              <CreditCard size={17} className="text-slate-600" />
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={statusChart}>

@@ -573,13 +573,13 @@ export default function CustomerDueReceived() {
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => printDueReceipt(payment)}
-                        className="text-slate-400 hover:text-blue-600 transition-colors"
+                        className="text-slate-400 hover:text-slate-700 transition-colors"
                         title="Print receipt"
                         aria-label="Print receipt"
                       >
                         <Printer size={15} />
                       </button>
-                      <button onClick={() => openModal(payment)} className="text-slate-400 hover:text-blue-500 transition-colors" title="Edit">
+                      <button onClick={() => openModal(payment)} className="text-slate-400 hover:text-slate-700 transition-colors" title="Edit">
                         <Pencil size={15} />
                       </button>
                       <button onClick={() => deleteDueReceived(payment)} className="text-slate-400 hover:text-brand-red transition-colors" title="Delete">
@@ -837,7 +837,7 @@ export default function CustomerDueReceived() {
             <div className="space-y-2">
               {paymentRows.map((row, index) => (
                 <div key={row.id} className="grid grid-cols-[32px_1fr_140px_34px] items-end gap-2 rounded-xl bg-white p-2 shadow-sm">
-                  <div className="flex h-10 w-8 items-center justify-center rounded-lg bg-blue-50 text-xs font-bold text-blue-600">
+                  <div className="flex h-10 w-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-700">
                     {index + 1}
                   </div>
                   <label>
@@ -885,7 +885,7 @@ export default function CustomerDueReceived() {
             <button
               type="button"
               onClick={() => setPaymentRows(current => [...current, emptyPaymentRow()])}
-              className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100"
+              className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 text-xs font-bold text-slate-700 hover:bg-slate-200"
             >
               <Plus size={15} /> Add Payment Method
             </button>
@@ -946,7 +946,7 @@ export default function CustomerDueReceived() {
           </div>
 
           <div className="flex flex-col gap-3 pt-1 md:flex-row">
-            <button onClick={saveDueReceived} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
+            <button onClick={saveDueReceived} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-black">
               <Printer size={16} /> {editItem ? 'Update & Print Receipt' : 'Save & Print Receipt'}
             </button>
             <button onClick={resetForm} className="btn-secondary h-11 flex-1 justify-center rounded-xl">

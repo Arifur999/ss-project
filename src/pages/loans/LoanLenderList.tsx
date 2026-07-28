@@ -353,7 +353,7 @@ export default function LoanLenderList() {
                   <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                   <td className="py-2.5 px-4">
                     <div className="flex items-center gap-2">
-                      {lender.lender_type === 'bank' ? <Building2 size={16} className="text-blue-500" /> : <UserCircle size={16} className="text-brand-green" />}
+                      {lender.lender_type === 'bank' ? <Building2 size={16} className="text-slate-600" /> : <UserCircle size={16} className="text-slate-500" />}
                       <div>
                         <p className="font-medium text-slate-800">{lender.name}</p>
                         <p className="text-xs text-slate-400">{lender.address || '-'}</p>
@@ -368,7 +368,7 @@ export default function LoanLenderList() {
                   <td className="py-2.5 px-4">{lender.is_active ? <span className="badge-green">Active</span> : <span className="badge-red">Inactive</span>}</td>
                   <td className="py-2.5 px-4">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => openModal(lender)} className="text-slate-400 hover:text-blue-500"><Pencil size={15} /></button>
+                      <button onClick={() => openModal(lender)} className="text-slate-400 hover:text-slate-700"><Pencil size={15} /></button>
                       <button onClick={() => deleteItem(lender)} className="text-slate-400 hover:text-brand-red"><Trash2 size={15} /></button>
                     </div>
                   </td>

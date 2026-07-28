@@ -341,7 +341,7 @@ export default function PurchaseLedger() {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => openEditInvoice(invoice)}
-                      className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
+                      className="rounded p-1.5 text-slate-600 hover:bg-slate-100"
                       title="Edit purchase invoice"
                     >
                       <Pencil size={15} />

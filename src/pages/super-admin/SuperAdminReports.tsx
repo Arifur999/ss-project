@@ -97,7 +97,7 @@ export default function SuperAdminReports() {
                 <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(v) => `৳${Number(v) / 1000}k`} />
                 <Tooltip formatter={(value: number) => formatBDT(value)} />
                 <Line type="monotone" dataKey="revenue" stroke="#1D9E75" strokeWidth={3} name="Revenue" />
-                <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={3} name="Sales" />
+                <Line type="monotone" dataKey="sales" stroke="#0b0b0f" strokeWidth={3} name="Sales" />
               </LineChart>
             </ResponsiveContainer>
           )}

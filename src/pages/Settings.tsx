@@ -334,7 +334,7 @@ export default function Settings() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as Tab)}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-navy-800 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
               >
                 {tab.icon}
                 {tab.label}
@@ -483,7 +483,7 @@ export default function Settings() {
                           <td className="py-2 px-3 text-right text-slate-500">{formatCurr(openingAmount)}</td>
                           <td className="py-2 px-3 text-right">
                             <div className="flex gap-1 justify-end">
-                              <button onClick={() => openModal('shareholder', sh)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={13} /></button>
+                              <button onClick={() => openModal('shareholder', sh)} className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"><Pencil size={13} /></button>
                               <button onClick={() => deleteRow('shareholders', sh.id, 'This shareholder has investment or withdrawal records and cannot be deleted. Remove those entries first.')} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
                             </div>
                           </td>
@@ -519,14 +519,14 @@ export default function Settings() {
                       <td className="py-2.5 px-4 text-center">
                         <button
                           onClick={() => toggleAccount(acc.id, !acc.is_active)}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${acc.is_active ? 'bg-brand-green' : 'bg-slate-300'}`}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${acc.is_active ? 'bg-slate-900' : 'bg-slate-300'}`}
                         >
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${acc.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
                         </button>
                       </td>
                       <td className="py-2.5 px-4">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openModal('account', acc)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={13} /></button>
+                          <button onClick={() => openModal('account', acc)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"><Pencil size={13} /></button>
                           <button onClick={() => deleteRow('accounts', acc.id, 'This account has linked transactions and cannot be deleted.')} className="p-1.5 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -571,7 +571,7 @@ export default function Settings() {
                       </td>
                       <td className="py-2 px-3">
                         <div className="flex gap-1 justify-end">
-                          <button onClick={() => openModal('supplier', sup)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={13} /></button>
+                          <button onClick={() => openModal('supplier', sup)} className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"><Pencil size={13} /></button>
                           <button onClick={() => deleteRow('suppliers', sup.id, 'This supplier has linked purchases or payments and cannot be deleted.')} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -608,11 +608,11 @@ export default function Settings() {
                     <tr key={tgt.id} className="table-row">
                       <td className="py-2.5 px-4 font-medium">{monthName(tgt.month)}</td>
                       <td className="py-2.5 px-4 text-slate-500">{tgt.year}</td>
-                      <td className="py-2.5 px-4 text-right font-medium text-blue-600">{formatCurr(tgt.sales_target)}</td>
+                      <td className="py-2.5 px-4 text-right font-medium text-slate-800">{formatCurr(tgt.sales_target)}</td>
                       <td className="py-2.5 px-4 text-right font-medium text-brand-green">{formatCurr(tgt.profit_target)}</td>
                       <td className="py-2.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => { setEditTarget(tgt); setShowTargetModal(true) }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={13} /></button>
+                          <button onClick={() => { setEditTarget(tgt); setShowTargetModal(true) }} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"><Pencil size={13} /></button>
                           <button onClick={() => deleteTarget(tgt.id)} className="p-1.5 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -659,7 +659,7 @@ export default function Settings() {
                           <tr key={u.id} className="table-row">
                             <td className="py-2.5 px-4">
                               <div className="flex items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${u.role === 'owner' ? 'bg-brand-green' : u.role === 'manager' ? 'bg-blue-500' : u.role === 'sales_staff' ? 'bg-orange-500' : 'bg-slate-500'}`}>
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${u.role === 'owner' ? 'bg-slate-900' : u.role === 'manager' ? 'bg-slate-600' : u.role === 'sales_staff' ? 'bg-slate-500' : 'bg-slate-400'}`}>
                                   {(u.full_name || u.email || '?')[0].toUpperCase()}
                                 </div>
                                 <span className="font-medium">{u.full_name || '—'}</span>
@@ -863,7 +863,7 @@ function TargetModal({ item, existingTargets, ownerId, onClose }: { item: any; e
           <input type="number" min="0" className="input" value={form.profit_target} onChange={e => setForm({ ...form, profit_target: Number(e.target.value) })} placeholder="0" />
         </div>
         <div className="pt-1 p-3 rounded-xl bg-slate-50 text-sm text-slate-600">
-          <span className="font-medium">{monthName(form.month)} {form.year}</span> — {t('settings_salesTarget').split(' ')[0]}: <span className="text-blue-600 font-medium">{formatCurr(form.sales_target)}</span>, {t('settings_profitTarget').split(' ')[0]}: <span className="text-brand-green font-medium">{formatCurr(form.profit_target)}</span>
+          <span className="font-medium">{monthName(form.month)} {form.year}</span> — {t('settings_salesTarget').split(' ')[0]}: <span className="text-slate-800 font-medium">{formatCurr(form.sales_target)}</span>, {t('settings_profitTarget').split(' ')[0]}: <span className="text-brand-green font-medium">{formatCurr(form.profit_target)}</span>
         </div>
         <div className="flex gap-3 pt-1">
           <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
@@ -922,11 +922,11 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
   const [selectedTemplate, setSelectedTemplate] = useState('sales_staff')
   const [permissions, setPermissions] = useState<string[]>(templatePermissions.sales_staff)
   const templates = [
-    { id: 'owner', role: 'owner', label: 'Owner', icon: <Crown size={15} />, className: 'border-purple-200 bg-purple-50 text-purple-700' },
-    { id: 'manager', role: 'manager', label: 'Manager', icon: <Briefcase size={15} />, className: 'border-blue-200 bg-blue-50 text-blue-700' },
-    { id: 'sales_staff', role: 'sales_staff', label: 'Sales Staff', icon: <UserRoundPlus size={15} />, className: 'border-green-200 bg-green-50 text-brand-green' },
-    { id: 'inventory_manager', role: 'manager', label: 'Inventory Manager', icon: <Package size={15} />, className: 'border-orange-200 bg-orange-50 text-orange-700' },
-    { id: 'accountant', role: 'accountant', label: 'Accountant', icon: <Calculator size={15} />, className: 'border-purple-200 bg-purple-50 text-purple-700' },
+    { id: 'owner', role: 'owner', label: 'Owner', icon: <Crown size={15} />, className: 'border-slate-200 bg-slate-100 text-slate-700' },
+    { id: 'manager', role: 'manager', label: 'Manager', icon: <Briefcase size={15} />, className: 'border-slate-200 bg-slate-100 text-slate-700' },
+    { id: 'sales_staff', role: 'sales_staff', label: 'Sales Staff', icon: <UserRoundPlus size={15} />, className: 'border-slate-200 bg-slate-100 text-slate-700' },
+    { id: 'inventory_manager', role: 'manager', label: 'Inventory Manager', icon: <Package size={15} />, className: 'border-slate-200 bg-slate-100 text-slate-700' },
+    { id: 'accountant', role: 'accountant', label: 'Accountant', icon: <Calculator size={15} />, className: 'border-slate-200 bg-slate-100 text-slate-700' },
     { id: 'custom', role: form.role, label: 'Custom Access', icon: <Cog size={15} />, className: 'border-slate-200 bg-white text-slate-700' },
   ]
 
@@ -988,7 +988,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
                 <span className="text-[11px] font-semibold text-slate-400">Required fields marked *</span>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[124px_1fr]">
-                <button type="button" className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-brand-green hover:bg-green-50 hover:text-brand-green">
+                <button type="button" className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700">
                   <span className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700"><Camera size={22} /></span>
                   <span className="text-xs font-semibold">Upload Photo</span>
                   <span className="text-[10px] text-slate-400">JPG, PNG</span>
@@ -1046,7 +1046,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><ShieldCheck size={16} className="text-blue-600" />Account Settings</h4>
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><ShieldCheck size={16} className="text-slate-700" />Account Settings</h4>
               <div className="space-y-3">
                 <label className="flex items-center justify-between gap-3 text-sm text-slate-700">
                   <span><span className="block font-semibold">Two Factor Authentication</span><span className="text-xs text-slate-500">Require verification code at login</span></span>
@@ -1059,7 +1059,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><ShieldCheck size={20} /></div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><ShieldCheck size={20} /></div>
                 <div><h4 className="text-sm font-bold text-slate-800">Permissions & Access Control</h4><p className="text-xs text-slate-500">Start with a template, then fine tune module access.</p></div>
               </div>
             </div>

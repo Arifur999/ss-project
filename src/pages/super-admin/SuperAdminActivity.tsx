@@ -68,7 +68,7 @@ export default function SuperAdminActivity() {
           )}
           {!loading && activities.map((activity, index) => (
             <div key={`${activity.title}-${index}`} className="flex gap-3 rounded-lg border border-slate-100 p-3">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-green-50 text-brand-green">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
                 {activity.type === 'security' ? <ShieldCheck size={18} /> : <Activity size={18} />}
               </div>
               <div className="min-w-0">

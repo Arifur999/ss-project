@@ -405,7 +405,7 @@ export default function LoanTransactions() {
                   <td className="py-2.5 px-4 text-slate-500">{record.notes || '-'}</td>
                   <td className="py-2.5 px-4">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => editRecord(record)} className="text-slate-400 hover:text-blue-500"><Pencil size={15} /></button>
+                      <button onClick={() => editRecord(record)} className="text-slate-400 hover:text-slate-700"><Pencil size={15} /></button>
                       <button onClick={() => deleteRecord(record)} className="text-slate-400 hover:text-brand-red"><Trash2 size={15} /></button>
                     </div>
                   </td>

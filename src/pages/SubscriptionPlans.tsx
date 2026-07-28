@@ -201,8 +201,8 @@ export default function SubscriptionPlans() {
       note: null as string | null,
       disabled: false,
       icon: <Crown size={22} />,
-      cardClass: 'border-emerald-400 ring-2 ring-emerald-100',
-      buttonClass: 'bg-emerald-600 text-white hover:bg-emerald-700',
+      cardClass: 'border-slate-900 ring-2 ring-slate-200',
+      buttonClass: 'bg-slate-900 text-white hover:bg-black',
       highlighted: true,
     },
   ], [lang, t, yearlyPrice, yearlyOriginalPrice, discountPercent, trialUsed])
@@ -294,13 +294,13 @@ export default function SubscriptionPlans() {
           {plans.map(plan => (
             <section key={plan.id} className={`relative flex min-h-[460px] flex-col rounded-2xl border bg-white p-6 shadow-sm ${plan.cardClass}`}>
               {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-1 text-xs font-black text-white shadow-sm">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-1 text-xs font-black text-white shadow-sm">
                   {plan.badge}
                 </div>
               )}
               <div className="mb-5 flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{plan.eyebrow}</span>
-                <span className={`rounded-xl p-2 ${plan.highlighted ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{plan.icon}</span>
+                <span className={`rounded-xl p-2 ${plan.highlighted ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>{plan.icon}</span>
               </div>
               <h2 className="text-xl font-black text-slate-950">{plan.title}</h2>
               <div className="mt-4">
@@ -314,12 +314,12 @@ export default function SubscriptionPlans() {
                     )}
                   </div>
                 )}
-                <span className={`font-black ${plan.highlighted ? 'text-4xl text-emerald-700' : 'text-3xl text-slate-950'}`}>{plan.price}</span>
+                <span className={`font-black ${plan.highlighted ? 'text-4xl text-slate-950' : 'text-3xl text-slate-950'}`}>{plan.price}</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm text-slate-600">
                 {plan.features.map(feature => (
                   <li key={feature} className="flex gap-2">
-                    <CheckCircle2 size={17} className="mt-0.5 flex-shrink-0 text-emerald-600" />
+                    <CheckCircle2 size={17} className="mt-0.5 flex-shrink-0 text-brand-green" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -353,7 +353,7 @@ export default function SubscriptionPlans() {
                   type="text"
                   value={trialForm.full_name}
                   onChange={e => setTrialForm({ ...trialForm, full_name: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
                 />
               </div>
               <div>
@@ -371,7 +371,7 @@ export default function SubscriptionPlans() {
                   type="text"
                   value={trialForm.phone}
                   onChange={e => setTrialForm({ ...trialForm, phone: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
                 />
               </div>
               <div>
@@ -380,14 +380,14 @@ export default function SubscriptionPlans() {
                   rows={2}
                   value={trialForm.address}
                   onChange={e => setTrialForm({ ...trialForm, address: e.target.value })}
-                  className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
                 />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
                   disabled={startingTrial}
-                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-black disabled:opacity-60"
                 >
                   {startingTrial ? copy('processing') : copy('trialSubmit')}
                 </button>
@@ -544,12 +544,12 @@ export function SubscriptionCheckout() {
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
         {step === 'done' ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-brand-green">
               <ShieldCheck size={28} />
             </div>
             <h1 className="text-2xl font-black text-slate-950">{copy('doneTitle')}</h1>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">{copy('doneSubtitle')}</p>
-            <button onClick={() => navigate('/', { replace: true })} className="mt-6 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
+            <button onClick={() => navigate('/', { replace: true })} className="mt-6 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black">
               {copy('goDashboard')}
             </button>
           </div>
@@ -605,7 +605,7 @@ export function SubscriptionCheckout() {
               <button onClick={() => navigate('/choose-plan')} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
                 {copy('backToPlans')}
               </button>
-              <button onClick={() => setStep(2)} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
+              <button onClick={() => setStep(2)} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black">
                 {copy('nextStep')}
               </button>
             </div>
@@ -613,7 +613,7 @@ export function SubscriptionCheckout() {
         ) : (
           <form onSubmit={handleSubmitPayment}>
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white">
                 <ShieldCheck size={28} />
               </div>
               <h1 className="text-2xl font-black text-slate-950">{copy('submitTitle')}</h1>
@@ -651,7 +651,7 @@ export function SubscriptionCheckout() {
               <button type="button" onClick={() => setStep(1)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
                 {copy('back')}
               </button>
-              <button type="submit" disabled={submitting} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black disabled:opacity-60">
                 {submitting ? copy('submitting') : copy('submit')}
               </button>
             </div>

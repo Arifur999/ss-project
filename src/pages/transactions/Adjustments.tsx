@@ -92,9 +92,9 @@ export default function Adjustments() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTransfer')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{formatCurr(totalTransferred)}</p></div>
         <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTx')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{records.length}</p></div>
-        <div className="card bg-blue-50 border-blue-100">
-          <p className="text-xs text-blue-600 font-medium">{t('adjustments_note')}</p>
-          <p className="text-xs text-blue-500 mt-1">{t('adjustments_noteText')}</p>
+        <div className="card bg-slate-50 border-slate-200">
+          <p className="text-xs text-slate-700 font-medium">{t('adjustments_note')}</p>
+          <p className="text-xs text-slate-500 mt-1">{t('adjustments_noteText')}</p>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ export default function Adjustments() {
                 <td className="py-2.5 px-4 text-slate-400">{r.notes}</td>
                 <td className="py-2.5 px-4">
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => openEditModal(r)} className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-blue-50 hover:text-blue-600" title="Edit">
+                    <button onClick={() => openEditModal(r)} className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900" title="Edit">
                       <Pencil size={14} />
                     </button>
                     <button onClick={() => deleteRecord(r)} className="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100" title="Delete">

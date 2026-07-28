@@ -1368,7 +1368,7 @@ export default function ProductList() {
                       <div className="flex flex-row items-center justify-center gap-2 whitespace-nowrap">
                         <button
                           onClick={() => handleEdit(product)}
-                          className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                          className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
                           title="Edit"
                           aria-label={`Edit product ${product.product_code}`}
                         >

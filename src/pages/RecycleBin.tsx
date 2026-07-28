@@ -281,7 +281,7 @@ export default function RecycleBin() {
                 <td className="py-3 px-4 font-medium text-slate-800">{row.title}</td>
                 <td className="py-3 px-4 text-slate-600">{row.subtitle}</td>
                 <td className="py-3 px-4">
-                  <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                  <span className="bg-slate-100 text-slate-700 text-xs font-medium px-2 py-1 rounded-full">
                     {recycleTypeLabel[row.type] || activeLabel}
                   </span>
                 </td>
@@ -291,7 +291,7 @@ export default function RecycleBin() {
                 <td className="py-3 px-4 text-slate-600">{displayDate(row.deleted_at)}</td>
                 <td className="py-3 px-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => restore(row)} className="btn-secondary py-1.5 px-2.5 text-blue-600 border-blue-200 hover:bg-blue-50">
+                    <button onClick={() => restore(row)} className="btn-secondary py-1.5 px-2.5">
                       <RotateCcw size={14} /> Restore
                     </button>
                     <button onClick={() => permanentDelete(row)} className="btn-danger py-1.5 px-2.5">

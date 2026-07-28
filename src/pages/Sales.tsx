@@ -2450,7 +2450,7 @@ export default function Sales() {
                       ? option.key === 'pending'
                         ? 'bg-orange-100 text-orange-700'
                         : option.key === 'partial'
-                          ? 'bg-blue-100 text-blue-700'
+                          ? 'bg-slate-100 text-slate-700'
                           : option.key === 'delivered'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-slate-800 text-white'
@@ -2548,7 +2548,7 @@ export default function Sales() {
                     <td className="py-2 px-2 text-center">
                       <span className={`text-xs px-2 py-1 rounded font-medium ${
                         status === 'delivered' ? 'bg-green-100 text-green-700' :
-                        status === 'partial' ? 'bg-blue-100 text-blue-700' :
+                        status === 'partial' ? 'bg-slate-100 text-slate-700' :
                         'bg-orange-100 text-orange-700'
                       }`}>
                         {status === 'delivered' ? 'Delivered' : status === 'partial' ? 'Partial' : 'Pending'}
@@ -2568,7 +2568,7 @@ export default function Sales() {
                         <button 
                           title={t('common_edit')} 
                           onClick={() => editSale(s)} 
-                          className="p-1 text-slate-400 hover:text-blue-600"
+                          className="p-1 text-slate-400 hover:text-slate-700"
                         >
                           <Pencil size={14} />
                         </button>
@@ -2748,7 +2748,7 @@ export default function Sales() {
                                     {saleDeliveryRows(s).length === 0 && (
                                       <tr>
                                         <td colSpan={5} className="py-10 text-center">
-                                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-400">
+                                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400">
                                             <Clipboard size={28} />
                                           </div>
                                           <p className="mt-3 text-xs font-medium text-slate-400">No delivery yet</p>

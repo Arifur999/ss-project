@@ -130,11 +130,11 @@ export default function Register() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#002a5c] via-[#003b7a] to-[#061a45] p-4">
-      <div className="pointer-events-none absolute -left-20 bottom-16 h-72 w-72 rounded-full border border-blue-300/20" />
-      <div className="pointer-events-none absolute -right-24 top-36 h-80 w-80 rounded-full border border-blue-300/20" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900 to-navy-800 p-4">
+      <div className="pointer-events-none absolute -left-20 bottom-16 h-72 w-72 rounded-full border border-white/10" />
+      <div className="pointer-events-none absolute -right-24 top-36 h-80 w-80 rounded-full border border-white/10" />
       <div className="pointer-events-none absolute left-0 top-1/4 grid grid-cols-8 gap-4 opacity-30">
-        {Array.from({ length: 40 }, (_, index) => <span key={index} className="h-1 w-1 rounded-full bg-blue-300" />)}
+        {Array.from({ length: 40 }, (_, index) => <span key={index} className="h-1 w-1 rounded-full bg-white/40" />)}
       </div>
       <div className="fixed top-4 right-4 flex items-center gap-1 bg-navy-700 rounded-lg p-0.5">
         <Globe size={13} className="text-slate-400 ml-1.5" />
@@ -194,15 +194,15 @@ export default function Register() {
               onChange={value => updateField('confirmPassword', value)}
             />
 
-            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
-              <CheckCircle2 className="flex-shrink-0 fill-emerald-600 text-white" size={20} />
+            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+              <CheckCircle2 className="flex-shrink-0 fill-brand-green text-white" size={20} />
               <span>{regT('bannerText')}</span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition-colors hover:bg-black disabled:opacity-50"
             >
               {!loading && <Send size={18} className="fill-white/20" />}
               {loading ? t('common_pleaseWait') : regT('submitBtn')}
@@ -210,7 +210,7 @@ export default function Register() {
           </form>
 
           <p className="mt-3 text-center text-xs text-slate-500">
-            {footerPrefix} <Link to="/login" className="font-semibold text-brand-green hover:text-green-700">{footerAction}</Link>
+            {footerPrefix} <Link to="/login" className="font-semibold text-slate-900 hover:text-slate-600">{footerAction}</Link>
           </p>
           </>
           )}

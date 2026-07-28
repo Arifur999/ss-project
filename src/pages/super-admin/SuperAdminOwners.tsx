@@ -320,10 +320,10 @@ export default function SuperAdminOwners() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap justify-end gap-1">
-                        <button onClick={() => grantSevenDayTrial(owner)} className="rounded-lg border border-blue-100 px-2 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50" title="Grant exactly 7 more days">
+                        <button onClick={() => grantSevenDayTrial(owner)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" title="Grant exactly 7 more days">
                           Grant +7 Days Trial
                         </button>
-                        <button onClick={() => setSelectedOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600" title="View">
+                        <button onClick={() => setSelectedOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900" title="View">
                           <Eye size={15} />
                         </button>
                         <button onClick={() => openEdit(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="Edit">

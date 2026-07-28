@@ -332,7 +332,7 @@ export default function MonthlyReport() {
       slate: 'bg-slate-100 text-slate-600',
       green: 'bg-green-100 text-green-700',
       red: 'bg-red-100 text-red-700',
-      blue: 'bg-blue-100 text-blue-700',
+      blue: 'bg-slate-100 text-slate-700',
       orange: 'bg-orange-100 text-orange-700',
     }[tone]
 
@@ -407,7 +407,7 @@ export default function MonthlyReport() {
               <p className={`mt-1 text-xs ${summary.profitGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {summary.profitGap >= 0 ? 'Over target' : 'Remaining'} {formatCurr(Math.abs(summary.profitGap))}
               </p>
-              <PercentBar value={summary.profitPct} color="bg-blue-500" />
+              <PercentBar value={summary.profitPct} color="bg-brand-green" />
             </div>
             <MetricCard
               icon={<WalletCards size={18} />}
@@ -479,8 +479,8 @@ export default function MonthlyReport() {
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
                 <Tooltip formatter={(value: number) => formatCurr(value)} />
-                <Bar dataKey="sales" name="Sales" fill="#1D9E75" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="profit" name="Profit" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -71,10 +71,10 @@ export default function LoanDashboard() {
     const tones = {
       green: 'bg-green-50 text-brand-green',
       red: 'bg-red-50 text-brand-red',
-      blue: 'bg-blue-50 text-blue-600',
+      blue: 'bg-slate-100 text-slate-700',
       orange: 'bg-orange-50 text-orange-600',
-      purple: 'bg-purple-50 text-purple-600',
-      default: 'bg-slate-50 text-slate-600',
+      purple: 'bg-slate-100 text-slate-700',
+      default: 'bg-slate-100 text-slate-700',
     }
 
     return (
@@ -135,7 +135,7 @@ export default function LoanDashboard() {
                 <col className="w-[180px]" />
               </colgroup>
               <thead>
-                <tr className="rounded-lg bg-blue-50 text-xs uppercase tracking-wide text-slate-700">
+                <tr className="rounded-lg bg-slate-50 text-xs uppercase tracking-wide text-slate-700">
                   <th className="rounded-l-lg px-4 py-3 text-left">#</th>
                   <th className="px-4 py-3 text-left">Bank / Person</th>
                   <th className="px-4 py-3 text-right">Opening Balance</th>
@@ -168,7 +168,7 @@ export default function LoanDashboard() {
                   </tr>
                 ))}
                 {summaries.length > 0 && (
-                  <tr className="bg-blue-50/80">
+                  <tr className="bg-slate-100/80">
                     <td colSpan={2} className="rounded-l-lg px-4 py-5 font-bold text-slate-900">Total</td>
                     <td className="px-4 py-5 text-right">{signedAmount(totalOpening)}</td>
                     <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(totalReceived + totalInterest)}</td>
@@ -189,7 +189,7 @@ export default function LoanDashboard() {
         <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-5 flex flex-shrink-0 items-center justify-between gap-3">
             <h2 className="font-semibold text-slate-900">Recent Transactions</h2>
-            <button type="button" onClick={() => navigate('/loan-management/transactions')} className="text-sm font-semibold text-blue-600 hover:text-blue-700">View All</button>
+            <button type="button" onClick={() => navigate('/loan-management/transactions')} className="text-sm font-semibold text-slate-900 hover:text-slate-600">View All</button>
           </div>
           <div className="flex-shrink-0 overflow-x-auto">
             <table className="w-full min-w-[500px] text-sm">
@@ -200,7 +200,7 @@ export default function LoanDashboard() {
                 <col className="w-[120px]" />
               </colgroup>
               <thead>
-                <tr className="rounded-lg bg-blue-50 text-xs uppercase tracking-wide text-slate-700">
+                <tr className="rounded-lg bg-slate-50 text-xs uppercase tracking-wide text-slate-700">
                   <th className="rounded-l-lg px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Bank / Person</th>
                   <th className="px-4 py-3 text-left">Type</th>
@@ -235,7 +235,7 @@ export default function LoanDashboard() {
           </div>
           {recent.length === 0 && (
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-blue-50 text-blue-200">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-slate-100 text-slate-300">
                 <FileText size={42} />
               </div>
               <p className="text-sm font-semibold text-slate-700">No recent transactions</p>

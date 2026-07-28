@@ -308,7 +308,7 @@ export default function CustomerList() {
                 </td>
                 <td className="py-2.5 px-4 text-center">
                   <div className="flex gap-2 justify-center">
-                    <button onClick={() => openModal(c)} className="text-slate-400 hover:text-blue-500 transition-colors"><Pencil size={16} /></button>
+                    <button onClick={() => openModal(c)} className="text-slate-400 hover:text-slate-700 transition-colors"><Pencil size={16} /></button>
                     <button onClick={() => deleteCustomer(c.id, c.name)} className="text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
                   </div>
                 </td>

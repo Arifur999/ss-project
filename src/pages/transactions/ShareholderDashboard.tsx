@@ -366,7 +366,7 @@ export default function ShareholderDashboard() {
         <div className="card"><p className="text-xs text-slate-500">Investment ({period.label})</p><p className="mt-1 text-xl font-bold text-brand-green">{formatCurr(totalInvested)}</p></div>
         <div className="card"><p className="text-xs text-slate-500">Withdraw ({period.label})</p><p className="mt-1 text-xl font-bold text-brand-red">{formatCurr(totalWithdrawn)}</p></div>
         <div className="card"><p className="text-xs text-slate-500">Profit / Loss ({period.label})</p><p className={`mt-1 text-xl font-bold ${totalPeriodProfitShare >= 0 ? 'text-brand-green' : 'text-brand-red'}`}>{formatCurr(totalPeriodProfitShare)}</p></div>
-        <div className="card"><p className="text-xs text-slate-500">Current Retained Profit</p><p className={`mt-1 text-xl font-bold ${totalRetainedProfit >= 0 ? 'text-blue-700' : 'text-brand-red'}`}>{formatCurr(totalRetainedProfit)}</p></div>
+        <div className="card"><p className="text-xs text-slate-500">Current Retained Profit</p><p className={`mt-1 text-xl font-bold ${totalRetainedProfit >= 0 ? 'text-slate-800' : 'text-brand-red'}`}>{formatCurr(totalRetainedProfit)}</p></div>
         <div className="card"><p className="text-xs text-slate-500">Net Capital</p><p className="mt-1 text-xl font-bold text-slate-800">{formatCurr(totalCapital)}</p></div>
       </div>
 
@@ -401,7 +401,7 @@ export default function ShareholderDashboard() {
                 <td className="px-4 py-2.5 text-right text-brand-red">{formatCurr(row.periodWithdrawn)}</td>
                 <td className={`px-4 py-2.5 text-right ${row.periodProfitShare >= 0 ? 'text-brand-green' : 'text-brand-red'}`}>{formatCurr(row.periodProfitShare)}</td>
                 <td className="px-4 py-2.5 text-right text-orange-600">{formatCurr(row.periodProfitWithdrawn)}</td>
-                <td className={`px-4 py-2.5 text-right font-semibold ${row.currentRetainedProfit >= 0 ? 'text-blue-700' : 'text-brand-red'}`}>{formatCurr(row.currentRetainedProfit)}</td>
+                <td className={`px-4 py-2.5 text-right font-semibold ${row.currentRetainedProfit >= 0 ? 'text-slate-800' : 'text-brand-red'}`}>{formatCurr(row.currentRetainedProfit)}</td>
                 <td className="px-4 py-2.5 text-right font-bold">{formatCurr(row.netCapital)}</td>
                 <td className="px-4 py-2.5 text-right font-bold text-slate-700">{row.totalSharePct.toFixed(2)}%</td>
               </tr>

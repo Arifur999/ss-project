@@ -344,7 +344,7 @@ export default function ReceiveProduct() {
               onClick={() => setStatusFilter(tab.key)}
               className={`min-w-[72px] rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
                 statusFilter === tab.key
-                  ? 'bg-navy-800 text-white'
+                  ? 'bg-slate-900 text-white'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-navy-800'
               }`}
             >
@@ -390,13 +390,13 @@ export default function ReceiveProduct() {
                 <td className="py-2.5 px-3 text-right text-green-600 font-semibold">{item.received_qty}</td>
                 <td className="py-2.5 px-3 text-right font-semibold text-orange-600">{item.undelivered_qty}</td>
                 <td className="py-2.5 px-3 text-right">
-                  <span className={item.upcomingQty > 0 ? 'text-blue-600 font-semibold' : 'text-slate-400'}>
+                  <span className={item.upcomingQty > 0 ? 'text-slate-700 font-semibold' : 'text-slate-400'}>
                     {item.upcomingQty}
                   </span>
                 </td>
                 <td className="py-2.5 px-3 text-center">
                   <span className={`text-xs px-2 py-1 rounded font-medium ${
-                    item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-green-100 text-green-700'
+                    item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'bg-slate-100 text-slate-700' : 'bg-orange-100 text-orange-700') : 'bg-green-100 text-green-700'
                   }`}>
                     {item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'Partial' : 'Pending') : 'Received'}
                   </span>

@@ -456,7 +456,7 @@ export default function ReportSummary() {
     progress: number
     tone: 'blue' | 'green'
   }) {
-    const bar = tone === 'blue' ? 'bg-blue-600' : 'bg-brand-green'
+    const bar = tone === 'blue' ? 'bg-slate-900' : 'bg-brand-green'
 
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -498,7 +498,7 @@ export default function ReportSummary() {
     const toneClass = {
       green: 'text-brand-green',
       red: 'text-brand-red',
-      blue: 'text-blue-600',
+      blue: 'text-slate-700',
       slate: 'text-slate-700',
     }[tone]
 
@@ -675,18 +675,18 @@ export default function ReportSummary() {
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-4 xl:self-start">
-            <div className="rounded-lg bg-blue-50 p-4">
-              <p className="text-3xl font-black text-blue-700">{range.label}</p>
-              <p className="text-xs font-bold uppercase text-blue-700">Overview</p>
+            <div className="rounded-lg bg-slate-900 p-4">
+              <p className="text-3xl font-black text-white">{range.label}</p>
+              <p className="text-xs font-bold uppercase text-slate-400">Overview</p>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-green-100 bg-green-50 p-2">
                 <p className="text-[10px] font-semibold uppercase text-green-700">Sales</p>
                 <p className="text-sm font-bold text-green-800">{percentText(salesAchievedPct)}</p>
               </div>
-              <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
-                <p className="text-[10px] font-semibold uppercase text-blue-700">Profit</p>
-                <p className="text-sm font-bold text-blue-800">{percentText(profitAchievedPct)}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
+                <p className="text-[10px] font-semibold uppercase text-slate-600">Profit</p>
+                <p className="text-sm font-bold text-slate-800">{percentText(profitAchievedPct)}</p>
               </div>
             </div>
             <div className="mt-3">

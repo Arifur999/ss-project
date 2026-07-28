@@ -190,7 +190,7 @@ export default function PurchaseHistory() {
                       status === 'received'
                         ? 'bg-green-100 text-green-700'
                         : status === 'partial'
-                          ? 'bg-blue-100 text-blue-700'
+                          ? 'bg-slate-100 text-slate-700'
                           : 'bg-orange-100 text-orange-700'
                     }`}>
                       {status === 'received' ? 'Received' : status === 'partial' ? 'Partial' : 'Pending'}

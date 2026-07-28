@@ -146,7 +146,7 @@ export default function SuperAdminFreeTrial() {
                           onClick={() => extendTrial(owner)}
                           disabled={busyId === owner.owner_id}
                           title="Grant +7 days trial"
-                          className="rounded-md border border-blue-100 bg-blue-50 p-1.5 text-blue-600 hover:bg-blue-100 disabled:opacity-50"
+                          className="rounded-md border border-slate-200 bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 disabled:opacity-50"
                         >
                           <TimerReset size={14} />
                         </button>

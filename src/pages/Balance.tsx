@@ -200,9 +200,9 @@ export default function Balance() {
                     })}
                   </tr>
                 ))}
-                <tr className="bg-navy-800 text-white">
-                  <td className="sticky left-0 z-20 w-12 bg-navy-800 py-2.5 px-3 font-semibold shadow-[1px_0_0_rgba(255,255,255,0.18)]"></td>
-                  <td className="sticky left-12 z-20 bg-navy-800 py-2.5 px-4 font-semibold shadow-[1px_0_0_rgba(255,255,255,0.18)]">{t('common_total')}</td>
+                <tr className="bg-slate-900 text-white">
+                  <td className="sticky left-0 z-20 w-12 bg-slate-900 py-2.5 px-3 font-semibold shadow-[1px_0_0_rgba(255,255,255,0.18)]"></td>
+                  <td className="sticky left-12 z-20 bg-slate-900 py-2.5 px-4 font-semibold shadow-[1px_0_0_rgba(255,255,255,0.18)]">{t('common_total')}</td>
                   {columns.map(col => {
                     const total = accounts.reduce((s, a) => s + ((a as any)[col.key] || 0), 0)
                     return (

@@ -476,7 +476,7 @@ export default function EmployeeAttendance() {
                   <td className="py-2.5 px-4 text-slate-400 text-xs">{display.notes || '-'}</td>
                   <td className="py-2.5 px-4 text-right">
                     <div className="flex gap-1 justify-end">
-                      <button onClick={() => editAttendance(att)} className="text-blue-500 hover:text-blue-600"><Edit2 size={14} /></button>
+                      <button onClick={() => editAttendance(att)} className="text-slate-500 hover:text-slate-700"><Edit2 size={14} /></button>
                       <button onClick={() => deleteAttendance(att.id)} className="text-red-500 hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   </td>

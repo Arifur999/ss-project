@@ -280,11 +280,11 @@ export default function Marketing() {
   }
 
   const statCards = [
-    { title: 'Total Contacts', value: contacts.length, subtitle: 'Customers, suppliers, employees, contacts', icon: <Users size={22} />, tone: 'bg-blue-50 text-blue-600' },
+    { title: 'Total Contacts', value: contacts.length, subtitle: 'Customers, suppliers, employees, contacts', icon: <Users size={22} />, tone: 'bg-slate-100 text-slate-700' },
     { title: 'Selected Recipients', value: selectedContacts.length, subtitle: `${selectedWithPhone.length} with phone number`, icon: <ClipboardList size={22} />, tone: 'bg-green-50 text-brand-green' },
     { title: 'SMS Sent Today', value: sentToday, subtitle: 'Saved campaign count', icon: <Send size={22} />, tone: 'bg-orange-50 text-orange-600' },
-    { title: 'Campaigns This Month', value: campaignThisMonth, subtitle: 'SMS campaigns only', icon: <Megaphone size={22} />, tone: 'bg-purple-50 text-purple-600' },
-    { title: 'Delivery Rate', value: `${deliveryRate.toFixed(1)}%`, subtitle: 'Phone-ready recipients', icon: <CheckCircle2 size={22} />, tone: 'bg-teal-50 text-teal-600' },
+    { title: 'Campaigns This Month', value: campaignThisMonth, subtitle: 'SMS campaigns only', icon: <Megaphone size={22} />, tone: 'bg-slate-100 text-slate-700' },
+    { title: 'Delivery Rate', value: `${deliveryRate.toFixed(1)}%`, subtitle: 'Phone-ready recipients', icon: <CheckCircle2 size={22} />, tone: 'bg-slate-100 text-slate-700' },
   ]
 
   return (
@@ -401,7 +401,7 @@ export default function Marketing() {
           </div>
 
           <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm">
-            <span className="font-semibold text-blue-600">Selected: {formatNum(selectedContacts.length)}</span>
+            <span className="font-semibold text-slate-800">Selected: {formatNum(selectedContacts.length)}</span>
             <button type="button" onClick={() => setSelectedIds([])} className="text-sm font-semibold text-brand-red hover:text-red-700">
               Clear All
             </button>
@@ -524,7 +524,7 @@ export default function Marketing() {
                       <td className="px-4 py-3 text-right font-semibold text-brand-red">{formatNum(campaign.failed)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-brand-green">{rate.toFixed(1)}%</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${campaign.status === 'Completed' ? 'bg-green-50 text-brand-green' : 'bg-blue-50 text-blue-600'}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${campaign.status === 'Completed' ? 'bg-green-50 text-brand-green' : 'bg-slate-100 text-slate-600'}`}>
                           {campaign.status === 'Completed' ? <CheckCircle2 size={13} /> : <CalendarClock size={13} />}
                           {campaign.status}
                         </span>

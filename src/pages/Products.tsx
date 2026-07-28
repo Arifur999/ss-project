@@ -340,7 +340,7 @@ export default function Products() {
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => handleEdit(product)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                        className="p-2 text-slate-600 hover:bg-slate-100 rounded transition"
                         title="Edit"
                       >
                         <Edit2 size={16} />

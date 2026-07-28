@@ -370,7 +370,7 @@ export default function Inventory() {
 
   const statusConfig: Record<InventoryStatus, { labelKey: string; cls: string }> = {
     available:    { labelKey: 'inventory_statusAvailable',    cls: 'badge-green whitespace-nowrap' },
-    upcoming:     { labelKey: 'inventory_statusUpcoming',     cls: 'bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap' },
+    upcoming:     { labelKey: 'inventory_statusUpcoming',     cls: 'bg-slate-100 text-slate-700 text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap' },
     low_stock:    { labelKey: 'inventory_statusLowStock',     cls: 'badge-orange whitespace-nowrap' },
     out_of_stock: { labelKey: 'inventory_statusOutOfStock',   cls: 'badge-red whitespace-nowrap' },
   }
@@ -484,7 +484,7 @@ export default function Inventory() {
                   </td>
                   <td className="py-2 px-3 text-slate-500 text-xs">{row.products?.suppliers?.company_name || row.products?.suppliers?.name || '—'}</td>
                   <td className="py-2 px-3 text-right text-slate-600">{row.opening_qty}</td>
-                  <td className="py-2 px-3 text-right text-blue-600 font-medium">{row.order_qty}</td>
+                  <td className="py-2 px-3 text-right text-slate-700 font-medium">{row.order_qty}</td>
                   <td className="py-2 px-3 text-right text-brand-green font-medium">{row.received_qty}</td>
                   <td className="py-2 px-3 text-right text-amber-600 font-medium">{row.upcoming_qty}</td>
                   <td className="py-2 px-3 text-right text-red-500 font-medium">{row.sales_qty}</td>

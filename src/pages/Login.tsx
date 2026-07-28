@@ -69,8 +69,8 @@ export default function Login() {
 
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-brand-green rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white text-2xl font-bold">F</span>
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-slate-900 text-2xl font-bold">F</span>
           </div>
           <h1 className="text-2xl font-bold text-white">{businessName}</h1>
           <p className="text-slate-400 text-sm mt-1">{t('appSubtitle')}</p>
@@ -137,14 +137,14 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand-green hover:bg-green-700 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="w-full bg-slate-900 hover:bg-black text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {loading ? t('common_pleaseWait') : t('login_title')}
             </button>
           </form>
 
           <p className="mt-5 text-center text-sm text-slate-500">
-            New owner? <Link to="/register" className="font-semibold text-brand-green hover:text-green-700">Register as owner</Link>
+            New owner? <Link to="/register" className="font-semibold text-slate-900 hover:text-slate-600">Register as owner</Link>
           </p>
           </>
           )}

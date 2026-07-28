@@ -10,12 +10,14 @@ interface StatCardProps {
   subtitle?: string
 }
 
+// green/red stay as money semantics; blue/orange are re-pointed to neutral
+// slate so non-financial stat chips read monochrome with the reference.
 const colorMap = {
   green: 'bg-green-50 text-brand-green',
   red: 'bg-red-50 text-brand-red',
-  blue: 'bg-blue-50 text-blue-600',
-  orange: 'bg-orange-50 text-orange-600',
-  default: 'bg-slate-50 text-slate-600',
+  blue: 'bg-slate-100 text-slate-700',
+  orange: 'bg-slate-100 text-slate-700',
+  default: 'bg-slate-100 text-slate-700',
 }
 
 export default function StatCard({ title, value, icon, trend, color = 'default', subtitle }: StatCardProps) {

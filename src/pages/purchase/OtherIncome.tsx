@@ -339,7 +339,7 @@ export default function OtherIncome() {
                   <td className="px-4 py-3 text-slate-400">{item.notes || '-'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => setViewItem(item)} className="rounded-lg bg-blue-50 p-1.5 text-blue-600 hover:bg-blue-100" title="View"><Eye size={15} /></button>
+                      <button onClick={() => setViewItem(item)} className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-slate-200" title="View"><Eye size={15} /></button>
                       <button onClick={() => openEdit(item)} className="rounded-lg bg-green-50 p-1.5 text-brand-green hover:bg-green-100" title="Edit"><Pencil size={15} /></button>
                       <button onClick={() => deleteItem(item)} className="rounded-lg bg-red-50 p-1.5 text-brand-red hover:bg-red-100" title="Delete"><Trash2 size={15} /></button>
                     </div>
@@ -398,8 +398,8 @@ export default function OtherIncome() {
               <textarea className="input min-h-[92px]" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Enter notes (optional)" />
             </div>
           </div>
-          <aside className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">
-            <div className="mb-3 flex items-center gap-2 font-bold text-blue-700"><FileText size={17} /> Note:</div>
+          <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div className="mb-3 flex items-center gap-2 font-bold text-slate-700"><FileText size={17} /> Note:</div>
             <div className="space-y-3 text-xs leading-6">
               <p><span className="font-bold text-brand-green">Supplier:</span> Supplier Commission</p>
               <p><span className="font-bold text-brand-green">Other:</span> Any other income</p>
@@ -431,10 +431,10 @@ export default function OtherIncome() {
 
 function SummaryCard({ title, value, subtitle, icon, tone }: { title: string; value: string; subtitle: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'orange' | 'purple' }) {
   const tones = {
-    blue: 'border-blue-100 bg-blue-50/60 text-blue-700',
+    blue: 'border-slate-200 bg-slate-50 text-slate-700',
     green: 'border-green-100 bg-green-50/60 text-brand-green',
     orange: 'border-orange-100 bg-orange-50/60 text-orange-600',
-    purple: 'border-purple-100 bg-purple-50/60 text-purple-600',
+    purple: 'border-slate-200 bg-slate-50 text-slate-700',
   }
 
   return (

@@ -306,9 +306,9 @@ export default function YearlyReport() {
     const barClass = {
       green: 'bg-brand-green',
       red: 'bg-brand-red',
-      blue: 'bg-blue-600',
+      blue: 'bg-slate-700',
       orange: 'bg-brand-orange',
-      purple: 'bg-violet-600',
+      purple: 'bg-slate-500',
       slate: 'bg-slate-500',
     }[tone]
 
@@ -334,7 +334,7 @@ export default function YearlyReport() {
     const toneClass = {
       green: 'text-brand-green',
       red: 'text-brand-red',
-      blue: 'text-blue-600',
+      blue: 'text-slate-700',
       slate: 'text-slate-700',
     }[tone]
 
@@ -350,7 +350,7 @@ export default function YearlyReport() {
   }
 
   function TableValue({ value, money = true, strong = false, tone }: { value: number; money?: boolean; strong?: boolean; tone?: 'green' | 'red' | 'blue' }) {
-    const textTone = tone === 'green' ? 'text-brand-green' : tone === 'red' ? 'text-brand-red' : tone === 'blue' ? 'text-blue-700' : 'text-slate-700'
+    const textTone = tone === 'green' ? 'text-brand-green' : tone === 'red' ? 'text-brand-red' : tone === 'blue' ? 'text-slate-700' : 'text-slate-700'
     return (
       <td className={`whitespace-nowrap px-2 py-2 text-right tabular-nums ${strong ? 'font-bold' : 'font-medium'} ${textTone}`}>
         {value !== 0 ? (money ? formatCurr(value) : formatNum(value)) : '0'}
@@ -386,7 +386,7 @@ export default function YearlyReport() {
               <span className="block text-[10px] font-semibold uppercase text-slate-500">Date Range</span>
               <div className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-800"><CalendarDays size={14} /> {startLabel} - {endLabel}</div>
             </div>
-            <button onClick={loadData} className="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-left text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100">
+            <button onClick={loadData} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200">
               <span className="flex items-center gap-2"><RefreshCw size={16} /> Refresh</span>
               <span className="text-xs font-medium text-slate-500">{lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
             </button>
@@ -396,23 +396,23 @@ export default function YearlyReport() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-green border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-4 xl:self-start">
-            <div className="rounded-lg bg-blue-50 p-4">
-              <p className="text-3xl font-black text-blue-700">{formatNum(year)}</p>
-              <p className="text-xs font-bold uppercase text-blue-700">Overview</p>
+            <div className="rounded-lg bg-slate-900 p-4">
+              <p className="text-3xl font-black text-white">{formatNum(year)}</p>
+              <p className="text-xs font-bold uppercase text-slate-400">Overview</p>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-green-100 bg-green-50 p-2">
                 <p className="text-[10px] font-semibold uppercase text-green-700">Sales</p>
                 <p className="text-sm font-bold text-green-800">{salesAchievedPct.toFixed(1)}%</p>
               </div>
-              <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
-                <p className="text-[10px] font-semibold uppercase text-blue-700">Profit</p>
-                <p className="text-sm font-bold text-blue-800">{profitAchievedPct.toFixed(1)}%</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
+                <p className="text-[10px] font-semibold uppercase text-slate-600">Profit</p>
+                <p className="text-sm font-bold text-slate-800">{profitAchievedPct.toFixed(1)}%</p>
               </div>
             </div>
             <div className="mt-3">
@@ -514,7 +514,7 @@ export default function YearlyReport() {
                     <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
                     <Tooltip formatter={(value: number) => formatCurr(value)} contentStyle={tooltipStyle} />
                     <Legend />
-                    <Bar dataKey="actualSales" name="Sales Amount" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="actualSales" name="Sales Amount" fill="#0b0b0f" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="salesGoal" name="Sales Goal" fill="#94a3b8" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

@@ -349,7 +349,7 @@ export default function SupplierPayments() {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => editPayment(p)}
-                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                      className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
                       title="Edit"
                     >
                       <Edit2 size={15} />
