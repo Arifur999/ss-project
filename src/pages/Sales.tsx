@@ -2281,7 +2281,7 @@ export default function Sales() {
               <div className="card space-y-3 bg-white p-5 md:sticky md:top-6 md:h-[calc(100vh-50px)] md:overflow-y-auto">
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
                   <span className="text-slate-500">Subtotal</span>
-                  <span className="font-semibold text-slate-800">{formatCurr(discountedSubtotal)}</span>
+                  <span className="font-semibold text-slate-800">{formatCurr(subtotal)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
                   <span className="text-slate-500">Total Discount</span>
