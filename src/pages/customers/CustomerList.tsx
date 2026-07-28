@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Plus, Save, Search, Trash2, Pencil, Upload } from 'lucide-react'
+import { Download, Plus, Save, Search, Trash2, Pencil, Upload } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
@@ -244,6 +244,26 @@ export default function CustomerList() {
     }
   }
 
+  // Downloads a ready-to-fill template that matches the Upload CSV parser:
+  // Name + Phone are required, Email / Address / Opening Due are optional.
+  function downloadSampleCsv() {
+    const sample = [
+      'Name,Phone,Email,Address,Opening Due',
+      'Md Rahim,01700000000,rahim@example.com,Sonaimuri Noakhali,0',
+      'Karim Traders,01811111111,,Feni Bazar,1500',
+      'Walking Customer,01922222222,,,0',
+    ].join('\r\n')
+    const blob = new Blob(['﻿' + sample], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'customer-sample.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   const filtered = customers.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search))
   const openingDueTotal = customers.reduce((sum, customer) => sum + Number(customer.opening_due || 0), 0)
 
@@ -264,6 +284,9 @@ export default function CustomerList() {
                 if (file) importCustomersFromCsv(file)
               }}
             />
+            <button type="button" onClick={downloadSampleCsv} className="btn-secondary bg-white" title="Download a sample CSV template">
+              <Download size={16} /> Sample CSV
+            </button>
             <button type="button" onClick={() => csvInputRef.current?.click()} disabled={importingCsv} className="btn-secondary bg-white disabled:opacity-60 disabled:cursor-not-allowed">
               <Upload size={16} /> {importingCsv ? 'Uploading...' : 'Upload CSV'}
             </button>

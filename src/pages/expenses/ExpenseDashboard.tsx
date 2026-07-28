@@ -160,7 +160,10 @@ export default function ExpenseDashboard() {
           const monthSpent = thisMonthTotals[cat.id] || 0
           const yearSpent = thisYearTotals[cat.id] || 0
           const budget = Number(cat.monthly_budget || 0)
-          const pct = budget > 0 ? Math.min(100, (monthSpent / budget) * 100) : 0
+          // rawPct is the true usage (can exceed 100%); pct is only used to cap
+          // the progress-bar width so the bar never overflows its track.
+          const rawPct = budget > 0 ? (monthSpent / budget) * 100 : 0
+          const pct = Math.min(100, rawPct)
           const status = budget === 0 ? null : monthSpent > budget ? 'over' : monthSpent > budget * 0.8 ? 'warning' : 'ok'
 
           return (
@@ -206,7 +209,7 @@ export default function ExpenseDashboard() {
                     />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">{Math.round(pct)}% {t('expenses_pctUsed')}</span>
+                    <span className={`text-xs ${rawPct > 100 ? 'font-semibold text-brand-red' : 'text-slate-400'}`}>{Math.round(rawPct)}% {t('expenses_pctUsed')}</span>
                     {status && (
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${status === 'over' ? 'badge-red' : status === 'warning' ? 'badge-orange' : 'badge-green'}`}>
                         {status === 'over' ? t('expenses_overBudget') : status === 'warning' ? t('expenses_warning') : t('expenses_ok')}
