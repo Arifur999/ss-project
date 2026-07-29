@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import { useLang } from '../../context/LanguageContext'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
@@ -670,7 +671,7 @@ export default function CustomerLedger() {
               <FileText size={21} className="text-slate-700" />
               <h2 className="text-base font-bold text-slate-900">Transaction History</h2>
             </div>
-            <div className="w-full overflow-x-auto rounded-lg shadow-sm">
+            <TableScroller className="w-full overflow-x-auto rounded-lg shadow-sm">
               <table className="w-full min-w-[1120px] text-sm">
                 <thead className="table-header">
                   <tr className="border-b border-slate-100">
@@ -717,7 +718,7 @@ export default function CustomerLedger() {
                   )}
                 </tbody>
               </table>
-            </div>
+            </TableScroller>
           </section>
         </div>
       )}

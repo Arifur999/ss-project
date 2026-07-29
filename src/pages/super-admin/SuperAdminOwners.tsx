@@ -3,6 +3,7 @@ import { AlertTriangle, Ban, CheckCircle2, Edit, Eye, RefreshCw, Search, TimerOf
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import { LiveOwner, OwnerPlan, OwnerStatus, PlanType, daysLeft, formatDate, formatLastActive, isOwnerOnline, loadOwners, planTypeLabel, registeredDays } from './superAdminLive'
 import { grantTrialExtension, updateOwnerSubscription } from '../../services/admin.services'
 
@@ -249,7 +250,7 @@ export default function SuperAdminOwners() {
       </div>
 
       <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        <TableScroller>
           <table className="w-full min-w-[1720px] text-sm">
             <thead className="table-header">
               <tr>
@@ -355,7 +356,7 @@ export default function SuperAdminOwners() {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       </div>
 
       <Modal isOpen={!!selectedOwner} onClose={() => setSelectedOwner(null)} title="Owner details">

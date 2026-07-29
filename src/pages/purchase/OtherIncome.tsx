@@ -247,7 +247,7 @@ export default function OtherIncome() {
   return (
     <div className="min-h-full bg-slate-50 p-6">
       <PageHeader
-        title="Other Income"
+        title="Others Income"
         subtitle="Supplier commission and other income received"
         actions={
           <button
@@ -260,7 +260,7 @@ export default function OtherIncome() {
       />
 
       <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard title="Total Other Income" value={formatCurr(totals.total)} subtitle="Selected range" icon={<WalletCards size={24} />} tone="blue" />
+        <SummaryCard title="Total Others Income" value={formatCurr(totals.total)} subtitle="Selected range" icon={<WalletCards size={24} />} tone="blue" />
         <SummaryCard title="Supplier Commission" value={formatCurr(totals.supplier)} subtitle="Selected range" icon={<Users size={24} />} tone="green" />
         <SummaryCard title="Other Source Income" value={formatCurr(totals.other)} subtitle="Selected range" icon={<FileText size={24} />} tone="orange" />
         <SummaryCard title="Total Transactions" value={String(totals.count)} subtitle="Selected range" icon={<FileText size={24} />} tone="purple" />
@@ -268,7 +268,7 @@ export default function OtherIncome() {
 
       <section className="card overflow-hidden p-0">
         <div className="border-b border-slate-100 p-4">
-          <h2 className="text-base font-bold text-slate-800">Other Income List</h2>
+          <h2 className="text-base font-bold text-slate-800">Others Income List</h2>
         </div>
 
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 p-4 lg:grid-cols-[minmax(220px,1fr)_160px_150px_170px_auto]">
@@ -284,7 +284,7 @@ export default function OtherIncome() {
           <select className="input" value={typeFilter} onChange={e => setTypeFilter(e.target.value as 'all' | IncomeType)}>
             <option value="all">All Type</option>
             <option value="supplier">Supplier</option>
-            <option value="other">Other</option>
+            <option value="other">Others</option>
           </select>
           <select className="input" value={accountFilter} onChange={e => setAccountFilter(e.target.value)}>
             <option value="all">All Account</option>
@@ -330,7 +330,7 @@ export default function OtherIncome() {
                   <td className="px-4 py-3 whitespace-nowrap">{formatDate(item.date)}</td>
                   <td className="px-4 py-3">
                     <span className={item.income_type === 'supplier' ? 'badge-green' : 'badge-orange'}>
-                      {item.income_type === 'supplier' ? 'Supplier' : 'Other'}
+                      {item.income_type === 'supplier' ? 'Supplier' : 'Others'}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-semibold text-slate-700">{item.income_type === 'supplier' ? item.supplier_name : item.source_name}</td>
@@ -355,7 +355,7 @@ export default function OtherIncome() {
       </section>
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm() }} title={editingId ? 'Edit Transaction' : 'New Transaction'} size="xl">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="grid gap-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="label">Date <span className="text-brand-red">*</span></label>
@@ -365,7 +365,7 @@ export default function OtherIncome() {
               <label className="label">Type <span className="text-brand-red">*</span></label>
               <select className="input" value={form.income_type} onChange={e => setForm({ ...form, income_type: e.target.value as IncomeType, supplier_id: '', source_name: '' })}>
                 <option value="supplier">Supplier</option>
-                <option value="other">Other</option>
+                <option value="other">Others</option>
               </select>
             </div>
             {form.income_type === 'supplier' ? (
@@ -398,14 +398,6 @@ export default function OtherIncome() {
               <textarea className="input min-h-[92px]" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Enter notes (optional)" />
             </div>
           </div>
-          <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <div className="mb-3 flex items-center gap-2 font-bold text-slate-700"><FileText size={17} /> Note:</div>
-            <div className="space-y-3 text-xs leading-6">
-              <p><span className="font-bold text-brand-green">Supplier:</span> Supplier Commission</p>
-              <p><span className="font-bold text-brand-green">Other:</span> Any other income</p>
-              <p>Make sure you select the correct account where the amount is received.</p>
-            </div>
-          </aside>
         </div>
         <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button onClick={() => { setShowModal(false); resetForm() }} className="btn-secondary">Cancel</button>
@@ -417,7 +409,7 @@ export default function OtherIncome() {
         {viewItem && (
           <div className="space-y-3 text-sm">
             <Detail label="Date" value={formatDate(viewItem.date)} />
-            <Detail label="Type" value={viewItem.income_type === 'supplier' ? 'Supplier' : 'Other'} />
+            <Detail label="Type" value={viewItem.income_type === 'supplier' ? 'Supplier' : 'Others'} />
             <Detail label="Supplier / Source" value={viewItem.income_type === 'supplier' ? viewItem.supplier_name : viewItem.source_name} />
             <Detail label="Amount" value={formatCurr(Number(viewItem.amount || 0))} />
             <Detail label="Account" value={viewItem.account_name} />

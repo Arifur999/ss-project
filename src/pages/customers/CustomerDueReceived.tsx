@@ -3,6 +3,7 @@ import { Filter, Plus, Printer, FileText, Pencil, Trash2, Search, X } from 'luci
 import toast from 'react-hot-toast'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { useAuth } from '../../context/AuthContext'
@@ -524,7 +525,7 @@ export default function CustomerDueReceived() {
         <div className="flex-shrink-0 border-b border-slate-100 p-4 font-semibold text-slate-800">
           {t('customers_dueReceived', 'Due received')} List
         </div>
-        <div className="min-h-0 flex-1 overflow-auto">
+        <TableScroller wrapClassName="flex min-h-0 flex-1 flex-col" className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[1500px] text-sm">
             <thead className="table-header">
               <tr>
@@ -599,7 +600,7 @@ export default function CustomerDueReceived() {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       </div>
 
       <div className="fixed -left-[10000px] top-0 bg-white text-slate-950">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Download, Image } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import TableScroller from '../components/TableScroller'
 import { setInventoryDpPrice } from '../services/product.services'
 import PageHeader from '../components/PageHeader'
 import { useLang } from '../context/LanguageContext'
@@ -444,7 +445,8 @@ export default function Inventory() {
         </div>
       </div>
 
-      <div className="card max-h-[calc(100vh-260px)] overflow-auto p-0">
+      <div className="card p-0">
+        <TableScroller className="max-h-[calc(100vh-260px)] overflow-auto">
         <table className="w-full text-sm min-w-[1100px]">
           <thead className="table-header sticky top-0 z-10">
             <tr>
@@ -513,6 +515,7 @@ export default function Inventory() {
             {loading && <tr><td colSpan={14} className="text-center py-10 text-slate-400">{t('common_loading')}</td></tr>}
           </tbody>
         </table>
+        </TableScroller>
       </div>
     </div>
   )

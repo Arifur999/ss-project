@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Plus, Save, Search, Printer, Pencil, Trash2, Image, Barcode, Filter, Truck, ChevronDown, ChevronUp, Calendar, Clipboard, Eye, EyeOff } from 'lucide-react'
+import { Plus, Save, Search, Printer, Pencil, Trash2, Image, Barcode, Filter, Truck, ChevronDown, ChevronUp, Calendar, Clipboard, Eye, EyeOff, Tag } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateInvoiceNo } from '../lib/utils'
 import PageHeader from '../components/PageHeader'
@@ -135,7 +135,7 @@ export default function Sales() {
   const [productSearch, setProductSearch] = useState('') // For product selection search
   const [customerSearch, setCustomerSearch] = useState('')
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
-  const [productSort, setProductSort] = useState<'none' | 'highToLow' | 'lowToHigh'>('none')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [showProductSort, setShowProductSort] = useState(false)
   
   // Auth state
@@ -1528,13 +1528,10 @@ export default function Sales() {
     safeLower(p.name).includes(normalizedProductSearch) ||
     safeLower(p.product_code).includes(normalizedProductSearch)
   )
-  const filteredProducts = productSort === 'none'
-    ? productMatches
-    : [...productMatches].sort((a, b) => {
-        const priceA = Number(a.selling_price || 0)
-        const priceB = Number(b.selling_price || 0)
-        return productSort === 'highToLow' ? priceB - priceA : priceA - priceB
-      })
+  const productCategories = Array.from(
+    new Set(products.map(p => String(p.category || '').trim()).filter(Boolean))
+  ).sort()
+  const filteredProducts = productMatches.filter(p => !categoryFilter || String(p.category || '') === categoryFilter)
 
   const invoiceLabels = lang === 'bn' ? {
     invoice: 'ইনভয়েস',
@@ -1918,35 +1915,36 @@ export default function Sales() {
                 <button
                   onClick={() => setShowProductSort(current => !current)}
                   className={`p-2 border rounded-lg transition ${
-                    productSort === 'none'
+                    categoryFilter === ''
                       ? 'border-slate-200 text-slate-500 hover:bg-slate-50'
                       : 'border-brand-green bg-green-50 text-brand-green'
                   }`}
-                  title="Filter Options"
+                  title="Filter by category"
                 >
-                  <Filter size={16} />
+                  <Tag size={16} />
                 </button>
                 {showProductSort && (
-                  <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-xs font-semibold shadow-lg">
-                    <button
-                      onClick={() => {
-                        setProductSort('highToLow')
-                        setShowProductSort(false)
-                      }}
-                      className={`block w-full px-3 py-2 text-left hover:bg-slate-50 ${productSort === 'highToLow' ? 'text-brand-green' : 'text-slate-700'}`}
-                    >
-                      High to low price
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProductSort('lowToHigh')
-                        setShowProductSort(false)
-                      }}
-                      className={`block w-full px-3 py-2 text-left hover:bg-slate-50 ${productSort === 'lowToHigh' ? 'text-brand-green' : 'text-slate-700'}`}
-                    >
-                      Low to high price
-                    </button>
-                  </div>
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowProductSort(false)} />
+                    <div className="absolute right-0 top-11 z-20 max-h-72 w-48 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-xs font-semibold shadow-lg">
+                      <button
+                        onClick={() => { setCategoryFilter(''); setShowProductSort(false) }}
+                        className={`block w-full px-3 py-2 text-left hover:bg-slate-50 ${categoryFilter === '' ? 'text-brand-green' : 'text-slate-700'}`}
+                      >
+                        All categories
+                      </button>
+                      {productCategories.map(category => (
+                        <button
+                          key={category}
+                          onClick={() => { setCategoryFilter(category); setShowProductSort(false) }}
+                          className={`block w-full px-3 py-2 text-left hover:bg-slate-50 ${categoryFilter === category ? 'text-brand-green' : 'text-slate-700'}`}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                      {productCategories.length === 0 && <p className="px-3 py-2 text-slate-400">No categories</p>}
+                    </div>
+                  </>
                 )}
               </div>
             </div>

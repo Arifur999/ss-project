@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Edit2, Trash2, Plus, Search, Printer, Upload, Download, FileSpreadsheet, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
+import TableScroller from '../components/TableScroller'
 import Modal from '../components/Modal'
 import { confirmAction } from '../components/ConfirmDialog'
 import toast from 'react-hot-toast'
@@ -1284,7 +1285,7 @@ export default function ProductList() {
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
-          <div className="max-h-[calc(100vh-220px)] overflow-auto">
+          <TableScroller className="max-h-[calc(100vh-220px)] overflow-auto">
           <table className="w-full min-w-[1180px]">
             <thead className="table-header">
               <tr className="border-b border-slate-200">
@@ -1391,7 +1392,7 @@ export default function ProductList() {
               })}
             </tbody>
           </table>
-          </div>
+          </TableScroller>
         </div>
       )}
 

@@ -86,7 +86,7 @@ export default function Layout() {
         { key: 'purchPayments', label: t('nav_supplierPayments'), icon: <CreditCard size={16} />, path: '/purchase/payments' },
         { key: 'suppDash', label: t('nav_supplierDashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
         { key: 'purchaseHistory', label: t('nav_purchaseHistory'), icon: <BookOpen size={16} />, path: '/purchase/history' },
-        { key: 'otherIncome', label: t('nav_otherIncome', 'Other Income'), icon: <FileText size={16} />, path: '/purchase/other-income' },
+        { key: 'otherIncome', label: t('nav_otherIncome', 'Others Income'), icon: <FileText size={16} />, path: '/purchase/other-income' },
       ],
     },
     { key: 'inventory', label: t('nav_inventory'), icon: <Boxes size={18} />, path: '/inventory' },

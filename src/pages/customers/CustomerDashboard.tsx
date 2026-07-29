@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import StatCard from '../../components/StatCard'
 import { Users, Wallet, ShoppingCart, Tag, Download, AlertCircle } from 'lucide-react'
 import { useLang } from '../../context/LanguageContext'
@@ -49,7 +50,7 @@ export default function CustomerDashboard() {
         <div className="px-4 sm:px-5 py-4 border-b border-slate-100">
           <h3 className="font-semibold text-slate-800">{t('customerDash_customerList')}</h3>
         </div>
-        <div className="max-h-[calc(100vh-220px)] overflow-auto">
+        <TableScroller className="max-h-[calc(100vh-220px)] overflow-auto">
         <table className="w-full min-w-[1240px] text-sm">
           <thead className="table-header">
             <tr>
@@ -88,7 +89,7 @@ export default function CustomerDashboard() {
             {customerList.length === 0 && <tr><td colSpan={9} className="text-center py-10 text-slate-400">{t('customerDash_noData')}</td></tr>}
           </tbody>
         </table>
-        </div>
+        </TableScroller>
       </div>
     </div>
   )

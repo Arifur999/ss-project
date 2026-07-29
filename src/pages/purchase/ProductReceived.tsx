@@ -3,6 +3,7 @@ import { Truck, Edit2, Trash2, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
@@ -357,7 +358,8 @@ export default function ReceiveProduct() {
         </div>
       </div>
 
-      <div className="card min-h-0 flex-1 overflow-auto p-0">
+      <div className="card min-h-0 flex-1 flex flex-col p-0">
+        <TableScroller wrapClassName="flex min-h-0 flex-1 flex-col" className="min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[1560px] text-sm">
           <thead className="table-header">
             <tr>
@@ -460,6 +462,7 @@ export default function ReceiveProduct() {
             )}
           </tbody>
         </table>
+        </TableScroller>
       </div>
 
       <Modal
