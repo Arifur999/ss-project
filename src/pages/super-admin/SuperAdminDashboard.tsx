@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Cell, Legend, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { AlertTriangle, Ban, CheckCircle2, CreditCard, RefreshCw, ShieldCheck, TimerOff, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
@@ -102,10 +102,12 @@ export default function SuperAdminDashboard() {
   }, [owners])
 
   const statusChart = (['pending', 'active', 'expired', 'blocked'] as OwnerStatus[]).map(status => ({
-    name: status,
+    name: status.charAt(0).toUpperCase() + status.slice(1),
     value: owners.filter(owner => owner.effectiveStatus === status).length,
     color: statusColors[status],
   }))
+  const statusTotal = statusChart.reduce((sum, item) => sum + item.value, 0)
+  const statusMax = Math.max(1, ...statusChart.map(item => item.value))
 
   const pendingOwners = owners.filter(owner => owner.effectiveStatus === 'pending').slice(0, 8)
   const recentOwners = owners.slice(0, 8)
@@ -166,39 +168,47 @@ export default function SuperAdminDashboard() {
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {/* Owner Status donut (shadcn-style: clean legend, centred total, soft tooltip) */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3">
+            <div className="mb-1">
               <h2 className="text-sm font-bold text-slate-800">Owner Status</h2>
               <p className="text-xs text-slate-500">Live subscription status distribution</p>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={statusChart} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={2}>
-                  {statusChart.map(item => <Cell key={item.name} fill={item.color} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="relative">
+              <ResponsiveContainer width="100%" height={248}>
+                <PieChart>
+                  <Pie data={statusChart} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="none">
+                    {statusChart.map(item => <Cell key={item.name} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend iconType="circle" verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-x-0 top-[74px] flex flex-col items-center">
+                <span className="text-3xl font-black tabular-nums text-slate-900">{statusTotal}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Owners</span>
+              </div>
+            </div>
           </div>
 
+          {/* Status Counts as a polar / radial chart (#5), themed to the app palette */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-800">Status Counts</h2>
                 <p className="text-xs text-slate-500">Pending, active, expired and blocked owners</p>
               </div>
               <CreditCard size={17} className="text-slate-600" />
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={statusChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="value" name="Owners" radius={[4, 4, 0, 0]}>
+            <ResponsiveContainer width="100%" height={264}>
+              <RadialBarChart data={statusChart} innerRadius="22%" outerRadius="100%" startAngle={90} endAngle={-270}>
+                <PolarAngleAxis type="number" domain={[0, statusMax]} tick={false} axisLine={false} />
+                <RadialBar dataKey="value" background={{ fill: '#f1f5f9' }} cornerRadius={8}>
                   {statusChart.map(item => <Cell key={item.name} fill={item.color} />)}
-                </Bar>
-              </BarChart>
+                </RadialBar>
+                <Tooltip content={<ChartTooltip />} />
+                <Legend iconType="circle" layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />
+              </RadialBarChart>
             </ResponsiveContainer>
           </div>
         </section>
@@ -228,6 +238,19 @@ export default function SuperAdminDashboard() {
           </div>
         </section>
       </main>
+    </div>
+  )
+}
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const entry = payload[0]
+  const name = entry?.payload?.name ?? entry?.name
+  const value = Number(entry?.value ?? 0)
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg">
+      <p className="font-semibold text-slate-800">{name}</p>
+      <p className="text-slate-500">{value} owner{value === 1 ? '' : 's'}</p>
     </div>
   )
 }

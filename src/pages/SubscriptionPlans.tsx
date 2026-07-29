@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, Copy, Crown, Globe, Send, ShieldCheck, Smartphone, Sparkles, Timer, Users } from 'lucide-react'
+import { CheckCircle2, Copy, Crown, Globe, Phone, Send, ShieldCheck, Smartphone, Sparkles, Timer, Users } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { choosePlan as choosePlanRequest, getPaymentInfo, submitManualPayment } from '../services/admin.services'
@@ -412,6 +412,10 @@ export default function SubscriptionPlans() {
 // session is considered abandoned and the owner is sent back to /choose-plan.
 const CHECKOUT_WINDOW_MS = 30 * 60 * 1000
 
+// Dummy support number shown on the "payment submitted" screen. Replace with
+// the real support hotline later.
+const SUPPORT_NUMBER = '+880 1700-000000'
+
 function formatCountdown(ms: number) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
   const minutes = Math.floor(totalSeconds / 60)
@@ -440,6 +444,9 @@ export function SubscriptionCheckout() {
   const [senderNumber, setSenderNumber] = useState('')
   const [trxId, setTrxId] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // 30-minute "approval in progress" countdown shown after the payment is submitted.
+  const [doneDeadline, setDoneDeadline] = useState<number | null>(null)
+  const [doneRemainingMs, setDoneRemainingMs] = useState(CHECKOUT_WINDOW_MS)
   const expiredRef = useRef(false)
 
   // Load the checkout session (selectedAt) written by the Plans page, and
@@ -493,6 +500,15 @@ export function SubscriptionCheckout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deadline, step])
 
+  // Countdown on the "payment submitted / approval in progress" screen.
+  useEffect(() => {
+    if (step !== 'done' || doneDeadline === null) return
+    const tick = () => setDoneRemainingMs(Math.max(0, doneDeadline - Date.now()))
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [step, doneDeadline])
+
   if (!user) return <Navigate to="/login" replace />
 
   async function copyBkashNumber() {
@@ -525,6 +541,7 @@ export function SubscriptionCheckout() {
       // Subscription is now "pending" server-side - refresh the auth context
       // so the rest of the app (e.g. the pending lock screen) reflects it.
       await refreshAccount()
+      setDoneDeadline(Date.now() + CHECKOUT_WINDOW_MS)
       setStep('done')
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit payment')
@@ -549,6 +566,27 @@ export function SubscriptionCheckout() {
             </div>
             <h1 className="text-2xl font-black text-slate-950">{copy('doneTitle')}</h1>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">{copy('doneSubtitle')}</p>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <Timer size={14} /> {lang === 'bn' ? 'অনুমোদন হচ্ছে' : 'Approval in progress'}
+              </div>
+              <p className={`mt-2 text-4xl font-black tabular-nums ${doneRemainingMs > 0 && doneRemainingMs < 5 * 60 * 1000 ? 'text-brand-red' : 'text-slate-900'}`}>
+                {formatCountdown(doneRemainingMs)}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                {doneRemainingMs > 0
+                  ? (lang === 'bn' ? 'সাধারণত ৩০ মিনিটের মধ্যে আপনার অ্যাকাউন্ট চালু হয়ে যাবে।' : 'Your account is usually activated within 30 minutes.')
+                  : (lang === 'bn' ? 'এখনো চালু হয়নি? নিচের নম্বরে যোগাযোগ করুন।' : "Not activated yet? Please contact support below.")}
+              </p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600">
+              <Phone size={15} className="text-slate-400" />
+              <span>{lang === 'bn' ? 'সাহায্য দরকার?' : 'Need help?'}</span>
+              <a href={`tel:${SUPPORT_NUMBER.replace(/\s+/g, '')}`} className="font-bold text-slate-900 hover:underline">{SUPPORT_NUMBER}</a>
+            </div>
+
             <button onClick={() => navigate('/', { replace: true })} className="mt-6 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black">
               {copy('goDashboard')}
             </button>
