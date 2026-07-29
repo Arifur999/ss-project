@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Cell, Legend, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import PolarAreaChart from '../../components/PolarAreaChart'
 import { AlertTriangle, Ban, CheckCircle2, CreditCard, RefreshCw, ShieldCheck, TimerOff, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
@@ -107,7 +108,6 @@ export default function SuperAdminDashboard() {
     color: statusColors[status],
   }))
   const statusTotal = statusChart.reduce((sum, item) => sum + item.value, 0)
-  const statusMax = Math.max(1, ...statusChart.map(item => item.value))
 
   const pendingOwners = owners.filter(owner => owner.effectiveStatus === 'pending').slice(0, 8)
   const recentOwners = owners.slice(0, 8)
@@ -200,16 +200,9 @@ export default function SuperAdminDashboard() {
               </div>
               <CreditCard size={17} className="text-slate-600" />
             </div>
-            <ResponsiveContainer width="100%" height={264}>
-              <RadialBarChart data={statusChart} innerRadius="22%" outerRadius="100%" startAngle={90} endAngle={-270}>
-                <PolarAngleAxis type="number" domain={[0, statusMax]} tick={false} axisLine={false} />
-                <RadialBar dataKey="value" background={{ fill: '#f1f5f9' }} cornerRadius={8}>
-                  {statusChart.map(item => <Cell key={item.name} fill={item.color} />)}
-                </RadialBar>
-                <Tooltip content={<ChartTooltip />} />
-                <Legend iconType="circle" layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />
-              </RadialBarChart>
-            </ResponsiveContainer>
+            <div className="flex justify-center py-2">
+              <PolarAreaChart data={statusChart} size={280} />
+            </div>
           </div>
         </section>
 
