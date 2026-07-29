@@ -48,6 +48,8 @@ import RecycleBin from './pages/RecycleBin'
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'
 import SuperAdminOwners from './pages/super-admin/SuperAdminOwners'
 import SuperAdminFreeTrial from './pages/super-admin/SuperAdminFreeTrial'
+import SuperAdminActiveCustomers from './pages/super-admin/SuperAdminActiveCustomers'
+import SuperAdminChurned from './pages/super-admin/SuperAdminChurned'
 import SuperAdminPayments from './pages/super-admin/SuperAdminPayments'
 import SuperAdminReports from './pages/super-admin/SuperAdminReports'
 import SuperAdminSettings from './pages/super-admin/SuperAdminSettings'
@@ -142,6 +144,8 @@ function AppRoutes() {
         <Route path="/super-admin" element={<SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute>} />
         <Route path="/super-admin/owners" element={<SuperAdminRoute><SuperAdminOwners /></SuperAdminRoute>} />
         <Route path="/super-admin/free-trial" element={<SuperAdminRoute><SuperAdminFreeTrial /></SuperAdminRoute>} />
+        <Route path="/super-admin/active-customers" element={<SuperAdminRoute><SuperAdminActiveCustomers /></SuperAdminRoute>} />
+        <Route path="/super-admin/churned" element={<SuperAdminRoute><SuperAdminChurned /></SuperAdminRoute>} />
         <Route path="/super-admin/payments" element={<SuperAdminRoute><SuperAdminPayments /></SuperAdminRoute>} />
         <Route path="/super-admin/reports" element={<SuperAdminRoute><SuperAdminReports /></SuperAdminRoute>} />
         <Route path="/super-admin/settings" element={<SuperAdminRoute><SuperAdminSettings /></SuperAdminRoute>} />

@@ -5,7 +5,8 @@ import {
   CreditCard, Package, ShoppingCart, Boxes, Users, BarChart3,
   Calendar, LogOut, ChevronDown, ChevronRight, Menu, X,
   FileText, Building2, UserCircle, Globe, Briefcase, Plus,
-  BookOpen, Trash2, ShieldCheck, Bell, Activity, Megaphone, FileBarChart, Sparkles
+  BookOpen, Trash2, ShieldCheck, Bell, Activity, Megaphone, FileBarChart, Sparkles,
+  UserCheck, UserX
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -34,6 +35,8 @@ export default function Layout() {
     { key: 'superAdminDashboard', label: t('nav_superAdmin'), icon: <ShieldCheck size={18} />, path: '/super-admin' },
     { key: 'superAdminOwners', label: t('nav_owners'), icon: <Users size={18} />, path: '/super-admin/owners' },
     { key: 'superAdminFreeTrial', label: t('nav_freeTrial'), icon: <Sparkles size={18} />, path: '/super-admin/free-trial' },
+    { key: 'superAdminActiveCustomers', label: 'Active Customers', icon: <UserCheck size={18} />, path: '/super-admin/active-customers' },
+    { key: 'superAdminChurned', label: 'Churned Customers', icon: <UserX size={18} />, path: '/super-admin/churned' },
     { key: 'superAdminPayments', label: t('nav_payments'), icon: <CreditCard size={18} />, path: '/super-admin/payments' },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },
     { key: 'superAdminActivity', label: t('nav_logsActivity'), icon: <Activity size={18} />, path: '/super-admin/activity' },

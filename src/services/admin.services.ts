@@ -39,6 +39,10 @@ export const updateSubscriptionPayment = (id: string, payload: any) => http.patc
 export const getAdminActivities = (limit = 100) => http.get<any[]>(`/super-admin/activities?limit=${limit}`)
 export const getSuperAdminStats = () => http.get<any>('/super-admin/stats')
 export const getSuperAdminReports = () => http.get<any>('/super-admin/reports')
+export const getActiveCustomers = () => http.get<any[]>('/super-admin/active-customers')
+export const getChurnedCustomers = () => http.get<any[]>('/super-admin/churned-customers')
+export const sendFollowupEmail = (ownerId: string, payload: { subject?: string; message: string }) =>
+  http.post<{ sent: boolean; email: string }>(`/super-admin/owners/${ownerId}/followup-email`, payload)
 
 // ---------- Recycle bin ----------
 export const getRecycleBinItems = (type?: string) =>
