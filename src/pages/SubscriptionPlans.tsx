@@ -541,7 +541,7 @@ export function SubscriptionCheckout() {
 
     setSubmitting(true)
     try {
-      await submitManualPayment({ sender_number: senderNumber.trim(), trx_id: trxId.trim().toUpperCase() })
+      await submitManualPayment({ sender_number: senderNumber.trim(), trx_id: trxId.trim().toUpperCase(), plan_type: planId })
       localStorage.removeItem(CHECKOUT_STORAGE_KEY)
       // Subscription is now "pending" server-side - refresh the auth context
       // so the rest of the app (e.g. the pending lock screen) reflects it.

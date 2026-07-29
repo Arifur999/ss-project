@@ -14,7 +14,7 @@ export const getMySubscription = () => http.get<any>('/subscriptions/my')
 export const choosePlan = (payload: { plan_type: 'free_trial' | 'monthly' | 'yearly'; full_name?: string; phone?: string; address?: string }) =>
   http.post<any>('/subscriptions/choose-plan', payload)
 // Step 2 of manual bKash checkout: submit the sender number + transaction id.
-export const submitManualPayment = (payload: { sender_number: string; trx_id: string }) =>
+export const submitManualPayment = (payload: { sender_number: string; trx_id: string; plan_type?: 'monthly' | 'yearly' }) =>
   http.post<any>('/subscriptions/submit-payment', payload)
 
 // ---------- Platform settings (payment info + reminder template) ----------
