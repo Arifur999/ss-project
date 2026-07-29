@@ -402,7 +402,7 @@ export default function YearlyReport() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-4 xl:self-start">
             <div className="rounded-lg bg-slate-900 p-4">
-              <p className="text-3xl font-black text-white">{formatNum(year)}</p>
+              <p className="text-3xl font-black text-white">{year}</p>
               <p className="text-xs font-bold uppercase text-slate-400">Overview</p>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -468,7 +468,7 @@ export default function YearlyReport() {
           <main className="min-w-0 space-y-4">
             {!hasYearData && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                No yearly activity found for {formatNum(year)}. Targets can still appear if they were set in Settings.
+                No yearly activity found for {year}. Targets can still appear if they were set in Settings.
               </div>
             )}
 
@@ -523,7 +523,7 @@ export default function YearlyReport() {
 
             <div className="grid grid-cols-1 gap-4">
               <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                <div className="bg-blue-800 px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white">Yearly Business Performance & Profit Overview ({year})</div>
+                <div className="bg-slate-800 px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white">Yearly Business Performance & Profit Overview ({year})</div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1120px] text-[11px]">
                     <thead className="bg-slate-50 text-slate-600">
