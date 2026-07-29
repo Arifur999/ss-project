@@ -6,7 +6,7 @@ import { choosePlan as choosePlanRequest, getPaymentInfo, submitManualPayment } 
 import { Lang, useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 
-type PlanId = 'free_trial' | 'yearly'
+type PlanId = 'free_trial' | 'monthly' | 'yearly'
 
 // Formats a plain number the same way the rest of the app shows currency.
 function formatBDT(value: number) {
@@ -427,6 +427,7 @@ interface PaymentInfo {
   bkash_number: string
   bkash_qr_url: string
   yearly_price: number
+  monthly_price: number
 }
 
 export function SubscriptionCheckout() {
@@ -447,7 +448,10 @@ export function SubscriptionCheckout() {
   // 30-minute "approval in progress" countdown shown after the payment is submitted.
   const [doneDeadline, setDoneDeadline] = useState<number | null>(null)
   const [doneRemainingMs, setDoneRemainingMs] = useState(CHECKOUT_WINDOW_MS)
+  const [planId, setPlanId] = useState<'monthly' | 'yearly'>('yearly')
   const expiredRef = useRef(false)
+
+  const checkoutAmount = paymentInfo ? (planId === 'monthly' ? paymentInfo.monthly_price : paymentInfo.yearly_price) : null
 
   // Load the checkout session (selectedAt) written by the Plans page, and
   // fetch where the money should actually go.
@@ -461,10 +465,11 @@ export function SubscriptionCheckout() {
     try {
       const parsed = JSON.parse(raw) as { planId?: string; selectedAt?: string }
       const selectedAt = parsed.selectedAt ? new Date(parsed.selectedAt).getTime() : NaN
-      if (parsed.planId !== 'yearly' || Number.isNaN(selectedAt)) {
+      if ((parsed.planId !== 'yearly' && parsed.planId !== 'monthly') || Number.isNaN(selectedAt)) {
         navigate('/choose-plan', { replace: true })
         return
       }
+      setPlanId(parsed.planId)
       setDeadline(selectedAt + CHECKOUT_WINDOW_MS)
     } catch {
       navigate('/choose-plan', { replace: true })
@@ -474,7 +479,7 @@ export function SubscriptionCheckout() {
 
   useEffect(() => {
     getPaymentInfo()
-      .then(info => setPaymentInfo({ ...info, yearly_price: Number(info.yearly_price) }))
+      .then(info => setPaymentInfo({ ...info, yearly_price: Number(info.yearly_price), monthly_price: Number(info.monthly_price) }))
       .catch(() => toast.error('Could not load payment info'))
   }, [])
 
@@ -602,9 +607,9 @@ export function SubscriptionCheckout() {
             </div>
 
             <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{copy('amountLabel')}</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{copy('amountLabel')} · {planId === 'monthly' ? (lang === 'bn' ? 'মাসিক' : 'Monthly') : (lang === 'bn' ? 'বার্ষিক' : 'Yearly')}</p>
               <p className="mt-1 text-3xl font-black text-slate-950">
-                {paymentInfo ? formatBDT(paymentInfo.yearly_price) : '...'}
+                {checkoutAmount !== null ? formatBDT(checkoutAmount) : '...'}
               </p>
             </div>
 

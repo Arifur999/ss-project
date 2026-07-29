@@ -131,6 +131,7 @@ export default function Layout() {
   ]
 
   if (profile?.role === 'owner') {
+    businessNavGroups.push({ key: 'currentPlan', label: t('nav_currentPlan', 'Current Plan'), icon: <CreditCard size={18} />, path: '/current-plan' } as any)
     businessNavGroups.push({ key: 'settings', label: t('nav_settings'), icon: <Settings size={18} />, path: '/settings' } as any)
   }
 

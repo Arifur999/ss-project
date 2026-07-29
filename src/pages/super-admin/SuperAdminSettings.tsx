@@ -11,6 +11,7 @@ interface PlatformSettings {
   bkash_qr_url: string
   yearly_price: number
   yearly_original_price: number
+  monthly_price: number
   reminder_subject: string
   reminder_body: string
 }
@@ -74,6 +75,7 @@ export default function SuperAdminSettings() {
         bkash_qr_url: settings.bkash_qr_url,
         yearly_price: Number(settings.yearly_price) || 0,
         yearly_original_price: Number(settings.yearly_original_price) || 0,
+        monthly_price: Number(settings.monthly_price) || 0,
         reminder_subject: settings.reminder_subject,
         reminder_body: settings.reminder_body,
       })
@@ -155,6 +157,18 @@ export default function SuperAdminSettings() {
                 placeholder="01XXXXXXXXX"
               />
               <p className="mt-1 text-xs text-slate-400">Customers will "Send Money" to this number.</p>
+            </div>
+
+            <div>
+              <label className="label">Monthly plan price (৳)</label>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                value={settings.monthly_price}
+                onChange={e => updateField('monthly_price', Number(e.target.value))}
+              />
+              <p className="mt-1 text-xs text-slate-400">Charged when an owner picks the Monthly plan (no yearly discount).</p>
             </div>
 
             <div>

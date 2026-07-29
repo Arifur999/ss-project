@@ -35,6 +35,7 @@ import MonthlyReport from './pages/reports/MonthlyReport'
 import YearlyReport from './pages/reports/YearlyReport'
 import ReportSummary from './pages/reports/ReportSummary'
 import Settings from './pages/Settings'
+import CurrentPlan from './pages/CurrentPlan'
 import EmployeeDashboard from './pages/employees/EmployeeDashboard'
 import EmployeeList from './pages/employees/EmployeeList'
 import EmployeeTransactions from './pages/employees/EmployeeTransactions'
@@ -190,6 +191,7 @@ function AppRoutes() {
         <Route path="/employees/transactions" element={<EmployeeTransactions />} />
         <Route path="/employees/attendance" element={<EmployeeAttendance />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/current-plan" element={<CurrentPlan />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
