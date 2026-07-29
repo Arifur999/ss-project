@@ -67,7 +67,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const amount = n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
     // "৳" is a Bengali-script glyph and looks out of place inside English
     // text, so use it only in Bangla; English uses the "Tk" abbreviation.
-    return lang === 'bn' ? '৳' + toBnDigits(amount) : 'Tk ' + amount
+    // A non-breaking space ( ) between "Tk" and the number stops the
+    // amount from wrapping onto two lines in narrow table cells site-wide.
+    return lang === 'bn' ? '৳' + toBnDigits(amount) : 'Tk ' + amount
   }, [lang])
 
   const monthName = useCallback((m: number): string => {

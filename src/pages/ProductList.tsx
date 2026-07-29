@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Edit2, Trash2, Plus, Search, Printer, Upload, Download, FileSpreadsheet } from 'lucide-react'
+import { Edit2, Trash2, Plus, Search, Printer, Upload, Download, FileSpreadsheet, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
@@ -319,6 +319,7 @@ export default function ProductList() {
   const [showTagModal, setShowTagModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
   const ownerId = profile?.owner_id || user?.id || null
 
@@ -1333,7 +1334,8 @@ export default function ProductList() {
                         <img
                           src={product.image_url}
                           alt={product.name}
-                          className="h-10 w-10 object-cover rounded inline-block"
+                          className="h-10 w-10 object-cover rounded inline-block cursor-zoom-in transition hover:ring-2 hover:ring-slate-300"
+                          onClick={() => setLightboxImage(product.image_url)}
                           onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
                         />
                       ) : (
@@ -1627,6 +1629,28 @@ export default function ProductList() {
           </section>
         )
       })}
+
+    {lightboxImage && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+        onClick={() => setLightboxImage(null)}
+      >
+        <img
+          src={lightboxImage}
+          alt="Product preview"
+          className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+          onClick={e => e.stopPropagation()}
+        />
+        <button
+          type="button"
+          onClick={() => setLightboxImage(null)}
+          className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          aria-label="Close preview"
+        >
+          <X size={22} />
+        </button>
+      </div>
+    )}
     </div>
     </>
   )

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Plus, Save, ChevronDown, ChevronUp, Truck, Edit2, Trash2, Search, Grid3X3, SlidersHorizontal, Info, Package, ShoppingCart } from 'lucide-react'
+import { Plus, Save, ChevronDown, ChevronUp, Truck, Edit2, Trash2, Search, SlidersHorizontal, Info, Package, ShoppingCart } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, generateSINo } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
@@ -73,6 +73,8 @@ export default function PlaceOrder() {
   const [inventoryByProduct, setInventoryByProduct] = useState<Record<string, number>>({})
   const [supplierBalanceById, setSupplierBalanceById] = useState<Record<string, number>>({})
   const [productSearch, setProductSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showQuickAddProduct, setShowQuickAddProduct] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -289,14 +291,25 @@ export default function PlaceOrder() {
   const totalSpAmount = items.reduce((s, i) => s + Number(i.sp_amount || 0), 0)
   const totalActualDeposit = items.reduce((s, i) => s + Number(i.deposit_amount || 0), 0)
   const totalPayable = totalAmount - previousBalance
+  const productCategories = useMemo(() => {
+    const set = new Set<string>()
+    products.forEach((product: any) => {
+      const category = String(product.category || '').trim()
+      if (category) set.add(category)
+    })
+    return Array.from(set).sort()
+  }, [products])
+
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase()
-    if (!q) return products
-    return products.filter(product =>
-      String(product.name || '').toLowerCase().includes(q) ||
-      String(product.product_code || '').toLowerCase().includes(q)
-    )
-  }, [productSearch, products])
+    return products.filter((product: any) => {
+      const matchesSearch = !q ||
+        String(product.name || '').toLowerCase().includes(q) ||
+        String(product.product_code || '').toLowerCase().includes(q)
+      const matchesCategory = !categoryFilter || String(product.category || '') === categoryFilter
+      return matchesSearch && matchesCategory
+    })
+  }, [productSearch, products, categoryFilter])
 
   function addProductToOrder(product: any) {
     const dp = Number(product.cost_price || 0)
@@ -560,12 +573,41 @@ export default function PlaceOrder() {
             <button onClick={() => setShowQuickAddProduct(true)} className="btn-secondary aspect-square px-3 text-brand-green" title="Add new product">
               <Plus size={18} />
             </button>
-            <button className="btn-secondary aspect-square px-3 text-slate-500" title="Grid view">
-              <Grid3X3 size={17} />
-            </button>
-            <button className="btn-secondary aspect-square px-3 text-slate-500" title="Filter">
-              <SlidersHorizontal size={17} />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowCategoryFilter(value => !value)}
+                className={`btn-secondary aspect-square px-3 ${categoryFilter ? 'border-slate-900 text-slate-900' : 'text-slate-500'}`}
+                title="Filter by category"
+              >
+                <SlidersHorizontal size={17} />
+              </button>
+              {showCategoryFilter && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowCategoryFilter(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 max-h-72 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => { setCategoryFilter(''); setShowCategoryFilter(false) }}
+                      className={`block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 ${!categoryFilter ? 'font-bold text-slate-900' : 'text-slate-600'}`}
+                    >
+                      All categories
+                    </button>
+                    {productCategories.map(category => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => { setCategoryFilter(category); setShowCategoryFilter(false) }}
+                        className={`block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 ${categoryFilter === category ? 'font-bold text-slate-900' : 'text-slate-600'}`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                    {productCategories.length === 0 && <p className="px-3 py-2 text-xs text-slate-400">No categories</p>}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">

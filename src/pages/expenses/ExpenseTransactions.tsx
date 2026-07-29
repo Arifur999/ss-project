@@ -13,6 +13,8 @@ export default function ExpenseTransactions() {
   const { t, formatCurr } = useLang()
   const [expenses, setExpenses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [categorySearch, setCategorySearch] = useState('')
+  const [showCategoryList, setShowCategoryList] = useState(false)
   const [accounts, setAccounts] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
@@ -43,6 +45,8 @@ export default function ExpenseTransactions() {
 
   function openModal(item?: any) {
     setEditItem(item || null)
+    setCategorySearch(item?.category_name || '')
+    setShowCategoryList(false)
     setForm(item ? {
       date: item.date,
       category_id: item.category_id || '', category_name: item.category_name || '',
@@ -262,10 +266,36 @@ export default function ExpenseTransactions() {
           <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
             <label className="label">{t('common_category')}</label>
-            <select className="input" value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}>
-              <option value="">{t('common_select')}</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="relative">
+              <input
+                className="input"
+                value={categorySearch}
+                placeholder={t('common_select')}
+                onChange={e => { setCategorySearch(e.target.value); setShowCategoryList(true); if (form.category_id) setForm({ ...form, category_id: '', category_name: '' }) }}
+                onFocus={() => setShowCategoryList(true)}
+                autoComplete="off"
+              />
+              {showCategoryList && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowCategoryList(false)} />
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                    {categories.filter(c => c.name.toLowerCase().includes(categorySearch.trim().toLowerCase())).map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => { setForm({ ...form, category_id: c.id, category_name: c.name }); setCategorySearch(c.name); setShowCategoryList(false) }}
+                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-50 ${form.category_id === c.id ? 'bg-slate-50 font-bold text-slate-900' : 'text-slate-600'}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                    {categories.filter(c => c.name.toLowerCase().includes(categorySearch.trim().toLowerCase())).length === 0 && (
+                      <p className="px-3 py-2 text-sm text-slate-400">No category found</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <div><label className="label">{t('expTx_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
