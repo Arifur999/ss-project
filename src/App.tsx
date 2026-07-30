@@ -57,6 +57,7 @@ import SuperAdminPayments from './pages/super-admin/SuperAdminPayments'
 import SuperAdminReports from './pages/super-admin/SuperAdminReports'
 import SuperAdminSettings from './pages/super-admin/SuperAdminSettings'
 import SuperAdminActivity from './pages/super-admin/SuperAdminActivity'
+import SuperAdminSms from './pages/super-admin/SuperAdminSms'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, subscription, subscriptionStatus, subscriptionLocked, signOut } = useAuth()
@@ -152,6 +153,7 @@ function AppRoutes() {
         <Route path="/super-admin/churned" element={<SuperAdminRoute><SuperAdminChurned /></SuperAdminRoute>} />
         <Route path="/super-admin/manage-owners" element={<SuperAdminRoute><SuperAdminManageOwners /></SuperAdminRoute>} />
         <Route path="/super-admin/payments" element={<SuperAdminRoute><SuperAdminPayments /></SuperAdminRoute>} />
+        <Route path="/super-admin/sms" element={<SuperAdminRoute><SuperAdminSms /></SuperAdminRoute>} />
         <Route path="/super-admin/reports" element={<SuperAdminRoute><SuperAdminReports /></SuperAdminRoute>} />
         <Route path="/super-admin/settings" element={<SuperAdminRoute><SuperAdminSettings /></SuperAdminRoute>} />
         <Route path="/super-admin/activity" element={<SuperAdminRoute><SuperAdminActivity /></SuperAdminRoute>} />

@@ -6,7 +6,7 @@ import {
   Calendar, LogOut, ChevronDown, ChevronRight, Menu, X,
   FileText, Building2, UserCircle, Globe, Briefcase, Plus,
   BookOpen, Trash2, ShieldCheck, Bell, Activity, Megaphone, FileBarChart, Sparkles,
-  UserCheck, UserX
+  UserCheck, UserX, MessageSquareText
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -39,6 +39,7 @@ export default function Layout() {
     { key: 'superAdminChurned', label: 'Churned Customers', icon: <UserX size={18} />, path: '/super-admin/churned' },
     { key: 'superAdminManageOwners', label: 'Manage Owners', icon: <Trash2 size={18} />, path: '/super-admin/manage-owners' },
     { key: 'superAdminPayments', label: t('nav_payments'), icon: <CreditCard size={18} />, path: '/super-admin/payments' },
+    { key: 'superAdminSms', label: 'SMS', icon: <MessageSquareText size={18} />, path: '/super-admin/sms' },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },
     { key: 'superAdminActivity', label: t('nav_logsActivity'), icon: <Activity size={18} />, path: '/super-admin/activity' },
     { key: 'superAdminSettings', label: t('nav_settings'), icon: <Bell size={18} />, path: '/super-admin/settings' },

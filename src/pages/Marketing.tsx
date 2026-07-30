@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Filter,
+  Loader2,
   Megaphone,
   MessageSquareText,
   Save,
@@ -11,6 +12,8 @@ import {
   Send,
   Trash2,
   Users,
+  Wallet,
+  X,
   XCircle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -20,6 +23,24 @@ import { formatDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loans/loanFallback'
+import { getPaymentInfo } from '../services/admin.services'
+import {
+  getSmsPackages,
+  getSmsWallet,
+  sendSms as sendSmsApi,
+  submitSmsPurchase,
+  type SmsPackage,
+} from '../services/sms.services'
+
+// Bangla / any non-ASCII text is billed at 70 chars/segment (unicode); plain
+// English at 160. Mirrors the backend so the on-screen counter is accurate.
+const hasUnicode = (text: string) => [...text].some(ch => ch.charCodeAt(0) > 127)
+const segmentsFor = (text: string) => {
+  if (!text) return 1
+  if (hasUnicode(text)) return text.length <= 70 ? 1 : Math.ceil(text.length / 67)
+  return text.length <= 160 ? 1 : Math.ceil(text.length / 153)
+}
+const money = (n: number) => 'Tk ' + Number(n || 0).toLocaleString('en-US')
 
 type ContactType = 'customer' | 'supplier' | 'employee' | 'contact'
 
@@ -89,10 +110,35 @@ export default function Marketing() {
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => readStorage(campaignStorageKey, []))
   const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+
+  // SMS wallet + package purchase
+  const [balance, setBalance] = useState<number | null>(null)
+  const [packages, setPackages] = useState<SmsPackage[]>([])
+  const [payInfo, setPayInfo] = useState<{ bkash_number: string; bkash_qr_url: string } | null>(null)
+  const [buyOpen, setBuyOpen] = useState(false)
+  const [selectedPackage, setSelectedPackage] = useState<SmsPackage | null>(null)
+  const [buySender, setBuySender] = useState('')
+  const [buyTrx, setBuyTrx] = useState('')
+  const [buying, setBuying] = useState(false)
 
   useEffect(() => {
     loadContacts()
+    loadWallet()
+    getSmsPackages().then(setPackages).catch(() => setPackages([]))
+    getPaymentInfo()
+      .then(info => setPayInfo({ bkash_number: info.bkash_number, bkash_qr_url: info.bkash_qr_url }))
+      .catch(() => setPayInfo(null))
   }, [])
+
+  async function loadWallet() {
+    try {
+      const w = await getSmsWallet()
+      setBalance(w.balance)
+    } catch {
+      setBalance(null)
+    }
+  }
 
   async function loadContacts() {
     setLoading(true)
@@ -196,7 +242,10 @@ export default function Marketing() {
   const totalSuccess = campaigns.reduce((sum, campaign) => sum + campaign.success, 0)
   const totalRecipients = campaigns.reduce((sum, campaign) => sum + campaign.recipients, 0)
   const deliveryRate = totalRecipients > 0 ? (totalSuccess / totalRecipients) * 100 : 100
-  const smsCount = Math.max(1, Math.ceil(message.length / 160))
+  const smsCount = segmentsFor(message)
+  const isUnicode = hasUnicode(message)
+  // Credits this batch will cost = segments x recipients that actually have a phone.
+  const estCredits = smsCount * selectedWithPhone.length
   const allVisibleSelected = filteredContacts.length > 0 && filteredContacts.every(contact => selectedIds.includes(contact.id))
 
   function toggleType(type: ContactType) {
@@ -248,11 +297,57 @@ export default function Marketing() {
     }
   }
 
-  function sendSms() {
-    const campaign = buildCampaign('Completed')
-    if (!campaign) return
-    persistCampaign(campaign)
-    toast.success(`SMS campaign saved for ${formatNum(campaign.success)} recipient${campaign.success === 1 ? '' : 's'}`)
+  async function sendSms() {
+    if (selectedContacts.length === 0) return toast.error('Please select at least one recipient')
+    if (!message.trim()) return toast.error('Please write an SMS message')
+
+    const recipients = selectedWithPhone.map(c => c.phone).filter(Boolean)
+    if (recipients.length === 0) return toast.error('None of the selected contacts have a phone number')
+
+    if (balance !== null && estCredits > balance) {
+      return toast.error(`Not enough SMS credits. This batch needs ${formatNum(estCredits)}, you have ${formatNum(balance)}. Please buy more.`)
+    }
+
+    setSending(true)
+    try {
+      const result = await sendSmsApi({ recipients, message: message.trim() })
+      setBalance(result.balance)
+      const campaign: Campaign = {
+        id: `${Date.now()}`,
+        name: campaignName.trim() || `SMS Campaign ${campaigns.length + 1}`,
+        message: message.trim(),
+        recipients: selectedContacts.length,
+        success: result.recipients,
+        failed: selectedContacts.length - result.recipients,
+        status: 'Completed',
+        created_at: new Date().toISOString(),
+      }
+      persistCampaign(campaign)
+      toast.success(`SMS sent to ${formatNum(result.recipients)} recipient${result.recipients === 1 ? '' : 's'} (${formatNum(result.credits_used)} credits used)`)
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to send SMS')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function confirmBuy() {
+    if (!selectedPackage) return
+    if (!/^01[0-9]{9}$/.test(buySender.trim())) return toast.error('Enter the valid 11-digit bKash number you paid from')
+    if (buyTrx.trim().length < 6) return toast.error('Enter the bKash transaction ID')
+    setBuying(true)
+    try {
+      await submitSmsPurchase({ package_id: selectedPackage.id, sender_number: buySender.trim(), trx_id: buyTrx.trim() })
+      toast.success('Purchase submitted! Credits will be added once the admin approves your payment.')
+      setBuyOpen(false)
+      setSelectedPackage(null)
+      setBuySender('')
+      setBuyTrx('')
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to submit purchase')
+    } finally {
+      setBuying(false)
+    }
   }
 
   function scheduleCampaign() {
@@ -280,6 +375,7 @@ export default function Marketing() {
   }
 
   const statCards = [
+    { title: 'SMS Balance', value: balance === null ? '...' : formatNum(balance), subtitle: 'Credits left in your wallet', icon: <Wallet size={22} />, tone: 'bg-slate-900 text-white' },
     { title: 'Total Contacts', value: contacts.length, subtitle: 'Customers, suppliers, employees, contacts', icon: <Users size={22} />, tone: 'bg-slate-100 text-slate-700' },
     { title: 'Selected Recipients', value: selectedContacts.length, subtitle: `${selectedWithPhone.length} with phone number`, icon: <ClipboardList size={22} />, tone: 'bg-green-50 text-brand-green' },
     { title: 'SMS Sent Today', value: sentToday, subtitle: 'Saved campaign count', icon: <Send size={22} />, tone: 'bg-orange-50 text-orange-600' },
@@ -295,7 +391,7 @@ export default function Marketing() {
         actions={
           <button
             type="button"
-            onClick={() => toast.success('SMS balance purchase flow will be connected with your SMS provider')}
+            onClick={() => setBuyOpen(true)}
             className="btn-primary"
           >
             <MessageSquareText size={16} /> Buy SMS
@@ -303,7 +399,7 @@ export default function Marketing() {
         }
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
         {statCards.map(card => (
           <div key={card.title} className="card flex items-center gap-4">
             <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg ${card.tone}`}>
@@ -455,10 +551,13 @@ export default function Marketing() {
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-slate-500">
                 <div className="flex flex-wrap items-center gap-4">
                   <span>{formatNum(message.length)} Characters</span>
-                  <span className="rounded-md bg-green-50 px-3 py-1 font-bold text-brand-green">{formatNum(smsCount)} SMS</span>
-                  <span>160 Characters/SMS</span>
+                  <span className="rounded-md bg-green-50 px-3 py-1 font-bold text-brand-green">{formatNum(smsCount)} segment{smsCount === 1 ? '' : 's'}/SMS</span>
+                  <span>{isUnicode ? '70 (Bangla) chars/segment' : '160 chars/segment'}</span>
+                  {selectedWithPhone.length > 0 && (
+                    <span className="rounded-md bg-slate-900 px-3 py-1 font-bold text-white">~{formatNum(estCredits)} credits</span>
+                  )}
                 </div>
-                <span>Sender ID: Hatim Furniture</span>
+                <span>Balance: {balance === null ? '...' : formatNum(balance)}</span>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
@@ -480,8 +579,8 @@ export default function Marketing() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-4">
-              <button type="button" onClick={sendSms} className="btn-primary justify-center">
-                <Send size={16} /> Send SMS
+              <button type="button" onClick={sendSms} disabled={sending} className="btn-primary justify-center disabled:opacity-60">
+                {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {sending ? 'Sending...' : 'Send SMS'}
               </button>
               <button type="button" onClick={saveTemplate} className="btn-secondary justify-center">
                 <Save size={16} /> Save Template
@@ -545,6 +644,90 @@ export default function Marketing() {
           </div>
         </section>
       </div>
+
+      {buyOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center">
+          <div className="my-8 w-full max-w-3xl rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Buy SMS Credits</h3>
+                <p className="text-xs text-slate-500">Pick a package, pay via bKash, then submit your transaction ID.</p>
+              </div>
+              <button type="button" onClick={() => { setBuyOpen(false); setSelectedPackage(null) }} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+                <X size={18} />
+              </button>
+            </div>
+
+            {!selectedPackage ? (
+              <div className="p-5">
+                {packages.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-slate-400">No SMS packages available yet. Please check back later.</div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {packages.map(pkg => (
+                      <button
+                        key={pkg.id}
+                        type="button"
+                        onClick={() => setSelectedPackage(pkg)}
+                        className="flex flex-col rounded-xl border border-slate-200 p-5 text-left transition-colors hover:border-slate-900 hover:shadow-sm"
+                      >
+                        <span className="text-xs font-black uppercase tracking-wide text-slate-400">{pkg.name}</span>
+                        <span className="mt-2 text-3xl font-black text-slate-900">{formatNum(pkg.sms_count)}</span>
+                        <span className="text-xs font-semibold text-slate-500">SMS credits</span>
+                        <span className="mt-3 text-lg font-bold text-brand-green">{money(Number(pkg.price))}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 p-5 md:grid-cols-2">
+                {/* Left: bKash payment details + QR */}
+                <div className="rounded-xl border border-slate-200 p-5">
+                  <p className="text-sm font-bold text-slate-900">Pay with bKash</p>
+                  <div className="mt-3 flex items-baseline justify-between">
+                    <span className="text-xs font-semibold text-slate-500">{selectedPackage.name} · {formatNum(selectedPackage.sms_count)} SMS</span>
+                    <span className="text-xl font-black text-slate-900">{money(Number(selectedPackage.price))}</span>
+                  </div>
+                  <div className="mt-4 flex flex-col items-center">
+                    {payInfo?.bkash_qr_url ? (
+                      <img src={payInfo.bkash_qr_url} alt="bKash QR" className="aspect-square w-full max-w-[240px] rounded-lg border border-slate-200 object-contain" />
+                    ) : (
+                      <div className="flex aspect-square w-full max-w-[240px] items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-slate-400">QR not set</div>
+                    )}
+                    <p className="mt-3 text-center text-sm text-slate-600">
+                      Send money to <span className="font-black text-slate-900">{payInfo?.bkash_number || 'the admin bKash number'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: submit trx */}
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Confirm your payment</p>
+                  <p className="mt-1 text-xs text-slate-500">After sending {money(Number(selectedPackage.price))} via bKash, enter the details below.</p>
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="label">Your bKash number (paid from)</label>
+                      <input className="input" value={buySender} onChange={e => setBuySender(e.target.value)} placeholder="01XXXXXXXXX" />
+                    </div>
+                    <div>
+                      <label className="label">bKash Transaction ID</label>
+                      <input className="input" value={buyTrx} onChange={e => setBuyTrx(e.target.value)} placeholder="e.g. 9AB7CDE2FG" />
+                    </div>
+                  </div>
+                  <div className="mt-5 flex gap-3">
+                    <button type="button" onClick={() => setSelectedPackage(null)} className="btn-secondary flex-1 justify-center">Back</button>
+                    <button type="button" onClick={confirmBuy} disabled={buying} className="btn-primary flex-1 justify-center disabled:opacity-60">
+                      {buying ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} {buying ? 'Submitting...' : 'Submit'}
+                    </button>
+                  </div>
+                  <p className="mt-3 text-[11px] text-slate-400">Credits are added to your wallet once the admin approves your payment.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
