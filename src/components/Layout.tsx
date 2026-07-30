@@ -37,6 +37,7 @@ export default function Layout() {
     { key: 'superAdminFreeTrial', label: t('nav_freeTrial'), icon: <Sparkles size={18} />, path: '/super-admin/free-trial' },
     { key: 'superAdminActiveCustomers', label: 'Active Customers', icon: <UserCheck size={18} />, path: '/super-admin/active-customers' },
     { key: 'superAdminChurned', label: 'Churned Customers', icon: <UserX size={18} />, path: '/super-admin/churned' },
+    { key: 'superAdminManageOwners', label: 'Manage Owners', icon: <Trash2 size={18} />, path: '/super-admin/manage-owners' },
     { key: 'superAdminPayments', label: t('nav_payments'), icon: <CreditCard size={18} />, path: '/super-admin/payments' },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },
     { key: 'superAdminActivity', label: t('nav_logsActivity'), icon: <Activity size={18} />, path: '/super-admin/activity' },

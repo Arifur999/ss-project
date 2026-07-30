@@ -34,6 +34,8 @@ export const updateOwnerSubscription = (ownerId: string, payload: any) =>
 export const grantTrialExtension = (ownerId: string) =>
   http.post<any>(`/super-admin/owners/${ownerId}/grant-trial-extension`)
 export const deleteOwner = (ownerId: string) => http.delete<any>(`/super-admin/owners/${ownerId}`)
+export const resetOwnerData = (ownerId: string, password: string) =>
+  http.post<{ message: string }>(`/super-admin/owners/${ownerId}/reset-data`, { password })
 export const getSubscriptionPayments = () => http.get<any[]>('/super-admin/payments')
 export const updateSubscriptionPayment = (id: string, payload: any) => http.patch<any>(`/super-admin/payments/${id}`, payload)
 export const getAdminActivities = (limit = 100) => http.get<any[]>(`/super-admin/activities?limit=${limit}`)
