@@ -20,14 +20,14 @@ export default function CurrentPlan() {
   const { subscription, subscriptionStatus } = useAuth()
   const { lang } = useLang()
   const navigate = useNavigate()
-  const [prices, setPrices] = useState<{ monthly: number; yearly: number } | null>(null)
+  const [prices, setPrices] = useState<{ monthly: number; yearly: number; yearlyOriginal: number } | null>(null)
 
   const bn = lang === 'bn'
 
   useEffect(() => {
     getPaymentInfo()
-      .then(info => setPrices({ monthly: Number(info.monthly_price), yearly: Number(info.yearly_price) }))
-      .catch(() => setPrices({ monthly: 599, yearly: 5750 }))
+      .then(info => setPrices({ monthly: Number(info.monthly_price), yearly: Number(info.yearly_price), yearlyOriginal: Number(info.yearly_original_price) }))
+      .catch(() => setPrices({ monthly: 599, yearly: 5750, yearlyOriginal: 7188 }))
   }, [])
 
   const planType = (subscription?.plan_type || 'free_trial') as PlanKind
@@ -116,6 +116,7 @@ export default function CurrentPlan() {
           icon={<Crown size={20} />}
           title={bn ? 'বার্ষিক' : 'Yearly'}
           price={prices ? `${money(prices.yearly)} / ${bn ? 'বছর' : 'year'}` : '...'}
+          originalPrice={prices && prices.yearlyOriginal > prices.yearly ? money(prices.yearlyOriginal) : undefined}
           note={bn ? 'সবচেয়ে সাশ্রয়ী' : 'Best value'}
           features={[
             bn ? 'সম্পূর্ণ আনলিমিটেড ফিচার' : 'All features unlocked',
@@ -125,6 +126,7 @@ export default function CurrentPlan() {
           isCurrent={planType === 'yearly' && isActive}
           onSelect={() => goToCheckout('yearly')}
           highlighted
+          popular
           bn={bn}
         />
       </div>
@@ -133,17 +135,19 @@ export default function CurrentPlan() {
 }
 
 function PlanCard({
-  icon, title, price, note, features, isCurrent, disabled, onSelect, highlighted, bn,
+  icon, title, price, originalPrice, note, features, isCurrent, disabled, onSelect, highlighted, popular, bn,
 }: {
   icon: React.ReactNode
   title: string
   price: string
+  originalPrice?: string
   note: string
   features: string[]
   isCurrent: boolean
   disabled?: boolean
   onSelect: () => void
   highlighted?: boolean
+  popular?: boolean
   bn: boolean
 }) {
   const buttonDisabled = disabled || isCurrent
@@ -163,16 +167,23 @@ function PlanCard({
 
   return (
     <section className={`relative flex flex-col rounded-2xl border bg-white px-[30px] py-[60px] shadow-sm ${isCurrent ? 'border-brand-green ring-2 ring-green-100' : highlighted ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200'}`}>
-      {isCurrent && (
+      {isCurrent ? (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-green px-3 py-0.5 text-[11px] font-black text-white shadow-sm">
           {bn ? 'অ্যাক্টিভ' : 'ACTIVE'}
         </span>
-      )}
+      ) : popular ? (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-3 py-0.5 text-[11px] font-black text-white shadow-sm">
+          {bn ? 'জনপ্রিয়' : 'POPULAR'}
+        </span>
+      ) : null}
       <div className="mb-4 flex items-center justify-between">
         <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{title}</span>
         <span className={`rounded-xl p-2 ${highlighted ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>{icon}</span>
       </div>
-      <p className="text-2xl font-black text-slate-950">{price}</p>
+      <div className="flex items-baseline gap-2">
+        {originalPrice && <span className="text-base font-bold text-slate-400 line-through">{originalPrice}</span>}
+        <span className="text-2xl font-black text-slate-950">{price}</span>
+      </div>
       <p className="mt-1 text-xs font-semibold text-slate-400">{note}</p>
       <ul className="mt-5 flex-1 space-y-2.5 text-sm text-slate-600">
         {features.map(feature => (

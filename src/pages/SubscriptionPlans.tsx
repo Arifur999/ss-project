@@ -147,6 +147,7 @@ export default function SubscriptionPlans() {
   // fetched here so the card never shows a stale hard-coded number.
   const [yearlyPrice, setYearlyPrice] = useState<number | null>(null)
   const [yearlyOriginalPrice, setYearlyOriginalPrice] = useState<number | null>(null)
+  const [monthlyPrice, setMonthlyPrice] = useState<number | null>(null)
   const copy = (key: keyof typeof planCopy.en) => t(`plans_${key}`, planCopy[lang][key])
   // Every owner's free trial is spent automatically at registration, so this
   // is true for essentially everyone who lands here - it only ever turns
@@ -158,11 +159,13 @@ export default function SubscriptionPlans() {
       .then(info => {
         setYearlyPrice(Number(info.yearly_price))
         setYearlyOriginalPrice(Number(info.yearly_original_price))
+        setMonthlyPrice(Number(info.monthly_price))
       })
       .catch(() => {
         // sane fallback if settings can't load
         setYearlyPrice(5750)
         setYearlyOriginalPrice(7188)
+        setMonthlyPrice(599)
       })
   }, [])
 
@@ -189,6 +192,21 @@ export default function SubscriptionPlans() {
       buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
     },
     {
+      id: 'monthly' as const,
+      eyebrow: 'MONTHLY PLAN',
+      title: lang === 'bn' ? 'মাসিক প্ল্যান' : 'Monthly Plan',
+      price: monthlyPrice === null ? '...' : `${formatBDT(monthlyPrice)} / month`,
+      originalPrice: null as string | null,
+      discountLabel: null as string | null,
+      features: featureCopy[lang].yearly,
+      button: lang === 'bn' ? 'মাসিক প্ল্যান নিন' : 'Choose Monthly',
+      note: lang === 'bn' ? 'কোনো ডিসকাউন্ট নেই' : 'No discount',
+      disabled: false,
+      icon: <Timer size={22} />,
+      cardClass: 'border-slate-200',
+      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
+    },
+    {
       id: 'yearly' as const,
       eyebrow: 'YEARLY PLAN',
       title: copy('yearlyTitle'),
@@ -205,7 +223,7 @@ export default function SubscriptionPlans() {
       buttonClass: 'bg-slate-900 text-white hover:bg-black',
       highlighted: true,
     },
-  ], [lang, t, yearlyPrice, yearlyOriginalPrice, discountPercent, trialUsed])
+  ], [lang, t, yearlyPrice, yearlyOriginalPrice, monthlyPrice, discountPercent, trialUsed])
 
   if (!user) return <Navigate to="/register" replace />
 
@@ -226,7 +244,7 @@ export default function SubscriptionPlans() {
       setShowTrialPopup(true)
       return
     }
-    choosePlan('yearly')
+    choosePlan(planId)
   }
 
   // Yearly checkout path (unchanged): flip the subscription to pending and
@@ -284,13 +302,13 @@ export default function SubscriptionPlans() {
         <button onClick={() => setLang('bn')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'bn' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>বাংলা</button>
       </div>
 
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-5xl">
         <header className="mx-auto mb-8 max-w-2xl text-center">
           <h1 className="text-3xl font-black text-slate-950 sm:text-4xl">{copy('title')}</h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">{copy('subtitle')}</p>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {plans.map(plan => (
             <section key={plan.id} className={`relative flex min-h-[460px] flex-col rounded-2xl border bg-white p-6 shadow-sm ${plan.cardClass}`}>
               {plan.badge && (
