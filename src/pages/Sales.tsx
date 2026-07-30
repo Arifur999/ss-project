@@ -50,6 +50,9 @@ type QuickCustomerValidationErrors = Partial<Record<'name' | 'phone', string>>
 type LedgerDateFilter = 'all' | 'today' | 'yesterday' | 'month' | 'year' | 'custom'
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required!'
+const INVALID_PHONE_MESSAGE = 'Enter a valid 11-digit number (e.g. 01XXXXXXXXX)'
+// Bangladeshi mobile: 11 digits, starts with 01. Spaces/dashes are ignored.
+const isValidBdPhone = (phone: string) => /^01[0-9]{9}$/.test(String(phone || '').replace(/[\s-]/g, ''))
 const productListCacheKey = 'product_list_cache_v1'
 
 function readProductListCache() {
@@ -633,6 +636,7 @@ export default function Sales() {
 
     if (!payload.name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!payload.phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
+    else if (!isValidBdPhone(payload.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setQuickCustomerErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -1041,6 +1045,12 @@ export default function Sales() {
   async function save(isCashSale: boolean) {
     if ((!form.customer_name && !form.customer_phone) || items.every(i => !itemHasSaleValue(i))) {
       toast.error(t('sales_fillAllFields')); return
+    }
+
+    // A phone is optional (walk-in), but if one is typed it must be a valid
+    // 11-digit BD number so we never save a broken contact.
+    if (form.customer_phone && !isValidBdPhone(form.customer_phone)) {
+      toast.error(INVALID_PHONE_MESSAGE); return
     }
 
     if (totalPaid > grandTotal) {
@@ -2074,7 +2084,8 @@ export default function Sales() {
                   <label className="label">Customer Phone</label>
                   <input
                     type="text"
-                    className="input"
+                    inputMode="numeric"
+                    className={`input ${form.customer_phone && !isValidBdPhone(form.customer_phone) ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={form.customer_phone}
                     onChange={e => {
                       setCustomerSearch(e.target.value)
@@ -2082,6 +2093,9 @@ export default function Sales() {
                     }}
                     placeholder="Customer phone"
                   />
+                  {form.customer_phone && !isValidBdPhone(form.customer_phone) && (
+                    <p className="mt-1 text-xs font-medium text-red-600">{INVALID_PHONE_MESSAGE}</p>
+                  )}
                 </div>
                 <div>
                   <label className="label">Customer Address</label>

@@ -26,10 +26,17 @@ type PurchaseHistoryRow = {
   shipping_status: string
 }
 
+type Period = 'all' | 'month' | 'year' | 'custom'
+type SortBy = 'date_desc' | 'date_asc' | 'name_asc' | 'amount_desc' | 'amount_asc'
+
 export default function PurchaseHistory() {
   const { formatCurr, formatNum } = useLang()
   const [rows, setRows] = useState<PurchaseHistoryRow[]>([])
   const [search, setSearch] = useState('')
+  const [period, setPeriod] = useState<Period>('all')
+  const [sortBy, setSortBy] = useState<SortBy>('date_desc')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -91,13 +98,42 @@ export default function PurchaseHistory() {
 
   const normalizedSearch = search.trim().toLowerCase()
   const filteredRows = useMemo(() => {
-    if (!normalizedSearch) return rows
+    const now = new Date()
+    const from = fromDate ? new Date(fromDate + 'T00:00:00') : null
+    const to = toDate ? new Date(toDate + 'T23:59:59') : null
 
-    return rows.filter(row =>
-      row.product_name.toLowerCase().includes(normalizedSearch) ||
-      row.product_code.toLowerCase().includes(normalizedSearch)
-    )
-  }, [normalizedSearch, rows])
+    const inPeriod = (dateStr: string) => {
+      if (period === 'all') return true
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return true
+      if (period === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+      if (period === 'year') return d.getFullYear() === now.getFullYear()
+      if (from && d < from) return false
+      if (to && d > to) return false
+      return true
+    }
+
+    const result = rows.filter(row => {
+      const matchesSearch = !normalizedSearch ||
+        row.product_name.toLowerCase().includes(normalizedSearch) ||
+        row.product_code.toLowerCase().includes(normalizedSearch) ||
+        row.supplier_name.toLowerCase().includes(normalizedSearch)
+      return matchesSearch && inPeriod(row.date)
+    })
+
+    const sorted = [...result]
+    sorted.sort((a, b) => {
+      switch (sortBy) {
+        case 'date_asc': return new Date(a.date).getTime() - new Date(b.date).getTime()
+        case 'name_asc': return a.supplier_name.localeCompare(b.supplier_name)
+        case 'amount_desc': return b.total_amount - a.total_amount
+        case 'amount_asc': return a.total_amount - b.total_amount
+        case 'date_desc':
+        default: return new Date(b.date).getTime() - new Date(a.date).getTime()
+      }
+    })
+    return sorted
+  }, [normalizedSearch, rows, period, sortBy, fromDate, toDate])
 
   const totalQty = filteredRows.reduce((sum, row) => sum + row.qty, 0)
   const totalReceived = filteredRows.reduce((sum, row) => sum + row.received_qty, 0)
@@ -111,15 +147,34 @@ export default function PurchaseHistory() {
       />
 
       <div className="mb-6 flex flex-shrink-0 flex-wrap gap-3">
-        <div className="relative min-w-[260px] flex-1">
+        <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search product name or code..."
+            placeholder="Search product or supplier..."
             className="input pl-9"
           />
         </div>
+        <select value={period} onChange={e => setPeriod(e.target.value as Period)} className="input min-w-[130px] max-w-[160px]" title="Period">
+          <option value="all">All Time</option>
+          <option value="month">This Month</option>
+          <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
+        </select>
+        {period === 'custom' && (
+          <>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="input min-w-[140px] max-w-[170px]" title="From date" />
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="input min-w-[140px] max-w-[170px]" title="To date" />
+          </>
+        )}
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as SortBy)} className="input min-w-[150px] max-w-[190px]" title="Sort by">
+          <option value="date_desc">Newest first</option>
+          <option value="date_asc">Oldest first</option>
+          <option value="name_asc">Supplier (A-Z)</option>
+          <option value="amount_desc">Amount (high-low)</option>
+          <option value="amount_asc">Amount (low-high)</option>
+        </select>
         <div className="card flex min-w-fit items-center gap-2 border border-slate-100 bg-white px-4 py-2 text-sm shadow-sm">
           <Package size={15} className="text-slate-400" />
           <span className="text-slate-500">Qty:</span>
