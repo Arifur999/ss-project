@@ -10,6 +10,11 @@ export const updateTeamUser = (payload: { user_id: string; role?: string; full_n
 export const deleteTeamUser = (userId: string) => http.delete<any>('/users/delete', { user_id: userId })
 
 // ---------- Subscription (owner) ----------
+export const forgotPassword = (email: string) =>
+  http.post<{ message: string }>('/auth/forgot-password', { email })
+export const resetPassword = (email: string, otp: string, password: string) =>
+  http.post<{ message: string }>('/auth/reset-password', { email, otp, password })
+
 export const getMySubscription = () => http.get<any>('/subscriptions/my')
 export const choosePlan = (payload: { plan_type: 'free_trial' | 'monthly' | 'yearly'; full_name?: string; phone?: string; address?: string }) =>
   http.post<any>('/subscriptions/choose-plan', payload)

@@ -7,6 +7,7 @@ import ConfirmDialogHost from './components/ConfirmDialog'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
 import SubscriptionPlans, { SubscriptionCheckout } from './pages/SubscriptionPlans'
 import Dashboard from './pages/Dashboard'
 import Balance from './pages/Balance'
@@ -139,6 +140,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
+      <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
       <Route path="/choose-plan" element={user ? <SubscriptionPlans /> : <Navigate to="/register" replace />} />
       <Route path="/subscription-checkout" element={user ? <SubscriptionCheckout /> : <Navigate to="/login" replace />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>

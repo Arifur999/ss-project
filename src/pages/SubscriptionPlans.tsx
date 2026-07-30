@@ -563,7 +563,7 @@ export function SubscriptionCheckout() {
         <button onClick={() => setLang('bn')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'bn' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>বাংলা</button>
       </div>
 
-      <div className={`w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-xl ${step === 1 && paymentInfo?.bkash_qr_url ? 'max-w-3xl' : 'max-w-lg'}`}>
+      <div className={`w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-xl ${step === 1 && paymentInfo?.bkash_qr_url ? 'max-w-4xl' : 'max-w-lg'}`}>
         {step === 'done' ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-brand-green">
@@ -641,11 +641,13 @@ export function SubscriptionCheckout() {
                 </div>
               </div>
 
-              {/* Right column: large scannable QR */}
+              {/* Right column: large scannable QR that fills the box */}
               {paymentInfo?.bkash_qr_url && (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-600">{copy('scanQr')}</p>
-                  <img src={paymentInfo.bkash_qr_url} alt="bKash QR code" className="h-64 w-64 rounded-xl border border-slate-200 bg-white object-contain p-3" />
+                <div className="flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-center text-sm font-semibold text-slate-600">{copy('scanQr')}</p>
+                  <div className="flex flex-1 items-center justify-center">
+                    <img src={paymentInfo.bkash_qr_url} alt="bKash QR code" className="aspect-square w-full max-w-[380px] rounded-xl border border-slate-200 bg-white object-contain p-3" />
+                  </div>
                 </div>
               )}
             </div>

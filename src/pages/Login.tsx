@@ -121,7 +121,12 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="label">{t('login_password')}</label>
+              <div className="flex items-center justify-between">
+                <label className="label">{t('login_password')}</label>
+                <Link to="/forgot-password" className="mb-1 text-xs font-semibold text-slate-500 hover:text-slate-900">
+                  {lang === 'bn' ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot password?'}
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
