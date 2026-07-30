@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react'
-import { Activity, CalendarDays, CreditCard, Download, FileText, Plus, Scale, Upload, Users } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Activity, CalendarDays, Download, Loader2, MessageSquareText, Plus, Scale, Search, Send, Upload, Users, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
-import { buildLoanSummary, loanBalanceColor, loanBalanceLabel, loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
+import { buildLoanSummary, loanBalanceColor, loanBalanceLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
+import { readSmsTemplates, type SmsTemplate } from '../../lib/smsTemplates'
+import { sendSms as sendSmsApi } from '../../services/sms.services'
+
+type SortBy = 'balance_desc' | 'balance_asc' | 'name_asc' | 'dena_first' | 'pawna_first'
 
 export default function LoanDashboard() {
   const { formatCurr } = useLang()
@@ -13,9 +17,20 @@ export default function LoanDashboard() {
   const [lenders, setLenders] = useState<any[]>([])
   const [loans, setLoans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<SortBy>('balance_desc')
+
+  // SMS sending (uses saved templates from the Marketing composer)
+  const [templates, setTemplates] = useState<SmsTemplate[]>([])
+  const [smsOpen, setSmsOpen] = useState(false)
+  const [smsTargets, setSmsTargets] = useState<{ name: string; phone: string }[]>([])
+  const [smsTemplateName, setSmsTemplateName] = useState('')
+  const [smsMessage, setSmsMessage] = useState('')
+  const [smsSending, setSmsSending] = useState(false)
 
   useEffect(() => {
     loadAll()
+    setTemplates(readSmsTemplates())
     const channel = supabase
       .channel('loan-dashboard-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, loadAll)
@@ -43,19 +58,90 @@ export default function LoanDashboard() {
     setLoading(false)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-green border-t-transparent rounded-full" /></div>
+  const summaries = useMemo(() => buildLoanSummary(lenders, loans), [lenders, loans])
+  const personPhone = (item: any) => String(item?.lender?.phone || '').trim()
 
-  const summaries = buildLoanSummary(lenders, loans).sort((a: any, b: any) => b.balance - a.balance)
-  const totalOpening = summaries.reduce((s: number, item: any) => s + item.opening, 0)
+  const displayed = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const filtered = summaries.filter((item: any) =>
+      !q || String(item.name || '').toLowerCase().includes(q) || personPhone(item).toLowerCase().includes(q)
+    )
+    const sorted = [...filtered]
+    sorted.sort((a: any, b: any) => {
+      switch (sortBy) {
+        case 'balance_asc': return a.balance - b.balance
+        case 'name_asc': return String(a.name || '').localeCompare(String(b.name || ''))
+        case 'dena_first': return a.balance - b.balance // most negative (Dena) first
+        case 'pawna_first': return b.balance - a.balance // most positive (Pawna) first
+        case 'balance_desc':
+        default: return b.balance - a.balance
+      }
+    })
+    return sorted
+  }, [summaries, search, sortBy])
+
   const totalReceived = summaries.reduce((s: number, item: any) => s + item.received, 0)
   const totalPaid = summaries.reduce((s: number, item: any) => s + item.paid, 0)
-  const totalInterest = summaries.reduce((s: number, item: any) => s + item.interest, 0)
   const outstanding = summaries.reduce((s: number, item: any) => s + item.balance, 0)
   const totalDena = summaries.filter((item: any) => item.balance < 0).reduce((s: number, item: any) => s + Math.abs(item.balance), 0)
   const totalPawna = summaries.filter((item: any) => item.balance > 0).reduce((s: number, item: any) => s + item.balance, 0)
   const activeAccounts = summaries.filter((item: any) => item.balance !== 0).length
-  const recent = loans.slice(0, 8)
   const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  // Displayed-row totals (reflect the current search filter).
+  const shownOpening = displayed.reduce((s: number, i: any) => s + i.opening, 0)
+  const shownReceived = displayed.reduce((s: number, i: any) => s + i.received + i.interest, 0)
+  const shownPaid = displayed.reduce((s: number, i: any) => s + i.paid, 0)
+  const shownBalance = displayed.reduce((s: number, i: any) => s + i.balance, 0)
+
+  function openSmsForPerson(item: any) {
+    const phone = personPhone(item)
+    if (!phone) return toast.error(`${item.name} has no phone number`)
+    setSmsTargets([{ name: item.name, phone }])
+    prefillTemplate()
+    setSmsOpen(true)
+  }
+
+  function openSmsForAll() {
+    const targets = displayed
+      .map((item: any) => ({ name: item.name, phone: personPhone(item) }))
+      .filter((t: any) => t.phone)
+    if (targets.length === 0) return toast.error('None of the listed persons have a phone number')
+    setSmsTargets(targets)
+    prefillTemplate()
+    setSmsOpen(true)
+  }
+
+  function prefillTemplate() {
+    const first = readSmsTemplates()
+    setTemplates(first)
+    if (first.length > 0) {
+      setSmsTemplateName(first[0].name)
+      setSmsMessage(first[0].message)
+    } else {
+      setSmsTemplateName('')
+      setSmsMessage('')
+    }
+  }
+
+  async function sendLoanSms() {
+    const message = smsMessage.trim()
+    if (!message) return toast.error('Write a message or pick a template')
+    const recipients = smsTargets.map(t => t.phone).filter(Boolean)
+    if (recipients.length === 0) return toast.error('No valid recipients')
+    setSmsSending(true)
+    try {
+      const result = await sendSmsApi({ recipients, message })
+      toast.success(`SMS sent to ${result.recipients} recipient${result.recipients === 1 ? '' : 's'} (${result.credits_used} credits used)`)
+      setSmsOpen(false)
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to send SMS')
+    } finally {
+      setSmsSending(false)
+    }
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-green border-t-transparent rounded-full" /></div>
 
   function signedAmount(amount: number) {
     const label = loanBalanceLabel(amount)
@@ -121,127 +207,86 @@ export default function LoanDashboard() {
         <DashboardCard title="Active Accounts" value={String(activeAccounts)} subtitle="Total Active" icon={<Users size={20} />} tone="blue" />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(420px,0.85fr)]">
-        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="flex-shrink-0 px-2 py-3 font-semibold text-slate-900">Loan / Outstanding by Bank / Person</div>
-          <div className="flex-shrink-0 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <colgroup>
-                <col className="w-14" />
-                <col />
-                <col className="w-[170px]" />
-                <col className="w-[130px]" />
-                <col className="w-[130px]" />
-                <col className="w-[180px]" />
-              </colgroup>
-              <thead>
-                <tr className="rounded-lg bg-slate-50 text-xs uppercase tracking-wide text-slate-700">
-                  <th className="rounded-l-lg px-4 py-3 text-left">#</th>
-                  <th className="px-4 py-3 text-left">Bank / Person</th>
-                  <th className="px-4 py-3 text-right">Opening Balance</th>
-                  <th className="px-4 py-3 text-right">Receive</th>
-                  <th className="px-4 py-3 text-right">Payment</th>
-                  <th className="rounded-r-lg px-4 py-3 text-right">Current Dena/Pawna</th>
-                </tr>
-              </thead>
-            </table>
+      <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        {/* Toolbar: title + search + sort + send-to-all */}
+        <div className="flex flex-shrink-0 flex-col gap-3 px-2 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="font-semibold text-slate-900">Loan / Outstanding by Bank / Person</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or phone..." className="input pl-9" />
+            </div>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortBy)} className="input min-w-[150px] max-w-[190px]" title="Sort by">
+              <option value="balance_desc">Balance (high-low)</option>
+              <option value="balance_asc">Balance (low-high)</option>
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="dena_first">Dena first</option>
+              <option value="pawna_first">Pawna first</option>
+            </select>
+            <button type="button" onClick={openSmsForAll} className="btn-primary !px-3 !py-2 text-sm" title="Send SMS to everyone in the list">
+              <MessageSquareText size={16} /> Send SMS
+            </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <colgroup>
-                <col className="w-14" />
-                <col />
-                <col className="w-[170px]" />
-                <col className="w-[130px]" />
-                <col className="w-[130px]" />
-                <col className="w-[180px]" />
-              </colgroup>
-              <tbody>
-                {summaries.map((item: any, index: number) => (
-                  <tr key={item.key} className="border-b border-slate-100 last:border-b-0">
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="sticky top-0 z-10 bg-white">
+              <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-700">
+                <th className="px-4 py-3 text-left">#</th>
+                <th className="px-4 py-3 text-left">Bank / Person</th>
+                <th className="px-4 py-3 text-right">Opening Balance</th>
+                <th className="px-4 py-3 text-right">Receive</th>
+                <th className="px-4 py-3 text-right">Payment</th>
+                <th className="px-4 py-3 text-right">Current Dena/Pawna</th>
+                <th className="px-4 py-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((item: any, index: number) => {
+                const phone = personPhone(item)
+                return (
+                  <tr key={item.key} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
                     <td className="px-4 py-5 font-semibold text-slate-700">{index + 1}</td>
-                    <td className="px-4 py-5 font-medium text-slate-900">{item.name}</td>
+                    <td className="px-4 py-5">
+                      <div className="font-medium text-slate-900">{item.name}</div>
+                      {phone && <div className="text-xs text-slate-400">{phone}</div>}
+                    </td>
                     <td className="px-4 py-5 text-right">{signedAmount(item.opening)}</td>
                     <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(item.received + item.interest)}</td>
                     <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(item.paid)}</td>
                     <td className="px-4 py-5 text-right">{signedAmount(item.balance)}</td>
+                    <td className="px-4 py-5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => openSmsForPerson(item)}
+                        disabled={!phone}
+                        title={phone ? `Send SMS to ${item.name}` : 'No phone number'}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <MessageSquareText size={16} />
+                      </button>
+                    </td>
                   </tr>
-                ))}
-                {summaries.length > 0 && (
-                  <tr className="bg-slate-100/80">
-                    <td colSpan={2} className="rounded-l-lg px-4 py-5 font-bold text-slate-900">Total</td>
-                    <td className="px-4 py-5 text-right">{signedAmount(totalOpening)}</td>
-                    <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(totalReceived + totalInterest)}</td>
-                    <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(totalPaid)}</td>
-                    <td className="rounded-r-lg px-4 py-5 text-right">{signedAmount(outstanding)}</td>
-                  </tr>
-                )}
-                {summaries.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">No loan accounts</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-5 flex flex-shrink-0 items-center justify-between gap-3">
-            <h2 className="font-semibold text-slate-900">Recent Transactions</h2>
-            <button type="button" onClick={() => navigate('/loan-management/transactions')} className="text-sm font-semibold text-slate-900 hover:text-slate-600">View All</button>
-          </div>
-          <div className="flex-shrink-0 overflow-x-auto">
-            <table className="w-full min-w-[500px] text-sm">
-              <colgroup>
-                <col className="w-[125px]" />
-                <col />
-                <col className="w-[120px]" />
-                <col className="w-[120px]" />
-              </colgroup>
-              <thead>
-                <tr className="rounded-lg bg-slate-50 text-xs uppercase tracking-wide text-slate-700">
-                  <th className="rounded-l-lg px-4 py-3 text-left">Date</th>
-                  <th className="px-4 py-3 text-left">Bank / Person</th>
-                  <th className="px-4 py-3 text-left">Type</th>
-                  <th className="rounded-r-lg px-4 py-3 text-right">Amount</th>
+                )
+              })}
+              {displayed.length > 0 && (
+                <tr className="bg-slate-100/80">
+                  <td colSpan={2} className="px-4 py-5 font-bold text-slate-900">Total</td>
+                  <td className="px-4 py-5 text-right">{signedAmount(shownOpening)}</td>
+                  <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(shownReceived)}</td>
+                  <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(shownPaid)}</td>
+                  <td className="px-4 py-5 text-right">{signedAmount(shownBalance)}</td>
+                  <td className="px-4 py-5" />
                 </tr>
-              </thead>
-            </table>
-          </div>
-          <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[500px] text-sm">
-              <colgroup>
-                <col className="w-[125px]" />
-                <col />
-                <col className="w-[120px]" />
-                <col className="w-[120px]" />
-              </colgroup>
-              <tbody>
-                {recent.map(record => {
-                  const amounts = transactionAmounts(record)
-                  const amount = amounts.received || amounts.paid || amounts.interest
-                  return (
-                    <tr key={record.id} className="border-b border-slate-100 last:border-b-0">
-                      <td className="px-4 py-4">{formatDate(record.date)}</td>
-                      <td className="px-4 py-4 font-medium">{loanDisplayName(record)}</td>
-                      <td className="px-4 py-4"><span className="badge-blue">{transactionLabel(amounts.type)}</span></td>
-                      <td className="px-4 py-4 text-right font-semibold tabular-nums">{formatCurr(amount)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          {recent.length === 0 && (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-slate-100 text-slate-300">
-                <FileText size={42} />
-              </div>
-              <p className="text-sm font-semibold text-slate-700">No recent transactions</p>
-              <p className="mt-1 text-xs text-slate-500">Transactions will appear here</p>
-            </div>
-          )}
+              )}
+              {displayed.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">{search ? 'No matching accounts' : 'No loan accounts'}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -249,6 +294,55 @@ export default function LoanDashboard() {
         <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-brand-green" />Pawna (You Receive)</span>
         <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-brand-red" />Dena (You Pay)</span>
       </div>
+
+      {/* SMS modal */}
+      {smsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Send SMS</h3>
+                <p className="text-xs text-slate-500">{smsTargets.length} recipient{smsTargets.length === 1 ? '' : 's'}{smsTargets.length === 1 ? ` · ${smsTargets[0].name}` : ''}</p>
+              </div>
+              <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={() => setSmsOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="space-y-3 p-5">
+              <div>
+                <label className="label">Template</label>
+                <select
+                  className="input"
+                  value={smsTemplateName}
+                  onChange={e => {
+                    const name = e.target.value
+                    setSmsTemplateName(name)
+                    const tpl = templates.find(t => t.name === name)
+                    if (tpl) setSmsMessage(tpl.message)
+                  }}
+                >
+                  <option value="">{templates.length ? 'Select a saved template' : 'No saved templates yet'}</option>
+                  {templates.map((t, i) => <option key={`${i}-${t.name}`} value={t.name}>{t.name}</option>)}
+                </select>
+                {templates.length === 0 && (
+                  <p className="mt-1 text-xs text-slate-400">Save templates from the Marketing page (by Campaign Name) to reuse them here.</p>
+                )}
+              </div>
+              <div>
+                <label className="label">Message</label>
+                <textarea className="input min-h-[120px] resize-none leading-6" value={smsMessage} onChange={e => setSmsMessage(e.target.value)} placeholder="Type your SMS message..." />
+              </div>
+              {smsTargets.length > 1 && (
+                <p className="text-xs text-slate-500">Sending to: {smsTargets.slice(0, 6).map(t => t.name).join(', ')}{smsTargets.length > 6 ? ` +${smsTargets.length - 6} more` : ''}</p>
+              )}
+            </div>
+            <div className="flex gap-3 border-t border-slate-100 p-5">
+              <button className="btn-secondary flex-1 justify-center" onClick={() => setSmsOpen(false)}>Cancel</button>
+              <button className="btn-primary flex-1 justify-center disabled:opacity-60" disabled={smsSending} onClick={sendLoanSms}>
+                {smsSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {smsSending ? 'Sending...' : 'Send SMS'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

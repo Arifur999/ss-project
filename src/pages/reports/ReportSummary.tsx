@@ -450,18 +450,39 @@ export default function ReportSummary() {
         if (!key) return
         ensureDay(key).expense += amount(expense.amount)
       })
+      // Other income is a form of profit too, so fold it into each day's profit
+      // bar (the owner wanted it visible in the performance chart).
+      otherIncomes.forEach((income: any) => {
+        const key = String(income.date || '').slice(0, 10)
+        if (!key) return
+        ensureDay(key).profit += amount(income.amount)
+      })
       const dailyKeys = Object.keys(dailyMap).sort()
       const totalDays = dailyKeys.length
-      // Adaptive "catch-up" daily target: each day's target is the still-unmet
-      // monthly target spread over the days that remain (including today):
-      //   target(day) = (monthlyTarget - salesAchievedOnPreviousDays) / daysLeft
-      // So overshooting one day lowers the following days' target, and a
-      // zero-sale day pushes the remaining days' target up.
+      // Adaptive "catch-up" daily target:
+      // - PAST days keep their historical adaptive target (unmet target / days
+      //   left at that point), so history reads correctly.
+      // - TODAY + all UPCOMING days share the STILL-remaining target split
+      //   EVENLY, so e.g. with 2 days left and Tk 2,000 unmet, days 30 & 31 both
+      //   show Tk 1,000 (instead of the last day spiking to the whole amount).
+      const todayKey = isoDate(new Date())
+      const firstFutureIndex = dailyKeys.findIndex(key => key >= todayKey)
+      const hasFuture = firstFutureIndex !== -1
+      const pastSalesTotal = (hasFuture ? dailyKeys.slice(0, firstFutureIndex) : dailyKeys)
+        .reduce((sum, key) => sum + dailyMap[key].sales, 0)
+      const futureCount = hasFuture ? totalDays - firstFutureIndex : 0
+      const evenFutureTarget = futureCount > 0 ? Math.max(0, salesTarget - pastSalesTotal) / futureCount : 0
+
       let achievedSoFar = 0
       const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map((key, index) => {
-        const remainingDays = totalDays - index
-        const remainingTarget = Math.max(0, salesTarget - achievedSoFar)
-        const target = remainingDays > 0 ? remainingTarget / remainingDays : 0
+        let target: number
+        if (hasFuture && index >= firstFutureIndex) {
+          target = evenFutureTarget
+        } else {
+          const remainingDays = totalDays - index
+          const remainingTarget = Math.max(0, salesTarget - achievedSoFar)
+          target = remainingDays > 0 ? remainingTarget / remainingDays : 0
+        }
         const daySales = dailyMap[key].sales
         achievedSoFar += daySales
         return {
@@ -548,16 +569,18 @@ export default function ReportSummary() {
     title,
     value,
     subtitle,
+    valueClassName = 'text-slate-900',
   }: {
     title: string
     value: string
     subtitle?: string
+    valueClassName?: string
   }) {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className="mt-1 text-xl font-bold leading-tight text-slate-900 tabular-nums">{value}</p>
+          <p className={`mt-1 text-xl font-bold leading-tight tabular-nums ${valueClassName}`}>{value}</p>
           {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
         </div>
       </div>
@@ -765,7 +788,7 @@ export default function ReportSummary() {
               <OverviewLine icon={<Target size={14} />} label="Sales Target" value={formatCurr(data.salesTarget)} />
               <OverviewLine icon={<Target size={14} />} label="Profit Target" value={formatCurr(data.profitTarget)} />
               <OverviewLine icon={<Package size={14} />} label="Total Purchase" value={formatCurr(data.purchaseValue)} />
-              <OverviewLine icon={<WalletCards size={14} />} label="Incentive Profit" value={formatCurr(data.purchaseIncentive)} tone="blue" />
+              <OverviewLine icon={<WalletCards size={14} />} label="Incentive Profit" value={formatCurr(data.purchaseIncentive)} tone="green" />
               <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales" value={formatCurr(data.totalSales)} />
               <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales Profit" value={formatCurr(data.grossProfit)} tone="green" />
               <OverviewLine icon={<WalletCards size={14} />} label="Other Income" value={formatCurr(data.totalOtherIncome)} tone="green" />
@@ -780,7 +803,7 @@ export default function ReportSummary() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-6">
               <ProgressCard title="Sales Target Achievements" value={data.totalSales} target={data.salesTarget} progress={salesAchievedPct} tone="blue" />
               <ProgressCard title="Profit Targets" value={achievedProfit} target={data.profitTarget} progress={profitAchievedPct} tone="green" />
-              <MetricCard title="Incentive Profit" value={formatCurr(data.purchaseIncentive)} subtitle="SP amount from purchase items" />
+              <MetricCard title="Incentive Profit" value={formatCurr(data.purchaseIncentive)} subtitle="SP amount from purchase items" valueClassName="text-brand-green" />
               <MetricCard title="Other Income" value={formatCurr(data.totalOtherIncome)} subtitle="Supplier and other sources" />
               <MetricCard title="Total Expenses" value={formatCurr(data.totalExpenses)} subtitle={`${percentText(pct(data.totalExpenses, data.totalSales))} of sales`} />
               <MetricCard title="Profit / Loss" value={formatCurr(data.profitLoss)} subtitle={`${profitMargin.toFixed(2)}% margin`} />

@@ -31,6 +31,7 @@ import {
   submitSmsPurchase,
   type SmsPackage,
 } from '../services/sms.services'
+import { readSmsTemplates, saveSmsTemplate, type SmsTemplate } from '../lib/smsTemplates'
 
 // Bangla / any non-ASCII text is billed at 70 chars/segment (unicode); plain
 // English at 160. Mirrors the backend so the on-screen counter is accurate.
@@ -66,7 +67,6 @@ type Campaign = {
 }
 
 const campaignStorageKey = 'sms_marketing_campaigns_v1'
-const templateStorageKey = 'sms_marketing_templates_v1'
 
 function readStorage<T>(key: string, fallback: T): T {
   try {
@@ -105,8 +105,7 @@ export default function Marketing() {
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [campaignName, setCampaignName] = useState('')
-  const [scheduledFor, setScheduledFor] = useState('')
-  const [templates, setTemplates] = useState<string[]>(() => readStorage(templateStorageKey, []))
+  const [templates, setTemplates] = useState<SmsTemplate[]>(() => readSmsTemplates())
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => readStorage(campaignStorageKey, []))
   const [loading, setLoading] = useState(true)
@@ -269,34 +268,6 @@ export default function Marketing() {
     writeStorage(campaignStorageKey, updated)
   }
 
-  function buildCampaign(status: Campaign['status']): Campaign | null {
-    if (selectedContacts.length === 0) {
-      toast.error('Please select at least one recipient')
-      return null
-    }
-    if (!message.trim()) {
-      toast.error('Please write an SMS message')
-      return null
-    }
-    if (status === 'Scheduled' && !scheduledFor) {
-      toast.error('Please select schedule date and time')
-      return null
-    }
-
-    const failed = selectedContacts.length - selectedWithPhone.length
-    return {
-      id: `${Date.now()}`,
-      name: campaignName.trim() || `SMS Campaign ${campaigns.length + 1}`,
-      message: message.trim(),
-      recipients: selectedContacts.length,
-      success: selectedWithPhone.length,
-      failed,
-      status,
-      scheduled_for: status === 'Scheduled' ? scheduledFor : undefined,
-      created_at: new Date().toISOString(),
-    }
-  }
-
   async function sendSms() {
     if (selectedContacts.length === 0) return toast.error('Please select at least one recipient')
     if (!message.trim()) return toast.error('Please write an SMS message')
@@ -350,27 +321,23 @@ export default function Marketing() {
     }
   }
 
-  function scheduleCampaign() {
-    const campaign = buildCampaign('Scheduled')
-    if (!campaign) return
-    persistCampaign(campaign)
-    toast.success('SMS campaign scheduled')
-  }
-
+  // Templates are now identified by the Campaign Name: saving stores the name +
+  // message, and picking a template fills both back in. These are shared with
+  // the Loan dashboard's "send SMS" action.
   function saveTemplate() {
+    const name = campaignName.trim()
     const text = message.trim()
+    if (!name) return toast.error('Enter a Campaign Name to save this template')
     if (!text) return toast.error('Write a message first')
-    const next = Array.from(new Set([text, ...templates])).slice(0, 20)
+    const next = saveSmsTemplate(name, text)
     setTemplates(next)
-    writeStorage(templateStorageKey, next)
-    setSelectedTemplate(text)
-    toast.success('SMS template saved')
+    setSelectedTemplate(name)
+    toast.success(`Template "${name}" saved`)
   }
 
   function clearComposer() {
     setMessage('')
     setCampaignName('')
-    setScheduledFor('')
     setSelectedTemplate('')
   }
 
@@ -524,14 +491,19 @@ export default function Marketing() {
                     className="input"
                     value={selectedTemplate}
                     onChange={e => {
-                      setSelectedTemplate(e.target.value)
-                      if (e.target.value) setMessage(e.target.value)
+                      const name = e.target.value
+                      setSelectedTemplate(name)
+                      const tpl = templates.find(t => t.name === name)
+                      if (tpl) {
+                        setMessage(tpl.message)
+                        setCampaignName(tpl.name)
+                      }
                     }}
                   >
                     <option value="">Select Template</option>
                     {templates.map((template, index) => (
-                      <option key={`${index}-${template.slice(0, 12)}`} value={template}>
-                        {template.slice(0, 36)}{template.length > 36 ? '...' : ''}
+                      <option key={`${index}-${template.name}`} value={template.name}>
+                        {template.name}
                       </option>
                     ))}
                   </select>
@@ -558,23 +530,6 @@ export default function Marketing() {
                   )}
                 </div>
                 <span>Balance: {balance === null ? '...' : formatNum(balance)}</span>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-                <div>
-                  <label className="label">Schedule Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    className="input"
-                    value={scheduledFor}
-                    onChange={e => setScheduledFor(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button type="button" onClick={scheduleCampaign} className="btn-secondary h-10 px-4">
-                    <CalendarClock size={16} /> Schedule SMS
-                  </button>
-                </div>
               </div>
             </div>
 

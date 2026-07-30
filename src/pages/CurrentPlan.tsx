@@ -117,6 +117,7 @@ export default function CurrentPlan() {
           title={bn ? 'বার্ষিক' : 'Yearly'}
           price={prices ? `${money(prices.yearly)} / ${bn ? 'বছর' : 'year'}` : '...'}
           originalPrice={prices && prices.yearlyOriginal > prices.yearly ? money(prices.yearlyOriginal) : undefined}
+          discountPct={prices && prices.yearlyOriginal > prices.yearly ? Math.round((1 - prices.yearly / prices.yearlyOriginal) * 100) : undefined}
           note={bn ? 'সবচেয়ে সাশ্রয়ী' : 'Best value'}
           features={[
             bn ? 'সম্পূর্ণ আনলিমিটেড ফিচার' : 'All features unlocked',
@@ -135,12 +136,13 @@ export default function CurrentPlan() {
 }
 
 function PlanCard({
-  icon, title, price, originalPrice, note, features, isCurrent, disabled, onSelect, highlighted, popular, bn,
+  icon, title, price, originalPrice, discountPct, note, features, isCurrent, disabled, onSelect, highlighted, popular, bn,
 }: {
   icon: React.ReactNode
   title: string
   price: string
   originalPrice?: string
+  discountPct?: number
   note: string
   features: string[]
   isCurrent: boolean
@@ -180,9 +182,12 @@ function PlanCard({
         <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{title}</span>
         <span className={`rounded-xl p-2 ${highlighted ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>{icon}</span>
       </div>
-      <div className="flex items-baseline gap-2">
+      <div className="flex flex-wrap items-baseline gap-2">
         {originalPrice && <span className="text-base font-bold text-slate-400 line-through">{originalPrice}</span>}
         <span className="text-2xl font-black text-slate-950">{price}</span>
+        {discountPct ? (
+          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-black text-brand-green">{discountPct}% {bn ? 'ছাড়' : 'OFF'}</span>
+        ) : null}
       </div>
       <p className="mt-1 text-xs font-semibold text-slate-400">{note}</p>
       <ul className="mt-5 flex-1 space-y-2.5 text-sm text-slate-600">

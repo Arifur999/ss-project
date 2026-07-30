@@ -80,7 +80,7 @@ export default function Layout() {
     },
     { key: 'productList', label: t('nav_productList'), icon: <Package size={18} />, path: '/products' },
     {
-      key: 'purchase', label: t('nav_purchase'), icon: <ShoppingCart size={18} />,
+      key: 'purchase', label: 'Supplier', icon: <ShoppingCart size={18} />,
       children: [
         { key: 'purchOrders', label: t('nav_purchaseOrders'), icon: <ShoppingCart size={16} />, path: '/purchase/orders' },
         { key: 'purchaseLedger', label: t('nav_purchaseLedger', 'Purchase Ledger'), icon: <FileText size={16} />, path: '/purchase/ledger' },
