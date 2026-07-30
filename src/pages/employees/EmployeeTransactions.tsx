@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Download, Edit2, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
@@ -482,7 +483,7 @@ export default function EmployeeTransactions() {
         <div className="card col-span-2"><p className="text-xs text-slate-500">{t('employee_subtotal')}</p><p className="text-2xl font-bold text-brand-slate mt-1">{formatCurr(subtotal)}</p></div>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <div className="card p-0">
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="font-semibold text-slate-800">{t('employee_transactionList')}</div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[190px_150px_150px_auto]">
@@ -499,6 +500,7 @@ export default function EmployeeTransactions() {
             </button>
           </div>
         </div>
+        <TableScroller className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-sm">
           <thead className="table-header">
             <tr>
@@ -539,6 +541,7 @@ export default function EmployeeTransactions() {
             {filteredTransactions.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
+        </TableScroller>
       </div>
 
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('employee_editTransaction') : 'Create Salary & Bonus Payment'} size="lg">

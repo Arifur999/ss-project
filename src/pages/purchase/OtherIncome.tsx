@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Eye, FileText, Pencil, Plus, RefreshCw, Save, Search, Trash2, Users, WalletCards } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
@@ -305,7 +306,7 @@ export default function OtherIncome() {
           )}
         </div>
 
-        <div className="overflow-x-auto">
+        <TableScroller className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead className="table-header">
               <tr>
@@ -348,7 +349,7 @@ export default function OtherIncome() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
         <div className="border-t border-slate-100 px-4 py-3 text-xs font-medium text-slate-500">
           Showing {filteredRows.length} of {rows.length} transactions
         </div>

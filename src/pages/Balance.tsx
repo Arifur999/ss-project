@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
+import TableScroller from '../components/TableScroller'
 import { useLang } from '../context/LanguageContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
 
@@ -160,7 +161,7 @@ export default function Balance() {
         </div>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <div className="card p-0">
         <div className="p-4 border-b border-slate-100">
           <h3 className="font-semibold text-slate-800">{t('balance_accountDetails')}</h3>
         </div>
@@ -169,7 +170,7 @@ export default function Balance() {
             <div className="animate-spin w-6 h-6 border-4 border-brand-green border-t-transparent rounded-full" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <TableScroller className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="table-header sticky top-0">
                 <tr>
@@ -214,7 +215,7 @@ export default function Balance() {
                 </tr>
               </tbody>
             </table>
-          </div>
+          </TableScroller>
         )}
       </div>
     </div>

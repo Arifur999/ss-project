@@ -3,6 +3,7 @@ import { Plus, Save, ChevronDown, ChevronUp, Truck, Edit2, Trash2, Search, Slide
 import { supabase } from '../../lib/supabase'
 import { formatDate, generateSINo } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
@@ -681,7 +682,7 @@ export default function PlaceOrder() {
 
           <section className="card p-5">
             <h2 className="mb-4 text-base font-bold text-navy-800">Purchase Items</h2>
-            <div className="overflow-x-auto rounded-lg border border-slate-100">
+            <TableScroller className="overflow-x-auto rounded-lg border border-slate-100">
               <table className="w-full min-w-[1240px] text-xs">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase text-navy-800">
                   <tr className="whitespace-nowrap">
@@ -737,7 +738,7 @@ export default function PlaceOrder() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </TableScroller>
             <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600">
               <Info size={15} className="mr-2 inline" /> Product code, product name and image are auto-filled from the selected product in the product list.
             </div>

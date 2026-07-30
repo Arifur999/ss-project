@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import TableScroller from '../components/TableScroller'
 import { Search, FileText, Package, User, Calendar } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'
@@ -108,7 +109,7 @@ export default function SalesHistory() {
         </div>
       </div>
 
-      <div className="card min-h-0 flex-1 overflow-auto bg-white p-0">
+      <TableScroller wrapClassName="card min-h-0 flex-1 flex flex-col bg-white p-0" className="min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[980px] text-sm">
           <thead className="table-header">
             <tr className="border-b border-slate-100 bg-slate-50/55">
@@ -166,7 +167,7 @@ export default function SalesHistory() {
             )}
           </tbody>
         </table>
-      </div>
+      </TableScroller>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import { useLang } from '../../context/LanguageContext'
 
@@ -93,7 +94,7 @@ export default function SupplierDashboard() {
         <div className="card"><p className="text-xs text-slate-500">{t('supplier_totalPayable')}</p><p className="text-2xl font-bold text-brand-red mt-1">{formatCurr(totalDue)}</p></div>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <TableScroller wrapClassName="card p-0" className="overflow-x-auto">
         <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">{t('supplier_summaryTable')}</div>
         <table className="w-full min-w-[1120px] text-sm">
           <thead className="table-header">
@@ -132,7 +133,7 @@ export default function SupplierDashboard() {
             )}
           </tbody>
         </table>
-      </div>
+      </TableScroller>
     </div>
   )
 }

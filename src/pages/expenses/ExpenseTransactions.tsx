@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import TableScroller from '../../components/TableScroller'
 import { Pencil, Plus, Printer, Save, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
@@ -205,7 +206,7 @@ export default function ExpenseTransactions() {
           </thead>
           </table>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto">
+        <TableScroller wrapClassName="flex min-h-0 flex-1 flex-col" className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[980px] text-sm">
             <colgroup>
               <col className="w-12" />
@@ -258,7 +259,7 @@ export default function ExpenseTransactions() {
             {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('expTx_noRecords')}</td></tr>}
           </tbody>
         </table>
-        </div>
+        </TableScroller>
       </div>
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm() }} title={editItem ? t('common_edit') : t('expTx_newTitle')}>

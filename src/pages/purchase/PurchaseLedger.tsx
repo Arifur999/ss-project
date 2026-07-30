@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import TableScroller from '../../components/TableScroller'
 import { Pencil, Printer, Search } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
@@ -309,7 +310,7 @@ export default function PurchaseLedger() {
         </div>
       </div>
 
-      <div className="card min-h-0 flex-1 overflow-auto bg-white p-0">
+      <TableScroller wrapClassName="card min-h-0 flex-1 flex flex-col bg-white p-0" className="min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[1120px] text-sm">
           <thead className="table-header">
             <tr>
@@ -373,7 +374,7 @@ export default function PurchaseLedger() {
             )}
           </tbody>
         </table>
-      </div>
+      </TableScroller>
 
       <Modal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} title="Purchase Invoice / Voucher Details" size="xl">
         {selectedInvoice && (

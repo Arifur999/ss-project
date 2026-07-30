@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import TableScroller from '../../components/TableScroller'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { CalendarDays, CheckCircle2, ClipboardList, CreditCard, Package, RefreshCw, Target, TrendingUp, WalletCards } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -524,7 +525,7 @@ export default function YearlyReport() {
             <div className="grid grid-cols-1 gap-4">
               <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div className="bg-slate-800 px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white">Yearly Business Performance & Profit Overview ({year})</div>
-                <div className="overflow-x-auto">
+                <TableScroller className="overflow-x-auto">
                   <table className="w-full min-w-[1120px] text-[11px]">
                     <thead className="bg-slate-50 text-slate-600">
                       <tr>
@@ -572,7 +573,7 @@ export default function YearlyReport() {
                       </tr>
                     </tbody>
                   </table>
-                </div>
+                </TableScroller>
               </section>
 
             </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { CreditCard, Download, RefreshCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import StatCard from '../../components/StatCard'
 import { formatBDT } from './superAdminLive'
 import { getSubscriptionPayments, updateSubscriptionPayment } from '../../services/admin.services'
@@ -93,7 +94,7 @@ export default function SuperAdminPayments() {
       </div>
 
       <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        <TableScroller className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="table-header">
               <tr>
@@ -157,7 +158,7 @@ export default function SuperAdminPayments() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       </div>
     </div>
   )

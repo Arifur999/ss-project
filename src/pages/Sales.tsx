@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Plus, Save, Search, Printer, Pencil, Trash2, Image, Barcode, Filter, Truck, ChevronDown, ChevronUp, Calendar, Clipboard, Eye, EyeOff, Tag } from 'lucide-react'
+import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateInvoiceNo } from '../lib/utils'
 import PageHeader from '../components/PageHeader'
@@ -2128,7 +2129,7 @@ export default function Sales() {
                 </button>
               </div>
 
-              <div className="overflow-x-auto border border-slate-100 rounded-xl">
+              <TableScroller className="overflow-x-auto border border-slate-100 rounded-xl">
                 <table className="w-full text-xs text-left min-w-[940px]">
                   <thead className="bg-slate-50 border-b border-slate-100">
                     <tr>
@@ -2247,8 +2248,8 @@ export default function Sales() {
                     })}
                   </tbody>
                 </table>
-              </div>
-              
+              </TableScroller>
+
             </div>
 
             {/* Subtotal, Discount & Save Buttons layout */}
@@ -2597,7 +2598,7 @@ export default function Sales() {
                                 </button>
                               </div>
 
-                              <div className="overflow-x-auto">
+                              <TableScroller className="overflow-x-auto">
                                 <table className="w-full min-w-[1120px] text-xs">
                                   <thead className="bg-slate-50 text-[11px] uppercase text-slate-600">
                                     <tr>
@@ -2714,7 +2715,7 @@ export default function Sales() {
                                     })}
                                   </tbody>
                                 </table>
-                              </div>
+                              </TableScroller>
 
                               <div className="border-t border-slate-100">
                                 <div className="flex items-center justify-between bg-white px-4 py-3">

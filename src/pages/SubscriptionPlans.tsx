@@ -161,7 +161,7 @@ export default function SubscriptionPlans() {
       })
       .catch(() => {
         // sane fallback if settings can't load
-        setYearlyPrice(5780)
+        setYearlyPrice(5750)
         setYearlyOriginalPrice(7188)
       })
   }, [])
@@ -563,7 +563,7 @@ export function SubscriptionCheckout() {
         <button onClick={() => setLang('bn')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'bn' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>বাংলা</button>
       </div>
 
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
+      <div className={`w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-xl ${step === 1 && paymentInfo?.bkash_qr_url ? 'max-w-3xl' : 'max-w-lg'}`}>
         {step === 'done' ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-brand-green">
@@ -606,42 +606,48 @@ export function SubscriptionCheckout() {
               <p className="mt-2 text-sm leading-relaxed text-slate-500">{copy('checkoutSubtitle')}</p>
             </div>
 
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{copy('amountLabel')} · {planId === 'monthly' ? (lang === 'bn' ? 'মাসিক' : 'Monthly') : (lang === 'bn' ? 'বার্ষিক' : 'Yearly')}</p>
-              <p className="mt-1 text-3xl font-black text-slate-950">
-                {checkoutAmount !== null ? formatBDT(checkoutAmount) : '...'}
-              </p>
-            </div>
+            <div className={`mt-6 grid gap-5 ${paymentInfo?.bkash_qr_url ? 'md:grid-cols-2 md:items-stretch' : ''}`}>
+              {/* Left column: amount, bKash number, timer */}
+              <div className="space-y-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{copy('amountLabel')} · {planId === 'monthly' ? (lang === 'bn' ? 'মাসিক' : 'Monthly') : (lang === 'bn' ? 'বার্ষিক' : 'Yearly')}</p>
+                  <p className="mt-1 text-3xl font-black text-slate-950">
+                    {checkoutAmount !== null ? formatBDT(checkoutAmount) : '...'}
+                  </p>
+                </div>
 
-            <div className="mt-4 rounded-xl border border-pink-200 bg-pink-50 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-pink-700">{copy('bkashNumberLabel')}</p>
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <span className="text-xl font-black tracking-wider text-slate-950">
-                  {paymentInfo?.bkash_number || '...'}
-                </span>
-                <button
-                  type="button"
-                  onClick={copyBkashNumber}
-                  disabled={!paymentInfo?.bkash_number}
-                  className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-pink-700 shadow-sm hover:bg-pink-100 disabled:opacity-50"
-                >
-                  <Copy size={13} />
-                  {copied ? copy('copied') : copy('copy')}
-                </button>
+                <div className="rounded-xl border border-pink-200 bg-pink-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-pink-700">{copy('bkashNumberLabel')}</p>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span className="text-xl font-black tracking-wider text-slate-950">
+                      {paymentInfo?.bkash_number || '...'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={copyBkashNumber}
+                      disabled={!paymentInfo?.bkash_number}
+                      className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-pink-700 shadow-sm hover:bg-pink-100 disabled:opacity-50"
+                    >
+                      <Copy size={13} />
+                      {copied ? copy('copied') : copy('copy')}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">
+                  <Timer size={16} className={remainingMs < 5 * 60 * 1000 ? 'text-red-600' : 'text-slate-500'} />
+                  <span>{copy('timeLeft')}:</span>
+                  <span className={remainingMs < 5 * 60 * 1000 ? 'text-red-600' : 'text-slate-900'}>{formatCountdown(remainingMs)}</span>
+                </div>
               </div>
-            </div>
 
-            {paymentInfo?.bkash_qr_url && (
-              <div className="mt-4 text-center">
-                <p className="mb-2 text-xs font-semibold text-slate-500">{copy('scanQr')}</p>
-                <img src={paymentInfo.bkash_qr_url} alt="bKash QR code" className="mx-auto h-40 w-40 rounded-xl border border-slate-200 object-contain p-2" />
-              </div>
-            )}
-
-            <div className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">
-              <Timer size={16} className={remainingMs < 5 * 60 * 1000 ? 'text-red-600' : 'text-slate-500'} />
-              <span>{copy('timeLeft')}:</span>
-              <span className={remainingMs < 5 * 60 * 1000 ? 'text-red-600' : 'text-slate-900'}>{formatCountdown(remainingMs)}</span>
+              {/* Right column: large scannable QR */}
+              {paymentInfo?.bkash_qr_url && (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-600">{copy('scanQr')}</p>
+                  <img src={paymentInfo.bkash_qr_url} alt="bKash QR code" className="h-64 w-64 rounded-xl border border-slate-200 bg-white object-contain p-3" />
+                </div>
+              )}
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">

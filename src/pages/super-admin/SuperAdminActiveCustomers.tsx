@@ -3,6 +3,7 @@ import { Ban, CalendarClock, RefreshCw, Search, TimerReset, Users, Wallet } from
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { getActiveCustomers, updateOwnerSubscription } from '../../services/admin.services'
 
@@ -138,7 +139,7 @@ export default function SuperAdminActiveCustomers() {
         <button onClick={refresh} className="btn-secondary flex items-center gap-2 bg-white"><RefreshCw size={15} /> Refresh</button>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <TableScroller wrapClassName="card p-0" className="overflow-x-auto">
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
@@ -194,7 +195,7 @@ export default function SuperAdminActiveCustomers() {
             </tbody>
           </table>
         )}
-      </div>
+      </TableScroller>
     </div>
   )
 }

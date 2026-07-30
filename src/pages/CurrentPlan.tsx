@@ -27,7 +27,7 @@ export default function CurrentPlan() {
   useEffect(() => {
     getPaymentInfo()
       .then(info => setPrices({ monthly: Number(info.monthly_price), yearly: Number(info.yearly_price) }))
-      .catch(() => setPrices({ monthly: 600, yearly: 5780 }))
+      .catch(() => setPrices({ monthly: 599, yearly: 5750 }))
   }, [])
 
   const planType = (subscription?.plan_type || 'free_trial') as PlanKind
@@ -162,7 +162,7 @@ function PlanCard({
         : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
 
   return (
-    <section className={`relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${isCurrent ? 'border-brand-green ring-2 ring-green-100' : highlighted ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200'}`}>
+    <section className={`relative flex flex-col rounded-2xl border bg-white px-[30px] py-[60px] shadow-sm ${isCurrent ? 'border-brand-green ring-2 ring-green-100' : highlighted ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200'}`}>
       {isCurrent && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-green px-3 py-0.5 text-[11px] font-black text-white shadow-sm">
           {bn ? 'অ্যাক্টিভ' : 'ACTIVE'}

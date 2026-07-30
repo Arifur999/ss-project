@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Ban, CheckCircle2, RefreshCw, Search, TimerReset } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { LiveOwner, OwnerStatus, daysLeft, formatDate, loadOwners } from './superAdminLive'
 import { grantTrialExtension, updateOwnerSubscription } from '../../services/admin.services'
@@ -102,7 +103,7 @@ export default function SuperAdminFreeTrial() {
         <button onClick={refresh} className="btn-secondary bg-white flex items-center gap-2"><RefreshCw size={15} /> Refresh</button>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <TableScroller wrapClassName="card p-0" className="overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="animate-spin w-6 h-6 border-4 border-brand-green border-t-transparent rounded-full" />
@@ -180,7 +181,7 @@ export default function SuperAdminFreeTrial() {
             </tbody>
           </table>
         )}
-      </div>
+      </TableScroller>
     </div>
   )
 }

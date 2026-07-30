@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Mail, RefreshCw, Search, Send, TrendingDown, UserX, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
+import TableScroller from '../../components/TableScroller'
 import { getChurnedCustomers, sendFollowupEmail } from '../../services/admin.services'
 
 type PaidCustomer = {
@@ -101,7 +102,7 @@ export default function SuperAdminChurned() {
         <button onClick={refresh} className="btn-secondary flex items-center gap-2 bg-white"><RefreshCw size={15} /> Refresh</button>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <TableScroller wrapClassName="card p-0" className="overflow-x-auto">
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
@@ -147,7 +148,7 @@ export default function SuperAdminChurned() {
             </tbody>
           </table>
         )}
-      </div>
+      </TableScroller>
 
       {target && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !sending && setTarget(null)}>

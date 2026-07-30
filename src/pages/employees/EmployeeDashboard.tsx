@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Users, UserCheck, UserX, Gift, Wallet } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'
 import { useLang } from '../../context/LanguageContext'
@@ -73,7 +74,7 @@ export default function EmployeeDashboard() {
         <StatCard title={t('employee_totalBonus')} value={formatCurr(stats.totalBonus)} icon={<Gift size={18} />} color="blue" />
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <TableScroller wrapClassName="card p-0" className="overflow-x-auto">
         <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">{t('employee_activeEmployeeList')}</div>
         <table className="w-full min-w-[1600px] text-sm">
           <thead className="table-header">
@@ -116,7 +117,7 @@ export default function EmployeeDashboard() {
             {employees.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
-      </div>
+      </TableScroller>
     </div>
   )
 }
