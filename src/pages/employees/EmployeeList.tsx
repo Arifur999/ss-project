@@ -7,6 +7,8 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
+import { formatDate } from '../../lib/utils'
 
 type EmployeeActionType = 'Join' | 'Resign'
 type EmployeeValidationErrors = Partial<Record<'action_type' | 'employee_id' | 'name' | 'phone' | 'address' | 'join_date' | 'resign_date', string>>
@@ -311,6 +313,7 @@ export default function EmployeeList() {
     if (actionType === 'Join') {
       if (!form.name.trim()) nextErrors.name = REQUIRED_FIELD_MESSAGE
       if (!form.phone.trim()) nextErrors.phone = REQUIRED_FIELD_MESSAGE
+      else if (!isValidBdPhone(form.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
       if (!form.address.trim()) nextErrors.address = REQUIRED_FIELD_MESSAGE
       if (!form.join_date) nextErrors.join_date = REQUIRED_FIELD_MESSAGE
     } else {
@@ -355,9 +358,9 @@ export default function EmployeeList() {
                 <td className="py-2.5 px-4 font-medium">{emp.name}</td>
                 <td className="py-2.5 px-4 text-slate-500">{emp.phone || '—'}</td>
                 <td className="py-2.5 px-4 text-slate-500">{emp.address || '—'}</td>
-                <td className="py-2.5 px-4 text-slate-500">{new Date(emp.join_date).toLocaleDateString()}</td>
+                <td className="py-2.5 px-4 text-slate-500">{emp.join_date ? formatDate(emp.join_date) : '—'}</td>
                 <td className="py-2.5 px-4" style={{ color: emp.resign_date ? '#dc2626' : '#64748b' }}>
-                  {emp.resign_date ? new Date(emp.resign_date).toLocaleDateString() : '—'}
+                  {emp.resign_date ? formatDate(emp.resign_date) : '—'}
                 </td>
                 <td className="py-2.5 px-4 text-center">
                   <span className={`text-xs font-semibold px-2 py-1 rounded ${emp.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

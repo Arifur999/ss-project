@@ -9,6 +9,7 @@ import { useLang } from '../../context/LanguageContext'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { deleteStoredLoanLender, isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders, saveStoredLoanLender } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 
 type LenderValidationErrors = Partial<Record<'name' | 'lender_type' | 'phone', string>>
 
@@ -168,6 +169,7 @@ export default function LoanLenderList() {
     if (!name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!lenderType) nextErrors.lender_type = REQUIRED_FIELD_MESSAGE
     if (!phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
+    else if (!isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return

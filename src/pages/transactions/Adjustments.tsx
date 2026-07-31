@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Save, ArrowRight, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
+import PeriodFilter from '../../components/PeriodFilter'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
+import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
+import { printTable } from '../../lib/printTable'
 
 export default function Adjustments() {
   const { t, formatCurr } = useLang()
@@ -17,6 +20,9 @@ export default function Adjustments() {
   const [editingRecord, setEditingRecord] = useState<any>(null)
   const { user } = useAuth()
   const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], from_account_id: '', from_account_name: '', to_account_id: '', to_account_name: '', amount: 0, notes: '' })
+  const [period, setPeriod] = useState<Period>('all')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   useEffect(() => { loadAll() }, [])
 
@@ -83,7 +89,24 @@ export default function Adjustments() {
     loadAll()
   }
 
-  const totalTransferred = records.reduce((s, r) => s + Number(r.amount || 0), 0)
+  const filtered = useMemo(() => records.filter(r => inPeriod(r.date, period, fromDate, toDate)), [records, period, fromDate, toDate])
+  const totalTransferred = filtered.reduce((s, r) => s + Number(r.amount || 0), 0)
+
+  function handlePrint() {
+    printTable({
+      title: t('adjustments_title'),
+      subtitle: periodLabel(period, fromDate, toDate),
+      columns: [
+        { label: '#' }, { label: 'Date' }, { label: 'From' }, { label: 'To' },
+        { label: 'Amount', align: 'right' }, { label: 'Notes' },
+      ],
+      rows: filtered.map((r, i) => [
+        i + 1, formatDate(r.date), r.from_account_name || '-', r.to_account_name || '-',
+        formatCurr(r.amount), r.notes || '',
+      ]),
+      totalRow: ['', 'Total', '', '', formatCurr(totalTransferred), ''],
+    })
+  }
 
   return (
     <div className="p-6">
@@ -91,7 +114,7 @@ export default function Adjustments() {
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTransfer')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{formatCurr(totalTransferred)}</p></div>
-        <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTx')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{records.length}</p></div>
+        <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTx')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{filtered.length}</p></div>
         <div className="card bg-slate-50 border-slate-200">
           <p className="text-xs text-slate-700 font-medium">{t('adjustments_note')}</p>
           <p className="text-xs text-slate-500 mt-1">{t('adjustments_noteText')}</p>
@@ -99,7 +122,10 @@ export default function Adjustments() {
       </div>
 
       <div className="card overflow-x-auto p-0">
-        <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">{t('adjustments_list')}</div>
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <span className="font-semibold text-slate-800">{t('adjustments_list')}</span>
+          <PeriodFilter period={period} setPeriod={setPeriod} from={fromDate} setFrom={setFromDate} to={toDate} setTo={setToDate} onPrint={handlePrint} />
+        </div>
         <table className="w-full text-sm">
           <thead className="table-header">
             <tr>
@@ -114,7 +140,7 @@ export default function Adjustments() {
             </tr>
           </thead>
           <tbody>
-            {records.map((r, index) => (
+            {filtered.map((r, index) => (
               <tr key={r.id} className="table-row">
                 <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                 <td className="py-2.5 px-4">{formatDate(r.date)}</td>
@@ -135,7 +161,7 @@ export default function Adjustments() {
                 </td>
               </tr>
             ))}
-            {records.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">{t('adjustments_noRecords')}</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">{t('adjustments_noRecords')}</td></tr>}
           </tbody>
         </table>
       </div>

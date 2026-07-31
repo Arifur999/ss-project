@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Save, Edit2, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
+import PeriodFilter from '../../components/PeriodFilter'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
+import { printTable } from '../../lib/printTable'
 
 export default function ProfitWithdraw() {
   const { t, formatCurr, monthName } = useLang()
@@ -25,6 +28,9 @@ export default function ProfitWithdraw() {
     profit_month: new Date().getMonth() + 1,
     profit_year: new Date().getFullYear(), notes: ''
   })
+  const [period, setPeriod] = useState<Period>('all')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   useEffect(() => { loadAll() }, [])
 
@@ -106,9 +112,28 @@ export default function ProfitWithdraw() {
     setShowModal(false)
   }
 
+  const filtered = useMemo(() => records.filter(r => inPeriod(r.date, period, fromDate, toDate)), [records, period, fromDate, toDate])
   const byOwner: Record<string, number> = {}
-  records.forEach(r => { byOwner[r.shareholder_name] = (byOwner[r.shareholder_name] || 0) + Number(r.amount) })
-  const totalWithdrawn = records.reduce((s, r) => s + Number(r.amount), 0)
+  filtered.forEach(r => { byOwner[r.shareholder_name] = (byOwner[r.shareholder_name] || 0) + Number(r.amount) })
+  const totalWithdrawn = filtered.reduce((s, r) => s + Number(r.amount), 0)
+
+  function handlePrint() {
+    printTable({
+      title: t('profitWithdraw_title'),
+      subtitle: periodLabel(period, fromDate, toDate),
+      columns: [
+        { label: '#' }, { label: 'Date' }, { label: 'Owner' },
+        { label: 'Amount', align: 'right' }, { label: 'For Month' },
+        { label: 'Account' }, { label: 'Notes' },
+      ],
+      rows: filtered.map((r, i) => [
+        i + 1, formatDate(r.date), r.shareholder_name || '-',
+        formatCurr(r.amount), `${monthName(r.profit_month)} ${r.profit_year}`,
+        r.account_name || '-', r.notes || '',
+      ]),
+      totalRow: ['', 'Total', '', formatCurr(totalWithdrawn), '', '', ''],
+    })
+  }
 
   return (
     <div className="p-6">
@@ -130,7 +155,10 @@ export default function ProfitWithdraw() {
       </div>
 
       <div className="card overflow-x-auto p-0">
-        <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">{t('profitWithdraw_list')}</div>
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <span className="font-semibold text-slate-800">{t('profitWithdraw_list')}</span>
+          <PeriodFilter period={period} setPeriod={setPeriod} from={fromDate} setFrom={setFromDate} to={toDate} setTo={setToDate} onPrint={handlePrint} />
+        </div>
         <table className="w-full text-sm">
           <thead className="table-header">
             <tr>
@@ -145,7 +173,7 @@ export default function ProfitWithdraw() {
             </tr>
           </thead>
           <tbody>
-            {records.map((r, index) => (
+            {filtered.map((r, index) => (
               <tr key={r.id} className="table-row">
                 <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                 <td className="py-2.5 px-4">{formatDate(r.date)}</td>
@@ -164,7 +192,7 @@ export default function ProfitWithdraw() {
                 </td>
               </tr>
             ))}
-            {records.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">{t('profitWithdraw_noRecords')}</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">{t('profitWithdraw_noRecords')}</td></tr>}
           </tbody>
         </table>
       </div>

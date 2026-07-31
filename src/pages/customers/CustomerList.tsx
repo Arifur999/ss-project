@@ -7,6 +7,7 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 
 type CustomerValidationErrors = Partial<Record<'name' | 'phone', string>>
 
@@ -121,6 +122,7 @@ export default function CustomerList() {
 
     if (!payload.name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!payload.phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
+    else if (!isValidBdPhone(payload.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return

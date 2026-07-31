@@ -9,6 +9,7 @@ import { confirmAction } from '../components/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { rememberBusinessBrand, resolveBusinessName } from '../lib/businessBrand'
+import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../lib/phone'
 
 type Tab = 'business' | 'shareholders' | 'accounts' | 'suppliers' | 'targets' | 'users'
 const SHAREHOLDER_OPENING_AMOUNT_FALLBACK_KEY = 'shareholder_opening_amount_fallback_v1'
@@ -1120,6 +1121,10 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
       toast.error(t('settings_passwordStar'))
       return
     }
+    if (form.phone.trim() && !isValidBdPhone(form.phone)) {
+      toast.error(INVALID_PHONE_MESSAGE)
+      return
+    }
     setLoading(true)
     try {
       await createTeamUser({
@@ -1222,6 +1227,7 @@ function ShareholderModal({ item, onClose }: { item: any; onClose: () => void })
 
     if (!name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
+    else if (!isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -1384,6 +1390,7 @@ function SupplierModal({ item, onClose }: { item: any; onClose: () => void }) {
   async function save() {
     if (!form.company_name.trim()) { toast.error(t('settings_companyNameRequired')); return }
     if (!form.phone.trim()) { toast.error(t('settings_phoneRequired')); return }
+    if (!isValidBdPhone(form.phone)) { toast.error(INVALID_PHONE_MESSAGE); return }
     setLoading(true)
     try {
       const payload = { ...form, name: form.company_name }
