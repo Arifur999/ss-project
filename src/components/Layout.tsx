@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useBusinessBrand } from '../lib/businessBrand'
+import NotificationBell from './NotificationBell'
 import toast from 'react-hot-toast'
 
 export default function Layout() {
@@ -40,6 +41,7 @@ export default function Layout() {
     { key: 'superAdminManageOwners', label: 'Manage Owners', icon: <Trash2 size={18} />, path: '/super-admin/manage-owners' },
     { key: 'superAdminPayments', label: t('nav_payments'), icon: <CreditCard size={18} />, path: '/super-admin/payments' },
     { key: 'superAdminSms', label: 'SMS', icon: <MessageSquareText size={18} />, path: '/super-admin/sms' },
+    { key: 'superAdminNotifications', label: 'Notifications', icon: <Bell size={18} />, path: '/super-admin/notifications' },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },
     { key: 'superAdminActivity', label: t('nav_logsActivity'), icon: <Activity size={18} />, path: '/super-admin/activity' },
     { key: 'superAdminSettings', label: t('nav_settings'), icon: <Bell size={18} />, path: '/super-admin/settings' },
@@ -223,7 +225,8 @@ export default function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="h-12 bg-white border-b border-slate-200 flex items-center justify-end px-5 flex-shrink-0">
+        <div className="h-12 bg-white border-b border-slate-200 flex items-center justify-end gap-3 px-5 flex-shrink-0">
+          <NotificationBell />
           <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
             <Globe size={13} className="text-slate-400 ml-1.5" />
             <button
