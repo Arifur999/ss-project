@@ -38,7 +38,7 @@ const TABLES: Record<string, TableConfig> = {
   expenses: { list: '/expenses', create: '/expenses', update: (id) => `/expenses/${id}`, remove: (id) => `/expenses/${id}` },
   other_incomes: { list: '/other-incomes', create: '/other-incomes', update: (id) => `/other-incomes/${id}`, remove: (id) => `/other-incomes/${id}` },
   purchases: { list: '/purchases', update: (id) => `/purchases/${id}`, remove: (id) => `/purchases/${id}` },
-  purchase_items: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_items' }, update: (id) => `/purchases/items/${id}` },
+  purchase_items: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_items' }, update: (id) => `/purchases/items/${id}`, remove: (id) => `/purchases/items/${id}` },
   purchase_receives: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_receives' } },
   supplier_payments: { list: '/supplier-payments', create: '/supplier-payments', update: (id) => `/supplier-payments/${id}`, remove: (id) => `/supplier-payments/${id}` },
   inventory: { list: '/inventory' },

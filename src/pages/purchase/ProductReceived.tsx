@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { createReceiveStockBatch } from '../../lib/fifoInventory'
-import { deletePurchaseReceive, receivePurchaseItem, setPurchaseItemReceivedQty } from '../../services/purchase.services'
+import { deletePurchaseItem, deletePurchaseReceive, receivePurchaseItem, setPurchaseItemReceivedQty } from '../../services/purchase.services'
 
 interface PendingProduct {
   id: string
@@ -242,8 +242,9 @@ export default function ReceiveProduct() {
   async function deleteReceive(itemId: string) {
     setDeleting(true)
     try {
-      // Delete every receive row of this purchase item (server reverses
-      // inventory + FIFO effects per receive).
+      // First reverse any received rows (server undoes inventory + FIFO per
+      // receive), then delete the purchase line itself - otherwise a fully
+      // pending item (no receives) would show "deleted" but stay in the list.
       const { data: receives } = await supabase
         .from('purchase_receives')
         .select('id')
@@ -253,11 +254,13 @@ export default function ReceiveProduct() {
         await deletePurchaseReceive(receive.id)
       }
 
+      await deletePurchaseItem(itemId)
+
       await touchOwnerActivity(true)
       toast.success('Record deleted successfully')
       loadPendingItems()
-    } catch (error) {
-      toast.error('Failed to delete record')
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete record')
       console.error(error)
     } finally {
       setDeleting(false)

@@ -122,7 +122,7 @@ export default function CustomerList() {
 
     if (!payload.name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!payload.phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
-    else if (!isValidBdPhone(payload.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
+    else if ((!editItem || payload.phone !== String(editItem.phone || '').trim()) && !isValidBdPhone(payload.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return

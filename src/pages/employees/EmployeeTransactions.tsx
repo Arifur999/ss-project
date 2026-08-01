@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
+import SearchableSelect from '../../components/SearchableSelect'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
@@ -624,18 +625,12 @@ export default function EmployeeTransactions() {
 
           <div>
             <label className="label">{requiredLabel('Expense Category')}</label>
-            <select
-              className={inputClass('category_id', 'h-11')}
+            <SearchableSelect
               value={form.category_id}
-              onChange={e => {
-                clearFormError('category_id')
-                setForm({ ...form, category_id: e.target.value })
-              }}
-              required
-            >
-              <option value="">{t('common_select')}</option>
-              {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
+              onChange={val => { clearFormError('category_id'); setForm({ ...form, category_id: val }) }}
+              options={categories.map(category => ({ value: category.id, label: category.name }))}
+              placeholder={t('common_select')}
+            />
             {fieldError('category_id')}
           </div>
 

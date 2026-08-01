@@ -1309,7 +1309,7 @@ export default function Sales() {
     if (Number.isNaN(date.getTime())) return '-'
     const datePart = date.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-GB', {
       day: '2-digit',
-      month: 'long',
+      month: 'short',
       year: 'numeric',
     })
     const timePart = date.toLocaleTimeString('en-US', {
@@ -3156,7 +3156,7 @@ export default function Sales() {
                       <div className="w-[255px] space-y-2">
                         <p><span className="font-bold">{invoiceLabels.sellerName}:</span> {safeText(seller?.full_name) || '-'}</p>
                         <p><span className="font-bold">{invoiceLabels.sellerPhone}:</span> {safeText(seller?.phone) || '-'}</p>
-                        <p><span className="font-bold">{invoiceLabels.date}:</span> {formatInvoiceDateTime(selectedSale.created_at || selectedSale.date)}</p>
+                        <p><span className="font-bold">{invoiceLabels.date}:</span> <span className="whitespace-nowrap">{formatInvoiceDateTime(selectedSale.created_at || selectedSale.date)}</span></p>
                       </div>
                     )
                   })()}

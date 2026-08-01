@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
+import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -83,6 +84,7 @@ export default function ExpenseTransactions() {
   }
 
   async function deleteExpense(item: any) {
+    if (!(await confirmAction({ title: 'Delete this expense?', message: 'Are you sure you want to delete this expense? It will be moved to the recycle bin.', confirmText: 'Yes, Delete', cancelText: 'Cancel' }))) return
     addRecycleItem({
       type: 'expenses',
       table: 'expenses',

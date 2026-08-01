@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
-import { Pencil, Printer, Search } from 'lucide-react'
+import { Pencil, Printer, Search, Trash2 } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
+import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
+import { deletePurchaseItem } from '../../services/purchase.services'
 import { formatDate } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
@@ -214,6 +216,33 @@ export default function PurchaseLedger() {
     setEditingInvoice(null)
     setEditItems([])
     setEditForm({ si_no: '', supplier_name: '', date: '' })
+  }
+
+  async function removeEditItem(index: number) {
+    const item = editItems[index]
+    if (Number(item.received_qty || 0) > 0) {
+      toast.error('This product is already received and cannot be deleted.')
+      return
+    }
+    if (!(await confirmAction({
+      title: 'Delete this product?',
+      message: 'Are you sure you want to delete this product from the invoice? This cannot be undone.',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel',
+    }))) return
+    try {
+      await deletePurchaseItem(item.id)
+      toast.success('Product deleted')
+      if (editItems.length <= 1) {
+        // Backend removed the whole invoice (it was the last line).
+        closeEditInvoice()
+        await loadLedger()
+      } else {
+        setEditItems(current => current.filter((_, itemIndex) => itemIndex !== index))
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete product')
+    }
   }
 
   function updateEditItem(index: number, field: keyof EditablePurchaseItem, value: string | number) {
@@ -485,6 +514,7 @@ export default function PurchaseLedger() {
                     <th className="px-3 py-3 text-right">Discount %</th>
                     <th className="px-3 py-3 text-right">Actual Price</th>
                     <th className="px-3 py-3 text-right">Total Bill</th>
+                    <th className="px-3 py-3 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -509,6 +539,17 @@ export default function PurchaseLedger() {
                       </td>
                       <td className="px-3 py-3 text-right font-semibold text-slate-800">{formatCurr(item.actual_dp)}</td>
                       <td className="px-3 py-3 text-right font-bold text-slate-800">{formatCurr(item.total_amount)}</td>
+                      <td className="px-3 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeEditItem(index)}
+                          disabled={Number(item.received_qty || 0) > 0}
+                          title={Number(item.received_qty || 0) > 0 ? 'Received items cannot be deleted' : 'Delete product'}
+                          className="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

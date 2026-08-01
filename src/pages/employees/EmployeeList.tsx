@@ -313,7 +313,8 @@ export default function EmployeeList() {
     if (actionType === 'Join') {
       if (!form.name.trim()) nextErrors.name = REQUIRED_FIELD_MESSAGE
       if (!form.phone.trim()) nextErrors.phone = REQUIRED_FIELD_MESSAGE
-      else if (!isValidBdPhone(form.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
+      // Enforce the format on new joins only, so editing a legacy record isn't blocked.
+      else if (!editingId && !isValidBdPhone(form.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
       if (!form.address.trim()) nextErrors.address = REQUIRED_FIELD_MESSAGE
       if (!form.join_date) nextErrors.join_date = REQUIRED_FIELD_MESSAGE
     } else {
@@ -382,13 +383,31 @@ export default function EmployeeList() {
 
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('employee_editTitle') : t('employee_newTitle')}>
         <div className="space-y-3">
-          <div>
-            <label className="label">{requiredLabel('Action Type')}</label>
-            <select className={inputClass('action_type')} value={actionType} onChange={e => handleActionTypeChange(e.target.value as EmployeeActionType)} required>
-              <option value="Join">Join</option>
-              <option value="Resign">Resign</option>
-            </select>
-            {fieldError('action_type')}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label">{requiredLabel('Action Type')}</label>
+              <select className={inputClass('action_type')} value={actionType} onChange={e => handleActionTypeChange(e.target.value as EmployeeActionType)} required>
+                <option value="Join">Join</option>
+                <option value="Resign">Resign</option>
+              </select>
+              {fieldError('action_type')}
+            </div>
+            {actionType === 'Join' && (
+              <div>
+                <label className="label">{requiredLabel(t('employee_joinDate'))}</label>
+                <input
+                  type="date"
+                  className={inputClass('join_date')}
+                  value={form.join_date}
+                  onChange={e => {
+                    clearError('join_date')
+                    setForm({ ...form, join_date: e.target.value })
+                  }}
+                  required
+                />
+                {fieldError('join_date')}
+              </div>
+            )}
           </div>
 
           {actionType === 'Join' && (
@@ -434,20 +453,6 @@ export default function EmployeeList() {
                   required
                 />
                 {fieldError('address')}
-              </div>
-              <div>
-                <label className="label">{requiredLabel(t('employee_joinDate'))}</label>
-                <input
-                  type="date"
-                  className={inputClass('join_date')}
-                  value={form.join_date}
-                  onChange={e => {
-                    clearError('join_date')
-                    setForm({ ...form, join_date: e.target.value })
-                  }}
-                  required
-                />
-                {fieldError('join_date')}
               </div>
             </>
           )}

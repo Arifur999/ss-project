@@ -26,7 +26,9 @@ export default function ProfitWithdraw() {
     shareholder_id: '', shareholder_name: '',
     amount: 0, account_id: '', account_name: '',
     profit_month: new Date().getMonth() + 1,
-    profit_year: new Date().getFullYear(), notes: ''
+    profit_year: new Date().getFullYear(),
+    to_month: new Date().getMonth() + 1,
+    to_year: new Date().getFullYear(), notes: ''
   })
   const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
@@ -74,8 +76,10 @@ export default function ProfitWithdraw() {
       amount: record.amount,
       account_id: record.account_id,
       account_name: record.account_name,
-      profit_month: record.profit_month,
-      profit_year: record.profit_year,
+      profit_month: record.profit_month || new Date().getMonth() + 1,
+      profit_year: record.profit_year || new Date().getFullYear(),
+      to_month: record.to_month || record.profit_month || new Date().getMonth() + 1,
+      to_year: record.to_year || record.profit_year || new Date().getFullYear(),
       notes: record.notes
     })
     setShowModal(true)
@@ -107,15 +111,23 @@ export default function ProfitWithdraw() {
       shareholder_id: '', shareholder_name: '',
       amount: 0, account_id: '', account_name: '',
       profit_month: new Date().getMonth() + 1,
-      profit_year: new Date().getFullYear(), notes: ''
+      profit_year: new Date().getFullYear(),
+      to_month: new Date().getMonth() + 1,
+      to_year: new Date().getFullYear(), notes: ''
     })
     setShowModal(false)
   }
 
   const filtered = useMemo(() => records.filter(r => inPeriod(r.date, period, fromDate, toDate)), [records, period, fromDate, toDate])
-  const byOwner: Record<string, number> = {}
-  filtered.forEach(r => { byOwner[r.shareholder_name] = (byOwner[r.shareholder_name] || 0) + Number(r.amount) })
   const totalWithdrawn = filtered.reduce((s, r) => s + Number(r.amount), 0)
+
+  // "Aug 2025" or "Aug 2025 → Feb 2026" when a range is set.
+  const monthRangeText = (r: any) => {
+    const from = r.profit_month ? `${monthName(r.profit_month)} ${r.profit_year || ''}`.trim() : ''
+    const to = r.to_month ? `${monthName(r.to_month)} ${r.to_year || ''}`.trim() : ''
+    if (from && to && (r.profit_month !== r.to_month || r.profit_year !== r.to_year)) return `${from} → ${to}`
+    return from || to || '-'
+  }
 
   function handlePrint() {
     printTable({
@@ -128,7 +140,7 @@ export default function ProfitWithdraw() {
       ],
       rows: filtered.map((r, i) => [
         i + 1, formatDate(r.date), r.shareholder_name || '-',
-        formatCurr(r.amount), `${monthName(r.profit_month)} ${r.profit_year}`,
+        formatCurr(r.amount), monthRangeText(r),
         r.account_name || '-', r.notes || '',
       ]),
       totalRow: ['', 'Total', '', formatCurr(totalWithdrawn), '', '', ''],
@@ -138,21 +150,6 @@ export default function ProfitWithdraw() {
   return (
     <div className="p-6">
       <PageHeader title={t('profitWithdraw_title')} subtitle={t('profitWithdraw_title')} actions={<button onClick={() => setShowModal(true)} className="btn-primary"><Plus size={16} /> {t('profitWithdraw_new')}</button>} />
-
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="card col-span-1"><p className="text-xs text-slate-500">{t('profitWithdraw_totalWithdrawal')}</p><p className="text-2xl font-bold text-brand-red mt-1">{formatCurr(totalWithdrawn)}</p></div>
-        <div className="card col-span-3">
-          <p className="text-xs text-slate-500 font-medium mb-3">{t('profitWithdraw_ownerSummary')}</p>
-          <div className="grid grid-cols-3 gap-3">
-            {Object.entries(byOwner).map(([name, amount]) => (
-              <div key={name} className="flex justify-between text-sm p-2 bg-slate-50 rounded-lg">
-                <span className="text-slate-600">{name}</span>
-                <span className="font-semibold text-brand-red">{formatCurr(amount)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <div className="card overflow-x-auto p-0">
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -179,7 +176,7 @@ export default function ProfitWithdraw() {
                 <td className="py-2.5 px-4">{formatDate(r.date)}</td>
                 <td className="py-2.5 px-4 font-medium">{r.shareholder_name}</td>
                 <td className="py-2.5 px-4 text-right text-brand-red font-medium">{formatCurr(r.amount)}</td>
-                <td className="py-2.5 px-4 text-slate-500">{monthName(r.profit_month)} {r.profit_year}</td>
+                <td className="py-2.5 px-4 text-slate-500 whitespace-nowrap">{monthRangeText(r)}</td>
                 <td className="py-2.5 px-4 text-slate-500">{r.account_name}</td>
                 <td className="py-2.5 px-4 text-slate-400">{r.notes}</td>
                 <td className="py-2.5 px-4 text-right">
@@ -208,16 +205,22 @@ export default function ProfitWithdraw() {
             </select>
           </div>
           <div><label className="label">{t('profitWithdraw_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">{t('profitWithdraw_whichMonth')}</label>
-              <select className="input" value={form.profit_month} onChange={e => setForm({ ...form, profit_month: Number(e.target.value) })}>
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>{monthName(i + 1)}</option>
-                ))}
-              </select>
+          <div>
+            <label className="label">{t('profitWithdraw_whichMonth', 'From month')} → To month</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                <select className="input" value={form.profit_month} onChange={e => setForm({ ...form, profit_month: Number(e.target.value) })}>
+                  {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{monthName(i + 1)}</option>)}
+                </select>
+                <input type="number" className="input" value={form.profit_year} onChange={e => setForm({ ...form, profit_year: Number(e.target.value) })} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select className="input" value={form.to_month} onChange={e => setForm({ ...form, to_month: Number(e.target.value) })}>
+                  {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{monthName(i + 1)}</option>)}
+                </select>
+                <input type="number" className="input" value={form.to_year} onChange={e => setForm({ ...form, to_year: Number(e.target.value) })} />
+              </div>
             </div>
-            <div><label className="label">{t('common_year')}</label><input type="number" className="input" value={form.profit_year} onChange={e => setForm({ ...form, profit_year: Number(e.target.value) })} /></div>
           </div>
           <div>
             <label className="label">{t('invest_colAccount')}</label>

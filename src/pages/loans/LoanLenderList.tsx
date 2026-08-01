@@ -169,7 +169,7 @@ export default function LoanLenderList() {
     if (!name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!lenderType) nextErrors.lender_type = REQUIRED_FIELD_MESSAGE
     if (!phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
-    else if (!isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
+    else if ((!editItem || phone !== String(editItem.phone || '').trim()) && !isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return

@@ -21,7 +21,7 @@ export default function InvestWithdraw() {
   const [showModal, setShowModal] = useState(false)
   const { user } = useAuth()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], shareholder_id: '', shareholder_name: '', invest_amount: 0, withdraw_amount: 0, account_id: '', account_name: '', notes: '' })
+  const [form, setForm] = useState<{ date: string; type: 'invest' | 'withdraw'; shareholder_id: string; amount: number; account_id: string; notes: string }>({ date: new Date().toISOString().split('T')[0], type: 'invest', shareholder_id: '', amount: 0, account_id: '', notes: '' })
   const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -39,13 +39,26 @@ export default function InvestWithdraw() {
 
   async function save() {
     if (!form.shareholder_id || !form.account_id) { toast.error(t('invest_fillAllFields')); return }
+    if (!form.amount || Number(form.amount) <= 0) { toast.error(t('invest_fillAllFields')); return }
     const sh = shareholders.find(s => s.id === form.shareholder_id)
     const acc = accounts.find(a => a.id === form.account_id)
+    const amt = Number(form.amount || 0)
+
+    const payload = {
+      date: form.date,
+      shareholder_id: form.shareholder_id,
+      shareholder_name: sh?.name || '',
+      invest_amount: form.type === 'invest' ? amt : 0,
+      withdraw_amount: form.type === 'withdraw' ? amt : 0,
+      account_id: form.account_id,
+      account_name: acc?.name || '',
+      notes: form.notes,
+    }
 
     if (editingId) {
-      await supabase.from('investments').update({ ...form, shareholder_name: sh?.name || '', account_name: acc?.name || '' }).eq('id', editingId)
+      await supabase.from('investments').update(payload).eq('id', editingId)
     } else {
-      await supabase.from('investments').insert({ ...form, shareholder_name: sh?.name || '', account_name: acc?.name || '', created_by: user?.id })
+      await supabase.from('investments').insert({ ...payload, created_by: user?.id })
     }
 
     toast.success(t('invest_saved')); resetForm(); loadAll()
@@ -53,7 +66,14 @@ export default function InvestWithdraw() {
 
   function editRecord(record: any) {
     setEditingId(record.id)
-    setForm({ date: record.date, shareholder_id: record.shareholder_id, shareholder_name: record.shareholder_name, invest_amount: record.invest_amount, withdraw_amount: record.withdraw_amount, account_id: record.account_id, account_name: record.account_name, notes: record.notes })
+    setForm({
+      date: record.date,
+      type: Number(record.withdraw_amount || 0) > 0 ? 'withdraw' : 'invest',
+      shareholder_id: record.shareholder_id,
+      amount: Number(record.withdraw_amount || 0) > 0 ? Number(record.withdraw_amount) : Number(record.invest_amount || 0),
+      account_id: record.account_id,
+      notes: record.notes,
+    })
     setShowModal(true)
   }
 
@@ -77,7 +97,7 @@ export default function InvestWithdraw() {
 
   function resetForm() {
     setEditingId(null)
-    setForm({ date: new Date().toISOString().split('T')[0], shareholder_id: '', shareholder_name: '', invest_amount: 0, withdraw_amount: 0, account_id: '', account_name: '', notes: '' })
+    setForm({ date: new Date().toISOString().split('T')[0], type: 'invest', shareholder_id: '', amount: 0, account_id: '', notes: '' })
     setShowModal(false)
   }
 
@@ -161,14 +181,20 @@ export default function InvestWithdraw() {
         <div className="space-y-3">
           <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
+            <label className="label">{t('common_type', 'Type')}</label>
+            <select className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'invest' | 'withdraw' })}>
+              <option value="invest">{t('invest_totalInvestment', 'Investment')}</option>
+              <option value="withdraw">{t('invest_totalWithdrawal', 'Withdrawal')}</option>
+            </select>
+          </div>
+          <div>
             <label className="label">{t('invest_colShareholder')}</label>
             <select className="input" value={form.shareholder_id} onChange={e => setForm({ ...form, shareholder_id: e.target.value })}>
               <option value="">{t('common_select')}</option>
               {shareholders.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
-          <div><label className="label">{t('invest_investAmount')}</label><input type="number" min="0" className="input" value={form.invest_amount || ''} onChange={e => setForm({ ...form, invest_amount: Number(e.target.value) })} /></div>
-          <div><label className="label">{t('invest_withdrawAmount')}</label><input type="number" min="0" className="input" value={form.withdraw_amount || ''} onChange={e => setForm({ ...form, withdraw_amount: Number(e.target.value) })} /></div>
+          <div><label className="label">{t('common_amount', 'Amount')} (৳)</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
             <label className="label">{t('invest_colAccount')}</label>
             <select className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>

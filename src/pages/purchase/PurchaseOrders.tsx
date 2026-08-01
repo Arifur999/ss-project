@@ -331,6 +331,17 @@ export default function PlaceOrder() {
     }
 
     setItems(current => {
+      // If this product is already in the order, bump its quantity instead of
+      // adding a duplicate row.
+      const existingIndex = current.findIndex(item => item.product_id && item.product_id === product.id)
+      if (existingIndex >= 0) {
+        const next = [...current]
+        const ex = next[existingIndex]
+        const qty = Number(ex.qty || 0) + 1
+        const total = Number(ex.actual_dp || 0) * qty
+        next[existingIndex] = { ...ex, qty, total_amount: total, deposit_amount: Math.max(0, total - Number(ex.sp_amount || 0)) }
+        return next
+      }
       const emptyIndex = current.findIndex(item => !item.product_code && !item.product_name)
       if (emptyIndex >= 0) {
         const next = [...current]

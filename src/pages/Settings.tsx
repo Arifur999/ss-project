@@ -1227,7 +1227,9 @@ function ShareholderModal({ item, onClose }: { item: any; onClose: () => void })
 
     if (!name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
-    else if (!isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
+    // Only enforce the format for new records or when the phone was changed, so
+    // editing an old record with a legacy number isn't blocked.
+    else if ((!item || phone !== String(item.phone || '').trim()) && !isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -1390,7 +1392,7 @@ function SupplierModal({ item, onClose }: { item: any; onClose: () => void }) {
   async function save() {
     if (!form.company_name.trim()) { toast.error(t('settings_companyNameRequired')); return }
     if (!form.phone.trim()) { toast.error(t('settings_phoneRequired')); return }
-    if (!isValidBdPhone(form.phone)) { toast.error(INVALID_PHONE_MESSAGE); return }
+    if ((!item || form.phone.trim() !== String(item.phone || '').trim()) && !isValidBdPhone(form.phone)) { toast.error(INVALID_PHONE_MESSAGE); return }
     setLoading(true)
     try {
       const payload = { ...form, name: form.company_name }

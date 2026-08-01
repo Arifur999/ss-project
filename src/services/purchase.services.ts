@@ -16,6 +16,7 @@ export const deletePurchaseReceive = (receiveId: string) =>
 export const setPurchaseItemReceivedQty = (itemId: string, receivedQty: number) =>
   http.patch<any>(`/purchases/items/${itemId}/received-qty`, { received_qty: receivedQty })
 export const deletePurchase = (id: string, recycle?: RecycleMeta) => http.delete<any>(`/purchases/${id}`, { recycle })
+export const deletePurchaseItem = (itemId: string) => http.delete<any>(`/purchases/items/${itemId}`)
 
 // ---------- Supplier payments ----------
 export const getSupplierPayments = () => http.get<any[]>('/supplier-payments')
