@@ -16,6 +16,7 @@ import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
+import { calculateRollingDailyTargets } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import toast from 'react-hot-toast'
@@ -458,29 +459,54 @@ export default function ReportSummary() {
         ensureDay(key).profit += amount(income.amount)
       })
       const dailyKeys = Object.keys(dailyMap).sort()
-      const totalDays = dailyKeys.length
-      // Rolling daily target (owner's exact reference formula): each day's target
-      // is the still-remaining monthly target / days left (incl. that day), then
-      // that day's actual sales are deducted for the next day. High-sale days pull
-      // the following targets down; low/zero-sale days push them up.
-      //   remainingTarget = monthlyTarget
-      //   for day = 1..D:
-      //     target(day)   = remainingTarget / (D - day + 1)
-      //     remainingTarget -= sales(day)
-      let remainingTarget = salesTarget
-      const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map((key, index) => {
-        const remainingDays = totalDays - index // = D - day + 1 (index is 0-based)
-        const target = remainingDays > 0 ? Number((remainingTarget / remainingDays).toFixed(2)) : 0
-        const daySales = dailyMap[key].sales
-        remainingTarget -= daySales
-        return {
-          label: String(Number(key.slice(8, 10))),
-          target,
-          sales: daySales,
-          profit: dailyMap[key].profit,
-          expense: dailyMap[key].expense,
-        }
-      })
+      const emptyBucket = { sales: 0, profit: 0, expense: 0 }
+
+      let dailyPerformance: DailyPerformanceRow[]
+      if (filterMode === 'monthly') {
+        // Rolling daily target over the full calendar month, using the owner's
+        // exact reference util. Keyed by real day-of-month so it never depends
+        // on how many days actually have data.
+        const bucketByDay = new Map<number, { sales: number; profit: number; expense: number }>()
+        dailyKeys.forEach(key => bucketByDay.set(Number(key.slice(8, 10)), dailyMap[key]))
+        const salesByDay: Record<number, number> = {}
+        bucketByDay.forEach((bucket, day) => { salesByDay[day] = bucket.sales })
+
+        const rollingResult = calculateRollingDailyTargets({
+          monthlyTarget: salesTarget,
+          year: selectedYear,
+          month: selectedMonth,
+          dailySalesMap: salesByDay,
+          asOfDate: new Date(),
+        })
+
+        dailyPerformance = rollingResult.dailyCalculations.map((entry) => {
+          const bucket = bucketByDay.get(entry.day) || emptyBucket
+          return {
+            label: String(entry.day),
+            target: entry.targetAmount,
+            sales: bucket.sales,
+            profit: bucket.profit,
+            expense: bucket.expense,
+          }
+        })
+      } else {
+        // Custom range: the month-based util doesn't fit an arbitrary span, so
+        // apply the same rolling formula across the selected days directly.
+        let remaining = salesTarget
+        dailyPerformance = dailyKeys.map((key, index) => {
+          const remainingDays = dailyKeys.length - index
+          const target = remainingDays > 0 ? Number((Math.max(0, remaining) / remainingDays).toFixed(2)) : 0
+          const bucket = dailyMap[key]
+          remaining = Math.max(0, remaining - bucket.sales)
+          return {
+            label: String(Number(key.slice(8, 10))),
+            target,
+            sales: bucket.sales,
+            profit: bucket.profit,
+            expense: bucket.expense,
+          }
+        })
+      }
 
       setData({
         salesTarget,
