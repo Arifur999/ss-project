@@ -459,22 +459,23 @@ export default function ReportSummary() {
       })
       const dailyKeys = Object.keys(dailyMap).sort()
       const totalDays = dailyKeys.length
-      // Adaptive "catch-up" daily target:
-      // - REALIZED days (up to & including TODAY) each show unmet-target / days-
-      //   left at that point, so e.g. day 1 of a 31-day month = target/31, and if
-      //   day 1 oversold, the following days drop.
-      // - FUTURE days (strictly after today) share the target still unmet AFTER
-      //   today's actual sales, split EVENLY (so no end-of-month spike). Example:
-      //   Aug target 2,000,000; sold 80,000 on Aug 1 -> Aug 2..31 each show
-      //   (2,000,000 - 80,000) / 30 = 64,000.
+      // Running-balance daily target:
+      // - PAST days (strictly before today) are LOCKED at the value they held
+      //   when that day began = unmet-target-then / days-left-then.
+      // - TODAY is NOT finished, so it shares the SAME target as every UPCOMING
+      //   day: the target still unmet BEFORE today, split evenly over today..end.
+      //   Only once today rolls into the past does it lock (with its real sales)
+      //   and the remaining days recalculate. Example (target 100,000 / 10 days):
+      //   day 1 sold 15,000 -> days 2..10 each (100,000-15,000)/9 = 9,444; after
+      //   day 2 ends with 0 sales -> days 3..10 each (85,000)/8 = 10,625.
       const todayKey = isoDate(new Date())
-      const firstFutureIndex = dailyKeys.findIndex(key => key > todayKey)
+      const firstFutureIndex = dailyKeys.findIndex(key => key >= todayKey)
       const hasFuture = firstFutureIndex !== -1
-      // Sales realized up to & including today (everything before the future cut).
-      const realizedSalesTotal = (hasFuture ? dailyKeys.slice(0, firstFutureIndex) : dailyKeys)
+      // Sales locked in on the days strictly before today.
+      const pastSalesTotal = (hasFuture ? dailyKeys.slice(0, firstFutureIndex) : dailyKeys)
         .reduce((sum, key) => sum + dailyMap[key].sales, 0)
       const futureCount = hasFuture ? totalDays - firstFutureIndex : 0
-      const evenFutureTarget = futureCount > 0 ? Math.max(0, salesTarget - realizedSalesTotal) / futureCount : 0
+      const evenFutureTarget = futureCount > 0 ? Math.max(0, salesTarget - pastSalesTotal) / futureCount : 0
 
       let achievedSoFar = 0
       const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map((key, index) => {
