@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Settings, Wallet, TrendingUp, ArrowLeftRight,
   CreditCard, Package, ShoppingCart, Boxes, Users, BarChart3,
@@ -21,6 +21,7 @@ export default function Layout() {
   const { lang, setLang, t } = useLang()
   const businessBrand = useBusinessBrand()
   const navigate = useNavigate()
+  const location = useLocation()
 
   function toggleGroup(key: string) {
     setExpandedGroup(prev => (prev === key ? null : key))
@@ -140,6 +141,20 @@ export default function Layout() {
   }
 
   const navGroups = profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups
+
+  // Keep the sidebar in sync with the current route: whenever the URL changes
+  // (clicks, programmatic redirects, refresh), auto-open the group that owns the
+  // active page so it's visible + highlighted, and collapse groups otherwise.
+  useEffect(() => {
+    const pathname = location.pathname
+    const activeGroup = navGroups.find((group: any) =>
+      group.children?.some((child: any) =>
+        pathname === child.path || pathname.startsWith(child.path + '/')
+      )
+    )
+    setExpandedGroup(activeGroup ? activeGroup.key : null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   function renderItem(item: any, depth = 0): React.ReactNode {
     if (item.children) {
