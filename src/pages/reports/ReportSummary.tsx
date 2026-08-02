@@ -730,21 +730,22 @@ export default function ReportSummary() {
               </select>
             </label>
             {filterMode === 'monthly' ? (
-              <>
+              <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
                   <CalendarDays size={16} className="text-slate-400" />
-                  <select className="min-w-[120px] bg-transparent outline-none" value={selectedMonth} onChange={event => setSelectedMonth(Number(event.target.value))}>
+                  <select className="min-w-[120px] flex-1 bg-transparent outline-none" value={selectedMonth} onChange={event => setSelectedMonth(Number(event.target.value))}>
                     {monthOptions.map(month => <option key={month} value={month}>{monthName(month)}</option>)}
                     {monthOptions.length === 0 && <option value={selectedMonth}>{monthName(selectedMonth)}</option>}
                   </select>
                 </label>
                 <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                  <select className="min-w-[90px] bg-transparent outline-none" value={selectedYear} onChange={event => handleYearChange(Number(event.target.value))}>
+                  <CalendarDays size={16} className="text-slate-400" />
+                  <select className="min-w-[120px] flex-1 bg-transparent outline-none" value={selectedYear} onChange={event => handleYearChange(Number(event.target.value))}>
                     {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
                     {yearOptions.length === 0 && <option value={selectedYear}>{selectedYear}</option>}
                   </select>
                 </label>
-              </>
+              </div>
             ) : (
               <>
                 <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
