@@ -11,7 +11,7 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -463,26 +463,23 @@ export default function ReportSummary() {
 
       let dailyPerformance: DailyPerformanceRow[]
       if (filterMode === 'monthly') {
-        // Rolling Equal Daily Target: completed days keep the target they opened
-        // with; every remaining day (today included, since today isn't finished)
-        // shares one equal target = remaining target / remaining days.
+        // Rolling Equal Daily Target engine (owner's reference): days up to and
+        // including the last COMPLETED day lock their running-balance value;
+        // today + all future days share ONE equal target. A day counts as
+        // completed only once the calendar has moved past it.
         const bucketByDay = new Map<number, { sales: number; profit: number; expense: number }>()
         dailyKeys.forEach(key => bucketByDay.set(Number(key.slice(8, 10)), dailyMap[key]))
         const salesByDay: Record<number, number> = {}
         bucketByDay.forEach((bucket, day) => { salesByDay[day] = bucket.sales })
 
-        // A day only counts as completed once it has fully ended, so for the
-        // running month that is yesterday; past months are fully complete and
-        // future months have nothing completed yet.
         const now = new Date()
-        const currentYear = now.getFullYear()
-        const currentMonth = now.getMonth() + 1
-        const isCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth
-        const isPastMonth = selectedYear < currentYear || (selectedYear === currentYear && selectedMonth < currentMonth)
-        const completedThroughDay = isCurrentMonth
-          ? now.getDate() - 1
-          : isPastMonth
-            ? getDaysInMonth(selectedYear, selectedMonth)
+        const isCurrentMonth = now.getFullYear() === selectedYear && now.getMonth() + 1 === selectedMonth
+        const isPastMonth = selectedYear < now.getFullYear() ||
+          (selectedYear === now.getFullYear() && selectedMonth < now.getMonth() + 1)
+        const completedThroughDay = isPastMonth
+          ? getDaysInMonth(selectedYear, selectedMonth)
+          : isCurrentMonth
+            ? now.getDate() - 1
             : 0
 
         const rollingResult = calculateRollingTargets({
@@ -504,23 +501,23 @@ export default function ReportSummary() {
           }
         })
       } else {
-        // Custom range: the month-based engine doesn't fit an arbitrary span, so
-        // apply the same rule inline - completed days (strictly before today)
-        // roll, and every remaining day shares one equal target.
+        // Custom range: same semantics applied over the selected days - days
+        // strictly before today lock their running-balance value; today and
+        // later days share one equal target.
         const todayKey = isoDate(new Date())
-        const completedCount = dailyKeys.filter(key => key < todayKey).length
+        const firstOpenIndex = dailyKeys.findIndex(key => key >= todayKey)
+        const completedCount = firstOpenIndex === -1 ? dailyKeys.length : firstOpenIndex
+
         let remaining = Math.max(0, salesTarget)
         const targets: number[] = []
-
-        for (let index = 0; index < completedCount; index += 1) {
-          const remainingDaysIncludingToday = dailyKeys.length - index
-          targets.push(remainingDaysIncludingToday > 0 ? Number((remaining / remainingDaysIncludingToday).toFixed(2)) : 0)
-          remaining = Math.max(0, remaining - dailyMap[dailyKeys[index]].sales)
+        for (let i = 0; i < completedCount; i++) {
+          const remainingDays = dailyKeys.length - i
+          targets.push(remainingDays > 0 ? Number((remaining / remainingDays).toFixed(2)) : 0)
+          remaining = Math.max(0, remaining - dailyMap[dailyKeys[i]].sales)
         }
-
-        const remainingDays = dailyKeys.length - completedCount
-        const equalTarget = remainingDays > 0 ? Number((remaining / remainingDays).toFixed(2)) : 0
-        for (let index = completedCount; index < dailyKeys.length; index += 1) targets.push(equalTarget)
+        const openDays = dailyKeys.length - completedCount
+        const equalTarget = openDays > 0 ? Number((remaining / openDays).toFixed(2)) : 0
+        for (let i = completedCount; i < dailyKeys.length; i++) targets.push(equalTarget)
 
         dailyPerformance = dailyKeys.map((key, index) => {
           const bucket = dailyMap[key]
@@ -569,6 +566,10 @@ export default function ReportSummary() {
   const achievedProfit = data.grossProfit + data.purchaseIncentive + data.totalOtherIncome
   const profitAchievedPct = pct(achievedProfit, data.profitTarget)
   const profitMargin = data.totalSales > 0 ? (data.profitLoss / data.totalSales) * 100 : 0
+
+  // Width so 4 bars per day stay readable; scrolls horizontally when the month
+  // has many days on a narrow screen.
+  const chartInnerWidth = Math.max(680, data.dailyPerformance.length * 42)
 
   function ProgressCard({
     title,
@@ -851,19 +852,22 @@ export default function ReportSummary() {
                 <div className="bg-slate-800 px-4 py-3 text-center">
                   <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">Performance Overview</h2>
                 </div>
-                {/* Same shape as the Daily Sales & Profit chart on MonthlyReport:
-                    full width (no horizontal scroll), Sales + Profit bars only. */}
-                <div className="px-3 py-5 sm:px-5">
-                  <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={data.dailyPerformance}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
-                      <Tooltip formatter={(value: number) => formatCurr(value)} labelFormatter={label => `Day ${label}`} />
-                      <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[3, 3, 0, 0]} />
-                      <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[3, 3, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="overflow-x-auto px-3 py-5 sm:px-5">
+                  <div style={{ minWidth: chartInnerWidth }}>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
+                        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
+                        <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} labelFormatter={label => `Day ${label}`} />
+                        <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
+                        <Bar dataKey="target" name="Target" fill="#94a3b8" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="expense" name="Expense" fill="#E24B4A" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </section>
               <ReportBreakdownTable
