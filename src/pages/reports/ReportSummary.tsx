@@ -11,7 +11,7 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
-import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -820,18 +820,17 @@ export default function ReportSummary() {
                 <div className="overflow-x-auto px-3 py-5 sm:px-5">
                   <div style={{ minWidth: chartInnerWidth }}>
                     <ResponsiveContainer width="100%" height={320}>
-                      <ComposedChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
+                      <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
                         <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
                         <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} labelFormatter={label => `Day ${label}`} />
                         <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
-                        {/* Dynamic running-balance target as a line; actuals as bars. */}
+                        <Bar dataKey="target" name="Target" fill="#94a3b8" radius={[2, 2, 0, 0]} />
                         <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[2, 2, 0, 0]} />
                         <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[2, 2, 0, 0]} />
                         <Bar dataKey="expense" name="Expense" fill="#E24B4A" radius={[2, 2, 0, 0]} />
-                        <Line type="monotone" dataKey="target" name="Target" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 2, fill: '#6366f1' }} activeDot={{ r: 4 }} />
-                      </ComposedChart>
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
