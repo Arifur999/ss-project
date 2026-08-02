@@ -16,7 +16,7 @@ import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
-import { calculateRollingDailyTargets } from '../../lib/rollingTarget'
+import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import toast from 'react-hot-toast'
@@ -463,44 +463,70 @@ export default function ReportSummary() {
 
       let dailyPerformance: DailyPerformanceRow[]
       if (filterMode === 'monthly') {
-        // Rolling daily target over the full calendar month, using the owner's
-        // exact reference util. Keyed by real day-of-month so it never depends
-        // on how many days actually have data.
+        // Rolling Equal Daily Target: completed days keep the target they opened
+        // with; every remaining day (today included, since today isn't finished)
+        // shares one equal target = remaining target / remaining days.
         const bucketByDay = new Map<number, { sales: number; profit: number; expense: number }>()
         dailyKeys.forEach(key => bucketByDay.set(Number(key.slice(8, 10)), dailyMap[key]))
         const salesByDay: Record<number, number> = {}
         bucketByDay.forEach((bucket, day) => { salesByDay[day] = bucket.sales })
 
-        const rollingResult = calculateRollingDailyTargets({
+        // A day only counts as completed once it has fully ended, so for the
+        // running month that is yesterday; past months are fully complete and
+        // future months have nothing completed yet.
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() + 1
+        const isCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth
+        const isPastMonth = selectedYear < currentYear || (selectedYear === currentYear && selectedMonth < currentMonth)
+        const completedThroughDay = isCurrentMonth
+          ? now.getDate() - 1
+          : isPastMonth
+            ? getDaysInMonth(selectedYear, selectedMonth)
+            : 0
+
+        const rollingResult = calculateRollingTargets({
           monthlyTarget: salesTarget,
           year: selectedYear,
           month: selectedMonth,
           dailySalesMap: salesByDay,
-          asOfDate: new Date(),
+          completedThroughDay,
         })
 
-        dailyPerformance = rollingResult.dailyCalculations.map((entry) => {
-          const bucket = bucketByDay.get(entry.day) || emptyBucket
+        dailyPerformance = rollingResult.dailyRecords.map((record) => {
+          const bucket = bucketByDay.get(record.day) || emptyBucket
           return {
-            label: String(entry.day),
-            target: entry.targetAmount,
+            label: String(record.day),
+            target: record.openingTarget,
             sales: bucket.sales,
             profit: bucket.profit,
             expense: bucket.expense,
           }
         })
       } else {
-        // Custom range: the month-based util doesn't fit an arbitrary span, so
-        // apply the same rolling formula across the selected days directly.
-        let remaining = salesTarget
+        // Custom range: the month-based engine doesn't fit an arbitrary span, so
+        // apply the same rule inline - completed days (strictly before today)
+        // roll, and every remaining day shares one equal target.
+        const todayKey = isoDate(new Date())
+        const completedCount = dailyKeys.filter(key => key < todayKey).length
+        let remaining = Math.max(0, salesTarget)
+        const targets: number[] = []
+
+        for (let index = 0; index < completedCount; index += 1) {
+          const remainingDaysIncludingToday = dailyKeys.length - index
+          targets.push(remainingDaysIncludingToday > 0 ? Number((remaining / remainingDaysIncludingToday).toFixed(2)) : 0)
+          remaining = Math.max(0, remaining - dailyMap[dailyKeys[index]].sales)
+        }
+
+        const remainingDays = dailyKeys.length - completedCount
+        const equalTarget = remainingDays > 0 ? Number((remaining / remainingDays).toFixed(2)) : 0
+        for (let index = completedCount; index < dailyKeys.length; index += 1) targets.push(equalTarget)
+
         dailyPerformance = dailyKeys.map((key, index) => {
-          const remainingDays = dailyKeys.length - index
-          const target = remainingDays > 0 ? Number((Math.max(0, remaining) / remainingDays).toFixed(2)) : 0
           const bucket = dailyMap[key]
-          remaining = Math.max(0, remaining - bucket.sales)
           return {
             label: String(Number(key.slice(8, 10))),
-            target,
+            target: targets[index],
             sales: bucket.sales,
             profit: bucket.profit,
             expense: bucket.expense,

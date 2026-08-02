@@ -1,102 +1,200 @@
-// utils/rollingTarget.ts
+/**
+ * Rolling Equal Daily Target Engine
+ *
+ * Rule:
+ * 1. Monthly target remaining days-এর মধ্যে সমানভাবে ভাগ হবে।
+ * 2. Completed day-এর actual sales remaining target থেকে বাদ যাবে।
+ * 3. সব future day-এর target একই থাকবে।
+ * 4. Zero-sale day completed হলে completedThroughDay update করতে হবে।
+ */
 
 export interface DailySalesMap {
-  [dayNumber: number]: number; // Key: Day (1-31), Value: Sales Amount
+  [day: number]: number;
 }
 
-export interface RollingTargetInput {
+export interface RollingTargetConfig {
   monthlyTarget: number;
   year: number;
-  month: number; // 1-indexed (1 = January, 8 = August)
+  month: number; // 1 = January, 12 = December
+
+  /**
+   * প্রতিদিনের actual sales।
+   *
+   * Example:
+   * {
+   *   1: 32000,
+   *   2: 10000,
+   *   3: 0
+   * }
+   */
   dailySalesMap: DailySalesMap;
-  asOfDate?: Date; // Optional, defaults to current day of the month
+
+  /**
+   * সর্বশেষ completed day।
+   *
+   * কোনো দিন sales 0 হলেও দিনটি শেষ হলে এখানে day number দিতে হবে।
+   *
+   * Example:
+   * Day 1 শেষ হলে: 1
+   * Day 2 শেষ হলে: 2
+   * মাস এখনো শুরু না হলে: 0
+   */
+  completedThroughDay: number;
 }
 
-export interface DailyTargetCalculation {
+export interface DailyTargetRecord {
   day: number;
-  dateString: string; // Format: YYYY-MM-DD
-  targetAmount: number;
+  dateString: string;
+  status: "completed" | "future";
+  openingTarget: number;
   actualSales: number;
-  cumulativeSalesToDate: number;
-  remainingTargetAfterToday: number;
-  isPast: boolean;
-  isCurrent: boolean;
-  isFuture: boolean;
+  remainingTargetAfterSales: number;
+  futureDailyTarget: number;
 }
 
-export interface MonthlyTargetSummary {
+export interface RollingTargetSummary {
   monthlyTarget: number;
-  totalSalesToDate: number;
-  remainingMonthlyTarget: number;
   totalDaysInMonth: number;
-  daysRemaining: number;
-  dailyCalculations: DailyTargetCalculation[];
+  completedThroughDay: number;
+  totalSales: number;
+  remainingTarget: number;
+  remainingDays: number;
+  currentDailyTarget: number;
+  dailyRecords: DailyTargetRecord[];
 }
 
-/**
- * Helper to get exact total days in a specific month & year (handles leap years)
- */
-export function getDaysInMonth(year: number, month: number): number {
+function roundMoney(value: number): number {
+  return Number(value.toFixed(2));
+}
+
+export function getDaysInMonth(
+  year: number,
+  month: number
+): number {
   return new Date(year, month, 0).getDate();
 }
 
-/**
- * Calculates Rolling Dynamic Target Allocation
- */
-export function calculateRollingDailyTargets(input: RollingTargetInput): MonthlyTargetSummary {
-  const { monthlyTarget, year, month, dailySalesMap, asOfDate = new Date() } = input;
+export function calculateRollingTargets(
+  config: RollingTargetConfig
+): RollingTargetSummary {
+  const {
+    monthlyTarget,
+    year,
+    month,
+    dailySalesMap,
+  } = config;
 
   const totalDaysInMonth = getDaysInMonth(year, month);
-  const currentDayNumber = asOfDate.getMonth() + 1 === month && asOfDate.getFullYear() === year
-    ? asOfDate.getDate()
-    : 1;
 
-  let remainingTarget = monthlyTarget;
-  let runningCumulativeSales = 0;
-  const dailyCalculations: DailyTargetCalculation[] = [];
+  const completedThroughDay = Math.min(
+    totalDaysInMonth,
+    Math.max(0, config.completedThroughDay)
+  );
 
-  for (let day = 1; day <= totalDaysInMonth; day++) {
-    const remainingDays = totalDaysInMonth - day + 1;
+  let remainingTarget = Math.max(0, monthlyTarget);
+  let totalSales = 0;
 
-    // Formula: Remaining Target / Remaining Days
-    let currentDayTarget = remainingDays > 0 ? remainingTarget / remainingDays : 0;
+  const dailyRecords: DailyTargetRecord[] = [];
 
-    // Ensure target never drops below zero
-    if (currentDayTarget < 0) currentDayTarget = 0;
+  /*
+   * শুধু completed দিনগুলোর হিসাব করা হচ্ছে।
+   * প্রতিটি completed day-এর শুরুতে তখনকার remaining target
+   * তখনকার remaining days দিয়ে ভাগ হবে।
+   */
+  for (let day = 1; day <= completedThroughDay; day++) {
+    const remainingDaysIncludingToday =
+      totalDaysInMonth - day + 1;
 
-    const todaysSales = dailySalesMap[day] || 0;
-    runningCumulativeSales += todaysSales;
+    const openingTarget =
+      remainingDaysIncludingToday > 0
+        ? remainingTarget / remainingDaysIncludingToday
+        : 0;
 
-    // Deduct today's actual sales from remaining target for the next iteration
-    remainingTarget -= todaysSales;
-    if (remainingTarget < 0) remainingTarget = 0;
+    const actualSales = Math.max(
+      0,
+      Number(dailySalesMap[day] ?? 0)
+    );
 
-    // Date formatting YYYY-MM-DD
-    const formattedMonth = String(month).padStart(2, '0');
-    const formattedDay = String(day).padStart(2, '0');
-    const dateString = `${year}-${formattedMonth}-${formattedDay}`;
+    totalSales += actualSales;
 
-    dailyCalculations.push({
+    remainingTarget = Math.max(
+      0,
+      remainingTarget - actualSales
+    );
+
+    const futureDays = totalDaysInMonth - day;
+
+    const futureDailyTarget =
+      futureDays > 0
+        ? remainingTarget / futureDays
+        : 0;
+
+    dailyRecords.push({
       day,
-      dateString,
-      targetAmount: Number(currentDayTarget.toFixed(2)),
-      actualSales: Number(todaysSales.toFixed(2)),
-      cumulativeSalesToDate: Number(runningCumulativeSales.toFixed(2)),
-      remainingTargetAfterToday: Number(remainingTarget.toFixed(2)),
-      isPast: day < currentDayNumber,
-      isCurrent: day === currentDayNumber,
-      isFuture: day > currentDayNumber,
+      dateString: createDateString(year, month, day),
+      status: "completed",
+      openingTarget: roundMoney(openingTarget),
+      actualSales: roundMoney(actualSales),
+      remainingTargetAfterSales:
+        roundMoney(remainingTarget),
+      futureDailyTarget:
+        roundMoney(futureDailyTarget),
     });
   }
 
-  const daysRemaining = Math.max(0, totalDaysInMonth - currentDayNumber + 1);
+  /*
+   * সব future দিনের জন্য একবার target calculate করা হচ্ছে।
+   * Loop-এর ভিতরে denominator কমানো হচ্ছে না।
+   *
+   * এটাই নিশ্চিত করবে যে সব future column একই হবে।
+   */
+  const remainingDays =
+    totalDaysInMonth - completedThroughDay;
+
+  const currentDailyTarget =
+    remainingDays > 0
+      ? remainingTarget / remainingDays
+      : 0;
+
+  for (
+    let day = completedThroughDay + 1;
+    day <= totalDaysInMonth;
+    day++
+  ) {
+    dailyRecords.push({
+      day,
+      dateString: createDateString(year, month, day),
+      status: "future",
+      openingTarget: roundMoney(currentDailyTarget),
+      actualSales: 0,
+      remainingTargetAfterSales:
+        roundMoney(remainingTarget),
+      futureDailyTarget:
+        roundMoney(currentDailyTarget),
+    });
+  }
 
   return {
-    monthlyTarget,
-    totalSalesToDate: Number(runningCumulativeSales.toFixed(2)),
-    remainingMonthlyTarget: Number(remainingTarget.toFixed(2)),
+    monthlyTarget: roundMoney(monthlyTarget),
     totalDaysInMonth,
-    daysRemaining,
-    dailyCalculations,
+    completedThroughDay,
+    totalSales: roundMoney(totalSales),
+    remainingTarget: roundMoney(remainingTarget),
+    remainingDays,
+    currentDailyTarget:
+      roundMoney(currentDailyTarget),
+    dailyRecords,
   };
+}
+
+function createDateString(
+  year: number,
+  month: number,
+  day: number
+): string {
+  return [
+    year,
+    String(month).padStart(2, "0"),
+    String(day).padStart(2, "0"),
+  ].join("-");
 }
