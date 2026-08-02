@@ -1,11 +1,29 @@
 /**
  * Rolling Equal Daily Target Engine
  *
- * Rule:
- * 1. Monthly target remaining days-এর মধ্যে সমানভাবে ভাগ হবে।
- * 2. Completed day-এর actual sales remaining target থেকে বাদ যাবে।
- * 3. সব future day-এর target একই থাকবে।
- * 4. Zero-sale day completed হলে completedThroughDay update করতে হবে।
+ * মাসের প্রতিটি দিন তিন ভাগের একটায় পড়ে:
+ *
+ * 1. শেষ হয়ে যাওয়া দিন — সেদিন সকালে যে target দাঁড়িয়েছিল সেটাই লক করা থাকে।
+ *    History কখনো নড়ে না।
+ *
+ * 2. চলতি দিন (আজ) — আজ সকালে যে target দাঁড়িয়েছিল, সারাদিন সেটাই থাকে:
+ *
+ *        (Monthly Target − গতকাল পর্যন্ত মোট Sales) ÷ (আজ সহ বাকি দিন)
+ *
+ *    আজ যত বিক্রিই হোক, আজকের নিজের target নড়ে না — ওটাই তো আজ কতটা করার
+ *    কথা ছিল তার হিসাব।
+ *
+ * 3. আজকের পরের সব দিন — মাসের সব বিক্রি বাদ দিয়ে যা বাকি, তা সমানভাবে ভাগ:
+ *
+ *        (Monthly Target − মাসের মোট Sales) ÷ (আজকের পরের দিন)
+ *
+ *    আজ target-এর বেশি বিক্রি হলে এই সব বার একসাথে নেমে যায়, কম হলে বেড়ে যায়,
+ *    আর পুরো মাসের target একদিনেই তুলে ফেললে বাকি দিনের target 0 হয়ে যায়।
+ *
+ * হিসাব সবসময় Monthly Target আর কাঁচা daily sales থেকে নতুন করে হয়। আগের
+ * daily target, আগের remaining target বা অন্য কোনো cached মান কখনো ব্যবহার
+ * করা হয় না — ফাংশনটা pure, তাই প্রতিটা Sales add / update / delete-এর পরে
+ * শুধু আবার কল করলেই সব upcoming day-এর target একসাথে ঠিক হয়ে যায়।
  */
 
 export interface DailySalesMap {
@@ -30,7 +48,7 @@ export interface RollingTargetConfig {
   dailySalesMap: DailySalesMap;
 
   /**
-   * সর্বশেষ completed day।
+   * সর্বশেষ শেষ হয়ে যাওয়া day।
    *
    * কোনো দিন sales 0 হলেও দিনটি শেষ হলে এখানে day number দিতে হবে।
    *
@@ -40,26 +58,42 @@ export interface RollingTargetConfig {
    * মাস এখনো শুরু না হলে: 0
    */
   completedThroughDay: number;
+
+  /**
+   * চলতি দিন — অর্থাৎ `completedThroughDay + 1`।
+   *
+   * মাসটা অতীতের (সব দিন শেষ) বা ভবিষ্যতের (এখনো শুরুই হয়নি) হলে 0।
+   * অন্য কোনো মান দিলে চলতি দিন নেই ধরে নেওয়া হয়।
+   */
+  inProgressDay?: number;
 }
 
 export interface DailyTargetRecord {
   day: number;
   dateString: string;
-  status: "completed" | "future";
+  /** completed = দিন শেষ। current = আজ। upcoming = আজকের পরে। */
+  status: "completed" | "current" | "upcoming";
   openingTarget: number;
   actualSales: number;
   remainingTargetAfterSales: number;
-  futureDailyTarget: number;
 }
 
 export interface RollingTargetSummary {
   monthlyTarget: number;
   totalDaysInMonth: number;
   completedThroughDay: number;
+  /** চলতি দিন, না থাকলে 0। */
+  inProgressDay: number;
+  /** মাসে রেকর্ড হওয়া মোট sales। */
   totalSales: number;
+  /** Monthly Target − মাসের মোট sales (0-এর নিচে নামে না)। */
   remainingTarget: number;
+  /** আজকের পরে আর কয়টা দিন বাকি। */
   remainingDays: number;
+  /** আজকের নিজের target। */
   currentDailyTarget: number;
+  /** আজকের পরের প্রতিটি দিনের target — সবগুলো হুবহু এক। */
+  upcomingDailyTarget: number;
   dailyRecords: DailyTargetRecord[];
 }
 
@@ -67,53 +101,70 @@ function roundMoney(value: number): number {
   return Number(value.toFixed(2));
 }
 
+/** যেকোনো ইনপুটকে নিরাপদ non-negative সংখ্যায় নামায় (NaN / null / ঋণাত্মক → 0)। */
+function positive(value: unknown): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
 export function getDaysInMonth(
   year: number,
   month: number
 ): number {
-  return new Date(year, month, 0).getDate();
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return 0;
+  const days = new Date(year, month, 0).getDate();
+  return Number.isFinite(days) ? days : 0;
 }
 
 export function calculateRollingTargets(
   config: RollingTargetConfig
 ): RollingTargetSummary {
-  const {
-    monthlyTarget,
-    year,
-    month,
-    dailySalesMap,
-  } = config;
+  const { year, month, dailySalesMap } = config;
 
   const totalDaysInMonth = getDaysInMonth(year, month);
+  const monthlyTarget = positive(config.monthlyTarget);
 
   const completedThroughDay = Math.min(
     totalDaysInMonth,
-    Math.max(0, config.completedThroughDay)
+    Math.floor(positive(config.completedThroughDay))
   );
 
-  let remainingTarget = Math.max(0, monthlyTarget);
+  /*
+   * চলতি দিন শেষ completed দিনের ঠিক পরেরটাই হতে পারে। অন্য কিছু এলে (অতীত
+   * মাস, ভবিষ্যৎ মাস, বা ভুল ইনপুট) ধরে নেওয়া হয় এই মাসে চলতি দিন নেই।
+   */
+  const requestedInProgressDay = Math.floor(
+    positive(config.inProgressDay)
+  );
+  const inProgressDay =
+    requestedInProgressDay === completedThroughDay + 1 &&
+    requestedInProgressDay <= totalDaysInMonth
+      ? requestedInProgressDay
+      : 0;
+
+  const salesOn = (day: number) => positive(dailySalesMap[day]);
+
+  let remainingTarget = monthlyTarget;
   let totalSales = 0;
 
   const dailyRecords: DailyTargetRecord[] = [];
 
   /*
-   * শুধু completed দিনগুলোর হিসাব করা হচ্ছে।
-   * প্রতিটি completed day-এর শুরুতে তখনকার remaining target
-   * তখনকার remaining days দিয়ে ভাগ হবে।
+   * ১. শেষ হয়ে যাওয়া দিন।
+   *
+   * প্রতিটি দিনের শুরুতে তখনকার remaining target তখনকার remaining days দিয়ে
+   * ভাগ হয়। মানটা ওখানেই লক হয়ে যায়, তাই chart-এর history কখনো নড়ে না।
    */
   for (let day = 1; day <= completedThroughDay; day++) {
-    const remainingDaysIncludingToday =
+    const daysLeftFromThisDay =
       totalDaysInMonth - day + 1;
 
     const openingTarget =
-      remainingDaysIncludingToday > 0
-        ? remainingTarget / remainingDaysIncludingToday
+      daysLeftFromThisDay > 0
+        ? remainingTarget / daysLeftFromThisDay
         : 0;
 
-    const actualSales = Math.max(
-      0,
-      Number(dailySalesMap[day] ?? 0)
-    );
+    const actualSales = salesOn(day);
 
     totalSales += actualSales;
 
@@ -121,13 +172,6 @@ export function calculateRollingTargets(
       0,
       remainingTarget - actualSales
     );
-
-    const futureDays = totalDaysInMonth - day;
-
-    const futureDailyTarget =
-      futureDays > 0
-        ? remainingTarget / futureDays
-        : 0;
 
     dailyRecords.push({
       day,
@@ -137,40 +181,97 @@ export function calculateRollingTargets(
       actualSales: roundMoney(actualSales),
       remainingTargetAfterSales:
         roundMoney(remainingTarget),
-      futureDailyTarget:
-        roundMoney(futureDailyTarget),
     });
   }
 
   /*
-   * সব future দিনের জন্য একবার target calculate করা হচ্ছে।
-   * Loop-এর ভিতরে denominator কমানো হচ্ছে না।
+   * ২. চলতি দিন।
    *
-   * এটাই নিশ্চিত করবে যে সব future column একই হবে।
+   * আজকের target আজ সকালের remaining দিয়েই ঠিক হয় — আজকের বিক্রি এখানে বাদ
+   * যায় না। তাই সারাদিন বিক্রি করলেও আজকের বারটা এক জায়গায় দাঁড়িয়ে থাকে,
+   * আর আপনি দেখতে পান আজ কতটা করার কথা ছিল বনাম কতটা হলো।
    */
-  const remainingDays =
-    totalDaysInMonth - completedThroughDay;
+  const openDays = totalDaysInMonth - completedThroughDay;
 
   const currentDailyTarget =
+    openDays > 0 ? remainingTarget / openDays : 0;
+
+  const inProgressSales =
+    inProgressDay > 0 ? salesOn(inProgressDay) : 0;
+
+  totalSales += inProgressSales;
+
+  remainingTarget = Math.max(
+    0,
+    remainingTarget - inProgressSales
+  );
+
+  if (inProgressDay > 0) {
+    dailyRecords.push({
+      day: inProgressDay,
+      dateString: createDateString(
+        year,
+        month,
+        inProgressDay
+      ),
+      status: "current",
+      openingTarget: roundMoney(currentDailyTarget),
+      actualSales: roundMoney(inProgressSales),
+      remainingTargetAfterSales:
+        roundMoney(remainingTarget),
+    });
+  }
+
+  /*
+   * ৩. আজকের পরের সব দিন।
+   *
+   * মাসে রেকর্ড হওয়া বাকি সব বিক্রি — আজকেরটা সহ, আর কেউ যদি সামনের তারিখে
+   * sale বসিয়ে থাকে সেটাও — বাদ দেওয়ার পরে যা থাকে, সেটাই সমানভাবে ভাগ হয়।
+   * Loop-এর ভিতরে denominator কমানো হচ্ছে না, এটাই নিশ্চিত করে যে সব upcoming
+   * column হুবহু একই হবে।
+   */
+  const lockedThroughDay = Math.max(
+    completedThroughDay,
+    inProgressDay
+  );
+
+  const remainingDays =
+    totalDaysInMonth - lockedThroughDay;
+
+  let upcomingSales = 0;
+  for (
+    let day = lockedThroughDay + 1;
+    day <= totalDaysInMonth;
+    day++
+  ) {
+    upcomingSales += salesOn(day);
+  }
+
+  totalSales += upcomingSales;
+
+  remainingTarget = Math.max(
+    0,
+    remainingTarget - upcomingSales
+  );
+
+  const upcomingDailyTarget =
     remainingDays > 0
       ? remainingTarget / remainingDays
       : 0;
 
   for (
-    let day = completedThroughDay + 1;
+    let day = lockedThroughDay + 1;
     day <= totalDaysInMonth;
     day++
   ) {
     dailyRecords.push({
       day,
       dateString: createDateString(year, month, day),
-      status: "future",
-      openingTarget: roundMoney(currentDailyTarget),
-      actualSales: 0,
+      status: "upcoming",
+      openingTarget: roundMoney(upcomingDailyTarget),
+      actualSales: roundMoney(salesOn(day)),
       remainingTargetAfterSales:
         roundMoney(remainingTarget),
-      futureDailyTarget:
-        roundMoney(currentDailyTarget),
     });
   }
 
@@ -178,11 +279,14 @@ export function calculateRollingTargets(
     monthlyTarget: roundMoney(monthlyTarget),
     totalDaysInMonth,
     completedThroughDay,
+    inProgressDay,
     totalSales: roundMoney(totalSales),
     remainingTarget: roundMoney(remainingTarget),
     remainingDays,
     currentDailyTarget:
       roundMoney(currentDailyTarget),
+    upcomingDailyTarget:
+      roundMoney(upcomingDailyTarget),
     dailyRecords,
   };
 }

@@ -138,6 +138,19 @@ function withDateRange(query: any, start: string | null, end: string | null) {
   return query.gte('date', start).lte('date', end)
 }
 
+// Where a month sits relative to `today` (an ISO date): which days are settled
+// and which one is still in progress. A past month is entirely settled, a future
+// month has not started, and the current month is settled up to yesterday with
+// today still running.
+function monthProgress(year: number, month: number, today: string) {
+  const monthKey = `${year}-${String(month).padStart(2, '0')}`
+  const currentMonthKey = today.slice(0, 7)
+  if (monthKey < currentMonthKey) return { completedThroughDay: getDaysInMonth(year, month), inProgressDay: 0 }
+  if (monthKey > currentMonthKey) return { completedThroughDay: 0, inProgressDay: 0 }
+  const day = Number(today.slice(8, 10))
+  return { completedThroughDay: day - 1, inProgressDay: day }
+}
+
 export default function ReportSummary() {
   const { user } = useAuth()
   const { formatCurr, formatNum, formatDateShort, monthName } = useLang()
@@ -324,8 +337,12 @@ export default function ReportSummary() {
           const qty = amount(item.qty)
           const saleAmount = amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
           const unitCost = amount(item.cost_price)
+          // With no purchase rate on the line the profit is unknowable, so it
+          // counts as zero. Booking the whole sale as profit would inflate every
+          // profit figure on this page. Same rule as the Sales Ledger and the
+          // Monthly / Yearly reports.
           const cost = unitCost > 0 ? unitCost * qty : 0
-          const profit = saleAmount - cost
+          const profit = unitCost > 0 ? saleAmount - cost : 0
           const current = saleProductMap[name] || { name, qty: 0, amount: 0, cost: 0, profit: 0 }
           current.qty = amount(current.qty) + qty
           current.amount += saleAmount
@@ -422,7 +439,7 @@ export default function ReportSummary() {
 
       // Daily performance series: one bucket per calendar day in the range with
       // Sales / Profit / Expense, so the overview chart can show four bars per
-      // day (Target is the monthly sales target spread evenly across the days).
+      // day. The Target bar is filled in further down by the rolling engine.
       const dailyMap: Record<string, { sales: number; profit: number; expense: number }> = {}
       const ensureDay = (key: string) => (dailyMap[key] || (dailyMap[key] = { sales: 0, profit: 0, expense: 0 }))
       let cursor = range.start
@@ -443,7 +460,9 @@ export default function ReportSummary() {
           const qty = amount(item.qty)
           const saleAmount = amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
           const unitCost = amount(item.cost_price)
-          return sum + (saleAmount - (unitCost > 0 ? unitCost * qty : 0))
+          // No purchase rate -> no known profit for this line (see above).
+          if (unitCost <= 0) return sum
+          return sum + (saleAmount - unitCost * qty)
         }, 0)
       })
       expenses.forEach((expense: any) => {
@@ -459,77 +478,74 @@ export default function ReportSummary() {
         ensureDay(key).profit += amount(income.amount)
       })
       const dailyKeys = Object.keys(dailyMap).sort()
-      const emptyBucket = { sales: 0, profit: 0, expense: 0 }
 
-      let dailyPerformance: DailyPerformanceRow[]
-      if (filterMode === 'monthly') {
-        // Rolling Equal Daily Target engine (owner's reference): days up to and
-        // including the last COMPLETED day lock their running-balance value;
-        // today + all future days share ONE equal target. A day counts as
-        // completed only once the calendar has moved past it.
-        const bucketByDay = new Map<number, { sales: number; profit: number; expense: number }>()
-        dailyKeys.forEach(key => bucketByDay.set(Number(key.slice(8, 10)), dailyMap[key]))
-        const salesByDay: Record<number, number> = {}
-        bucketByDay.forEach((bucket, day) => { salesByDay[day] = bucket.sales })
-
-        const now = new Date()
-        const isCurrentMonth = now.getFullYear() === selectedYear && now.getMonth() + 1 === selectedMonth
-        const isPastMonth = selectedYear < now.getFullYear() ||
-          (selectedYear === now.getFullYear() && selectedMonth < now.getMonth() + 1)
-        const completedThroughDay = isPastMonth
-          ? getDaysInMonth(selectedYear, selectedMonth)
-          : isCurrentMonth
-            ? now.getDate() - 1
-            : 0
-
-        const rollingResult = calculateRollingTargets({
-          monthlyTarget: salesTarget,
-          year: selectedYear,
-          month: selectedMonth,
-          dailySalesMap: salesByDay,
-          completedThroughDay,
-        })
-
-        dailyPerformance = rollingResult.dailyRecords.map((record) => {
-          const bucket = bucketByDay.get(record.day) || emptyBucket
-          return {
-            label: String(record.day),
-            target: record.openingTarget,
-            sales: bucket.sales,
-            profit: bucket.profit,
-            expense: bucket.expense,
-          }
-        })
-      } else {
-        // Custom range: same semantics applied over the selected days - days
-        // strictly before today lock their running-balance value; today and
-        // later days share one equal target.
-        const todayKey = isoDate(new Date())
-        const firstOpenIndex = dailyKeys.findIndex(key => key >= todayKey)
-        const completedCount = firstOpenIndex === -1 ? dailyKeys.length : firstOpenIndex
-
-        let remaining = Math.max(0, salesTarget)
-        const targets: number[] = []
-        for (let i = 0; i < completedCount; i++) {
-          const remainingDays = dailyKeys.length - i
-          targets.push(remainingDays > 0 ? Number((remaining / remainingDays).toFixed(2)) : 0)
-          remaining = Math.max(0, remaining - dailyMap[dailyKeys[i]].sales)
-        }
-        const openDays = dailyKeys.length - completedCount
-        const equalTarget = openDays > 0 ? Number((remaining / openDays).toFixed(2)) : 0
-        for (let i = completedCount; i < dailyKeys.length; i++) targets.push(equalTarget)
-
-        dailyPerformance = dailyKeys.map((key, index) => {
-          const bucket = dailyMap[key]
-          return {
-            label: String(Number(key.slice(8, 10))),
-            target: targets[index],
-            sales: bucket.sales,
-            profit: bucket.profit,
-            expense: bucket.expense,
-          }
-        })
+      // Target bars. The rolling rule is defined over whole calendar months, so
+      // a custom range that starts or ends mid-month still needs that month's
+      // other days - without them the remaining target would look bigger than it
+      // really is. Monthly mode already spans a full month, so it reuses the
+      // rows fetched above and fires no extra request.
+      const spanStart = `${range.start.slice(0, 7)}-01`
+      const spanEnd = isoDate(new Date(Number(range.end.slice(0, 4)), Number(range.end.slice(5, 7)), 0))
+      let targetSales: any[] = sales
+      if (spanStart !== range.start || spanEnd !== range.end) {
+        const spanRes = await supabase
+          .from('sales')
+          .select('date, subtotal, net_amount')
+          .eq('status', 'completed')
+          .gte('date', spanStart)
+          .lte('date', spanEnd)
+        if (spanRes.error) throw spanRes.error
+        targetSales = spanRes.data || []
       }
+
+      const salesByMonth: Record<string, Record<number, number>> = {}
+      targetSales.forEach((sale: any) => {
+        const saleDate = String(sale.date || '').slice(0, 10)
+        const day = Number(saleDate.slice(8, 10))
+        if (saleDate.length < 10 || !day) return
+        const key = saleDate.slice(0, 7)
+        const perDay = salesByMonth[key] || (salesByMonth[key] = {})
+        perDay[day] = (perDay[day] || 0) + amount(sale.net_amount || sale.subtotal)
+      })
+
+      const targetByMonth: Record<string, number> = {}
+      targets.forEach((target: any) => {
+        const targetYear = Number(target.year || 0)
+        const targetMonth = Number(target.month || 0)
+        if (!targetYear || targetMonth < 1 || targetMonth > 12) return
+        const key = `${targetYear}-${String(targetMonth).padStart(2, '0')}`
+        targetByMonth[key] = (targetByMonth[key] || 0) + amount(target.sales_target)
+      })
+
+      // One rolling pass per month the chart touches, then every day reads its
+      // own target back out. Both filter modes go through this, so 5 August
+      // shows the same bar whichever way you got there.
+      const today = isoDate(new Date())
+      const targetByDate: Record<string, number> = {}
+      Array.from(new Set(dailyKeys.map(key => key.slice(0, 7)))).forEach(key => {
+        const monthYear = Number(key.slice(0, 4))
+        const monthNumber = Number(key.slice(5, 7))
+        calculateRollingTargets({
+          monthlyTarget: targetByMonth[key] || 0,
+          year: monthYear,
+          month: monthNumber,
+          dailySalesMap: salesByMonth[key] || {},
+          ...monthProgress(monthYear, monthNumber, today),
+        }).dailyRecords.forEach(record => {
+          targetByDate[record.dateString] = record.openingTarget
+        })
+      })
+
+      const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map(key => {
+        const bucket = dailyMap[key]
+        return {
+          label: String(Number(key.slice(8, 10))),
+          target: targetByDate[key] || 0,
+          sales: bucket.sales,
+          profit: bucket.profit,
+          expense: bucket.expense,
+        }
+      })
 
       setData({
         salesTarget,
