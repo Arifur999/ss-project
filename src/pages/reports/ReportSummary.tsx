@@ -460,18 +460,21 @@ export default function ReportSummary() {
       const dailyKeys = Object.keys(dailyMap).sort()
       const totalDays = dailyKeys.length
       // Adaptive "catch-up" daily target:
-      // - PAST days keep their historical adaptive target (unmet target / days
-      //   left at that point), so history reads correctly.
-      // - TODAY + all UPCOMING days share the STILL-remaining target split
-      //   EVENLY, so e.g. with 2 days left and Tk 2,000 unmet, days 30 & 31 both
-      //   show Tk 1,000 (instead of the last day spiking to the whole amount).
+      // - REALIZED days (up to & including TODAY) each show unmet-target / days-
+      //   left at that point, so e.g. day 1 of a 31-day month = target/31, and if
+      //   day 1 oversold, the following days drop.
+      // - FUTURE days (strictly after today) share the target still unmet AFTER
+      //   today's actual sales, split EVENLY (so no end-of-month spike). Example:
+      //   Aug target 2,000,000; sold 80,000 on Aug 1 -> Aug 2..31 each show
+      //   (2,000,000 - 80,000) / 30 = 64,000.
       const todayKey = isoDate(new Date())
-      const firstFutureIndex = dailyKeys.findIndex(key => key >= todayKey)
+      const firstFutureIndex = dailyKeys.findIndex(key => key > todayKey)
       const hasFuture = firstFutureIndex !== -1
-      const pastSalesTotal = (hasFuture ? dailyKeys.slice(0, firstFutureIndex) : dailyKeys)
+      // Sales realized up to & including today (everything before the future cut).
+      const realizedSalesTotal = (hasFuture ? dailyKeys.slice(0, firstFutureIndex) : dailyKeys)
         .reduce((sum, key) => sum + dailyMap[key].sales, 0)
       const futureCount = hasFuture ? totalDays - firstFutureIndex : 0
-      const evenFutureTarget = futureCount > 0 ? Math.max(0, salesTarget - pastSalesTotal) / futureCount : 0
+      const evenFutureTarget = futureCount > 0 ? Math.max(0, salesTarget - realizedSalesTotal) / futureCount : 0
 
       let achievedSoFar = 0
       const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map((key, index) => {

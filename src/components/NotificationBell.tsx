@@ -20,6 +20,7 @@ export default function NotificationBell() {
   const [items, setItems] = useState<UserNotification[]>([])
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<UserNotification | null>(null)
   const boxRef = useRef<HTMLDivElement>(null)
 
   async function load() {
@@ -86,20 +87,51 @@ export default function NotificationBell() {
               </div>
             ) : (
               items.map(n => (
-                <div key={n.id} className="border-b border-slate-100 px-4 py-3 last:border-b-0 hover:bg-slate-50">
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => { setSelected(n); setOpen(false) }}
+                  className="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50"
+                >
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
                       <Megaphone size={14} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-900">{n.title}</p>
-                      <p className="mt-0.5 whitespace-pre-wrap break-words text-xs text-slate-600">{n.message}</p>
+                      <p className="truncate text-sm font-bold text-slate-900">{n.title}</p>
+                      <p className="mt-0.5 line-clamp-2 break-words text-xs text-slate-600">{n.message}</p>
                       <p className="mt-1 text-[11px] text-slate-400">{timeAgo(n.created_at)}</p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Full-message popup */}
+      {selected && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onMouseDown={() => setSelected(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl" onMouseDown={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                  <Megaphone size={16} />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">{selected.title}</h3>
+                  <p className="mt-0.5 text-xs text-slate-400">{timeAgo(selected.created_at)}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelected(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-5">
+              <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{selected.message}</p>
+            </div>
+            <div className="border-t border-slate-100 p-4">
+              <button onClick={() => setSelected(null)} className="btn-secondary w-full justify-center">Close</button>
+            </div>
           </div>
         </div>
       )}

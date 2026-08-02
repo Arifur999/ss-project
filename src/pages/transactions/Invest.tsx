@@ -5,6 +5,7 @@ import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import PeriodFilter from '../../components/PeriodFilter'
 import Modal from '../../components/Modal'
+import SearchableSelect from '../../components/SearchableSelect'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
@@ -189,18 +190,22 @@ export default function InvestWithdraw() {
           </div>
           <div>
             <label className="label">{t('invest_colShareholder')}</label>
-            <select className="input" value={form.shareholder_id} onChange={e => setForm({ ...form, shareholder_id: e.target.value })}>
-              <option value="">{t('common_select')}</option>
-              {shareholders.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.shareholder_id}
+              onChange={val => setForm({ ...form, shareholder_id: val })}
+              options={shareholders.map(s => ({ value: s.id, label: s.name }))}
+              placeholder={t('common_select')}
+            />
           </div>
           <div><label className="label">{t('common_amount', 'Amount')} (৳)</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
             <label className="label">{t('invest_colAccount')}</label>
-            <select className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
-              <option value="">{t('common_select')}</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.account_id}
+              onChange={val => setForm({ ...form, account_id: val })}
+              options={accounts.map(a => ({ value: a.id, label: a.name }))}
+              placeholder={t('common_select')}
+            />
           </div>
           <div><label className="label">{t('invest_colNotes')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">

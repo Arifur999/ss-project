@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
+import SearchableSelect from '../../components/SearchableSelect'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
@@ -303,10 +304,12 @@ export default function ExpenseTransactions() {
           <div><label className="label">{t('expTx_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
             <label className="label">{t('expTx_paymentAccount')}</label>
-            <select className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
-              <option value="">{t('common_select')}</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.account_id}
+              onChange={val => setForm({ ...form, account_id: val })}
+              options={accounts.map(a => ({ value: a.id, label: a.name }))}
+              placeholder={t('common_select')}
+            />
           </div>
           <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
