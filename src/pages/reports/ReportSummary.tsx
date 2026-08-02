@@ -11,7 +11,7 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -570,10 +570,6 @@ export default function ReportSummary() {
   const profitAchievedPct = pct(achievedProfit, data.profitTarget)
   const profitMargin = data.totalSales > 0 ? (data.profitLoss / data.totalSales) * 100 : 0
 
-  // Width so 4 bars per day stay readable; scrolls horizontally when the month
-  // has many days on a narrow screen.
-  const chartInnerWidth = Math.max(680, data.dailyPerformance.length * 42)
-
   function ProgressCard({
     title,
     value,
@@ -855,22 +851,19 @@ export default function ReportSummary() {
                 <div className="bg-slate-800 px-4 py-3 text-center">
                   <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">Performance Overview</h2>
                 </div>
-                <div className="overflow-x-auto px-3 py-5 sm:px-5">
-                  <div style={{ minWidth: chartInnerWidth }}>
-                    <ResponsiveContainer width="100%" height={320}>
-                      <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
-                        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
-                        <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} labelFormatter={label => `Day ${label}`} />
-                        <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
-                        <Bar dataKey="target" name="Target" fill="#94a3b8" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="expense" name="Expense" fill="#E24B4A" radius={[2, 2, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                {/* Same shape as the Daily Sales & Profit chart on MonthlyReport:
+                    full width (no horizontal scroll), Sales + Profit bars only. */}
+                <div className="px-3 py-5 sm:px-5">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={data.dailyPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+                      <Tooltip formatter={(value: number) => formatCurr(value)} labelFormatter={label => `Day ${label}`} />
+                      <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </section>
               <ReportBreakdownTable
