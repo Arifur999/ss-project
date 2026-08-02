@@ -14,6 +14,10 @@ import { useLocation } from 'react-router-dom'
 import { addRecycleItem } from '../lib/recycleBin'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
 import { addSaleDelivery, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
+import { sendSms } from '../services/sms.services'
+import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
+
+const smsInvoiceKey = 'sales_sms_invoice_v1'
 
 interface SaleItem {
   product_id: string
@@ -119,6 +123,9 @@ export default function Sales() {
   // Product names on the current invoice that have no purchase rate. Non-null
   // means the save was blocked and the warning modal is showing.
   const [missingCostItems, setMissingCostItems] = useState<string[] | null>(null)
+  // Text a customer copy of the invoice to their phone after saving. Remembered
+  // per browser so the owner does not have to switch it on for every sale.
+  const [smsInvoice, setSmsInvoice] = useState(() => localStorage.getItem(smsInvoiceKey) === '1')
   const [showDeliveryModal, setShowDeliveryModal] = useState(false)
   const [selectedSale, setSelectedSale] = useState<any>(null)
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null)
@@ -1045,6 +1052,45 @@ export default function Sales() {
     })
   }
 
+  function toggleSmsInvoice() {
+    setSmsInvoice(prev => {
+      localStorage.setItem(smsInvoiceKey, prev ? '0' : '1')
+      return !prev
+    })
+  }
+
+  function invoiceSmsText(invoiceNo: string, finalPaid: number, finalDue: number) {
+    return buildInvoiceSms({
+      businessName: business?.name_en || business?.name_bn || 'Invoice',
+      businessAddress: business?.address || '',
+      businessPhone: business?.phone || '',
+      invoiceNo,
+      date: formatDate(form.date),
+      customerName: form.customer_name || form.customer_phone || 'Customer',
+      subtotal,
+      discount: totalDiscount,
+      grandTotal,
+      paid: finalPaid,
+      due: finalDue,
+    })
+  }
+
+  // Fired after the sale is already saved. A failure here must never look like
+  // the sale failed, so it only warns - the invoice is on the books either way.
+  async function textInvoiceToCustomer(invoiceNo: string, finalPaid: number, finalDue: number) {
+    if (!smsInvoice) return
+    if (!isValidBdPhone(form.customer_phone)) {
+      toast.error('Invoice SMS skipped - the customer has no valid phone number')
+      return
+    }
+    try {
+      await sendSms({ recipients: [form.customer_phone], message: invoiceSmsText(invoiceNo, finalPaid, finalDue) })
+      toast.success('Invoice sent to the customer by SMS')
+    } catch (error: any) {
+      toast.error(error?.message || 'Sale saved, but the invoice SMS could not be sent')
+    }
+  }
+
   async function save(isCashSale: boolean) {
     if ((!form.customer_name && !form.customer_phone) || items.every(i => !itemHasSaleValue(i))) {
       toast.error(t('sales_fillAllFields')); return
@@ -1159,6 +1205,8 @@ export default function Sales() {
 
       await touchOwnerActivity(true)
       toast.success(t('sales_saved'))
+      // Before resetForm(), which clears the customer and totals the SMS needs.
+      await textInvoiceToCustomer(invoiceNo, finalPaid, finalDue)
       setSales(prev => [savedSale, ...prev.filter(s => s.id !== savedSale.id)])
       setSelectedSale(savedSale)
       setShowInvoice(true)
@@ -2024,7 +2072,26 @@ export default function Sales() {
             
             {/* Customer & Invoice Info Panel */}
             <div className="card space-y-4 bg-white p-5">
-              <h3 className="text-sm font-semibold text-slate-800">Customer & Invoice Info</h3>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-slate-800">Customer & Invoice Info</h3>
+                <label className="flex cursor-pointer items-center gap-2" title="Text a copy of this invoice to the customer after saving">
+                  <span className="text-xs font-semibold text-slate-600">SMS invoice to customer</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={smsInvoice}
+                    onClick={toggleSmsInvoice}
+                    className={`relative h-5 w-9 rounded-full transition-colors ${smsInvoice ? 'bg-brand-green' : 'bg-slate-300'}`}
+                  >
+                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${smsInvoice ? 'left-[1.125rem]' : 'left-0.5'}`} />
+                  </button>
+                  {smsInvoice && (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                      ~{segmentsFor(invoiceSmsText(form.invoice_no, totalPaid, Math.max(0, grandTotal - totalPaid)))} SMS
+                    </span>
+                  )}
+                </label>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
                   <label className="label">Customer *</label>

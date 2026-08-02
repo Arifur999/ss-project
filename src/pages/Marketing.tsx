@@ -31,16 +31,14 @@ import {
   submitSmsPurchase,
   type SmsPackage,
 } from '../services/sms.services'
-import { readSmsTemplates, saveSmsTemplate, type SmsTemplate } from '../lib/smsTemplates'
+import { hasUnicode, readSmsTemplates, saveSmsTemplate, segmentsFor, type SmsTemplate } from '../lib/smsTemplates'
+import {
+  addMarketingContact,
+  deleteMarketingContact,
+  listMarketingContacts,
+  type MarketingContact,
+} from '../lib/marketingContacts'
 
-// Bangla / any non-ASCII text is billed at 70 chars/segment (unicode); plain
-// English at 160. Mirrors the backend so the on-screen counter is accurate.
-const hasUnicode = (text: string) => [...text].some(ch => ch.charCodeAt(0) > 127)
-const segmentsFor = (text: string) => {
-  if (!text) return 1
-  if (hasUnicode(text)) return text.length <= 70 ? 1 : Math.ceil(text.length / 67)
-  return text.length <= 160 ? 1 : Math.ceil(text.length / 153)
-}
 const money = (n: number) => 'Tk ' + Number(n || 0).toLocaleString('en-US')
 
 type ContactType = 'customer' | 'supplier' | 'employee' | 'contact'
@@ -102,6 +100,11 @@ export default function Marketing() {
     contact: false,
   })
   const [contactFilter, setContactFilter] = useState<'all' | 'selected' | 'with_phone'>('all')
+  // Hand-typed numbers that are not customers / suppliers / employees.
+  const [customContacts, setCustomContacts] = useState<MarketingContact[]>([])
+  const [newContactName, setNewContactName] = useState('')
+  const [newContactPhone, setNewContactPhone] = useState('')
+  const [addingContact, setAddingContact] = useState(false)
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [campaignName, setCampaignName] = useState('')
@@ -142,11 +145,14 @@ export default function Marketing() {
   async function loadContacts() {
     setLoading(true)
     try {
-      const [customerRes, supplierRes, employeeRes, contactContacts] = await Promise.all([
+      const [customerRes, supplierRes, employeeRes, contactContacts, customRows] = await Promise.all([
         supabase.from('customers').select('id, name, phone, address').eq('is_active', true).order('name'),
         supabase.from('suppliers').select('id, name, company_name, phone').eq('is_active', true).order('company_name'),
         supabase.from('employees').select('*').order('join_date', { ascending: false }),
         loadBankPersonContacts(),
+        // Never let the manual numbers take the rest of the contact list down
+        // with them - the other four sources are the important ones.
+        listMarketingContacts(user?.id).catch(() => [] as MarketingContact[]),
       ])
 
       const customerContacts = (customerRes.data || []).map((item: any): Contact => ({
@@ -178,7 +184,18 @@ export default function Marketing() {
           subtitle: item.designation || item.address || 'Employee',
         }))
 
-      setContacts([...customerContacts, ...supplierContacts, ...employeeContacts, ...contactContacts])
+      // Hand-typed numbers join the same "Contact List" group as loan lenders.
+      setCustomContacts(customRows)
+      const customContactRows = customRows.map((item): Contact => ({
+        id: `contact:${item.id}`,
+        sourceId: item.id,
+        type: 'contact',
+        name: item.name,
+        phone: item.phone,
+        subtitle: item.note || 'Added manually',
+      }))
+
+      setContacts([...customerContacts, ...supplierContacts, ...employeeContacts, ...contactContacts, ...customContactRows])
     } catch (error: any) {
       toast.error(error.message || 'Failed to load contacts')
     } finally {
@@ -215,6 +232,53 @@ export default function Marketing() {
       subtitle: item.lender_type || item.address || 'Contact list',
     }))
   }
+
+  async function addCustomContact() {
+    const name = newContactName.trim()
+    const phone = newContactPhone.trim()
+    if (!/^01[0-9]{9}$/.test(phone)) return toast.error('Enter a valid 11-digit number, e.g. 01712345678')
+    if (contacts.some(contact => contact.phone === phone)) return toast.error('That number is already in the contact list')
+
+    setAddingContact(true)
+    try {
+      const saved = await addMarketingContact(user?.id, { name: name || phone, phone })
+      setCustomContacts(prev => [...prev, saved])
+      setContacts(prev => [...prev, {
+        id: `contact:${saved.id}`,
+        sourceId: saved.id,
+        type: 'contact',
+        name: saved.name,
+        phone: saved.phone,
+        subtitle: saved.note || 'Added manually',
+      }])
+      setNewContactName('')
+      setNewContactPhone('')
+      // Reveal it straight away - the Contact List filter is off by default.
+      setTypeFilters(prev => ({ ...prev, contact: true }))
+      toast.success('Number added to the contact list')
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to add the number')
+    } finally {
+      setAddingContact(false)
+    }
+  }
+
+  async function removeCustomContact(id: string) {
+    try {
+      await deleteMarketingContact(user?.id, id)
+      setCustomContacts(prev => prev.filter(row => row.id !== id))
+      setContacts(prev => prev.filter(contact => contact.id !== `contact:${id}`))
+      setSelectedIds(prev => prev.filter(selected => selected !== `contact:${id}`))
+      toast.success('Number removed')
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to remove the number')
+    }
+  }
+
+  const customContactIds = useMemo(
+    () => new Set(customContacts.map(row => `contact:${row.id}`)),
+    [customContacts]
+  )
 
   const filteredContacts = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -417,6 +481,41 @@ export default function Marketing() {
               <option value="selected">Selected Contacts</option>
               <option value="with_phone">With Phone Number</option>
             </select>
+
+            {/* Numbers that are not in the system at all - typed in by hand and
+                kept alongside the rest of the Contact List. */}
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-bold text-slate-700">Add a number manually</p>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <input
+                  value={newContactName}
+                  onChange={e => setNewContactName(e.target.value)}
+                  placeholder="Name (optional)"
+                  className="input"
+                />
+                <input
+                  value={newContactPhone}
+                  onChange={e => setNewContactPhone(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomContact() } }}
+                  placeholder="01712345678"
+                  inputMode="numeric"
+                  className="input"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomContact}
+                  disabled={addingContact}
+                  className="btn-primary whitespace-nowrap px-4 disabled:opacity-60"
+                >
+                  {addingContact ? 'Adding...' : 'Add'}
+                </button>
+              </div>
+              {customContacts.length > 0 && (
+                <p className="mt-2 text-[11px] font-medium text-slate-500">
+                  {formatNum(customContacts.length)} number{customContacts.length === 1 ? '' : 's'} added manually - they appear under Contact list.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
@@ -456,6 +555,18 @@ export default function Marketing() {
                   <span className={`rounded-full px-2 py-1 text-[10px] font-bold capitalize ${contact.phone ? 'bg-green-50 text-brand-green' : 'bg-red-50 text-brand-red'}`}>
                     {contact.type}
                   </span>
+                  {/* Only hand-typed numbers can be deleted here; the rest are
+                      owned by Customers / Suppliers / Employees / Loans. */}
+                  {customContactIds.has(contact.id) && (
+                    <button
+                      type="button"
+                      onClick={() => removeCustomContact(contact.sourceId)}
+                      title="Remove this number"
+                      className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-brand-red"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
