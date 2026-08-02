@@ -459,36 +459,20 @@ export default function ReportSummary() {
       })
       const dailyKeys = Object.keys(dailyMap).sort()
       const totalDays = dailyKeys.length
-      // Running-balance daily target:
-      // - PAST days (strictly before today) are LOCKED at the value they held
-      //   when that day began = unmet-target-then / days-left-then.
-      // - TODAY is NOT finished, so it shares the SAME target as every UPCOMING
-      //   day: the target still unmet BEFORE today, split evenly over today..end.
-      //   Only once today rolls into the past does it lock (with its real sales)
-      //   and the remaining days recalculate. Example (target 100,000 / 10 days):
-      //   day 1 sold 15,000 -> days 2..10 each (100,000-15,000)/9 = 9,444; after
-      //   day 2 ends with 0 sales -> days 3..10 each (85,000)/8 = 10,625.
-      const todayKey = isoDate(new Date())
-      const firstFutureIndex = dailyKeys.findIndex(key => key >= todayKey)
-      const hasFuture = firstFutureIndex !== -1
-      // Sales locked in on the days strictly before today.
-      const pastSalesTotal = (hasFuture ? dailyKeys.slice(0, firstFutureIndex) : dailyKeys)
-        .reduce((sum, key) => sum + dailyMap[key].sales, 0)
-      const futureCount = hasFuture ? totalDays - firstFutureIndex : 0
-      const evenFutureTarget = futureCount > 0 ? Math.max(0, salesTarget - pastSalesTotal) / futureCount : 0
-
-      let achievedSoFar = 0
+      // Rolling daily target (owner's exact reference formula): each day's target
+      // is the still-remaining monthly target / days left (incl. that day), then
+      // that day's actual sales are deducted for the next day. High-sale days pull
+      // the following targets down; low/zero-sale days push them up.
+      //   remainingTarget = monthlyTarget
+      //   for day = 1..D:
+      //     target(day)   = remainingTarget / (D - day + 1)
+      //     remainingTarget -= sales(day)
+      let remainingTarget = salesTarget
       const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map((key, index) => {
-        let target: number
-        if (hasFuture && index >= firstFutureIndex) {
-          target = evenFutureTarget
-        } else {
-          const remainingDays = totalDays - index
-          const remainingTarget = Math.max(0, salesTarget - achievedSoFar)
-          target = remainingDays > 0 ? remainingTarget / remainingDays : 0
-        }
+        const remainingDays = totalDays - index // = D - day + 1 (index is 0-based)
+        const target = remainingDays > 0 ? Number((remainingTarget / remainingDays).toFixed(2)) : 0
         const daySales = dailyMap[key].sales
-        achievedSoFar += daySales
+        remainingTarget -= daySales
         return {
           label: String(Number(key.slice(8, 10))),
           target,
