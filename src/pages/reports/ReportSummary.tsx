@@ -57,7 +57,14 @@ type ReportData = {
   expenseBreakdown: BreakdownRow[]
   supplierPaymentBreakdown: BreakdownRow[]
   otherIncomeBreakdown: BreakdownRow[]
+  companyWayRows: CompanyWayRow[]
   dailyPerformance: DailyPerformanceRow[]
+}
+
+type CompanyWayRow = {
+  company: string
+  purchase: number
+  sales: number
 }
 
 type DailyPerformanceRow = {
@@ -103,7 +110,13 @@ const emptyReport: ReportData = {
   expenseBreakdown: [],
   supplierPaymentBreakdown: [],
   otherIncomeBreakdown: [],
+  companyWayRows: [],
   dailyPerformance: [],
+}
+
+function companyName(value: string | null | undefined) {
+  const name = String(value || '').trim()
+  return name || 'Unassigned'
 }
 
 function isoDate(date: Date) {
@@ -257,7 +270,7 @@ export default function ReportSummary() {
           .gte('year', Number(range.start.slice(0, 4)))
           .lte('year', Number(range.end.slice(0, 4)))
 
-      const [salesRes, purchasesRes, expensesRes, supplierPaymentsRes, targetsRes, withdrawRes, otherIncomeRes] = await Promise.all([
+      const [salesRes, purchasesRes, expensesRes, supplierPaymentsRes, targetsRes, withdrawRes, otherIncomeRes, productsRes] = await Promise.all([
         withDateRange(
           supabase
             .from('sales')
@@ -302,6 +315,11 @@ export default function ReportSummary() {
           range.start,
           range.end
         ),
+        // Maps each product to the company it comes from, for the Company ways
+        // Report. Not date filtered - it is a lookup, same as the Yearly page.
+        supabase
+          .from('products')
+          .select('id, product_code, suppliers(name, company_name)'),
       ])
 
       if (salesRes.error) throw salesRes.error
@@ -311,6 +329,7 @@ export default function ReportSummary() {
       if (targetsRes.error) throw targetsRes.error
       if (withdrawRes.error) throw withdrawRes.error
       if (otherIncomeRes.error && !isMissingTableError(otherIncomeRes.error, 'other_incomes')) throw otherIncomeRes.error
+      if (productsRes.error) throw productsRes.error
 
       const sales = salesRes.data || []
       const purchases = purchasesRes.data || []
@@ -438,6 +457,36 @@ export default function ReportSummary() {
       const otherIncomeBreakdown = Object.values(otherIncomeMap)
         .map(row => ({ ...row, percent: pct(row.amount, totalOtherIncome) }))
         .sort((a, b) => b.amount - a.amount)
+
+      // Company ways Report: purchase comes straight off each purchase's
+      // supplier, sales are traced back through the product to its company.
+      // Same rules as the Yearly page, just over the selected period.
+      const productCompanyMap = new Map<string, string>()
+      ;(productsRes.data || []).forEach((product: any) => {
+        const supplier = Array.isArray(product.suppliers) ? product.suppliers[0] : product.suppliers
+        const name = companyName(supplier?.company_name || supplier?.name)
+        if (product.id) productCompanyMap.set(product.id, name)
+        if (product.product_code) productCompanyMap.set(product.product_code, name)
+      })
+
+      const companyMap: Record<string, CompanyWayRow> = {}
+      purchases.forEach((purchase: any) => {
+        const company = companyName(purchase.supplier_name)
+        const current = companyMap[company] || { company, purchase: 0, sales: 0 }
+        const itemTotal = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + amount(item.total_amount), 0)
+        current.purchase += itemTotal || amount(purchase.total_amount || purchase.net_amount)
+        companyMap[company] = current
+      })
+      sales.forEach((sale: any) => {
+        (sale.sale_items || []).forEach((item: any) => {
+          const company = companyName(productCompanyMap.get(item.product_id) || productCompanyMap.get(item.product_code))
+          const current = companyMap[company] || { company, purchase: 0, sales: 0 }
+          current.sales += amount(item.selling_price) * amount(item.qty) || amount(item.total_amount)
+          companyMap[company] = current
+        })
+      })
+      const companyWayRows = Object.values(companyMap)
+        .sort((a, b) => (b.purchase + b.sales) - (a.purchase + a.sales))
 
       const profitWithdraw = withdrawals.reduce((sum: number, withdrawal: any) => sum + amount(withdrawal.amount), 0)
       const profitLoss = grossProfit + purchaseIncentive + totalOtherIncome - totalExpenses
@@ -588,6 +637,7 @@ export default function ReportSummary() {
         expenseBreakdown,
         supplierPaymentBreakdown,
         otherIncomeBreakdown,
+        companyWayRows,
         dailyPerformance,
       })
       setLastUpdated(new Date())
@@ -597,6 +647,11 @@ export default function ReportSummary() {
       setLoading(false)
     }
   }
+
+  const companyWayTotals = useMemo(() => data.companyWayRows.reduce((totals, row) => ({
+    purchase: totals.purchase + row.purchase,
+    sales: totals.sales + row.sales,
+  }), { purchase: 0, sales: 0 }), [data.companyWayRows])
 
   const salesAchievedPct = pct(data.totalSales, data.salesTarget)
   const achievedProfit = data.grossProfit + data.purchaseIncentive + data.totalOtherIncome
@@ -916,6 +971,40 @@ export default function ReportSummary() {
               <OverviewLine icon={<CreditCard size={14} />} label="Profit Withdraw" value={formatCurr(data.profitWithdraw)} tone="red" />
               <OverviewLine icon={<WalletCards size={14} />} label="Available Profit" value={formatCurr(data.availableProfit)} tone={data.availableProfit >= 0 ? 'green' : 'red'} />
             </div>
+
+            <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="bg-blue-800 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <table className="w-full table-fixed text-[10px]">
+                  <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600">
+                    <tr>
+                      <th className="w-[42%] px-2 py-2 text-left font-bold">Company</th>
+                      <th className="w-[29%] px-1.5 py-2 text-right font-bold">Purchase</th>
+                      <th className="w-[29%] px-1.5 py-2 text-right font-bold">Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.companyWayRows.map(row => (
+                      <tr key={row.company} className="border-t border-slate-100">
+                        <td className="truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
+                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.purchase)}</td>
+                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(row.sales)}</td>
+                      </tr>
+                    ))}
+                    {data.companyWayRows.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-2 py-8 text-center text-xs font-medium text-slate-400">No company data</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid grid-cols-[42%_29%_29%] bg-slate-800 text-[10px] font-bold text-white">
+                <div className="px-2 py-2">Total</div>
+                <div className="px-1.5 py-2 text-right tabular-nums">{formatCurr(companyWayTotals.purchase)}</div>
+                <div className="px-1.5 py-2 text-right tabular-nums">{formatCurr(companyWayTotals.sales)}</div>
+              </div>
+            </section>
           </aside>
 
           <main className="min-w-0 space-y-4">
