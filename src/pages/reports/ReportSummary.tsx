@@ -62,10 +62,15 @@ type ReportData = {
 
 type DailyPerformanceRow = {
   label: string
+  date: string
   target: number
   sales: number
   profit: number
   expense: number
+  /** Monthly target still left after this day's sales. */
+  remainingTarget: number
+  /** What the following day is being asked to do; null on the month's last day. */
+  nextTarget: number | null
 }
 
 type MonthlyTargetOption = {
@@ -522,6 +527,7 @@ export default function ReportSummary() {
       // shows the same bar whichever way you got there.
       const today = isoDate(new Date())
       const targetByDate: Record<string, number> = {}
+      const remainingByDate: Record<string, number> = {}
       Array.from(new Set(dailyKeys.map(key => key.slice(0, 7)))).forEach(key => {
         const monthYear = Number(key.slice(0, 4))
         const monthNumber = Number(key.slice(5, 7))
@@ -533,17 +539,31 @@ export default function ReportSummary() {
           ...monthProgress(monthYear, monthNumber, today),
         }).dailyRecords.forEach(record => {
           targetByDate[record.dateString] = record.openingTarget
+          remainingByDate[record.dateString] = record.remainingTargetAfterSales
         })
       })
 
+      const nextDateOf = (key: string) => {
+        const step = new Date(`${key}T12:00:00`)
+        step.setDate(step.getDate() + 1)
+        return isoDate(step)
+      }
+
       const dailyPerformance: DailyPerformanceRow[] = dailyKeys.map(key => {
         const bucket = dailyMap[key]
+        // The engine emits every day of each month it runs on, so the lookup
+        // still resolves for days just outside the selected range - it only
+        // comes up empty past the last month the chart covers.
+        const nextKey = nextDateOf(key)
         return {
           label: String(Number(key.slice(8, 10))),
+          date: key,
           target: targetByDate[key] || 0,
           sales: bucket.sales,
           profit: bucket.profit,
           expense: bucket.expense,
+          remainingTarget: remainingByDate[key] || 0,
+          nextTarget: nextKey in targetByDate ? targetByDate[nextKey] : null,
         }
       })
 
@@ -586,6 +606,51 @@ export default function ReportSummary() {
   // Width so 4 bars per day stay readable; scrolls horizontally when the month
   // has many days on a narrow screen.
   const chartInnerWidth = Math.max(680, data.dailyPerformance.length * 42)
+
+  // Chart tooltip: the four bar values, plus how much of the monthly target is
+  // still open after this day and what the next day is being asked to do.
+  function PerformanceTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
+    if (!active || !payload?.length) return null
+    const row = payload[0]?.payload as DailyPerformanceRow | undefined
+    if (!row) return null
+
+    const bars = [
+      { label: 'Target', value: row.target, swatch: '#94a3b8' },
+      { label: 'Sales', value: row.sales, swatch: '#0b0b0f' },
+      { label: 'Profit', value: row.profit, swatch: '#1D9E75' },
+      { label: 'Expense', value: row.expense, swatch: '#E24B4A' },
+    ]
+
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg">
+        <p className="text-xs font-bold text-slate-900">Day {row.label}</p>
+        <p className="mb-2 text-[10px] font-medium text-slate-400">{formatDateShort(row.date)}</p>
+        <div className="space-y-1">
+          {bars.map(bar => (
+            <div key={bar.label} className="flex items-center justify-between gap-8 text-[11px]">
+              <span className="flex items-center gap-1.5 font-medium text-slate-500">
+                <span className="h-2 w-2 rounded-sm" style={{ background: bar.swatch }} />
+                {bar.label}
+              </span>
+              <span className="font-semibold text-slate-900">{formatCurr(bar.value)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 space-y-1 border-t border-slate-100 pt-2">
+          <div className="flex items-center justify-between gap-8 text-[11px]">
+            <span className="font-medium text-slate-500">Remaining target</span>
+            <span className="font-semibold text-slate-900">{formatCurr(row.remainingTarget)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-8 text-[11px]">
+            <span className="font-medium text-slate-500">Next day target</span>
+            <span className="font-semibold text-slate-900">
+              {row.nextTarget === null ? '—' : formatCurr(row.nextTarget)}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   function ProgressCard({
     title,
@@ -779,7 +844,7 @@ export default function ReportSummary() {
               </select>
             </label>
             {filterMode === 'monthly' ? (
-              <div className="flex flex-col gap-2">
+              <>
                 <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
                   <CalendarDays size={16} className="text-slate-400" />
                   <select className="min-w-[120px] flex-1 bg-transparent outline-none" value={selectedMonth} onChange={event => setSelectedMonth(Number(event.target.value))}>
@@ -794,7 +859,7 @@ export default function ReportSummary() {
                     {yearOptions.length === 0 && <option value={selectedYear}>{selectedYear}</option>}
                   </select>
                 </label>
-              </div>
+              </>
             ) : (
               <>
                 <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
@@ -875,7 +940,7 @@ export default function ReportSummary() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
                         <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
-                        <Tooltip formatter={(value: number) => formatCurr(value)} cursor={{ fill: 'rgba(15,23,42,0.04)' }} labelFormatter={label => `Day ${label}`} />
+                        <Tooltip content={<PerformanceTooltip />} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
                         <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
                         <Bar dataKey="target" name="Target" fill="#94a3b8" radius={[2, 2, 0, 0]} />
                         <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[2, 2, 0, 0]} />

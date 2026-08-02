@@ -136,13 +136,37 @@ export function calculateRollingTargets(
   const requestedInProgressDay = Math.floor(
     positive(config.inProgressDay)
   );
-  const inProgressDay =
+  const isRealInProgressDay =
     requestedInProgressDay === completedThroughDay + 1 &&
-    requestedInProgressDay <= totalDaysInMonth
-      ? requestedInProgressDay
-      : 0;
+    requestedInProgressDay <= totalDaysInMonth;
 
   const salesOn = (day: number) => positive(dailySalesMap[day]);
+
+  /*
+   * কোন দিন পর্যন্ত হিসাব "বন্ধ" ধরা হবে।
+   *
+   * ক্যালেন্ডার যতদূর গেছে সেটা তো বটেই, তার সাথে যেদিন পর্যন্ত বিক্রি বসানো
+   * আছে সেদিন পর্যন্তও। কারণ যেদিনে বিক্রি হয়ে গেছে সেদিনের target আর নড়া
+   * উচিত নয় — নাহলে "ঐ দিনে target কত ছিল আর বিক্রি কত হলো" মেলানো যায় না।
+   * এতে ভবিষ্যতের মাসে আগাম বসানো বিক্রিও ঠিক জায়গায় বসে।
+   */
+  let lastDayWithSales = 0;
+  for (let day = 1; day <= totalDaysInMonth; day++) {
+    if (salesOn(day) > 0) lastDayWithSales = day;
+  }
+
+  const settledThroughDay = Math.max(
+    completedThroughDay,
+    lastDayWithSales
+  );
+
+  // আজকের দিনে বিক্রি বসে গেলে দিনটা উপরের walk-এ লক হয়ে যাবে, তখন আলাদা
+  // "current" record লাগে না।
+  const inProgressDay =
+    isRealInProgressDay &&
+    requestedInProgressDay > settledThroughDay
+      ? requestedInProgressDay
+      : 0;
 
   let remainingTarget = monthlyTarget;
   let totalSales = 0;
@@ -150,12 +174,12 @@ export function calculateRollingTargets(
   const dailyRecords: DailyTargetRecord[] = [];
 
   /*
-   * ১. শেষ হয়ে যাওয়া দিন।
+   * ১. বন্ধ হয়ে যাওয়া দিন।
    *
    * প্রতিটি দিনের শুরুতে তখনকার remaining target তখনকার remaining days দিয়ে
    * ভাগ হয়। মানটা ওখানেই লক হয়ে যায়, তাই chart-এর history কখনো নড়ে না।
    */
-  for (let day = 1; day <= completedThroughDay; day++) {
+  for (let day = 1; day <= settledThroughDay; day++) {
     const daysLeftFromThisDay =
       totalDaysInMonth - day + 1;
 
@@ -185,26 +209,17 @@ export function calculateRollingTargets(
   }
 
   /*
-   * ২. চলতি দিন।
+   * ২. চলতি দিন — শুধু তখনই, যখন আজকের দিনে এখনো কোনো বিক্রি বসেনি। বিক্রি
+   *    থাকলে আজকের দিনটা উপরের walk-এই লক হয়ে গেছে।
    *
-   * আজকের target আজ সকালের remaining দিয়েই ঠিক হয় — আজকের বিক্রি এখানে বাদ
-   * যায় না। তাই সারাদিন বিক্রি করলেও আজকের বারটা এক জায়গায় দাঁড়িয়ে থাকে,
-   * আর আপনি দেখতে পান আজ কতটা করার কথা ছিল বনাম কতটা হলো।
+   * আজকের target আজ সকালের remaining দিয়েই ঠিক হয়, তাই সারাদিন বিক্রি করলেও
+   * আজকের বারটা এক জায়গায় দাঁড়িয়ে থাকে — আপনি দেখতে পান আজ কতটা করার কথা
+   * ছিল বনাম কতটা হলো।
    */
-  const openDays = totalDaysInMonth - completedThroughDay;
+  const openDays = totalDaysInMonth - settledThroughDay;
 
   const currentDailyTarget =
     openDays > 0 ? remainingTarget / openDays : 0;
-
-  const inProgressSales =
-    inProgressDay > 0 ? salesOn(inProgressDay) : 0;
-
-  totalSales += inProgressSales;
-
-  remainingTarget = Math.max(
-    0,
-    remainingTarget - inProgressSales
-  );
 
   if (inProgressDay > 0) {
     dailyRecords.push({
@@ -216,43 +231,27 @@ export function calculateRollingTargets(
       ),
       status: "current",
       openingTarget: roundMoney(currentDailyTarget),
-      actualSales: roundMoney(inProgressSales),
+      actualSales: 0,
       remainingTargetAfterSales:
         roundMoney(remainingTarget),
     });
   }
 
   /*
-   * ৩. আজকের পরের সব দিন।
+   * ৩. বাকি সব দিন।
    *
-   * মাসে রেকর্ড হওয়া বাকি সব বিক্রি — আজকেরটা সহ, আর কেউ যদি সামনের তারিখে
-   * sale বসিয়ে থাকে সেটাও — বাদ দেওয়ার পরে যা থাকে, সেটাই সমানভাবে ভাগ হয়।
-   * Loop-এর ভিতরে denominator কমানো হচ্ছে না, এটাই নিশ্চিত করে যে সব upcoming
-   * column হুবহু একই হবে।
+   * settledThroughDay-এর পরে কোনো দিনে বিক্রি থাকতে পারে না (ওটাই তো শেষ
+   * বিক্রির দিন), তাই এখানে remaining আর কমে না — যা বাকি আছে সেটাই সমানভাবে
+   * ভাগ হয়। Loop-এর ভিতরে denominator কমানো হচ্ছে না, এটাই নিশ্চিত করে যে সব
+   * upcoming column হুবহু একই হবে।
    */
   const lockedThroughDay = Math.max(
-    completedThroughDay,
+    settledThroughDay,
     inProgressDay
   );
 
   const remainingDays =
     totalDaysInMonth - lockedThroughDay;
-
-  let upcomingSales = 0;
-  for (
-    let day = lockedThroughDay + 1;
-    day <= totalDaysInMonth;
-    day++
-  ) {
-    upcomingSales += salesOn(day);
-  }
-
-  totalSales += upcomingSales;
-
-  remainingTarget = Math.max(
-    0,
-    remainingTarget - upcomingSales
-  );
 
   const upcomingDailyTarget =
     remainingDays > 0
