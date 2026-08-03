@@ -120,9 +120,6 @@ export default function Sales() {
   const [showInvoice, setShowInvoice] = useState(false)
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false)
   const [showQuickAddProduct, setShowQuickAddProduct] = useState(false)
-  // Product names on the current invoice that have no purchase rate. Non-null
-  // means the save was blocked and the warning modal is showing.
-  const [missingCostItems, setMissingCostItems] = useState<string[] | null>(null)
   // Text a customer copy of the invoice to their phone after saving. Remembered
   // per browser so the owner does not have to switch it on for every sale.
   const [smsInvoice, setSmsInvoice] = useState(() => localStorage.getItem(smsInvoiceKey) === '1')
@@ -1115,17 +1112,10 @@ export default function Sales() {
 
     const validItems = items.filter(itemHasSaleValue)
 
-    // A line with no purchase rate has no knowable profit, and saving it would
-    // leave the reports counting the whole sale amount as profit. Stop here and
-    // name the products that still need a rate.
-    const namesMissingCost = Array.from(new Set(
-      validItems.filter(item => Number(item.cost_price || 0) <= 0).map(saleItemName)
-    ))
-    if (namesMissingCost.length > 0) {
-      setMissingCostItems(namesMissingCost)
-      return
-    }
-
+    // A line with no purchase rate is saved with cost_price 0. Its profit is
+    // simply not counted (reports treat an unknown cost as no profit rather
+    // than as pure profit). Once the product's purchase rate is filled in
+    // later, the backend backfills these lines and the profit shows up.
     const itemRows = validItems.map((item) => ({
       product_id: dbProductId(item.product_id),
       product_code: item.product_code || saleItemName(item),
@@ -3003,32 +2993,6 @@ export default function Sales() {
         </form>
       </Modal>
 
-      {/* PURCHASE RATE MISSING - blocks the save so profit stays trustworthy */}
-      <Modal
-        isOpen={missingCostItems !== null}
-        onClose={() => setMissingCostItems(null)}
-        title="Purchase rate missing"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            No purchase rate is set for the products below, so their profit cannot be
-            calculated. Set a purchase rate for each one, then save this sale again.
-          </p>
-          <ul className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-            {(missingCostItems || []).map((name, idx) => (
-              <li key={`${name}-${idx}`} className="text-sm font-semibold text-amber-900">
-                &bull; {name}
-              </li>
-            ))}
-          </ul>
-          <div className="flex justify-end">
-            <button type="button" className="btn-primary" onClick={() => setMissingCostItems(null)}>
-              OK
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* QUICK ADD PRODUCT MODAL */}
       <Modal
