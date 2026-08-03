@@ -37,6 +37,7 @@ import YearlyReport from './pages/reports/YearlyReport'
 import ReportSummary from './pages/reports/ReportSummary'
 import Settings from './pages/Settings'
 import CurrentPlan from './pages/CurrentPlan'
+import BillingHistory from './pages/BillingHistory'
 import EmployeeDashboard from './pages/employees/EmployeeDashboard'
 import EmployeeList from './pages/employees/EmployeeList'
 import EmployeeTransactions from './pages/employees/EmployeeTransactions'
@@ -200,6 +201,7 @@ function AppRoutes() {
         <Route path="/employees/attendance" element={<EmployeeAttendance />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/current-plan" element={<CurrentPlan />} />
+        <Route path="/package/billing-history" element={<BillingHistory />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

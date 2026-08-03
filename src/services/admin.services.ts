@@ -16,6 +16,8 @@ export const resetPassword = (email: string, otp: string, password: string) =>
   http.post<{ message: string }>('/auth/reset-password', { email, otp, password })
 
 export const getMySubscription = () => http.get<any>('/subscriptions/my')
+// Owner's own plan payment history (the plan half of the Billing History page).
+export const getMySubscriptionPayments = () => http.get<any[]>('/subscriptions/my-payments')
 export const choosePlan = (payload: { plan_type: 'free_trial' | 'monthly' | 'yearly'; full_name?: string; phone?: string; address?: string }) =>
   http.post<any>('/subscriptions/choose-plan', payload)
 // Step 2 of manual bKash checkout: submit the sender number + transaction id.

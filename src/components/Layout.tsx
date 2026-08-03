@@ -136,7 +136,13 @@ export default function Layout() {
   ]
 
   if (profile?.role === 'owner') {
-    businessNavGroups.push({ key: 'currentPlan', label: t('nav_currentPlan', 'Current Plan'), icon: <CreditCard size={18} />, path: '/current-plan' } as any)
+    businessNavGroups.push({
+      key: 'package', label: t('nav_package', 'Package'), icon: <CreditCard size={18} />,
+      children: [
+        { key: 'billingHistory', label: t('nav_billingHistory', 'Billing History'), icon: <FileText size={16} />, path: '/package/billing-history' },
+        { key: 'currentPlan', label: t('nav_plan', 'Plan'), icon: <CreditCard size={16} />, path: '/current-plan' },
+      ],
+    } as any)
     businessNavGroups.push({ key: 'settings', label: t('nav_settings'), icon: <Settings size={18} />, path: '/settings' } as any)
   }
 
