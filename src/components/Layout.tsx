@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useBusinessBrand } from '../lib/businessBrand'
 import NotificationBell from './NotificationBell'
+import ExpiryReminder from './ExpiryReminder'
 import toast from 'react-hot-toast'
 
 export default function Layout() {
@@ -271,6 +272,7 @@ export default function Layout() {
       </div>
 
       {profile?.role !== 'super_admin' && <WhatsAppSupport />}
+      {profile?.role !== 'super_admin' && <ExpiryReminder />}
     </div>
   )
 }

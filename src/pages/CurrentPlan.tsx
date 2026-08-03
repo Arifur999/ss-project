@@ -27,7 +27,7 @@ export default function CurrentPlan() {
   useEffect(() => {
     getPaymentInfo()
       .then(info => setPrices({ monthly: Number(info.monthly_price), yearly: Number(info.yearly_price), yearlyOriginal: Number(info.yearly_original_price) }))
-      .catch(() => setPrices({ monthly: 599, yearly: 5750, yearlyOriginal: 7188 }))
+      .catch(() => setPrices({ monthly: 699, yearly: 6710, yearlyOriginal: 8388 }))
   }, [])
 
   const planType = (subscription?.plan_type || 'free_trial') as PlanKind
@@ -105,6 +105,7 @@ export default function CurrentPlan() {
           note={bn ? 'কোনো ডিসকাউন্ট নেই' : 'No discount'}
           features={[
             bn ? 'সম্পূর্ণ সফটওয়্যার অ্যাক্সেস' : 'Full software access',
+            bn ? '১০০ ফ্রি এসএমএস' : '100 free SMS',
             bn ? 'প্রতি মাসে বিল' : 'Billed monthly',
             bn ? 'মেয়াদের সাথে যোগ হয়' : 'Adds to your current expiry',
           ]}
@@ -121,6 +122,7 @@ export default function CurrentPlan() {
           note={bn ? 'সবচেয়ে সাশ্রয়ী' : 'Best value'}
           features={[
             bn ? 'সম্পূর্ণ আনলিমিটেড ফিচার' : 'All features unlocked',
+            bn ? '৫০০ ফ্রি এসএমএস' : '500 free SMS',
             bn ? 'প্রায়োরিটি সাপোর্ট' : 'Priority support',
             bn ? 'মেয়াদের সাথে যোগ হয়' : 'Adds to your current expiry',
           ]}

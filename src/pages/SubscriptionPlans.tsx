@@ -119,14 +119,16 @@ const planCopy = {
 
 const featureCopy = {
   en: {
-    free: ['Full software access', '1 dynamic user workspace', 'Standard reports', 'Basic backup layers'],
-    yearly: ['Absolute unlimited workspace features', 'Priority VIP tech support hotline', 'Isolated automated database schema backup engine'],
+    free: ['Full software access', '10 free SMS', '1 dynamic user workspace', 'Standard reports', 'Basic backup layers'],
+    monthly: ['Absolute unlimited workspace features', '100 free SMS', 'Priority VIP tech support hotline', 'Isolated automated database schema backup engine'],
+    yearly: ['Absolute unlimited workspace features', '500 free SMS', 'Priority VIP tech support hotline', 'Isolated automated database schema backup engine'],
   },
   bn: {
-    free: ['সম্পূর্ণ সফটওয়্যার অ্যাক্সেস', '১টি ডাইনামিক ইউজার ওয়ার্কস্পেস', 'স্ট্যান্ডার্ড রিপোর্ট', 'বেসিক ব্যাকআপ লেয়ার'],
-    yearly: ['সম্পূর্ণ আনলিমিটেড ওয়ার্কস্পেস ফিচার', 'প্রায়োরিটি VIP টেক সাপোর্ট হটলাইন', 'আইসোলেটেড অটোমেটেড ডাটাবেস স্কিমা ব্যাকআপ ইঞ্জিন'],
+    free: ['সম্পূর্ণ সফটওয়্যার অ্যাক্সেস', '১০টি ফ্রি এসএমএস', '১টি ডাইনামিক ইউজার ওয়ার্কস্পেস', 'স্ট্যান্ডার্ড রিপোর্ট', 'বেসিক ব্যাকআপ লেয়ার'],
+    monthly: ['সম্পূর্ণ আনলিমিটেড ওয়ার্কস্পেস ফিচার', '১০০ ফ্রি এসএমএস', 'প্রায়োরিটি VIP টেক সাপোর্ট হটলাইন', 'আইসোলেটেড অটোমেটেড ডাটাবেস স্কিমা ব্যাকআপ ইঞ্জিন'],
+    yearly: ['সম্পূর্ণ আনলিমিটেড ওয়ার্কস্পেস ফিচার', '৫০০ ফ্রি এসএমএস', 'প্রায়োরিটি VIP টেক সাপোর্ট হটলাইন', 'আইসোলেটেড অটোমেটেড ডাটাবেস স্কিমা ব্যাকআপ ইঞ্জিন'],
   },
-} satisfies Record<Lang, Record<'free' | 'yearly', string[]>>
+} satisfies Record<Lang, Record<'free' | 'monthly' | 'yearly', string[]>>
 
 // localStorage key that carries the selected plan + the moment it was chosen
 // across the /choose-plan -> /subscription-checkout navigation. The
@@ -166,9 +168,9 @@ export default function SubscriptionPlans() {
       })
       .catch(() => {
         // sane fallback if settings can't load
-        setYearlyPrice(5750)
-        setYearlyOriginalPrice(7188)
-        setMonthlyPrice(599)
+        setYearlyPrice(6710)
+        setYearlyOriginalPrice(8388)
+        setMonthlyPrice(699)
       })
   }, [])
 
@@ -201,7 +203,7 @@ export default function SubscriptionPlans() {
       price: monthlyPrice === null ? '...' : `${formatBDT(monthlyPrice)} / month`,
       originalPrice: null as string | null,
       discountLabel: null as string | null,
-      features: featureCopy[lang].yearly,
+      features: featureCopy[lang].monthly,
       button: lang === 'bn' ? 'মাসিক প্ল্যান নিন' : 'Choose Monthly',
       note: lang === 'bn' ? 'কোনো ডিসকাউন্ট নেই' : 'No discount',
       disabled: false,
