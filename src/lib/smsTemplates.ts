@@ -38,8 +38,14 @@ export type InvoiceSmsInput = {
 // Kept deliberately English and free of item lines: every 160 characters costs
 // another credit per recipient, and Bangla would cost roughly three times as
 // much for the same content.
+// Same grouping the app shows on screen (formatCurr), so the figures in a
+// message match the ones the customer sees on their invoice.
+function smsAmount(value: number) {
+  return Math.round(Number(value) || 0).toLocaleString('en-US')
+}
+
 function smsMoney(value: number) {
-  return `Tk ${Math.round(Number(value) || 0).toLocaleString('en-IN')}`
+  return `Tk ${smsAmount(value)}`
 }
 
 export function buildInvoiceSms(input: InvoiceSmsInput): string {
@@ -56,6 +62,35 @@ export function buildInvoiceSms(input: InvoiceSmsInput): string {
     `Paid: ${smsMoney(input.paid)}`,
     `Due: ${smsMoney(input.due)}`,
     'Thank you!',
+  ].filter(Boolean).join('\n')
+}
+
+export type DueSmsInput = {
+  businessName: string
+  /** Both business numbers, exactly as Settings stores them. */
+  businessPhone?: string
+  customerName: string
+  /** Everything billed to this customer so far, net of discounts. */
+  totalBill: number
+  /** Everything they have paid so far. */
+  paid: number
+  due: number
+}
+
+// Payment reminder for one customer, in Bangla. Each recipient gets their own
+// amounts, so the caller sends these one at a time rather than as a batch.
+//
+// Bangla is unicode, billed at 70 characters a segment instead of 160, so this
+// costs about three credits per recipient - keep any edits tight.
+export function buildDueSms(input: DueSmsInput): string {
+  return [
+    `আসসালামু আলাইকুম, ${input.customerName}!`,
+    `${input.businessName} থেকে আপনার কেনাকাটা সম্পন্ন হয়েছে।`,
+    `মোট বিল: ${smsAmount(input.totalBill)} টাকা`,
+    `পরিশোধিত: ${smsAmount(input.paid)} টাকা`,
+    `বকেয়া: ${smsAmount(input.due)} টাকা`,
+    input.businessPhone ? `হেল্পলাইন: ${input.businessPhone}` : '',
+    'ধন্যবাদ আমাদের সাথে থাকার জন্য!',
   ].filter(Boolean).join('\n')
 }
 
