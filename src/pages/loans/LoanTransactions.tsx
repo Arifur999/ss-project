@@ -3,6 +3,7 @@ import { Plus, Printer, Save, Pencil, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
+import SearchableSelect from '../../components/SearchableSelect'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
@@ -420,38 +421,6 @@ export default function LoanTransactions() {
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? 'Edit Loan Transaction' : 'New Loan Transaction'}>
         <form className="space-y-3" onSubmit={event => { event.preventDefault(); save() }} noValidate>
           <div>
-            <label className="label">{requiredLabel('Date')}</label>
-            <input
-              type="date"
-              className={inputClass('date')}
-              value={form.date}
-              required
-              aria-invalid={!!errors.date}
-              onChange={e => {
-                clearError('date')
-                setForm({ ...form, date: e.target.value })
-              }}
-            />
-            {errors.date && <p className="mt-1 text-xs font-medium text-red-600">{errors.date}</p>}
-          </div>
-          <div>
-            <label className="label">{requiredLabel('Bank / Person')}</label>
-            <select
-              className={inputClass('lender_id')}
-              value={form.lender_id}
-              required
-              aria-invalid={!!errors.lender_id}
-              onChange={e => {
-                clearError('lender_id')
-                setForm({ ...form, lender_id: e.target.value })
-              }}
-            >
-              <option value="">Select Bank / Person</option>
-              {lenders.map(lender => <option key={lender.id} value={lender.id}>{lender.name}</option>)}
-            </select>
-            {errors.lender_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_id}</p>}
-          </div>
-          <div>
             <label className="label">{requiredLabel('Transaction Type')}</label>
             <select
               className={inputClass('transaction_type')}
@@ -469,6 +438,47 @@ export default function LoanTransactions() {
             {errors.transaction_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.transaction_type}</p>}
           </div>
           <div>
+            <label className="label">{requiredLabel('Date')}</label>
+            <input
+              type="date"
+              className={inputClass('date')}
+              value={form.date}
+              required
+              aria-invalid={!!errors.date}
+              onChange={e => {
+                clearError('date')
+                setForm({ ...form, date: e.target.value })
+              }}
+            />
+            {errors.date && <p className="mt-1 text-xs font-medium text-red-600">{errors.date}</p>}
+          </div>
+          <div>
+            <label className="label">{requiredLabel('Account')}</label>
+            <SearchableSelect
+              value={form.account_id}
+              onChange={val => {
+                clearError('account_id')
+                setForm({ ...form, account_id: val })
+              }}
+              options={accounts.map(account => ({ value: account.id, label: account.name }))}
+              placeholder="Select Account"
+            />
+            {errors.account_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.account_id}</p>}
+          </div>
+          <div>
+            <label className="label">{requiredLabel('Bank / Person')}</label>
+            <SearchableSelect
+              value={form.lender_id}
+              onChange={val => {
+                clearError('lender_id')
+                setForm({ ...form, lender_id: val })
+              }}
+              options={lenders.map(lender => ({ value: lender.id, label: lender.name }))}
+              placeholder="Select Bank / Person"
+            />
+            {errors.lender_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_id}</p>}
+          </div>
+          <div>
             <label className="label">{requiredLabel('Amount')}</label>
             <input
               type="number"
@@ -483,23 +493,6 @@ export default function LoanTransactions() {
               }}
             />
             {errors.amount && <p className="mt-1 text-xs font-medium text-red-600">{errors.amount}</p>}
-          </div>
-          <div>
-            <label className="label">{requiredLabel('Account')}</label>
-            <select
-              className={inputClass('account_id')}
-              value={form.account_id}
-              required
-              aria-invalid={!!errors.account_id}
-              onChange={e => {
-                clearError('account_id')
-                setForm({ ...form, account_id: e.target.value })
-              }}
-            >
-              <option value="">Select Account</option>
-              {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
-            </select>
-            {errors.account_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.account_id}</p>}
           </div>
           <div><label className="label">Notes</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">

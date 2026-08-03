@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CreditCard, Download, RefreshCcw } from 'lucide-react'
+import { CreditCard, Download, Eye, Mail, MapPin, Phone, RefreshCcw, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
@@ -14,6 +14,18 @@ const badgeClass: Record<string, string> = {
   refunded: 'badge-blue',
 }
 
+interface OwnerContact {
+  name: string
+  email: string
+  phone: string
+  business: string
+  address: string
+  planType: string
+  planStatus: string
+  expiry: string
+  joined: string
+}
+
 interface PaymentRow {
   id: string
   invoice: string
@@ -24,12 +36,16 @@ interface PaymentRow {
   status: string
   date: string
   amount: number
+  contact: OwnerContact
 }
 
 export default function SuperAdminPayments() {
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  // Row whose owner contact card is open (eye icon), so a pending payment can
+  // be followed up on by phone/email without leaving the page.
+  const [contactRow, setContactRow] = useState<PaymentRow | null>(null)
 
   useEffect(() => {
     loadPayments()
@@ -49,6 +65,21 @@ export default function SuperAdminPayments() {
         status: row.status || 'pending',
         date: row.date ? new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
         amount: Number(row.amount || 0),
+        contact: {
+          name: row.owner?.full_name || '-',
+          email: row.owner?.email || '-',
+          phone: row.owner?.phone || '-',
+          business: row.owner?.subscription?.business_name || '-',
+          address: row.owner?.subscription?.address || '-',
+          planType: row.owner?.subscription?.plan_type || '-',
+          planStatus: row.owner?.subscription?.plan_status || '-',
+          expiry: row.owner?.subscription?.expiry_date
+            ? new Date(row.owner.subscription.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '-',
+          joined: row.owner?.created_at
+            ? new Date(row.owner.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '-',
+        },
       })))
     } catch (error: any) {
       toast.error(error.message || 'Failed to load payments')
@@ -133,26 +164,33 @@ export default function SuperAdminPayments() {
                   <td className="px-4 py-3 text-slate-600">{payment.date}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatBDT(payment.amount)}</td>
                   <td className="px-4 py-3 text-right">
-                    {payment.status === 'pending' ? (
-                      <div className="flex justify-end gap-2">
-                        <button
-                          className="btn-secondary !px-2 !py-1 text-xs"
-                          disabled={updatingId === payment.id}
-                          onClick={() => markPayment(payment.id, 'failed')}
-                        >
-                          Fail
-                        </button>
-                        <button
-                          className="btn-primary !px-2 !py-1 text-xs"
-                          disabled={updatingId === payment.id}
-                          onClick={() => markPayment(payment.id, 'paid')}
-                        >
-                          Mark Paid
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400">-</span>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900"
+                        onClick={() => setContactRow(payment)}
+                        title="View owner details"
+                      >
+                        <Eye size={15} />
+                      </button>
+                      {payment.status === 'pending' ? (
+                        <>
+                          <button
+                            className="btn-secondary !px-2 !py-1 text-xs"
+                            disabled={updatingId === payment.id}
+                            onClick={() => markPayment(payment.id, 'failed')}
+                          >
+                            Fail
+                          </button>
+                          <button
+                            className="btn-primary !px-2 !py-1 text-xs"
+                            disabled={updatingId === payment.id}
+                            onClick={() => markPayment(payment.id, 'paid')}
+                          >
+                            Mark Paid
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -160,6 +198,74 @@ export default function SuperAdminPayments() {
           </table>
         </TableScroller>
       </div>
+
+      {contactRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={() => setContactRow(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl" onMouseDown={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{contactRow.contact.name}</h3>
+                <p className="mt-0.5 text-xs text-slate-500">{contactRow.contact.business}</p>
+              </div>
+              <button onClick={() => setContactRow(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100" aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-5">
+              <ContactLine icon={<Phone size={15} />} label="Phone" value={contactRow.contact.phone} href={contactRow.contact.phone !== '-' ? `tel:${contactRow.contact.phone.replace(/\s+/g, '')}` : undefined} />
+              <ContactLine icon={<Mail size={15} />} label="Email" value={contactRow.contact.email} href={contactRow.contact.email !== '-' ? `mailto:${contactRow.contact.email}` : undefined} />
+              <ContactLine icon={<MapPin size={15} />} label="Address" value={contactRow.contact.address} />
+
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
+                <Detail label="Plan" value={contactRow.contact.planType} />
+                <Detail label="Plan status" value={contactRow.contact.planStatus} />
+                <Detail label="Expires" value={contactRow.contact.expiry} />
+                <Detail label="Joined" value={contactRow.contact.joined} />
+              </div>
+
+              <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">This payment</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Detail label="Invoice" value={contactRow.invoice} />
+                  <Detail label="Amount" value={formatBDT(contactRow.amount)} />
+                  <Detail label="Paid from" value={contactRow.senderNumber} />
+                  <Detail label="TrxID" value={contactRow.trxId} />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 p-5">
+              <button onClick={() => setContactRow(null)} className="btn-secondary w-full justify-center">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ContactLine({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href?: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+        {href ? (
+          <a href={href} className="break-words font-bold text-slate-900 hover:underline">{value}</a>
+        ) : (
+          <p className="break-words font-medium text-slate-800">{value}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-0.5 break-words font-semibold text-slate-800">{value}</p>
     </div>
   )
 }
