@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Download, Image } from 'lucide-react'
+import { Search, Download, Image, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import TableScroller from '../components/TableScroller'
 import { setInventoryDpPrice } from '../services/product.services'
@@ -182,6 +182,7 @@ export default function Inventory() {
   const [search, setSearch] = useState(initialCache.current.search)
   const [statusFilter, setStatusFilter] = useState<InventoryStatusFilter>(initialCache.current.statusFilter)
   const [loading, setLoading] = useState(true)
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [dpEdits, setDpEdits] = useState<Record<string, string>>({})
   const [savingDp, setSavingDp] = useState<Record<string, boolean>>({})
 
@@ -479,7 +480,13 @@ export default function Inventory() {
                   <td className="py-2 px-3 font-medium">{row.products?.name}</td>
                   <td className="py-2 px-3 text-center">
                     {row.products?.image_url ? (
-                      <img src={row.products.image_url} alt="" className="w-8 h-8 object-cover rounded-md mx-auto" onError={e => (e.target as HTMLImageElement).style.display='none'} />
+                      <img
+                        src={row.products.image_url}
+                        alt=""
+                        className="w-8 h-8 object-cover rounded-md mx-auto cursor-zoom-in transition hover:ring-2 hover:ring-slate-300"
+                        onClick={() => setLightboxImage(row.products.image_url)}
+                        onError={e => (e.target as HTMLImageElement).style.display='none'}
+                      />
                     ) : (
                       <div className="w-8 h-8 bg-slate-100 rounded-md flex items-center justify-center mx-auto"><Image size={12} className="text-slate-400" /></div>
                     )}
@@ -517,6 +524,28 @@ export default function Inventory() {
         </table>
         </TableScroller>
       </div>
+
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <img
+            src={lightboxImage}
+            alt="Product preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            onClick={() => setLightboxImage(null)}
+            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+            aria-label="Close preview"
+          >
+            <X size={22} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

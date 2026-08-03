@@ -1631,6 +1631,11 @@ export default function ProductList() {
         )
       })}
 
+    </div>
+
+    {/* Image preview lives outside .product-tag-print-area - that container is
+        display:none on screen (print-only), so anything nested in it can never
+        be seen. */}
     {lightboxImage && (
       <div
         className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
@@ -1652,7 +1657,6 @@ export default function ProductList() {
         </button>
       </div>
     )}
-    </div>
     </>
   )
 }
