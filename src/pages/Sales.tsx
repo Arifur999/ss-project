@@ -1370,17 +1370,14 @@ export default function Sales() {
   function formatInvoiceDateTime(value?: string) {
     const date = value ? new Date(value) : new Date()
     if (Number.isNaN(date.getTime())) return '-'
-    const datePart = date.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
     const timePart = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
     })
-    return `${datePart} at ${timePart}`
+    // Non-breaking spaces keep "at 12:44 PM" from wrapping the AM/PM onto its
+    // own line on the printed invoice.
+    return `${formatDate(date)} at ${timePart.replace(' ', ' ')}`
   }
 
   const handlePrint = useReactToPrint({ content: () => invoiceRef.current })

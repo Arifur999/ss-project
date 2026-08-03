@@ -256,7 +256,7 @@ export default function SupplierPayments() {
               <div class="muted">${escapeHtml(dateRangeLabel)}</div>
               <div class="muted">${escapeHtml(supplierLabel)}</div>
             </div>
-            <div class="muted">Generated: ${escapeHtml(new Date().toLocaleDateString('en-US'))}</div>
+            <div class="muted">Generated: ${escapeHtml(formatDate(new Date()))}</div>
           </div>
           <div class="summary">
             <div class="box">

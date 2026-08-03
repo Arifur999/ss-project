@@ -6,6 +6,7 @@ import { confirmAction } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
 import { RecycleBinItem } from '../lib/recycleBin'
+import { formatDate } from '../lib/utils'
 import { deleteRecycleBinItemPermanently, getRecycleBinItems, restoreRecycleBinItem } from '../services/admin.services'
 
 type TabKey =
@@ -58,14 +59,9 @@ const recycleTypeLabel: Record<string, string> = {
 }
 
 function displayDate(value: string) {
-  if (!value) return '-'
-  return new Date(value).toLocaleString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const parsed = value ? new Date(value) : null
+  if (!parsed || isNaN(parsed.getTime())) return '-'
+  return `${formatDate(parsed)} ${parsed.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 function cleanRecord(record: any, ignoredKeys: string[]) {

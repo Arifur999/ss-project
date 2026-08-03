@@ -3,6 +3,7 @@ import { Megaphone, RefreshCcw, Send, Trash2, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import { confirmAction } from '../../components/ConfirmDialog'
+import { formatDate } from '../../lib/utils'
 import {
   deleteNotification,
   getAdminNotifications,
@@ -58,7 +59,11 @@ export default function SuperAdminNotifications() {
     }
   }
 
-  const day = (d: string) => new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const day = (d: string) => {
+    const parsed = new Date(d)
+    if (isNaN(parsed.getTime())) return '-'
+    return `${formatDate(parsed)} ${parsed.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+  }
 
   return (
     <div className="p-4 sm:p-6">

@@ -292,7 +292,7 @@ export default function LoanTransactions() {
               <div class="muted">${escapeHtml(rangeLabel)}</div>
               <div class="muted">${escapeHtml(lenderLabel)}</div>
             </div>
-            <div class="muted">Generated: ${escapeHtml(new Date().toLocaleDateString('en-US'))}</div>
+            <div class="muted">Generated: ${escapeHtml(formatDate(new Date()))}</div>
           </div>
           <div class="summary">
             <div class="box">

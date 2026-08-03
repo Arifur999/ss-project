@@ -1,4 +1,5 @@
 import { getOwners } from '../../services/admin.services'
+import { formatDate as formatDateUtil } from '../../lib/utils'
 
 export type OwnerPlan = 'Trial' | 'Starter' | 'Growth' | 'Enterprise'
 export type OwnerStatus = 'pending' | 'trial' | 'active' | 'expired' | 'blocked' | 'suspended'
@@ -67,8 +68,7 @@ export function formatBDT(value: number) {
 }
 
 export function formatDate(date?: string | null) {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  return formatDateUtil(date) || '-'
 }
 
 export function planTypeLabel(planType?: PlanType | null) {

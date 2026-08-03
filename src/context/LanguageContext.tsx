@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import en from '../locales/en.json'
 import bn from '../locales/bn.json'
+import { formatDate } from '../lib/utils'
 
 export type Lang = 'en' | 'bn'
 
@@ -82,26 +83,21 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return t(`month_short_${key}`)
   }, [t])
 
-  const formatDateLong = useCallback((date: string | Date): string => {
-    const d = typeof date === 'string' ? new Date(date) : date
-    if (isNaN(d.getTime())) return ''
-    const dayName = lang === 'bn' ? BN_WEEKDAYS[d.getDay()] : EN_WEEKDAYS[d.getDay()]
-    const day = d.getDate()
-    const mon = monthName(d.getMonth() + 1)
-    const yr = d.getFullYear()
-    if (lang === 'bn') return `${dayName}, ${toBnDigits(String(day))} ${mon}, ${toBnDigits(String(yr))}`
-    return `${dayName}, ${day} ${mon}, ${yr}`
-  }, [lang, monthName])
-
+  // Both date helpers render the app-wide 30-Jan-2026 format; the "long" one
+  // only prefixes the weekday. Bangla keeps the same shape with Bangla digits.
   const formatDateShort = useCallback((date: string | Date): string => {
     const d = typeof date === 'string' ? new Date(date) : date
-    if (isNaN(d.getTime())) return ''
-    const day = String(d.getDate()).padStart(2, '0')
-    const mon = String(d.getMonth() + 1).padStart(2, '0')
-    const yr = d.getFullYear()
-    const str = `${day}/${mon}/${yr}`
+    if (!d || isNaN(d.getTime())) return ''
+    const str = formatDate(d)
     return lang === 'bn' ? toBnDigits(str) : str
   }, [lang])
+
+  const formatDateLong = useCallback((date: string | Date): string => {
+    const d = typeof date === 'string' ? new Date(date) : date
+    if (!d || isNaN(d.getTime())) return ''
+    const dayName = lang === 'bn' ? BN_WEEKDAYS[d.getDay()] : EN_WEEKDAYS[d.getDay()]
+    return `${dayName}, ${formatDateShort(d)}`
+  }, [lang, formatDateShort])
 
   const value = useMemo(() => ({
     lang,

@@ -7,6 +7,7 @@ import { useLang } from '../../context/LanguageContext'
 import { buildLoanSummary, loanBalanceColor, loanBalanceLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { readSmsTemplates, type SmsTemplate } from '../../lib/smsTemplates'
+import { formatDate } from '../../lib/utils'
 import { sendSms as sendSmsApi } from '../../services/sms.services'
 
 type SortBy = 'balance_desc' | 'balance_asc' | 'name_asc' | 'dena_first' | 'pawna_first'
@@ -86,7 +87,7 @@ export default function LoanDashboard() {
   const totalDena = summaries.filter((item: any) => item.balance < 0).reduce((s: number, item: any) => s + Math.abs(item.balance), 0)
   const totalPawna = summaries.filter((item: any) => item.balance > 0).reduce((s: number, item: any) => s + item.balance, 0)
   const activeAccounts = summaries.filter((item: any) => item.balance !== 0).length
-  const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const todayLabel = formatDate(new Date())
 
   // Displayed-row totals (reflect the current search filter).
   const shownOpening = displayed.reduce((s: number, i: any) => s + i.opening, 0)

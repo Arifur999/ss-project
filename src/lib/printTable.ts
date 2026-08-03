@@ -1,3 +1,5 @@
+import { formatDate } from './utils'
+
 // Opens a clean print window for a simple data table and triggers the browser
 // print dialog. Self-contained (its own styles) so it never touches the app's
 // invoice print CSS.
@@ -23,7 +25,8 @@ export function printTable(opts: {
     ? `<tr class="total">${totalRow.map((cell, i) => `<td style="text-align:${align(columns[i] || {})}">${esc(cell)}</td>`).join('')}</tr>`
     : ''
 
-  const printedOn = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const now = new Date()
+  const printedOn = `${formatDate(now)} ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
   <style>

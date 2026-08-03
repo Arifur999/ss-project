@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Bell, Megaphone, X } from 'lucide-react'
 import { getMyNotifications, markNotificationsRead, type UserNotification } from '../services/notification.services'
+import { formatDate } from '../lib/utils'
 
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime()
@@ -13,7 +14,7 @@ function timeAgo(iso: string): string {
   if (hrs < 24) return `${hrs}h ago`
   const days = Math.floor(hrs / 24)
   if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  return formatDate(iso)
 }
 
 export default function NotificationBell() {

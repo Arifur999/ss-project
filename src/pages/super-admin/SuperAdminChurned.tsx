@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import { getChurnedCustomers, sendFollowupEmail } from '../../services/admin.services'
+import { formatDate as formatDateUtil } from '../../lib/utils'
 
 type PaidCustomer = {
   id: string
@@ -24,7 +25,7 @@ type PaidCustomer = {
 }
 
 const money = (n: number) => 'Tk ' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })
-const formatDate = (value: string | null) => (value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-')
+const formatDate = (value: string | null) => formatDateUtil(value) || '-'
 const planLabel = (planType: string) => (planType === 'yearly' ? 'Yearly' : planType === 'monthly' ? 'Monthly' : planType || '-')
 
 export default function SuperAdminChurned() {

@@ -5,14 +5,14 @@ import PageHeader from '../components/PageHeader'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { getPaymentInfo } from '../services/admin.services'
+import { formatDate as formatDateUtil } from '../lib/utils'
 
 // Must match SubscriptionPlans / SubscriptionCheckout so the checkout page can
 // read which plan the owner is paying for.
 const CHECKOUT_STORAGE_KEY = 'subscription_checkout_plan'
 
 const money = (n: number) => 'Tk ' + Number(n || 0).toLocaleString('en-US')
-const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
+const formatDate = (value?: string | null) => formatDateUtil(value) || '-'
 
 type PlanKind = 'free_trial' | 'monthly' | 'yearly'
 

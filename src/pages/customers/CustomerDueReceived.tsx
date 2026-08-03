@@ -365,8 +365,7 @@ export default function CustomerDueReceived() {
   }
 
   function formatReceiptDate(value: string) {
-    if (!value) return '-'
-    return new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    return formatDate(value) || '-'
   }
 
   function receiptNo(payment: any) {

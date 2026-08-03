@@ -5,6 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import StatCard from '../../components/StatCard'
 import { formatBDT } from './superAdminLive'
+import { formatDate } from '../../lib/utils'
 import { getSubscriptionPayments, updateSubscriptionPayment } from '../../services/admin.services'
 
 const badgeClass: Record<string, string> = {
@@ -63,7 +64,7 @@ export default function SuperAdminPayments() {
         senderNumber: row.sender_number || '-',
         trxId: row.trx_id || '-',
         status: row.status || 'pending',
-        date: row.date ? new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+        date: formatDate(row.date) || '-',
         amount: Number(row.amount || 0),
         contact: {
           name: row.owner?.full_name || '-',
@@ -73,12 +74,8 @@ export default function SuperAdminPayments() {
           address: row.owner?.subscription?.address || '-',
           planType: row.owner?.subscription?.plan_type || '-',
           planStatus: row.owner?.subscription?.plan_status || '-',
-          expiry: row.owner?.subscription?.expiry_date
-            ? new Date(row.owner.subscription.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-            : '-',
-          joined: row.owner?.created_at
-            ? new Date(row.owner.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-            : '-',
+          expiry: formatDate(row.owner?.subscription?.expiry_date) || '-',
+          joined: formatDate(row.owner?.created_at) || '-',
         },
       })))
     } catch (error: any) {

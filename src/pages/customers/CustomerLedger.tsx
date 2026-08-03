@@ -132,7 +132,7 @@ function makeCustomerLedgerPdf(customer: CustomerProfile, summary: LedgerSummary
 
   function drawHeader(compact = false) {
     content += pdfText('Customer Ledger', margin, y, compact ? 15 : 19, { bold: true })
-    content += pdfText(`Generated: ${new Date().toLocaleDateString('en-US')}`, pageWidth - margin, y, 8, { align: 'right' })
+    content += pdfText(`Generated: ${formatDate(new Date())}`, pageWidth - margin, y, 8, { align: 'right' })
     y -= compact ? 22 : 30
     content += pdfLine(margin, y, pageWidth - margin, y)
     y -= compact ? 18 : 24

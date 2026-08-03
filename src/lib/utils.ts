@@ -1,8 +1,13 @@
 import { format } from 'date-fns'
 
-export function formatDate(date: string | Date): string {
+// The single date format used everywhere in the app: 30-Jan-2026.
+// Every screen, table, print-out and PDF must go through this - never
+// toLocaleDateString, which renders differently per browser locale.
+export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return ''
-  return format(new Date(date), 'dd-MMM-yyyy')
+  const parsed = new Date(date)
+  if (isNaN(parsed.getTime())) return ''
+  return format(parsed, 'dd-MMM-yyyy')
 }
 
 export function formatNumber(n: number): string {
