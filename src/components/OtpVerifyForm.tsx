@@ -60,26 +60,26 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
   // Bilingual copy without touching the locale JSON files.
   const copy = lang === 'bn'
     ? {
-      title: 'ইমেইল ভেরিফিকেশন',
+      title: 'নিরাপত্তা যাচাই',
       sentTo: 'একটি ৬-সংখ্যার কোড পাঠানো হয়েছে',
       verify: 'ভেরিফাই করুন',
       verifying: 'যাচাই হচ্ছে...',
       resend: 'নতুন কোড পাঠান',
       resendIn: (s: number) => `নতুন কোড পাঠান (${s}s)`,
       back: 'অন্য অ্যাকাউন্ট ব্যবহার করুন',
-      success: 'ইমেইল ভেরিফাই হয়েছে!',
+      success: 'লগইন সফল হয়েছে!',
       resent: 'নতুন কোড পাঠানো হয়েছে',
       invalid: 'সঠিক ৬-সংখ্যার কোড দিন',
     }
     : {
-      title: 'Verify your email',
+      title: 'Security verification',
       sentTo: 'A 6-digit code was sent to',
       verify: 'Verify',
       verifying: 'Verifying...',
       resend: 'Resend code',
       resendIn: (s: number) => `Resend code (${s}s)`,
       back: 'Use a different account',
-      success: 'Email verified!',
+      success: 'Signed in successfully!',
       resent: 'A new code has been sent',
       invalid: 'Please enter the 6-digit code',
     }
