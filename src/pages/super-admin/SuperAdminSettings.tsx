@@ -12,6 +12,7 @@ interface PlatformSettings {
   yearly_price: number
   yearly_original_price: number
   monthly_price: number
+  support_number: string
   reminder_subject: string
   reminder_body: string
 }
@@ -76,6 +77,7 @@ export default function SuperAdminSettings() {
         yearly_price: Number(settings.yearly_price) || 0,
         yearly_original_price: Number(settings.yearly_original_price) || 0,
         monthly_price: Number(settings.monthly_price) || 0,
+        support_number: settings.support_number || '',
         reminder_subject: settings.reminder_subject,
         reminder_body: settings.reminder_body,
       })
@@ -157,6 +159,17 @@ export default function SuperAdminSettings() {
                 placeholder="01XXXXXXXXX"
               />
               <p className="mt-1 text-xs text-slate-400">Customers will "Send Money" to this number.</p>
+            </div>
+
+            <div>
+              <label className="label">Support number</label>
+              <input
+                className="input"
+                value={settings.support_number || ''}
+                onChange={e => updateField('support_number', e.target.value)}
+                placeholder="+880 1XXXXXXXXX"
+              />
+              <p className="mt-1 text-xs text-slate-400">Shown to owners while their payment is awaiting approval.</p>
             </div>
 
             <div>

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { choosePlan as choosePlanRequest, getPaymentInfo, submitManualPayment } from '../services/admin.services'
 import { Lang, useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
+import PendingApproval from '../components/PendingApproval'
 
 type PlanId = 'free_trial' | 'monthly' | 'yearly'
 
@@ -148,6 +149,7 @@ export default function SubscriptionPlans() {
   const [yearlyPrice, setYearlyPrice] = useState<number | null>(null)
   const [yearlyOriginalPrice, setYearlyOriginalPrice] = useState<number | null>(null)
   const [monthlyPrice, setMonthlyPrice] = useState<number | null>(null)
+  const [supportNumber, setSupportNumber] = useState('')
   const copy = (key: keyof typeof planCopy.en) => t(`plans_${key}`, planCopy[lang][key])
   // Every owner's free trial is spent automatically at registration, so this
   // is true for essentially everyone who lands here - it only ever turns
@@ -160,6 +162,7 @@ export default function SubscriptionPlans() {
         setYearlyPrice(Number(info.yearly_price))
         setYearlyOriginalPrice(Number(info.yearly_original_price))
         setMonthlyPrice(Number(info.monthly_price))
+        setSupportNumber(String((info as any).support_number || ''))
       })
       .catch(() => {
         // sane fallback if settings can't load
@@ -226,6 +229,23 @@ export default function SubscriptionPlans() {
   ], [lang, t, yearlyPrice, yearlyOriginalPrice, monthlyPrice, discountPercent, trialUsed])
 
   if (!user) return <Navigate to="/register" replace />
+
+  // A payment already awaiting approval outranks the plan cards: showing the
+  // cards again would invite a duplicate payment. Server-driven, so it survives
+  // a reload.
+  const pendingPayment = (subscription as any)?.pending_payment
+  if (pendingPayment) {
+    return (
+      <PendingApproval
+        lang={lang}
+        planType={pendingPayment.plan_type}
+        submittedAt={pendingPayment.submitted_at}
+        supportNumber={supportNumber}
+        onGoDashboard={() => navigate('/', { replace: true })}
+        goDashboardLabel={copy('goDashboard')}
+      />
+    )
+  }
 
   // Trial card -> open the info popup (prefilled from the account). Yearly card
   // -> go straight to the manual bKash checkout as before.
@@ -430,10 +450,6 @@ export default function SubscriptionPlans() {
 // session is considered abandoned and the owner is sent back to /choose-plan.
 const CHECKOUT_WINDOW_MS = 30 * 60 * 1000
 
-// Dummy support number shown on the "payment submitted" screen. Replace with
-// the real support hotline later.
-const SUPPORT_NUMBER = '+880 1700-000000'
-
 function formatCountdown(ms: number) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
   const minutes = Math.floor(totalSeconds / 60)
@@ -446,10 +462,11 @@ interface PaymentInfo {
   bkash_qr_url: string
   yearly_price: number
   monthly_price: number
+  support_number?: string
 }
 
 export function SubscriptionCheckout() {
-  const { user, refreshAccount } = useAuth()
+  const { user, subscription, refreshAccount } = useAuth()
   const { lang, setLang, t } = useLang()
   const navigate = useNavigate()
   const copy = (key: keyof typeof planCopy.en) => t(`plans_${key}`, planCopy[lang][key])
@@ -463,17 +480,23 @@ export function SubscriptionCheckout() {
   const [senderNumber, setSenderNumber] = useState('')
   const [trxId, setTrxId] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  // 30-minute "approval in progress" countdown shown after the payment is submitted.
-  const [doneDeadline, setDoneDeadline] = useState<number | null>(null)
-  const [doneRemainingMs, setDoneRemainingMs] = useState(CHECKOUT_WINDOW_MS)
+  // Local fallback anchor for the wait screen, used for the instant transition
+  // right after submitting (before/if the refreshed subscription arrives).
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null)
   const [planId, setPlanId] = useState<'monthly' | 'yearly'>('yearly')
   const expiredRef = useRef(false)
 
   const checkoutAmount = paymentInfo ? (planId === 'monthly' ? paymentInfo.monthly_price : paymentInfo.yearly_price) : null
 
+  // A payment already awaiting approval wins over the checkout form, so a
+  // reload after submitting keeps showing the wait screen (the state lives on
+  // the server) instead of bouncing back to the plan cards.
+  const pendingPayment = (subscription as any)?.pending_payment
+
   // Load the checkout session (selectedAt) written by the Plans page, and
   // fetch where the money should actually go.
   useEffect(() => {
+    if (pendingPayment) return
     const raw = localStorage.getItem(CHECKOUT_STORAGE_KEY)
     if (!raw) {
       navigate('/choose-plan', { replace: true })
@@ -503,7 +526,7 @@ export function SubscriptionCheckout() {
 
   // Tick the countdown once a second; redirect back once time runs out.
   useEffect(() => {
-    if (deadline === null || step === 'done') return
+    if (deadline === null || step === 'done' || pendingPayment) return
 
     const tick = () => {
       const remaining = deadline - Date.now()
@@ -523,16 +546,22 @@ export function SubscriptionCheckout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deadline, step])
 
-  // Countdown on the "payment submitted / approval in progress" screen.
-  useEffect(() => {
-    if (step !== 'done' || doneDeadline === null) return
-    const tick = () => setDoneRemainingMs(Math.max(0, doneDeadline - Date.now()))
-    tick()
-    const interval = setInterval(tick, 1000)
-    return () => clearInterval(interval)
-  }, [step, doneDeadline])
-
   if (!user) return <Navigate to="/login" replace />
+
+  // Awaiting approval: prefer the server's record (survives reloads), fall back
+  // to the just-submitted timestamp for the immediate post-submit transition.
+  if (pendingPayment || (step === 'done' && submittedAt)) {
+    return (
+      <PendingApproval
+        lang={lang}
+        planType={pendingPayment?.plan_type || planId}
+        submittedAt={pendingPayment?.submitted_at || submittedAt}
+        supportNumber={paymentInfo?.support_number}
+        onGoDashboard={() => navigate('/', { replace: true })}
+        goDashboardLabel={copy('goDashboard')}
+      />
+    )
+  }
 
   async function copyBkashNumber() {
     if (!paymentInfo?.bkash_number) return
@@ -561,11 +590,12 @@ export function SubscriptionCheckout() {
     try {
       await submitManualPayment({ sender_number: senderNumber.trim(), trx_id: trxId.trim().toUpperCase(), plan_type: planId })
       localStorage.removeItem(CHECKOUT_STORAGE_KEY)
-      // Subscription is now "pending" server-side - refresh the auth context
-      // so the rest of the app (e.g. the pending lock screen) reflects it.
-      await refreshAccount()
-      setDoneDeadline(Date.now() + CHECKOUT_WINDOW_MS)
+      // The payment now exists server-side as "pending" - refreshing the auth
+      // context surfaces it as subscription.pending_payment, which is what
+      // renders the wait screen (and keeps rendering it after a reload).
+      setSubmittedAt(new Date().toISOString())
       setStep('done')
+      await refreshAccount()
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit payment')
     } finally {
@@ -582,39 +612,7 @@ export function SubscriptionCheckout() {
       </div>
 
       <div className={`w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-xl ${step === 1 && paymentInfo?.bkash_qr_url ? 'max-w-4xl' : 'max-w-lg'}`}>
-        {step === 'done' ? (
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-brand-green">
-              <ShieldCheck size={28} />
-            </div>
-            <h1 className="text-2xl font-black text-slate-950">{copy('doneTitle')}</h1>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">{copy('doneSubtitle')}</p>
-
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <Timer size={14} /> {lang === 'bn' ? 'অনুমোদন হচ্ছে' : 'Approval in progress'}
-              </div>
-              <p className={`mt-2 text-4xl font-black tabular-nums ${doneRemainingMs > 0 && doneRemainingMs < 5 * 60 * 1000 ? 'text-brand-red' : 'text-slate-900'}`}>
-                {formatCountdown(doneRemainingMs)}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                {doneRemainingMs > 0
-                  ? (lang === 'bn' ? 'সাধারণত ৩০ মিনিটের মধ্যে আপনার অ্যাকাউন্ট চালু হয়ে যাবে।' : 'Your account is usually activated within 30 minutes.')
-                  : (lang === 'bn' ? 'এখনো চালু হয়নি? নিচের নম্বরে যোগাযোগ করুন।' : "Not activated yet? Please contact support below.")}
-              </p>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600">
-              <Phone size={15} className="text-slate-400" />
-              <span>{lang === 'bn' ? 'সাহায্য দরকার?' : 'Need help?'}</span>
-              <a href={`tel:${SUPPORT_NUMBER.replace(/\s+/g, '')}`} className="font-bold text-slate-900 hover:underline">{SUPPORT_NUMBER}</a>
-            </div>
-
-            <button onClick={() => navigate('/', { replace: true })} className="mt-6 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black">
-              {copy('goDashboard')}
-            </button>
-          </div>
-        ) : step === 1 ? (
+        {step === 1 ? (
           <div>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-50 text-pink-600">
