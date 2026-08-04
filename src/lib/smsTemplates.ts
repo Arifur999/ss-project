@@ -45,19 +45,48 @@ function smsAmount(value: number) {
   return Math.round(Number(value) || 0).toLocaleString('en-US')
 }
 
+// Settings stores both business numbers as one "0171..., 0172..." string. Only
+// the first goes out - a second number is just extra characters on every send.
+function helplineNumber(phone?: string) {
+  return String(phone || '').split(',')[0].trim()
+}
+
 // Sent right after a sale is saved: confirms the purchase and breaks down this
 // one invoice. The outstanding-balance reminder is buildDueSms below - the two
 // are deliberately different messages.
 export function buildInvoiceSms(input: InvoiceSmsInput): string {
+  const helpline = helplineNumber(input.businessPhone)
   return [
-    `আসসালামু আলাইকুম, ${input.customerName}!`,
     `${input.businessName} থেকে আপনার কেনাকাটা সম্পন্ন হয়েছে।`,
-    `ইনভয়েস নম্বর: #${input.invoiceNo}`,
+    `ইনভয়েস নম্বর: ${input.invoiceNo}`,
     `মোট বিল: ${smsAmount(input.grandTotal)} টাকা`,
     `পরিশোধিত: ${smsAmount(input.paid)} টাকা`,
     `বকেয়া: ${smsAmount(input.due)} টাকা`,
-    input.businessPhone ? `হেল্পলাইন: ${input.businessPhone}` : '',
+    helpline ? `হেল্পলাইন: ${helpline}` : '',
     'ধন্যবাদ আমাদের সাথে থাকার জন্য!',
+  ].filter(Boolean).join('\n')
+}
+
+export type DuePaymentSmsInput = {
+  businessName: string
+  businessPhone?: string
+  customerName: string
+  /** What they just handed over. */
+  paid: number
+  /** What is still owed after this payment. */
+  remainingDue: number
+}
+
+// Receipt sent after collecting money against an outstanding balance, so the
+// customer has written confirmation of what was received and what is left.
+export function buildDuePaymentSms(input: DuePaymentSmsInput): string {
+  const helpline = helplineNumber(input.businessPhone)
+  return [
+    `আসসালামু আলাইকুম, ${input.customerName}!`,
+    `${input.businessName}-এ আপনার ${smsAmount(input.paid)} টাকা জমা হয়েছে।`,
+    `বর্তমান বকেয়া: ${smsAmount(input.remainingDue)} টাকা`,
+    helpline ? `হেল্পলাইন: ${helpline}` : '',
+    'ধন্যবাদ!',
   ].filter(Boolean).join('\n')
 }
 
@@ -80,10 +109,11 @@ export type DueSmsInput = {
 // Bangla is unicode, billed at 70 characters a segment instead of 160, so keep
 // any edits tight - each line costs credits.
 export function buildDueSms(input: DueSmsInput): string {
+  const helpline = helplineNumber(input.businessPhone)
   return [
     `আসসালামু আলাইকুম, ${input.customerName}!`,
     `${input.businessName}-এ আপনার বকেয়া টাকার পরিমাণ ${smsAmount(input.due)} টাকা। অনুগ্রহ করে দ্রুততম সময়ের মধ্যে বকেয়া পরিশোধ করার অনুরোধ করা হচ্ছে।`,
-    input.businessPhone ? `হেল্পলাইন: ${input.businessPhone}` : '',
+    helpline ? `হেল্পলাইন: ${helpline}` : '',
     'ধন্যবাদ!',
   ].filter(Boolean).join('\n')
 }

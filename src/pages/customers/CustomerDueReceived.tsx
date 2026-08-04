@@ -11,6 +11,11 @@ import { useLang } from '../../context/LanguageContext'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { buildDuePaymentSms } from '../../lib/smsTemplates'
+import { isValidBdPhone } from '../../lib/phone'
+import { sendSms } from '../../services/sms.services'
+
+const smsReceiptKey = 'due_received_sms_v1'
 
 type DueReceivedErrors = Partial<{
   date: string
@@ -31,6 +36,9 @@ export default function CustomerDueReceived() {
   const [sales, setSales] = useState<any[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
   const [business, setBusiness] = useState<any>(null)
+  // Text the customer a receipt after saving. Remembered per browser so it does
+  // not have to be switched on for every collection.
+  const [smsReceipt, setSmsReceipt] = useState(() => localStorage.getItem(smsReceiptKey) === '1')
   const [employees, setEmployees] = useState<any[]>([])
   const [expenseCategories, setExpenseCategories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -315,9 +323,36 @@ export default function CustomerDueReceived() {
       if (expenseError) return toast.error(expenseError.message || 'Due received saved, but discount expense failed')
     }
 
+    // Receipt SMS, before resetForm() clears the customer and the amounts.
+    await textReceiptToCustomer(customer, currentPaymentTotal, remainingDueAfterThis)
+
     toast.success(editItem ? 'Due received updated!' : t('ledger_paymentSaved'))
     resetForm()
     loadAll()
+  }
+
+  async function textReceiptToCustomer(customer: any, paidNow: number, remaining: number) {
+    if (!smsReceipt || paidNow <= 0) return
+    const phone = String(customer?.phone || '').trim()
+    if (!isValidBdPhone(phone)) {
+      toast.error('Receipt SMS skipped - the customer has no valid phone number')
+      return
+    }
+    try {
+      await sendSms({
+        recipients: [phone],
+        message: buildDuePaymentSms({
+          businessName,
+          businessPhone: business?.phone || '',
+          customerName: customer?.name || 'গ্রাহক',
+          paid: paidNow,
+          remainingDue: remaining,
+        }),
+      })
+      toast.success('Receipt sent to the customer by SMS')
+    } catch (error: any) {
+      toast.error(error?.message || 'Saved, but the receipt SMS could not be sent')
+    }
   }
 
   async function deleteDueReceived(payment: any) {
@@ -685,7 +720,25 @@ export default function CustomerDueReceived() {
       <Modal isOpen={showModal} onClose={resetForm} title={editItem ? 'Edit Due received' : t('customers_dueReceived', 'Due received')} size="lg">
         <div className="space-y-5">
           <div>
-            <label className="label">{t('ledger_selectCustomer')} <span className="text-brand-red">*</span></label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="label">{t('ledger_selectCustomer')} <span className="text-brand-red">*</span></label>
+              {/* Text the customer a receipt for what was just collected. */}
+              <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                <span>SMS receipt</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={smsReceipt}
+                  onClick={() => setSmsReceipt(prev => {
+                    localStorage.setItem(smsReceiptKey, prev ? '0' : '1')
+                    return !prev
+                  })}
+                  className={`relative h-5 w-9 rounded-full transition-colors ${smsReceipt ? 'bg-brand-green' : 'bg-slate-300'}`}
+                >
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${smsReceipt ? 'left-[1.125rem]' : 'left-0.5'}`} />
+                </button>
+              </label>
+            </div>
             <div ref={customerBoxRef} className="relative">
               <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={16} />
               <input

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Download, Image, X } from 'lucide-react'
+import { Search, Download, Image, Printer, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { printTable } from '../lib/printTable'
 import TableScroller from '../components/TableScroller'
 import { setInventoryDpPrice } from '../services/product.services'
 import PageHeader from '../components/PageHeader'
@@ -408,15 +409,57 @@ export default function Inventory() {
     URL.revokeObjectURL(url)
   }
 
+  // Same columns and rows as the CSV, rendered through the shared print sheet.
+  function handlePrint() {
+    printTable({
+      title: t('inventory_title'),
+      subtitle: `${t('inventory_totalValue')}: ${formatCurr(totalValue)}`,
+      columns: [
+        { label: '#' },
+        { label: t('inventory_colCode') },
+        { label: t('inventory_colName') },
+        { label: t('inventory_colSupplier') },
+        { label: t('inventory_colOpeningQty'), align: 'right' },
+        { label: t('inventory_colOrderQty'), align: 'right' },
+        { label: t('inventory_colReceivedQty'), align: 'right' },
+        { label: t('inventory_colUpcomingQty'), align: 'right' },
+        { label: t('inventory_colSalesQty'), align: 'right' },
+        { label: t('inventory_colAvailableStock'), align: 'right' },
+        { label: t('inventory_colDp'), align: 'right' },
+        { label: t('inventory_colTotalValue'), align: 'right' },
+        { label: t('inventory_colStatus') },
+      ],
+      rows: filtered.map((r, i) => {
+        const dp = r.dp_price != null ? r.dp_price : (r.products?.cost_price || 0)
+        const sup = r.products?.suppliers?.company_name || r.products?.suppliers?.name || ''
+        return [
+          i + 1,
+          r.products?.product_code || '',
+          r.products?.name || '',
+          sup,
+          r.opening_qty, r.order_qty, r.received_qty, r.upcoming_qty, r.sales_qty, r.available_qty,
+          formatCurr(Number(dp || 0)),
+          formatCurr(Number(r.fifo_stock_value || 0)),
+          t(statusConfig[getStatus(r)].labelKey),
+        ]
+      }),
+    })
+  }
+
   return (
     <div className="p-6">
       <PageHeader
         title={t('inventory_title')}
         subtitle={t('inventory_subtitle')}
         actions={
-          <button onClick={downloadCSV} className="btn-secondary flex items-center gap-1.5">
-            <Download size={15} /> {t('inventory_csvDownload')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-1.5">
+              <Printer size={15} /> Print
+            </button>
+            <button onClick={downloadCSV} className="btn-secondary flex items-center gap-1.5">
+              <Download size={15} /> {t('inventory_csvDownload')}
+            </button>
+          </div>
         }
       />
 

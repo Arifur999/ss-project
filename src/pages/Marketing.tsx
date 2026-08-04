@@ -359,6 +359,12 @@ export default function Marketing() {
       }
       persistCampaign(campaign)
       toast.success(`SMS sent to ${formatNum(result.recipients)} recipient${result.recipients === 1 ? '' : 's'} (${formatNum(result.credits_used)} credits used)`)
+      // Clear the composer so the next campaign starts fresh and the same
+      // message can't be fired twice by accident.
+      setMessage('')
+      setCampaignName('')
+      setSelectedTemplate('')
+      setSelectedIds([])
     } catch (error: any) {
       toast.error(error?.message || 'Failed to send SMS')
     } finally {

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { formatDate } from '../../lib/utils'
 
 type PaymentType = 'Salary' | 'Bonus'
 type SalaryPaymentValidationErrors = Partial<Record<
@@ -35,6 +36,17 @@ function isMissingSalaryDetailsColumn(error: any) {
     message.includes('schema cache') &&
     ['employee_name', 'payment_type', 'category_id', 'period_from', 'period_to', 'account_id', 'expense_id'].some(column => message.includes(column))
   )
+}
+
+// Days the salary covers, from the period the payment was entered for
+// (inclusive of both ends). Older rows saved without a period show "-".
+function periodDays(txn: any) {
+  if (!txn?.period_from || !txn?.period_to) return '-'
+  const from = new Date(txn.period_from)
+  const to = new Date(txn.period_to)
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) return '-'
+  const days = Math.floor((to.getTime() - from.getTime()) / 86400000) + 1
+  return days > 0 ? String(days) : '-'
 }
 
 function salaryExpenseMarker(transactionId: string) {
@@ -506,12 +518,14 @@ export default function EmployeeTransactions() {
           <thead className="table-header">
             <tr>
               <th className="text-left py-2 px-4">#</th>
+              <th className="text-left py-2 px-4">{t('common_date')}</th>
               <th className="text-left py-2 px-4">{t('common_name')}</th>
               <th className="text-left py-2 px-4">{t('common_phone')}</th>
               <th className="text-left py-2 px-4">Type</th>
               <th className="text-right py-2 px-4">{t('employee_salary')}</th>
               <th className="text-right py-2 px-4">{t('employee_bonus')}</th>
               <th className="text-left py-2 px-4">Account</th>
+              <th className="text-right py-2 px-4">Total Days</th>
               <th className="text-left py-2 px-4">Note</th>
               <th className="text-right py-2 px-4">Action</th>
             </tr>
@@ -523,12 +537,14 @@ export default function EmployeeTransactions() {
               return (
                 <tr key={txn.id} className="table-row">
                   <td className="py-2.5 px-4 font-medium text-slate-500">{index + 1}</td>
+                  <td className="py-2.5 px-4 text-slate-600">{formatDate(txn.date) || '-'}</td>
                   <td className="py-2.5 px-4 font-medium">{emp?.name || txn.employee_name || txn.employee_id}</td>
                   <td className="py-2.5 px-4 text-slate-500">{emp?.phone || '-'}</td>
                   <td className="py-2.5 px-4"><span className={paymentType === 'Bonus' ? 'badge-blue' : 'badge-green'}>{paymentType}</span></td>
                   <td className="py-2.5 px-4 text-right text-brand-green font-medium">{formatCurr(txn.amount)}</td>
                   <td className="py-2.5 px-4 text-right text-brand-blue font-medium">{formatCurr(txn.bonus)}</td>
                   <td className="py-2.5 px-4 text-slate-500">{txn.account_name || '-'}</td>
+                  <td className="py-2.5 px-4 text-right text-slate-600">{periodDays(txn)}</td>
                   <td className="py-2.5 px-4 text-slate-400 text-xs">{txn.notes}</td>
                   <td className="py-2.5 px-4 text-right">
                     <div className="flex gap-1 justify-end">
@@ -539,7 +555,7 @@ export default function EmployeeTransactions() {
                 </tr>
               )
             })}
-            {filteredTransactions.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+            {filteredTransactions.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
         </TableScroller>

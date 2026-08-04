@@ -90,6 +90,7 @@ export default function CurrentPlan() {
           note={bn ? 'একবারই ব্যবহারযোগ্য' : 'One-time only'}
           features={[
             bn ? 'সম্পূর্ণ সফটওয়্যার অ্যাক্সেস' : 'Full software access',
+            bn ? '১০টি ফ্রি এসএমএস' : '10 free SMS',
             bn ? '৭ দিনের জন্য' : 'Valid for 7 days',
           ]}
           isCurrent={planType === 'free_trial' && isActive}
