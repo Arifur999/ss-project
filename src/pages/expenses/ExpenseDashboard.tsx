@@ -123,6 +123,7 @@ export default function ExpenseDashboard() {
   }
 
   const totalMonthExpense = Object.values(thisMonthTotals).reduce((s, v) => s + v, 0)
+  const totalYearExpense = Object.values(thisYearTotals).reduce((s, v) => s + v, 0)
   const totalExpenses = Object.values(allTimeTotals).reduce((s, v) => s + v, 0)
   const totalBudget = categories.reduce((s, c) => s + Number(c.monthly_budget || 0), 0)
   const budgetUsage = totalBudget > 0 ? (totalMonthExpense / totalBudget) * 100 : 0
@@ -134,6 +135,7 @@ export default function ExpenseDashboard() {
     { label: 'Total Expenses', value: formatCurr(totalExpenses), tone: 'text-white' },
     { label: t('expenses_monthlyBudget'), value: formatCurr(totalBudget), tone: 'text-emerald-200' },
     { label: t('expenses_thisMonthTotal'), value: formatCurr(totalMonthExpense), tone: 'text-rose-200' },
+    { label: t('expenses_thisYearTotal'), value: formatCurr(totalYearExpense), tone: 'text-amber-200' },
     { label: t('expenses_budgetUsage'), value: `${Math.round(budgetUsage)}% Used`, tone: budgetUsage > 100 ? 'text-rose-200' : 'text-emerald-200' },
   ]
 
@@ -145,7 +147,7 @@ export default function ExpenseDashboard() {
         actions={<button onClick={() => openModal()} className="btn-primary"><Plus size={16} /> {t('expenses_newCategory')}</button>}
       />
 
-      <div className="mb-6 grid flex-shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid flex-shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map(card => (
           <div key={card.label} className="rounded-lg bg-[#1D3557] p-5 shadow-sm border border-[#27486f]">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-300">{card.label}</p>
@@ -194,7 +196,9 @@ export default function ExpenseDashboard() {
                 </div>
                 {budget > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">{t('expenses_budget')}</span>
+                    {/* Spelled out as monthly: it sits under the yearly figure, and
+                        the bar below measures this month's spend against it. */}
+                    <span className="text-slate-500">{t('expenses_monthlyBudget')}</span>
                     <span className="font-medium text-slate-600">{formatCurr(budget)}</span>
                   </div>
                 )}
@@ -209,7 +213,8 @@ export default function ExpenseDashboard() {
                     />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className={`text-xs ${rawPct > 100 ? 'font-semibold text-brand-red' : 'text-slate-400'}`}>{Math.round(rawPct)}% {t('expenses_pctUsed')}</span>
+                    {/* The locale string already carries the "%", so don't add another. */}
+                    <span className={`text-xs ${rawPct > 100 ? 'font-semibold text-brand-red' : 'text-slate-400'}`}>{Math.round(rawPct)}{t('expenses_pctUsed')}</span>
                     {status && (
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${status === 'over' ? 'badge-red' : status === 'warning' ? 'badge-orange' : 'badge-green'}`}>
                         {status === 'over' ? t('expenses_overBudget') : status === 'warning' ? t('expenses_warning') : t('expenses_ok')}
