@@ -35,33 +35,29 @@ export type InvoiceSmsInput = {
   due: number
 }
 
-// Kept deliberately English and free of item lines: every 160 characters costs
-// another credit per recipient, and Bangla would cost roughly three times as
-// much for the same content.
 // Same grouping the app shows on screen (formatCurr), so the figures in a
 // message match the ones the customer sees on their invoice.
+//
+// Both templates are Bangla, which is unicode and bills at 70 characters a
+// segment instead of 160 - roughly three credits per recipient. Keep edits
+// tight; every extra line costs money on each send.
 function smsAmount(value: number) {
   return Math.round(Number(value) || 0).toLocaleString('en-US')
 }
 
-function smsMoney(value: number) {
-  return `Tk ${smsAmount(value)}`
-}
-
+// Sent right after a sale is saved: confirms the purchase and breaks down this
+// one invoice. The outstanding-balance reminder is buildDueSms below - the two
+// are deliberately different messages.
 export function buildInvoiceSms(input: InvoiceSmsInput): string {
   return [
-    input.businessName,
-    input.businessPhone,
-    input.businessAddress,
-    `Invoice: ${input.invoiceNo}`,
-    `Date: ${input.date}`,
-    `Customer: ${input.customerName}`,
-    `Subtotal: ${smsMoney(input.subtotal)}`,
-    `Discount: ${smsMoney(input.discount)}`,
-    `Grand Total: ${smsMoney(input.grandTotal)}`,
-    `Paid: ${smsMoney(input.paid)}`,
-    `Due: ${smsMoney(input.due)}`,
-    'Thank you!',
+    `আসসালামু আলাইকুম, ${input.customerName}!`,
+    `${input.businessName} থেকে আপনার কেনাকাটা সম্পন্ন হয়েছে।`,
+    `ইনভয়েস নম্বর: #${input.invoiceNo}`,
+    `মোট বিল: ${smsAmount(input.grandTotal)} টাকা`,
+    `পরিশোধিত: ${smsAmount(input.paid)} টাকা`,
+    `বকেয়া: ${smsAmount(input.due)} টাকা`,
+    input.businessPhone ? `হেল্পলাইন: ${input.businessPhone}` : '',
+    'ধন্যবাদ আমাদের সাথে থাকার জন্য!',
   ].filter(Boolean).join('\n')
 }
 
@@ -77,22 +73,21 @@ export type DueSmsInput = {
   due: number
 }
 
-// Payment reminder for one customer, in Bangla. Each recipient gets their own
-// amounts, so the caller sends these one at a time rather than as a batch.
+// Outstanding-balance reminder, in Bangla. This is the "please pay your due"
+// message - it deliberately mentions ONLY the amount owed, no invoice lines.
+// For the after-a-sale receipt use buildInvoiceSms instead.
 //
-// Bangla is unicode, billed at 70 characters a segment instead of 160, so this
-// costs about three credits per recipient - keep any edits tight.
+// Bangla is unicode, billed at 70 characters a segment instead of 160, so keep
+// any edits tight - each line costs credits.
 export function buildDueSms(input: DueSmsInput): string {
   return [
     `আসসালামু আলাইকুম, ${input.customerName}!`,
-    `${input.businessName} থেকে আপনার কেনাকাটা সম্পন্ন হয়েছে।`,
-    `মোট বিল: ${smsAmount(input.totalBill)} টাকা`,
-    `পরিশোধিত: ${smsAmount(input.paid)} টাকা`,
-    `বকেয়া: ${smsAmount(input.due)} টাকা`,
+    `${input.businessName}-এ আপনার বকেয়া টাকার পরিমাণ ${smsAmount(input.due)} টাকা। অনুগ্রহ করে দ্রুততম সময়ের মধ্যে বকেয়া পরিশোধ করার অনুরোধ করা হচ্ছে।`,
     input.businessPhone ? `হেল্পলাইন: ${input.businessPhone}` : '',
-    'ধন্যবাদ আমাদের সাথে থাকার জন্য!',
+    'ধন্যবাদ!',
   ].filter(Boolean).join('\n')
 }
+
 
 const KEY = 'sms_templates_v2'
 const LEGACY_KEY = 'sms_marketing_templates_v1' // old string[] of message bodies
