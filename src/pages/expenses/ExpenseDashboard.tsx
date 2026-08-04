@@ -126,7 +126,10 @@ export default function ExpenseDashboard() {
   const totalYearExpense = Object.values(thisYearTotals).reduce((s, v) => s + v, 0)
   const totalExpenses = Object.values(allTimeTotals).reduce((s, v) => s + v, 0)
   const totalBudget = categories.reduce((s, c) => s + Number(c.monthly_budget || 0), 0)
+  // Budgets are stored per month, so the yearly allowance is twelve of them.
+  const totalYearBudget = totalBudget * 12
   const budgetUsage = totalBudget > 0 ? (totalMonthExpense / totalBudget) * 100 : 0
+  const yearBudgetUsage = totalYearBudget > 0 ? (totalYearExpense / totalYearBudget) * 100 : 0
   const sortedCategories = [...categories].sort((a, b) => {
     const totalDiff = (allTimeTotals[b.id] || 0) - (allTimeTotals[a.id] || 0)
     return totalDiff || String(a.name || '').localeCompare(String(b.name || ''))
@@ -135,8 +138,13 @@ export default function ExpenseDashboard() {
     { label: 'Total Expenses', value: formatCurr(totalExpenses), tone: 'text-white' },
     { label: t('expenses_monthlyBudget'), value: formatCurr(totalBudget), tone: 'text-emerald-200' },
     { label: t('expenses_thisMonthTotal'), value: formatCurr(totalMonthExpense), tone: 'text-rose-200' },
+    { label: 'Yearly Budget', value: formatCurr(totalYearBudget), tone: 'text-emerald-200' },
     { label: t('expenses_thisYearTotal'), value: formatCurr(totalYearExpense), tone: 'text-amber-200' },
-    { label: t('expenses_budgetUsage'), value: `${Math.round(budgetUsage)}% Used`, tone: budgetUsage > 100 ? 'text-rose-200' : 'text-emerald-200' },
+    {
+      label: t('expenses_budgetUsage'),
+      value: `${Math.round(budgetUsage)}% / ${Math.round(yearBudgetUsage)}%`,
+      tone: budgetUsage > 100 || yearBudgetUsage > 100 ? 'text-rose-200' : 'text-emerald-200',
+    },
   ]
 
   return (
@@ -147,7 +155,7 @@ export default function ExpenseDashboard() {
         actions={<button onClick={() => openModal()} className="btn-primary"><Plus size={16} /> {t('expenses_newCategory')}</button>}
       />
 
-      <div className="mb-6 grid flex-shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-6 grid flex-shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {summaryCards.map(card => (
           <div key={card.label} className="rounded-lg bg-[#1D3557] p-5 shadow-sm border border-[#27486f]">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-300">{card.label}</p>
@@ -195,12 +203,18 @@ export default function ExpenseDashboard() {
                   <span className="font-medium text-slate-600">{formatCurr(yearSpent)}</span>
                 </div>
                 {budget > 0 && (
-                  <div className="flex justify-between text-xs">
-                    {/* Spelled out as monthly: it sits under the yearly figure, and
-                        the bar below measures this month's spend against it. */}
-                    <span className="text-slate-500">{t('expenses_monthlyBudget')}</span>
-                    <span className="font-medium text-slate-600">{formatCurr(budget)}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-xs">
+                      {/* Spelled out as monthly: the bar below measures only this
+                          month's spend against it. */}
+                      <span className="text-slate-500">{t('expenses_monthlyBudget')}</span>
+                      <span className="font-medium text-slate-600">{formatCurr(budget)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Yearly Budget</span>
+                      <span className="font-medium text-slate-600">{formatCurr(budget * 12)}</span>
+                    </div>
+                  </>
                 )}
               </div>
 

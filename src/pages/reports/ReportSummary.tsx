@@ -481,7 +481,11 @@ export default function ReportSummary() {
         (sale.sale_items || []).forEach((item: any) => {
           const company = companyName(productCompanyMap.get(item.product_id) || productCompanyMap.get(item.product_code))
           const current = companyMap[company] || { company, purchase: 0, sales: 0 }
-          current.sales += amount(item.selling_price) * amount(item.qty) || amount(item.total_amount)
+          // Same basis as the Sales & Profit table: the discounted amount that
+          // was actually billed. Using selling_price (the pre-discount MRP)
+          // inflated these rows by the whole discount.
+          const qty = amount(item.qty)
+          current.sales += amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
           companyMap[company] = current
         })
       })

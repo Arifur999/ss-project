@@ -13,7 +13,7 @@ import { useLang } from '../context/LanguageContext'
 import { useLocation } from 'react-router-dom'
 import { addRecycleItem } from '../lib/recycleBin'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
-import { addSaleDelivery, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
+import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
 import { sendSms } from '../services/sms.services'
 import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
 
@@ -182,7 +182,11 @@ export default function Sales() {
   
   const [items, setItems] = useState<SaleItem[]>([emptyItem()])
   const [paymentRows, setPaymentRows] = useState<PaymentRow[]>([emptyPaymentRow()])
-  const [deliveryCharge, setDeliveryCharge] = useState(0)
+  // How much of the customer's OLD outstanding they are settling on this
+  // invoice. It is added to the payable total so one payment can cover both,
+  // but it is never billed as goods - see save(), which books it as a customer
+  // payment against the previous dues instead.
+  const [previousDuePay, setPreviousDuePay] = useState(0)
   const [quickCustomerForm, setQuickCustomerForm] = useState({ name: '', phone: '', address: '' })
   const [quickCustomerErrors, setQuickCustomerErrors] = useState<QuickCustomerValidationErrors>({})
   const [quickProductForm, setQuickProductForm] = useState({
@@ -762,7 +766,9 @@ export default function Sales() {
   const subtotal = items.reduce((s, i) => s + (i.selling_price * i.qty), 0)
   const totalDiscount = items.reduce((s, i) => s + (i.discount_amount * i.qty), 0)
   const discountedSubtotal = items.reduce((s, i) => s + i.total_amount, 0)
-  const grandTotal = discountedSubtotal + deliveryCharge
+  // What the customer hands over today: this invoice plus whatever slice of
+  // their old balance they are clearing.
+  const grandTotal = discountedSubtotal + previousDuePay
   const paymentRowsWithAmount = paymentRows.map(row => ({
     ...row,
     amount: Math.max(0, Number(row.amount || 0)),
@@ -1131,8 +1137,29 @@ export default function Sales() {
     const finalPaid = validPaymentRows.length > 0
       ? validPaymentRows.reduce((sum, row) => sum + row.amount, 0)
       : 0
-    const finalDue = Math.max(0, grandTotal - finalPaid)
+
+    // The invoice only ever bills the goods. Money is applied to this invoice
+    // first; anything beyond it (up to what was entered in "Previous Due") is
+    // booked separately as a payment against the customer's old balance, so the
+    // old due actually clears instead of being billed a second time here.
+    const invoiceTotal = discountedSubtotal
+    const paidToInvoice = Math.min(finalPaid, invoiceTotal)
+    const paidToPreviousDue = Math.max(0, Math.min(finalPaid - paidToInvoice, previousDuePay))
+    const finalDue = Math.max(0, invoiceTotal - paidToInvoice)
     const primaryPayment = validPaymentRows[0]
+
+    // Split the payment rows the same way, so each account is credited with
+    // exactly what it received across the two records.
+    let invoiceRemaining = paidToInvoice
+    const invoicePaymentRows: { account_id: string; amount: number }[] = []
+    const duePaymentRows: { account_id: string; amount: number }[] = []
+    validPaymentRows.forEach(row => {
+      const toInvoice = Math.min(row.amount, invoiceRemaining)
+      invoiceRemaining -= toInvoice
+      if (toInvoice > 0) invoicePaymentRows.push({ account_id: row.account_id, amount: toInvoice })
+      const leftover = row.amount - toInvoice
+      if (leftover > 0) duePaymentRows.push({ account_id: row.account_id, amount: leftover })
+    })
 
     const invoiceNo = editingSale ? form.invoice_no : await getAvailableInvoiceNo(form.invoice_no)
     const saleValues = {
@@ -1145,10 +1172,10 @@ export default function Sales() {
       account_name: '',
       subtotal: subtotal,
       discount_amount: totalDiscount,
-      net_amount: grandTotal,
-      paid_amount: finalPaid,
+      net_amount: invoiceTotal,
+      paid_amount: paidToInvoice,
       due_amount: finalDue,
-      notes: saleNotesForPaymentStatus(form.notes, finalPaid),
+      notes: saleNotesForPaymentStatus(form.notes, paidToInvoice),
       status: 'completed'
     }
     const previewItems = validItems.map((item, idx) => ({
@@ -1169,7 +1196,7 @@ export default function Sales() {
           ...itemRows[idx],
           delivered_qty: item.delivery_status === 'delivered' ? Number(item.qty || 0) : 0,
         })),
-        payments: validPaymentRows.map(row => ({
+        payments: invoicePaymentRows.map(row => ({
           date: form.date,
           account_id: row.account_id,
           account_name: '',
@@ -1192,6 +1219,26 @@ export default function Sales() {
       }
 
       const savedSale = await createSaleRequest(salePayload)
+
+      // Settle the old balance with a real customer payment, which is what the
+      // previous-due figure is calculated from. Failing here must not lose the
+      // sale that already saved, so it only warns.
+      if (paidToPreviousDue > 0 && form.customer_id) {
+        try {
+          await Promise.all(duePaymentRows.map(row => createCustomerPayment({
+            date: form.date,
+            customer_id: form.customer_id,
+            customer_name: form.customer_name || '',
+            amount: row.amount,
+            account_id: row.account_id,
+            account_name: accounts.find(a => a.id === row.account_id)?.name || '',
+            notes: `Previous due collected with invoice ${invoiceNo}`,
+            created_by: user?.id,
+          })))
+        } catch (error: any) {
+          toast.error(`Sale saved, but the previous-due payment failed: ${error?.message || 'unknown error'}`)
+        }
+      }
 
       await touchOwnerActivity(true)
       toast.success(t('sales_saved'))
@@ -1248,7 +1295,7 @@ export default function Sales() {
     setShowCustomerSuggestions(false)
     setItems([emptyItem()])
     setPaymentRows([emptyPaymentRow()])
-    setDeliveryCharge(0)
+    setPreviousDuePay(0)
   }
 
   function editSale(sale: any) {
@@ -1297,12 +1344,10 @@ export default function Sales() {
       : [emptyPaymentRow()]
     )
     
-    // Infer delivery charge: net_amount - (subtotal - discount_amount)
-    const saleSub = (sale.sale_items || []).reduce((s: number, item: any) => s + Number(item.selling_price || 0) * Number(item.qty || 0), 0)
-    const saleDisc = (sale.sale_items || []).reduce((s: number, item: any) => s + Math.max(0, Number(item.selling_price || 0) - Number(item.actual_price || 0)) * Number(item.qty || 0), 0)
-    const inferredDelivery = Number(sale.net_amount || 0) - (saleSub - saleDisc)
-    setDeliveryCharge(Math.max(0, inferredDelivery))
-    
+    // Previous-due collection is booked as a separate customer payment, never as
+    // part of this invoice, so editing a sale never re-opens it here.
+    setPreviousDuePay(0)
+
     setViewMode('create')
   }
 
@@ -1894,6 +1939,9 @@ export default function Sales() {
     }))
     setCustomerSearch(`${customer.name || ''}${customer.phone ? ` (${customer.phone})` : ''}`)
     setShowCustomerSuggestions(false)
+    // The old-due amount belongs to whoever was selected before, so never let it
+    // carry over to a different customer.
+    setPreviousDuePay(0)
   }
 
   useEffect(() => {
@@ -2370,15 +2418,23 @@ export default function Sales() {
                   <span className="font-semibold text-amber-600">-{formatCurr(totalDiscount)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
-                  <span className="text-slate-500">Delivery Charge</span>
+                  <span className="text-slate-500">
+                    Previous Due
+                    {customerPreviousDue > 0 && (
+                      <span className="ml-1 text-brand-red">(max {formatCurr(customerPreviousDue)})</span>
+                    )}
+                  </span>
                   <div className="w-28">
                     <input
                       type="number"
                       min="0"
+                      max={customerPreviousDue || undefined}
                       className="input py-0.5 px-2 text-right text-xs"
-                      value={deliveryCharge || ''}
+                      value={previousDuePay || ''}
                       placeholder="0"
-                      onChange={e => setDeliveryCharge(Number(e.target.value))}
+                      disabled={customerPreviousDue <= 0}
+                      title={customerPreviousDue <= 0 ? 'This customer has no previous due' : 'How much of the old due they are paying now'}
+                      onChange={e => setPreviousDuePay(Math.min(customerPreviousDue, Math.max(0, Number(e.target.value))))}
                     />
                   </div>
                 </div>
@@ -3295,7 +3351,6 @@ export default function Sales() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between"><span>{invoiceLabels.subtotal}</span><span>{formatCurr(invoiceItemSubtotal(selectedSale))}</span></div>
                     <div className="flex justify-between"><span>{invoiceLabels.discount}</span><span>{formatCurr(saleDiscount(selectedSale))}</span></div>
-                    <div className="flex justify-between"><span>{invoiceLabels.deliveryCharge}</span><span>{formatCurr(invoiceDeliveryCharge(selectedSale))}</span></div>
                     <div className="border-t border-slate-400 pt-1.5 flex justify-between font-bold text-[13px]"><span>{invoiceLabels.grandTotal}</span><span>{formatCurr(Number(selectedSale.net_amount || 0))}</span></div>
                     <div className="flex justify-between"><span>{invoiceLabels.paid}</span><span>{formatCurr(Number(selectedSale.paid_amount || 0))}</span></div>
                     <div className="border-t border-slate-400 pt-1.5 flex justify-between font-semibold"><span>{invoiceLabels.due}</span><span>{formatCurr(Number(selectedSale.due_amount || 0))}</span></div>
