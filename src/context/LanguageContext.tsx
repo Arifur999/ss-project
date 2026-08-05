@@ -109,7 +109,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     formatDateShort,
     monthName,
     monthShort,
-  }), [lang, t, formatNum, formatCurr, formatDateLong, formatDateShort, monthName, monthShort])
+  }), [lang, setLang, t, formatNum, formatCurr, formatDateLong, formatDateShort, monthName, monthShort])
 
   return (
     <LangContext.Provider value={value}>

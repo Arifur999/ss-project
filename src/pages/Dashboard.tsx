@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   BarChart3,
   CalendarDays,
   ClipboardList,
@@ -183,7 +181,7 @@ const emptyDashboardData: DashboardData = {
 }
 
 export default function Dashboard() {
-  const { t, formatCurr, formatDateLong, formatDateShort, monthShort } = useLang()
+  const { t, formatCurr, formatDateShort, monthShort } = useLang()
   const { touchOwnerActivity } = useAuth()
   // Paint the last-known dashboard for the default range instantly; only show
   // the spinner when there's nothing cached yet. loadDashboard() refetches.
@@ -194,7 +192,6 @@ export default function Dashboard() {
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
 
-  const currentYear = new Date().getFullYear()
   const range = getRange(rangeType, customStart, customEnd)
   const dateRangeText = `${formatDateShort(range.start)} - ${formatDateShort(range.end)}`
 
