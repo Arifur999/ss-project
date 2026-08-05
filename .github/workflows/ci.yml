@@ -31,3 +31,51 @@ jobs:
 
       - name: Type check + build
         run: npm run build
+
+      # Hand the built SPA to the deploy job so it is never built twice.
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  # Publishes the built SPA to the VPS only after quality-check is green, and
+  # only for pushes to main. nginx serves this folder directly, so copying the
+  # files IS the deploy - no container rebuild needed.
+  deploy:
+    needs: quality-check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-frontend
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Authorise SSH to the VPS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.VPS_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      # --delete removes files from old builds (hashed asset names would other-
+      # wise pile up forever). Trailing slashes matter: copy the CONTENTS of
+      # dist into the served folder.
+      - name: Upload the build
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+            dist/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/Hatim/dist/"
+
+      - name: Verify the site answers
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ secrets.DEPLOY_HEALTH_HOST }}/")
+          if [ "$code" != "200" ]; then echo "Site returned HTTP $code"; exit 1; fi
+          echo "Site is up (HTTP $code)"

@@ -1,6 +1,14 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'
+// A production build talks to the API on its OWN origin: nginx serves this SPA
+// and proxies /api/ to the backend container. Same origin means no CORS
+// preflight on any request, and no hostname baked into the bundle - the same
+// build works on any domain the server answers to. `npm run dev` has no such
+// proxy, so it falls back to the local API. VITE_API_BASE_URL still wins if
+// the API ever needs to live somewhere else.
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? '/api/v1' : 'http://localhost:5000/api/v1')
 
 export interface ApiEnvelope<T> {
   success: boolean
