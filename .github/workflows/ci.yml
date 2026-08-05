@@ -74,8 +74,13 @@ jobs:
             dist/ \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/Hatim/dist/"
 
+      # Asked from inside the server, through nginx on localhost - it checks the
+      # files this job just uploaded without depending on DNS or a certificate,
+      # so it works the same before and after the domain goes live.
       - name: Verify the site answers
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ secrets.DEPLOY_HEALTH_HOST }}/")
-          if [ "$code" != "200" ]; then echo "Site returned HTTP $code"; exit 1; fi
-          echo "Site is up (HTTP $code)"
+          ssh -i ~/.ssh/id_ed25519 -p "${{ secrets.VPS_SSH_PORT || 22 }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            'code=$(curl -s -o /dev/null -w "%{http_code}" localhost/)
+             if [ "$code" != "200" ]; then echo "Site returned HTTP $code"; exit 1; fi
+             echo "Site is up (HTTP $code)"'
