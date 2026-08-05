@@ -1410,9 +1410,10 @@ export default function Sales() {
       minute: '2-digit',
       hour12: true,
     })
-    // Non-breaking spaces keep "at 12:44 PM" from wrapping the AM/PM onto its
+    // Non-breaking spaces (written as \u00A0 so they stay visible in
+    // the source) keep "at 12:44 PM" from wrapping the AM/PM onto its
     // own line on the printed invoice.
-    return `${formatDate(date)} at ${timePart.replace(' ', ' ')}`
+    return `${formatDate(date)}\u00A0at\u00A0${timePart.replace(' ', '\u00A0')}`
   }
 
   const handlePrint = useReactToPrint({ content: () => invoiceRef.current })
