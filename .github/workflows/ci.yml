@@ -59,10 +59,18 @@ jobs:
       - name: Authorise SSH to the VPS
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          # tr -d '\r': a key copied on Windows carries CRLF line endings, and
+          # OpenSSH rejects the file outright. It does that before opening any
+          # connection, so the server logs nothing at all and the failure looks
+          # like a network problem three steps later.
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          echo "${{ secrets.VPS_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          printf '%s\n' "${{ secrets.VPS_SSH_KNOWN_HOSTS }}" | tr -d '\r' > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+          # Say so here, plainly, instead of letting rsync fail with something
+          # that reads like the server is unreachable.
+          ssh-keygen -y -P "" -f ~/.ssh/id_ed25519 > /dev/null 2>&1 \
+            || { echo "::error::VPS_SSH_KEY is not a usable private key. Copy it again in full, including the -----BEGIN and -----END lines."; exit 1; }
 
       # --delete removes files from old builds (hashed asset names would other-
       # wise pile up forever). Trailing slashes matter: copy the CONTENTS of
