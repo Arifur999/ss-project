@@ -711,6 +711,32 @@ export default function ProductList() {
     }
   }
 
+  // Stock bookkeeping for a product that has just been saved. It used to run
+  // BEFORE the list was updated, so anything failing here - a workspace with no
+  // inventory table yet, one slow request - threw first and the new product was
+  // never added to the list, even though it had saved. It only appeared after a
+  // manual reload. The row goes on screen first now, and a problem here is
+  // reported on its own rather than hiding the product.
+  async function setUpOpeningStock(productId: string, isNew: boolean) {
+    try {
+      await ensureInventory(productId, form.opening_qty || 0)
+      if (isNew) {
+        await createOpeningStockBatch({
+          productId,
+          qty: form.opening_qty || 0,
+          dpPrice: form.cost_price || 0,
+          mrpPrice: form.selling_price || 0,
+          userId: user?.id,
+        })
+      } else {
+        await updateOpeningStockBatch(productId, form.opening_qty || 0, form.cost_price || 0, form.selling_price || 0)
+      }
+    } catch (error) {
+      console.error('Opening stock could not be set up', error)
+      toast.error('Saved, but the opening stock could not be recorded')
+    }
+  }
+
   async function handleSave() {
     const productCode = form.product_code.trim()
     const productName = form.name.trim()
@@ -770,8 +796,6 @@ export default function ProductList() {
         }
 
         if (error) throw error
-        await ensureInventory(editingId, form.opening_qty || 0)
-        await updateOpeningStockBatch(editingId, form.opening_qty || 0, form.cost_price || 0, form.selling_price || 0)
         rememberOpeningQty(editingId, form.opening_qty || 0)
 
         // Same reasoning as the create path below: reflect the edit right
@@ -793,6 +817,7 @@ export default function ProductList() {
         })
 
         toast.success('Product updated')
+        await setUpOpeningStock(editingId, false)
       } else {
         const payload = { ...productPayload(true), is_active: true }
         let { data: product, error } = await supabase
@@ -816,14 +841,6 @@ export default function ProductList() {
 
         if (error) throw error
         if (!product) throw new Error('Failed to create product')
-        await ensureInventory(product.id, form.opening_qty || 0)
-        await createOpeningStockBatch({
-          productId: product.id,
-          qty: form.opening_qty || 0,
-          dpPrice: form.cost_price || 0,
-          mrpPrice: form.selling_price || 0,
-          userId: user?.id,
-        })
         rememberOpeningQty(product.id, form.opening_qty || 0)
 
         // Show the new product immediately instead of waiting on the
@@ -860,6 +877,7 @@ export default function ProductList() {
         })
 
         toast.success('Product added')
+        await setUpOpeningStock((product as any).id, true)
       }
 
       setShowModal(false)
