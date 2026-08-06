@@ -7,6 +7,8 @@ import { confirmAction } from '../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useLang } from '../context/LanguageContext'
 import { addRecycleItem } from '../lib/recycleBin'
+import CsvImportProgress, { idleCsvImport, type CsvImportState } from '../components/CsvImportProgress'
+import { insertInChunks, CsvImportError, partialImportMessage } from '../lib/csvImport'
 
 interface Product {
   id: string
@@ -32,6 +34,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [csvProgress, setCsvProgress] = useState<CsvImportState>(idleCsvImport)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
 
@@ -216,52 +219,76 @@ export default function Products() {
     toast.success('CSV downloaded')
   }
 
-  function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string
-        const lines = text.trim().split('\n')
-        if (lines.length < 2) return toast.error('CSV file must have header and data rows')
+    setCsvProgress({ open: true, fileName: file.name, phase: 'reading', processed: 0, total: 0 })
+    // Read back in the catch block below. State cannot be used there: this
+    // closure captured it from the render that started the import, so it would
+    // still say zero.
+    let plannedRows = 0
 
-        const rows = lines.slice(1).map(line => {
-          const cells = line.split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
-          return cells
-        })
+    try {
+      const text = await file.text()
+      setCsvProgress(current => ({ ...current, phase: 'checking' }))
 
-        const newProducts = rows
-          .filter(row => row[0] && row[1])
-          .map(row => ({
-            product_code: row[0].trim(),
-            name: row[1].trim(),
-            image_url: row[2]?.trim() || null,
-            cost_price: parseFloat(row[3]) || 0,
-            selling_price: parseFloat(row[4]) || 0,
-            size: row[6]?.trim() || null,
-            weight: row[7]?.trim() || null,
-            is_active: true,
-          }))
+      const lines = text.trim().split('\n')
+      if (lines.length < 2) {
+        toast.error('CSV file must have header and data rows')
+        return
+      }
 
-        if (newProducts.length === 0) {
-          return toast.error('No valid products in CSV')
-        }
+      const rows = lines.slice(1).map(line => {
+        const cells = line.split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'))
+        return cells
+      })
 
-        const { error } = await supabase
-          .from('products')
-          .insert(newProducts)
+      const newProducts = rows
+        .filter(row => row[0] && row[1])
+        .map(row => ({
+          product_code: row[0].trim(),
+          name: row[1].trim(),
+          image_url: row[2]?.trim() || null,
+          cost_price: parseFloat(row[3]) || 0,
+          selling_price: parseFloat(row[4]) || 0,
+          size: row[6]?.trim() || null,
+          weight: row[7]?.trim() || null,
+          is_active: true,
+        }))
 
-        if (error) throw error
-        toast.success(`${newProducts.length} products imported`)
+      if (newProducts.length === 0) {
+        toast.error('No valid products in CSV')
+        return
+      }
+
+      plannedRows = newProducts.length
+      setCsvProgress(current => ({ ...current, phase: 'saving', processed: 0, total: newProducts.length }))
+      await insertInChunks(
+        newProducts,
+        chunk => supabase.from('products').insert(chunk),
+        saved => setCsvProgress(current => ({ ...current, processed: saved })),
+      )
+
+      // Hold on "Finished" for a moment so the dialog is not simply gone -
+      // there is otherwise no sign the import ran at all.
+      setCsvProgress(current => ({ ...current, phase: 'done' }))
+      await new Promise(resolve => setTimeout(resolve, 700))
+
+      toast.success(`${newProducts.length} products imported`)
+      loadProducts()
+    } catch (error: any) {
+      if (error instanceof CsvImportError) {
+        toast.error(partialImportMessage(error, plannedRows))
+        // Some rows did land, so the list on screen is out of date either way.
         loadProducts()
-      } catch (error: any) {
+      } else {
         toast.error(error.message || 'Failed to import CSV')
       }
+    } finally {
+      setCsvProgress(idleCsvImport)
+      if (csvInputRef.current) csvInputRef.current.value = ''
     }
-    reader.readAsText(file)
-    if (csvInputRef.current) csvInputRef.current.value = ''
   }
 
   if (loading) {
@@ -446,6 +473,8 @@ export default function Products() {
           </div>
         </div>
       </Modal>
+
+      <CsvImportProgress state={csvProgress} />
     </div>
   )
 }
