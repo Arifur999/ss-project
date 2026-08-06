@@ -42,6 +42,7 @@ export default function Layout() {
     { key: 'superAdminChurned', label: 'Churned Customers', icon: <UserX size={18} />, path: '/super-admin/churned' },
     { key: 'superAdminManageOwners', label: 'Manage Owners', icon: <Trash2 size={18} />, path: '/super-admin/manage-owners' },
     { key: 'superAdminPayments', label: t('nav_payments'), icon: <CreditCard size={18} />, path: '/super-admin/payments' },
+    { key: 'superAdminFinance', label: 'Finance', icon: <Wallet size={18} />, path: '/super-admin/finance' },
     { key: 'superAdminSms', label: 'SMS', icon: <MessageSquareText size={18} />, path: '/super-admin/sms' },
     { key: 'superAdminNotifications', label: 'Notifications', icon: <Bell size={18} />, path: '/super-admin/notifications' },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },

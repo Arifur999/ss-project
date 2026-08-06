@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import PolarAreaChart from '../../components/PolarAreaChart'
-import { AlertTriangle, Ban, CheckCircle2, CreditCard, RefreshCw, ShieldCheck, TimerOff, Users } from 'lucide-react'
+import { AlertTriangle, Ban, CheckCircle2, CreditCard, RefreshCw, ShieldCheck, TimerOff, TrendingUp, Users, Wallet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { LiveOwner, OwnerStatus, daysLeft, formatDate, loadOwners } from './superAdminLive'
 import { updateOwnerSubscription } from '../../services/admin.services'
+import { getPlatformSummary } from '../../services/platformFinance.services'
+
+const money = (value: number) => `Tk ${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
 
 function isMissingExpiryDateColumn(error: any) {
   const message = String(error?.message || '')
@@ -40,9 +43,16 @@ export default function SuperAdminDashboard() {
   const [owners, setOwners] = useState<LiveOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [setupMissing, setSetupMissing] = useState(false)
+  // Lifetime platform money, so the headline figure is visible without opening
+  // the Finance page. Null until it loads, and a failure here must not take the
+  // owner list down with it.
+  const [finance, setFinance] = useState<{ profit: number; available: number } | null>(null)
 
   useEffect(() => {
     refreshOwners()
+    getPlatformSummary()
+      .then(summary => setFinance({ profit: summary.profit, available: summary.available }))
+      .catch(() => setFinance(null))
   }, [])
 
   async function refreshOwners() {
@@ -126,6 +136,20 @@ export default function SuperAdminDashboard() {
     { title: 'Active Owners', value: String(summary.active), hint: 'Approved owner accounts', icon: <ShieldCheck size={18} />, tone: 'green' },
     { title: 'Blocked Owners', value: String(summary.blocked), hint: 'Manually blocked access', icon: <TimerOff size={18} />, tone: 'red' },
     { title: 'Expired Owners', value: String(summary.expired), hint: `${summary.expiringSoon} expiring soon`, icon: <CreditCard size={18} />, tone: 'orange' },
+    {
+      title: 'Profit',
+      value: finance ? money(finance.profit) : '—',
+      hint: 'All income minus all expenses',
+      icon: <TrendingUp size={18} />,
+      tone: finance && finance.profit < 0 ? 'red' : 'green',
+    },
+    {
+      title: 'Available',
+      value: finance ? money(finance.available) : '—',
+      hint: 'Profit minus what you have withdrawn',
+      icon: <Wallet size={18} />,
+      tone: finance && finance.available < 0 ? 'red' : 'blue',
+    },
   ]
 
   const toneClass: Record<string, string> = {

@@ -16,6 +16,22 @@ export function inPeriod(dateStr: string, period: Period, from: string, to: stri
   return true
 }
 
+// Same four choices expressed as concrete YYYY-MM-DD bounds, for pages whose
+// totals are computed on the server and so need to send the range rather than
+// filter an already-loaded list with inPeriod().
+export function periodToRange(period: Period, from: string, to: string): { from?: string; to?: string } {
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const now = new Date()
+  if (period === 'month') {
+    return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
+  }
+  if (period === 'year') {
+    return { from: iso(new Date(now.getFullYear(), 0, 1)), to: iso(new Date(now.getFullYear(), 11, 31)) }
+  }
+  if (period === 'custom') return { from: from || undefined, to: to || undefined }
+  return {}
+}
+
 export function periodLabel(period: Period, from: string, to: string): string {
   if (period === 'month') return 'This Month'
   if (period === 'year') return 'This Year'

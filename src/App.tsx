@@ -55,6 +55,7 @@ import SuperAdminActiveCustomers from './pages/super-admin/SuperAdminActiveCusto
 import SuperAdminChurned from './pages/super-admin/SuperAdminChurned'
 import SuperAdminManageOwners from './pages/super-admin/SuperAdminManageOwners'
 import SuperAdminPayments from './pages/super-admin/SuperAdminPayments'
+import SuperAdminFinance from './pages/super-admin/SuperAdminFinance'
 import SuperAdminReports from './pages/super-admin/SuperAdminReports'
 import SuperAdminSettings from './pages/super-admin/SuperAdminSettings'
 import SuperAdminActivity from './pages/super-admin/SuperAdminActivity'
@@ -155,6 +156,7 @@ function AppRoutes() {
         <Route path="/super-admin/churned" element={<SuperAdminRoute><SuperAdminChurned /></SuperAdminRoute>} />
         <Route path="/super-admin/manage-owners" element={<SuperAdminRoute><SuperAdminManageOwners /></SuperAdminRoute>} />
         <Route path="/super-admin/payments" element={<SuperAdminRoute><SuperAdminPayments /></SuperAdminRoute>} />
+        <Route path="/super-admin/finance" element={<SuperAdminRoute><SuperAdminFinance /></SuperAdminRoute>} />
         <Route path="/super-admin/sms" element={<SuperAdminRoute><SuperAdminSms /></SuperAdminRoute>} />
         <Route path="/super-admin/notifications" element={<SuperAdminRoute><SuperAdminNotifications /></SuperAdminRoute>} />
         <Route path="/super-admin/reports" element={<SuperAdminRoute><SuperAdminReports /></SuperAdminRoute>} />
