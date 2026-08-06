@@ -188,7 +188,11 @@ function writeProductListCache(products: Product[]) {
   // React state update that already happened (that's what actually
   // makes the product visible), so swallow write failures.
   try {
-    localStorage.setItem(productListCacheKey, JSON.stringify(products))
+    // Clearing beats writing "[]": removeItem cannot fail on quota, so an
+    // emptied catalogue is guaranteed to clear the cache rather than leave a
+    // stale copy behind for other pages to read.
+    if (products.length === 0) localStorage.removeItem(productListCacheKey)
+    else localStorage.setItem(productListCacheKey, JSON.stringify(products))
   } catch {
     // ignore quota/serialization errors - the cache is just a cold-start fallback
   }

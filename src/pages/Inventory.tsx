@@ -150,14 +150,12 @@ async function loadActiveProducts() {
         suppliers: row.suppliers ?? null,
       })) as ProductRow[]
 
-      if (products.length > 0) return products
-
-      const cachedProducts = readProductListCache()
-      if (cachedProducts.length > 0) {
-        console.warn('Products loaded from local Product List cache because database query returned no visible products')
-        return cachedProducts
-      }
-
+      // A successful fetch is authoritative, even when it comes back empty:
+      // that is exactly what the server sends once every product has been
+      // deleted. Treating "no rows" as a failed query and substituting the
+      // local cache is what kept deleted products listed in Inventory long
+      // after the Product List had correctly emptied. A real failure throws
+      // and is handled below, where the cache still makes sense.
       return products
     } catch (error) {
       lastError = error
