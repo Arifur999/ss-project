@@ -36,7 +36,6 @@ type InventoryStatusFilter = 'all' | 'available' | 'out_of_stock' | 'upcoming'
 const inventoryCacheKey = 'inventory_page_cache_v3'
 const productListCacheKey = 'product_list_cache_v1'
 const productOpeningQtyStorageKey = 'product_opening_qty_v1'
-const pageSize = 1000
 const insertChunkSize = 200
 
 function readInventoryCache(): InventoryCache {
@@ -107,16 +106,13 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-async function fetchPaged<T>(queryForRange: (from: number, to: number) => any) {
-  const rows: T[] = []
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await queryForRange(from, from + pageSize - 1)
-    if (error) throw error
-    const page = (data || []) as T[]
-    rows.push(...page)
-    if (page.length < pageSize) break
-  }
-  return rows
+// The API layer returns whole tables and applies .range() in the browser, so
+// walking it page by page downloaded the entire table again for every page.
+// Inventory reads six tables, so that cost was multiplied six times over.
+async function fetchAllRows<T>(query: (from: number, to: number) => any) {
+  const { data, error } = await query(0, Number.MAX_SAFE_INTEGER)
+  if (error) throw error
+  return (data || []) as T[]
 }
 
 async function loadActiveProducts() {
@@ -131,7 +127,7 @@ async function loadActiveProducts() {
   let lastError: any = null
   for (const selectColumns of selectAttempts) {
     try {
-      const rows = await fetchPaged<any>((from, to) =>
+      const rows = await fetchAllRows<any>((from, to) =>
         supabase
           .from('products')
           .select(selectColumns)
@@ -190,31 +186,31 @@ export default function Inventory() {
     try {
       const [productRows, histRows, purchaseItemRows, receiveRows, saleRows, openingBatchRows] = await Promise.all([
         loadActiveProducts(),
-        fetchPaged<any>((from, to) =>
+        fetchAllRows<any>((from, to) =>
           supabase
             .from('inventory_history')
             .select('product_id, qty_change, change_type')
             .range(from, to)
         ).catch(() => []),
-        fetchPaged<any>((from, to) =>
+        fetchAllRows<any>((from, to) =>
           supabase
             .from('purchase_items')
             .select('id, product_id, qty, received_qty')
             .range(from, to)
         ).catch(() => []),
-        fetchPaged<any>((from, to) =>
+        fetchAllRows<any>((from, to) =>
           supabase
             .from('purchase_receives')
             .select('purchase_item_id, received_qty')
             .range(from, to)
         ).catch(() => []),
-        fetchPaged<any>((from, to) =>
+        fetchAllRows<any>((from, to) =>
           supabase
             .from('sale_items')
             .select('product_id, qty')
             .range(from, to)
         ).catch(() => []),
-        fetchPaged<any>((from, to) =>
+        fetchAllRows<any>((from, to) =>
           supabase
             .from('inventory_batches')
             .select('product_id, received_qty')
@@ -259,7 +255,7 @@ export default function Inventory() {
       )
     }
 
-      const inventoryRows = await fetchPaged<any>((from, to) =>
+      const inventoryRows = await fetchAllRows<any>((from, to) =>
         supabase
           .from('inventory')
           .select('*')

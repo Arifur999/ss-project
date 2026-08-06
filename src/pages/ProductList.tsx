@@ -160,7 +160,6 @@ const EMPTY_FORM = {
   size: '',
   weight: '',
 }
-const pageSize = 1000
 const bulkDeleteChunkSize = 200
 const importInventoryChunkSize = 25
 // Products are written in batches rather than one request. The API rejects a
@@ -302,16 +301,13 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-async function fetchPaged<T>(queryForRange: (from: number, to: number) => any) {
-  const rows: T[] = []
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await queryForRange(from, from + pageSize - 1)
-    if (error) throw error
-    const page = (data || []) as T[]
-    rows.push(...page)
-    if (page.length < pageSize) break
-  }
-  return rows
+// The API layer returns whole tables and applies .range() in the browser, so
+// walking it page by page downloaded the entire table again for every page.
+// One request is fewer round trips and a fraction of the data.
+async function fetchAllRows<T>(query: (from: number, to: number) => any) {
+  const { data, error } = await query(0, Number.MAX_SAFE_INTEGER)
+  if (error) throw error
+  return (data || []) as T[]
 }
 
 export default function ProductList() {
@@ -655,7 +651,7 @@ export default function ProductList() {
   async function loadData() {
     try {
       const [productRows, supplierRows, openingBatchRows, businessRes] = await Promise.all([
-        fetchPaged<Product>((from, to) =>
+        fetchAllRows<Product>((from, to) =>
           supabase
             .from('products')
             .select('*, suppliers(id, name, company_name)')
@@ -663,7 +659,7 @@ export default function ProductList() {
             .order('created_at', { ascending: false })
             .range(from, to)
         ),
-        fetchPaged<Supplier>((from, to) =>
+        fetchAllRows<Supplier>((from, to) =>
           supabase
             .from('suppliers')
             .select('*')
@@ -674,7 +670,7 @@ export default function ProductList() {
         // Promise.all rejects as a whole otherwise, so setProducts would never
         // run and a just-added product would stay invisible until reload.
         ).catch(() => suppliers),
-        fetchPaged<{ product_id: string; received_qty: number }>((from, to) =>
+        fetchAllRows<{ product_id: string; received_qty: number }>((from, to) =>
           supabase
             .from('inventory_batches')
             .select('product_id, received_qty')
@@ -696,7 +692,7 @@ export default function ProductList() {
         opening_qty: Number(product.opening_qty ?? nextOpeningQtyMap[product.id] ?? 0),
       }))
       // A successful fetch is authoritative - trust it even when it's empty.
-      // (A real fetch failure throws inside fetchPaged and lands in catch
+      // (A real fetch failure throws inside fetchAllRows and lands in catch
       // below, leaving the current list untouched.) The old "fall back to the
       // cached list when the fresh result is empty" logic meant deleting the
       // last product just brought it back from stale localStorage.

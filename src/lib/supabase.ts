@@ -74,6 +74,7 @@ interface QueryState {
   filters: Filter[]
   orders: { column: string; ascending: boolean }[]
   limitCount?: number
+  rangeFrom?: number
   single: boolean
   maybe: boolean
   wantsReturn: boolean
@@ -145,7 +146,9 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
     if (state.action === 'select') {
       let rows = applyFilters(await fetchRows(state.table), state.filters)
       rows = applyOrder(rows, state.orders)
-      if (state.limitCount !== undefined) rows = rows.slice(0, state.limitCount)
+      if (state.limitCount !== undefined || state.rangeFrom !== undefined) {
+        rows = rows.slice(state.rangeFrom ?? 0, state.limitCount)
+      }
       if (state.single || state.maybe) {
         return { data: rows[0] ?? null, error: state.single && rows.length === 0 ? { message: 'Row not found' } : null }
       }
@@ -269,7 +272,11 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any; count?: numbe
     return this
   }
   limit(count: number) { this.state.limitCount = count; return this }
-  range(from: number, to: number) { this.state.limitCount = to + 1; return this }
+  // Both ends matter. Setting only a limit ignored `from`, so every "next
+  // page" came back starting at row 0 - each page a superset of the last. A
+  // caller looping until it saw a short page therefore never stopped once a
+  // table held more rows than the page size.
+  range(from: number, to: number) { this.state.rangeFrom = from; this.state.limitCount = to + 1; return this }
 
   single() { this.state.single = true; return this }
   maybeSingle() { this.state.maybe = true; return this }
