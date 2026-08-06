@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
-import CsvImportProgress, { idleCsvImport, type CsvImportState } from '../../components/CsvImportProgress'
+import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../../components/ProgressDialog'
 import { insertInChunks, CsvImportError, partialImportMessage } from '../../lib/csvImport'
 
 type CustomerValidationErrors = Partial<Record<'name' | 'phone', string>>
@@ -71,7 +71,7 @@ export default function CustomerList() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', opening_due: 0 })
   const [errors, setErrors] = useState<CustomerValidationErrors>({})
   const [importingCsv, setImportingCsv] = useState(false)
-  const [csvProgress, setCsvProgress] = useState<CsvImportState>(idleCsvImport)
+  const [progress, setProgress] = useState<ProgressState>(idleProgress)
   const csvInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { loadAll() }, [])
@@ -139,7 +139,7 @@ export default function CustomerList() {
 
   async function importCustomersFromCsv(file: File) {
     setImportingCsv(true)
-    setCsvProgress({ open: true, fileName: file.name, phase: 'reading', processed: 0, total: 0 })
+    setProgress(startProgress('Importing customers', file.name, 'Reading the file'))
     // Read back in the catch block below. State cannot be used there: this
     // closure captured it from the render that started the import, so it would
     // still say zero.
@@ -147,7 +147,7 @@ export default function CustomerList() {
 
     try {
       const text = await file.text()
-      setCsvProgress(current => ({ ...current, phase: 'checking' }))
+      setProgress(current => ({ ...current, step: 'Checking the rows' }))
       const rows = parseCsv(text)
       if (rows.length < 2) {
         toast.error('CSV file has no customer rows')
@@ -186,16 +186,16 @@ export default function CustomerList() {
       }
 
       plannedRows = payload.length
-      setCsvProgress(current => ({ ...current, phase: 'saving', processed: 0, total: payload.length }))
+      setProgress(current => ({ ...current, step: 'Saving customers', processed: 0, total: payload.length }))
       await insertInChunks(
         payload,
         chunk => supabase.from('customers').insert(chunk),
-        saved => setCsvProgress(current => ({ ...current, processed: saved })),
+        saved => setProgress(current => ({ ...current, processed: saved })),
       )
 
       // Hold on "Finished" for a moment so the dialog is not simply gone -
       // there is otherwise no sign the import ran at all.
-      setCsvProgress(current => ({ ...current, phase: 'done' }))
+      setProgress(current => ({ ...current, done: true }))
       await new Promise(resolve => setTimeout(resolve, 700))
 
       toast.success(`Imported ${payload.length} customer${payload.length === 1 ? '' : 's'}${skipped ? `, skipped ${skipped}` : ''}`)
@@ -210,7 +210,7 @@ export default function CustomerList() {
       }
     } finally {
       setImportingCsv(false)
-      setCsvProgress(idleCsvImport)
+      setProgress(idleProgress)
       if (csvInputRef.current) csvInputRef.current.value = ''
     }
   }
@@ -412,7 +412,7 @@ export default function CustomerList() {
         </form>
       </Modal>
 
-      <CsvImportProgress state={csvProgress} />
+      <ProgressDialog state={progress} />
     </div>
   )
 }

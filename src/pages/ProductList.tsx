@@ -11,6 +11,7 @@ import { addRecycleItem } from '../lib/recycleBin'
 import { useAuth } from '../context/AuthContext'
 import { createOpeningStockBatch } from '../lib/fifoInventory'
 import { deleteProduct as deleteProductRequest } from '../services/product.services'
+import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../components/ProgressDialog'
 
 interface Product {
   id: string
@@ -162,6 +163,11 @@ const EMPTY_FORM = {
 const pageSize = 1000
 const bulkDeleteChunkSize = 200
 const importInventoryChunkSize = 25
+// Products are written in batches rather than one request. The API rejects a
+// body over 2 MB, which a few thousand rows sails past - that is what made a
+// large import fail outright instead of just taking a while. Batching also
+// gives the progress dialog a real number to count.
+const csvSaveChunkSize = 100
 const linkedProductDeleteMessage = 'Cannot Delete Product: This item is linked to existing sales or purchase transactions to preserve database history.'
 
 function readStoredOpeningQty() {
@@ -320,6 +326,7 @@ export default function ProductList() {
   const [showTagModal, setShowTagModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [progress, setProgress] = useState<ProgressState>(idleProgress)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
   const ownerId = profile?.owner_id || user?.id || null
@@ -409,7 +416,26 @@ export default function ProductList() {
     }
   }
 
-  async function saveCsvProducts(rows: CsvProductImportRow[]) {
+  // Sends the rows a batch at a time so no single request carries the whole
+  // file, and reports how many are in after each batch. A batch that fails
+  // throws, leaving the earlier ones saved - the caller says so rather than
+  // implying nothing happened.
+  async function saveCsvProducts(rows: CsvProductImportRow[], onProgress?: (savedRows: number) => void) {
+    const saved: { id: string; product_code: string }[] = []
+    // Counted from the rows sent, not from what came back: the fallback paths
+    // in saveCsvProductChunk can return fewer records than they wrote, which
+    // would make the bar stall while work was still happening.
+    let sent = 0
+    for (const chunk of chunkArray(rows, csvSaveChunkSize)) {
+      const part = await saveCsvProductChunk(chunk)
+      saved.push(...part)
+      sent += chunk.length
+      onProgress?.(sent)
+    }
+    return saved
+  }
+
+  async function saveCsvProductChunk(rows: CsvProductImportRow[]) {
     const ownerCandidates = Array.from(new Set([ownerId, user?.id].filter(Boolean))) as string[]
     let lastError: any = null
 
@@ -934,16 +960,39 @@ export default function ProductList() {
         })
       }
 
-      // Server-side soft delete puts each product into the recycle bin.
+      // Server-side soft delete puts each product into the recycle bin. One
+      // request per product, so a few hundred takes long enough that without
+      // the dialog it reads as a frozen page.
+      setProgress({
+        open: true,
+        title: 'Deleting products',
+        subtitle: `${selectedProducts.length.toLocaleString()} selected`,
+        step: 'Deleting',
+        processed: 0,
+        total: selectedProducts.length,
+        done: false,
+      })
+
+      let deleted = 0
       for (const product of selectedProducts) {
         await deleteProductRequest(product.id)
+        deleted += 1
+        setProgress(current => ({ ...current, processed: deleted }))
       }
+
+      setProgress(current => ({ ...current, done: true }))
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       setSelectedIds([])
       toast.success(`${selectedProducts.length} products deleted`)
       loadData()
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete selected products')
+      // Whatever was deleted before the failure is gone, so refresh instead of
+      // leaving rows on screen that no longer exist.
+      loadData()
+    } finally {
+      setProgress(idleProgress)
     }
   }
 
@@ -1011,9 +1060,12 @@ export default function ProductList() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setProgress(startProgress('Importing products', file.name, 'Reading the file'))
+
     try {
       {
         const allRows = await readSpreadsheet(file)
+        setProgress(current => ({ ...current, step: 'Checking the rows' }))
         // Find the real header row (a price list may have title/date rows above
         // it, and multi-sheet workbooks were already narrowed to the right tab).
         const headerRowIndex = detectHeaderRow(allRows)
@@ -1067,6 +1119,12 @@ export default function ProductList() {
           .map(normalizeLookup)
         )) : []
 
+        const newSupplierCount = supplierNames.filter(key => !supplierByName.has(key)).length
+        if (newSupplierCount > 0) {
+          setProgress(current => ({ ...current, step: 'Adding new suppliers', processed: 0, total: newSupplierCount }))
+        }
+        let suppliersAdded = 0
+
         for (const supplierKey of supplierNames) {
           if (supplierByName.has(supplierKey)) continue
           const supplierName = rows.map(row => value(row, indexes.supplier)).find(name => normalizeLookup(name) === supplierKey) || supplierKey
@@ -1076,6 +1134,8 @@ export default function ProductList() {
           supplierByName.set(supplierKey, createdSupplier)
           if (createdSupplier.name) supplierByName.set(normalizeLookup(createdSupplier.name), createdSupplier)
           if (createdSupplier.company_name) supplierByName.set(normalizeLookup(createdSupplier.company_name), createdSupplier)
+          suppliersAdded += 1
+          setProgress(current => ({ ...current, processed: suppliersAdded }))
         }
 
         const invalidRows: string[] = []
@@ -1122,10 +1182,21 @@ export default function ProductList() {
           new Map(importedRows.map(row => [row.code.toLowerCase(), row])).values()
         )
 
-        const savedProducts = await saveCsvProducts(uniqueProducts)
+        setProgress(current => ({
+          ...current,
+          subtitle: `${file.name} · ${uniqueProducts.length.toLocaleString()} products`,
+          step: 'Saving products',
+          processed: 0,
+          total: uniqueProducts.length,
+        }))
+        const savedProducts = await saveCsvProducts(uniqueProducts, sent => {
+          setProgress(current => ({ ...current, processed: sent }))
+        })
         const importedProducts = optimisticProductsFromCsv(uniqueProducts, savedProducts)
         mergeProductsForDisplay(importedProducts)
 
+        setProgress(current => ({ ...current, step: 'Setting up stock', processed: 0, total: savedProducts.length }))
+        let stockDone = 0
         for (const chunk of chunkArray(savedProducts, importInventoryChunkSize)) {
           await Promise.all(chunk.map(async product => {
             const imported = uniqueProducts.find(row => row.code === product.product_code)
@@ -1137,7 +1208,15 @@ export default function ProductList() {
               if (!isMissingInventoryTable(error)) throw error
             }
           }))
+          stockDone += chunk.length
+          setProgress(current => ({ ...current, processed: Math.min(stockDone, savedProducts.length) }))
         }
+
+        // Hold on "Finished" for a moment so the dialog is not simply gone -
+        // there is otherwise no sign the import ran at all.
+        setProgress(current => ({ ...current, done: true }))
+        await new Promise(resolve => setTimeout(resolve, 700))
+
         setSearch('')
         setShowModal(false)
         setEditingId(null)
@@ -1149,7 +1228,11 @@ export default function ProductList() {
     } catch (error: any) {
       console.error('Import failed', error)
       toast.error(error.message || 'Failed to import file')
+      // Batches that already went through are saved, so what is on screen is
+      // stale either way - reload rather than leave a half-truth.
+      loadData()
     } finally {
+      setProgress(idleProgress)
       if (csvInputRef.current) csvInputRef.current.value = ''
     }
   }
@@ -1657,6 +1740,8 @@ export default function ProductList() {
         </button>
       </div>
     )}
+
+    <ProgressDialog state={progress} />
     </>
   )
 }
