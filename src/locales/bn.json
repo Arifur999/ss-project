@@ -443,6 +443,8 @@
   "invest_new": "নতুন এন্ট্রি",
   "invest_totalInvestment": "মোট বিনিয়োগ",
   "invest_totalWithdrawal": "মোট উত্তোলন",
+  "invest_typeInvestment": "বিনিয়োগ",
+  "invest_typeWithdrawal": "উত্তোলন",
   "invest_netInvestment": "নেট বিনিয়োগ",
   "invest_txList": "লেনদেন তালিকা",
   "invest_colShareholder": "শেয়ারহোল্ডার",

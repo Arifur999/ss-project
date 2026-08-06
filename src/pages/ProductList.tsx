@@ -1572,7 +1572,11 @@ export default function ProductList() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Three columns so each price reads as one line: rate, discount,
+              and what it actually comes to. The last of each is calculated
+              from the two before it - the same figures the CSV exports as
+              "Actual DP" and "Actual MRP". */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="label">DP Rate (Cost)</label>
               <input
@@ -1599,6 +1603,17 @@ export default function ProductList() {
               />
             </div>
             <div>
+              <label className="label">Final DP</label>
+              <input
+                type="text"
+                readOnly
+                tabIndex={-1}
+                className="input bg-slate-50 text-slate-700"
+                value={afterDiscount(Number(form.cost_price || 0), Number(form.dp_discount || 0)).toLocaleString('en-US')}
+                title="DP rate after the DP discount - calculated, not typed"
+              />
+            </div>
+            <div>
               <label className="label">MRP (Selling)</label>
               <input
                 type="number"
@@ -1621,6 +1636,17 @@ export default function ProductList() {
                 value={form.mrp_discount || ''}
                 onChange={(e) => setForm({ ...form, mrp_discount: Number(e.target.value) })}
                 placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="label">Final Selling MRP</label>
+              <input
+                type="text"
+                readOnly
+                tabIndex={-1}
+                className="input bg-slate-50 text-slate-700"
+                value={afterDiscount(Number(form.selling_price || 0), Number(form.mrp_discount || 0)).toLocaleString('en-US')}
+                title="MRP after the MRP discount - this is what the customer pays"
               />
             </div>
           </div>

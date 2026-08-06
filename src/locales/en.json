@@ -443,6 +443,8 @@
   "invest_new": "New Entry",
   "invest_totalInvestment": "Total Investment",
   "invest_totalWithdrawal": "Total Withdrawal",
+  "invest_typeInvestment": "Investment",
+  "invest_typeWithdrawal": "Withdrawal",
   "invest_netInvestment": "Net Investment",
   "invest_txList": "Transaction List",
   "invest_colShareholder": "Shareholder",

@@ -2270,7 +2270,10 @@ export default function Sales() {
                       <th className="py-3 px-3 text-slate-500 text-right w-28">Unit MRP</th>
                       <th className="py-3 px-3 text-slate-500 text-center w-28">Qty</th>
                       <th className="py-3 px-3 text-slate-500 text-right w-28">Subtotal</th>
-                      <th className="py-3 px-3 text-slate-500 text-right w-24">Discount</th>
+                      {/* Per unit, not for the line: 2 x 49,900 with 4,990 here
+                          takes 9,980 off. "Discount" alone read as the line
+                          total. */}
+                      <th className="py-3 px-3 text-slate-500 text-right w-24">Unit Discount</th>
                       <th className="py-3 px-3 text-slate-500 text-right w-28">Subtotal</th>
                       <th className="py-3 px-3 text-slate-500 text-center w-32">Status</th>
                       <th className="py-3 px-3 text-center w-14">Action</th>
@@ -3297,7 +3300,7 @@ export default function Sales() {
                       <th className="border border-slate-600 py-1 px-1 text-center w-20">Unit MRP</th>
                       <th className="border border-slate-600 py-1 px-1 text-center w-12">Qty</th>
                       <th className="border border-slate-600 py-1 px-1 text-center w-24">Subtotal</th>
-                      <th className="border border-slate-600 py-1 px-1 text-center w-20">Discount</th>
+                      <th className="border border-slate-600 py-1 px-1 text-center w-20">Unit Discount</th>
                       <th className="border border-slate-600 py-1 px-2 text-center w-24">Subtotal</th>
                     </tr>
                   </thead>

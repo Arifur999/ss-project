@@ -184,8 +184,11 @@ export default function InvestWithdraw() {
           <div>
             <label className="label">{t('common_type', 'Type')}</label>
             <select className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'invest' | 'withdraw' })}>
-              <option value="invest">{t('invest_totalInvestment', 'Investment')}</option>
-              <option value="withdraw">{t('invest_totalWithdrawal', 'Withdrawal')}</option>
+              {/* Its own labels, not the summary cards' - one entry is an
+                  investment, not a "Total Investment". The cards above keep
+                  the "Total" wording, where it is correct. */}
+              <option value="invest">{t('invest_typeInvestment', 'Investment')}</option>
+              <option value="withdraw">{t('invest_typeWithdrawal', 'Withdrawal')}</option>
             </select>
           </div>
           <div>
