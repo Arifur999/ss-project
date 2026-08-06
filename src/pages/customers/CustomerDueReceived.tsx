@@ -344,7 +344,6 @@ export default function CustomerDueReceived() {
         message: buildDuePaymentSms({
           businessName,
           businessPhone: business?.phone || '',
-          customerName: customer?.name || 'গ্রাহক',
           paid: paidNow,
           remainingDue: remaining,
         }),

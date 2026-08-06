@@ -70,7 +70,6 @@ export function buildInvoiceSms(input: InvoiceSmsInput): string {
 export type DuePaymentSmsInput = {
   businessName: string
   businessPhone?: string
-  customerName: string
   /** What they just handed over. */
   paid: number
   /** What is still owed after this payment. */
@@ -79,14 +78,19 @@ export type DuePaymentSmsInput = {
 
 // Receipt sent after collecting money against an outstanding balance, so the
 // customer has written confirmation of what was received and what is left.
+//
+// English, unlike the other two templates, at the owner's request. That also
+// makes it cheaper: plain ASCII bills at 160 characters a segment where Bangla
+// bills at 70. A Bangla business name would pull it back to unicode pricing.
 export function buildDuePaymentSms(input: DuePaymentSmsInput): string {
   const helpline = helplineNumber(input.businessPhone)
   return [
-    `আসসালামু আলাইকুম, ${input.customerName}!`,
-    `${input.businessName}-এ আপনার ${smsAmount(input.paid)} টাকা জমা হয়েছে।`,
-    `বর্তমান বকেয়া: ${smsAmount(input.remainingDue)} টাকা`,
-    helpline ? `হেল্পলাইন: ${helpline}` : '',
-    'ধন্যবাদ!',
+    'Assalamu Alaikum,',
+    `Payment received successfully at ${input.businessName}.`,
+    `Paid Amount: Tk ${smsAmount(input.paid)}`,
+    `Remaining Due: Tk ${smsAmount(input.remainingDue)}`,
+    helpline ? `Helpline: ${helpline}` : '',
+    'Thank you for your payment',
   ].filter(Boolean).join('\n')
 }
 
