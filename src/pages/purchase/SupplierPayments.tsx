@@ -5,6 +5,7 @@ import { formatDate } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
+import SearchableSelect from '../../components/SearchableSelect'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -380,14 +381,20 @@ export default function SupplierPayments() {
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
-          <div><label className="label">{t('supplierPayments_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+          {/* Account first, then amount: you pick where the money comes from
+              before deciding how much, and it matches the Due Received form. */}
           <div>
             <label className="label">{t('common_account')}</label>
-            <select className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
-              <option value="">{t('common_select')}</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            {/* Typing filters the list - there are more than a dozen accounts
+                and scrolling a native dropdown for one of them is slow. */}
+            <SearchableSelect
+              value={form.account_id}
+              onChange={value => setForm({ ...form, account_id: value })}
+              options={accounts.map(a => ({ value: a.id, label: a.name }))}
+              placeholder={t('common_select')}
+            />
           </div>
+          <div><label className="label">{t('supplierPayments_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {editingId ? 'Update' : t('common_save')}</button>

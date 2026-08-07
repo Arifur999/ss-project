@@ -843,11 +843,6 @@ export default function Sales() {
     return Math.max(0, storedDue, calculatedDue)
   }
 
-  async function adjustInventory(_productId: string, _qtyChange: number) {
-    // Inventory rollbacks/deductions now happen inside the backend sale
-    // transactions (POST/PUT/DELETE /sales) - adjusting here would double-count.
-  }
-
   async function applyFifoCostToSaleItem(row: any, source: SaleItem, qty: number) {
     if (!row?.id || !source?.product_id || !isUuid(source.product_id) || qty <= 0) return Number(source.cost_price || 0)
     const manualCost = Number(source.cost_price || 0)
@@ -962,42 +957,25 @@ export default function Sales() {
         notes: 'Delivered at order time',
         created_by: user?.id,
       }
-      const { data: insertedDeliveryData, error: deliveryError } = await supabase
-        .from('sale_deliveries')
-        .insert(deliveryPayload)
-        .select()
-        .maybeSingle()
+      // One backend call does the lot, in a single transaction: writes the
+      // delivery, raises the item's delivered_qty and recomputes the sale's
+      // delivery status. The three separate table writes this replaces went
+      // through an API layer that supports none of them - inserting into
+      // sale_deliveries and inventory_history, and updating sale_items, each
+      // failed, and the sale_items one threw hard enough to abandon the FIFO
+      // costing below it. Stock movement is already handled inside the sale
+      // transaction on the server.
+      await addSaleDelivery(saleId, {
+        sale_item_id: row.id,
+        delivery_date: form.date,
+        delivered_qty: source.qty,
+        delivered_by: deliveryPayload.delivered_by,
+        notes: `Delivered at order time - invoice ${invoiceNo}`,
+      })
 
-      if (deliveryError) {
-        if (!isSaleDeliveriesMissing(deliveryError)) throw deliveryError
-      }
-
-      const insertedDelivery = insertedDeliveryData || {
-        ...deliveryPayload,
-        id: `${row.id}-delivery`
-      }
-      saveDeliveryFallback(row.id, insertedDelivery)
-
-      const { error: deliveredQtyError } = await supabase
-        .from('sale_items')
-        .update({ delivered_qty: source.qty })
-        .eq('id', row.id)
-      if (deliveredQtyError && !String(deliveredQtyError.message || '').includes('delivered_qty')) throw deliveredQtyError
+      saveDeliveryFallback(row.id, { ...deliveryPayload, id: `${row.id}-delivery` })
 
       await applyFifoCostToSaleItem(row, source, source.qty)
-      await adjustInventory(source.product_id, -source.qty)
-      if (source.product_id) {
-        await supabase.from('inventory_history').insert({
-          product_id: source.product_id,
-          product_name: source.product_name,
-          change_type: 'sales_out',
-          qty_change: -source.qty,
-          reference_id: saleId,
-          reference_type: 'sale_delivery',
-          notes: `Delivered for invoice ${invoiceNo}`,
-          created_by: user?.id
-        })
-      }
     }
 
     if (deliveryRows.length > 0) {

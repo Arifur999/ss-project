@@ -25,7 +25,7 @@ const TABLES: Record<string, TableConfig> = {
   business_settings: { list: '/business-settings', upsertPut: '/business-settings' },
   shareholders: { list: '/shareholders', create: '/shareholders', update: (id) => `/shareholders/${id}`, remove: (id) => `/shareholders/${id}` },
   accounts: { list: '/accounts', create: '/accounts', update: (id) => `/accounts/${id}`, remove: (id) => `/accounts/${id}` },
-  account_transfers: { list: '/account-transfers', create: '/account-transfers', remove: (id) => `/account-transfers/${id}` },
+  account_transfers: { list: '/account-transfers', create: '/account-transfers', update: (id) => `/account-transfers/${id}`, remove: (id) => `/account-transfers/${id}` },
   monthly_targets: { list: '/monthly-targets', upsertPut: '/monthly-targets', update: (id) => `/monthly-targets/${id}`, remove: (id) => `/monthly-targets/${id}` },
   expense_categories: { list: '/expense-categories', create: '/expense-categories', update: (id) => `/expense-categories/${id}`, remove: (id) => `/expense-categories/${id}` },
   suppliers: { list: '/suppliers', create: '/suppliers', update: (id) => `/suppliers/${id}`, remove: (id) => `/suppliers/${id}` },
