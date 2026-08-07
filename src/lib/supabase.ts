@@ -116,9 +116,63 @@ const applyOrder = (rows: Row[], orders: { column: string; ascending: boolean }[
   })
 }
 
+// Every query here fetches a whole table and then filters in the browser, and
+// a page load asks for the same table several times over: Sales reads `sales`
+// six times, plus `sale_items` and `sale_deliveries`, which are not tables at
+// all - they are flattened out of that same /sales response. That was nine
+// full downloads of the sales list to paint one screen.
+//
+// So identical GETs that overlap share one request, and a result stays usable
+// for a moment afterwards to cover the calls that follow rather than run
+// alongside. The window is deliberately tiny, and ANY write clears the lot -
+// a read must never answer with data from before a save the user just made.
+const HTTP_CACHE_MS = 600
+const pending = new Map<string, Promise<Row[]>>()
+const recent = new Map<string, { at: number; rows: Row[] }>()
+
+export function invalidateTableCache() {
+  pending.clear()
+  recent.clear()
+}
+
+// Every write drops the whole cache, whichever route it took. The note at the
+// top of this file is the reason this hangs off the shared axios instance
+// rather than off runQuery: the transactional flows - saving a sale, receiving
+// a purchase, recording a delivery - never come through this layer at all, and
+// a read after one of those must not answer from before it. Clearing all
+// tables rather than the one written is deliberate; a sale moves stock and a
+// customer balance too, and one extra fetch costs far less than showing a
+// figure the user just changed.
+api.interceptors.response.use((response) => {
+  if ((response.config.method || 'get').toLowerCase() !== 'get') invalidateTableCache()
+  return response
+})
+
 async function fetchRows(table: string): Promise<Row[]> {
   const config = TABLES[table]
   if (!config) throw new Error(`Table not supported by API layer: ${table}`)
+
+  const fresh = recent.get(table)
+  if (fresh && Date.now() - fresh.at < HTTP_CACHE_MS) return fresh.rows
+
+  const inFlight = pending.get(table)
+  if (inFlight) return inFlight
+
+  const request = fetchRowsFromApi(table)
+    .then((rows) => {
+      recent.set(table, { at: Date.now(), rows })
+      return rows
+    })
+    .finally(() => {
+      pending.delete(table)
+    })
+
+  pending.set(table, request)
+  return request
+}
+
+async function fetchRowsFromApi(table: string): Promise<Row[]> {
+  const config = TABLES[table]
 
   if (config.flattenFrom) {
     const response = await api.get(config.flattenFrom.list)

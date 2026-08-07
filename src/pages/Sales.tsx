@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { useReactToPrint } from 'react-to-print'
 import { useLang } from '../context/LanguageContext'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { addRecycleItem } from '../lib/recycleBin'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
 import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
@@ -98,6 +98,13 @@ function dbProductId(value: string) {
 export default function Sales() {
   const { lang, t, formatCurr, formatNum } = useLang()
   const location = useLocation()
+  // Switching view by navigating, not by flipping state alone: /sales and
+  // /sales/ledger render this same page, so changing only the state left the
+  // address bar - and with it the highlighted sidebar item - on whichever one
+  // you arrived at. Saving an invoice showed the ledger while the sidebar
+  // still pointed at New Sales Entry. Going through the router also makes Back
+  // and a refresh land where the screen says you are.
+  const navigate = useNavigate()
   const [sales, setSales] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
@@ -1190,7 +1197,7 @@ export default function Sales() {
         setSales(prev => prev.map(s => s.id === editingSale.id ? savedSale : s))
         setSelectedSale(savedSale)
         setShowInvoice(true)
-        setViewMode('history')
+        navigate('/sales/ledger')
         await loadAll()
         resetForm()
         return
@@ -1225,7 +1232,7 @@ export default function Sales() {
       setSales(prev => [savedSale, ...prev.filter(s => s.id !== savedSale.id)])
       setSelectedSale(savedSale)
       setShowInvoice(true)
-      setViewMode('history')
+      navigate('/sales/ledger')
       await loadAll()
       resetForm()
     } catch (err: any) {
@@ -1326,7 +1333,7 @@ export default function Sales() {
     // part of this invoice, so editing a sale never re-opens it here.
     setPreviousDuePay(0)
 
-    setViewMode('create')
+    navigate('/sales')
   }
 
   async function deleteSale(sale: any) {
@@ -1947,7 +1954,7 @@ export default function Sales() {
           viewMode === 'create' ? (
             <button
               onClick={() => {
-                setViewMode('history')
+                navigate('/sales/ledger')
                 resetForm()
               }}
               className="btn-secondary flex items-center gap-2 border border-slate-200"
