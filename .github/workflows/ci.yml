@@ -29,6 +29,13 @@ jobs:
       - name: Lint (errors only)
         run: npx eslint . --ext ts,tsx --report-unused-disable-directives
 
+      # queryEngine.test.ts pins down what a query means in this app - strict
+      # equality, ilike as a plain contains, null matching undefined. Every
+      # figure on every page comes out of those rules, so a change to them has
+      # to fail here rather than reach the server.
+      - name: Tests
+        run: npm test
+
       - name: Type check + build
         run: npm run build
 

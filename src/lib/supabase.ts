@@ -9,8 +9,8 @@
 
 import { api } from './httpClient'
 import { consumeRecycleMeta } from './recycleBin'
-
-type Row = Record<string, any>
+// One home for what a query means - see queryEngine.ts and its tests.
+import { applyFilters, applyOrder, applyRange, type Filter, type Row } from './queryEngine'
 
 interface TableConfig {
   list: string            // GET endpoint returning all rows for this owner
@@ -58,15 +58,6 @@ const TABLES: Record<string, TableConfig> = {
   profiles: { list: '/users/list' },
 }
 
-type Filter =
-  | { kind: 'eq'; column: string; value: any }
-  | { kind: 'neq'; column: string; value: any }
-  | { kind: 'in'; column: string; values: any[] }
-  | { kind: 'gt' | 'gte' | 'lt' | 'lte'; column: string; value: any }
-  | { kind: 'is'; column: string; value: any }
-  | { kind: 'not_is'; column: string; value: any }
-  | { kind: 'ilike'; column: string; pattern: string }
-
 interface QueryState {
   table: string
   action: 'select' | 'insert' | 'update' | 'upsert' | 'delete'
@@ -78,42 +69,6 @@ interface QueryState {
   single: boolean
   maybe: boolean
   wantsReturn: boolean
-}
-
-const matchesFilter = (row: Row, filter: Filter): boolean => {
-  const value = row?.[filter.kind === 'in' ? filter.column : filter.column]
-  switch (filter.kind) {
-    case 'eq': return value === filter.value
-    case 'neq': return value !== filter.value
-    case 'in': return filter.values.includes(value)
-    case 'gt': return value > filter.value
-    case 'gte': return value >= filter.value
-    case 'lt': return value < filter.value
-    case 'lte': return value <= filter.value
-    case 'is': return filter.value === null ? value === null || value === undefined : value === filter.value
-    case 'not_is': return filter.value === null ? value !== null && value !== undefined : value !== filter.value
-    case 'ilike': {
-      const pattern = filter.pattern.replace(/%/g, '')
-      return String(value ?? '').toLowerCase().includes(pattern.toLowerCase())
-    }
-    default: return true
-  }
-}
-
-const applyFilters = (rows: Row[], filters: Filter[]) => rows.filter((row) => filters.every((f) => matchesFilter(row, f)))
-
-const applyOrder = (rows: Row[], orders: { column: string; ascending: boolean }[]) => {
-  if (orders.length === 0) return rows
-  return [...rows].sort((a, b) => {
-    for (const order of orders) {
-      const av = a?.[order.column]
-      const bv = b?.[order.column]
-      if (av === bv) continue
-      const compare = av > bv ? 1 : -1
-      return order.ascending ? compare : -compare
-    }
-    return 0
-  })
 }
 
 // Every query here fetches a whole table and then filters in the browser, and
@@ -200,9 +155,7 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
     if (state.action === 'select') {
       let rows = applyFilters(await fetchRows(state.table), state.filters)
       rows = applyOrder(rows, state.orders)
-      if (state.limitCount !== undefined || state.rangeFrom !== undefined) {
-        rows = rows.slice(state.rangeFrom ?? 0, state.limitCount)
-      }
+      rows = applyRange(rows, state.rangeFrom, state.limitCount)
       if (state.single || state.maybe) {
         return { data: rows[0] ?? null, error: state.single && rows.length === 0 ? { message: 'Row not found' } : null }
       }
