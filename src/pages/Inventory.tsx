@@ -520,6 +520,11 @@ export default function Inventory() {
                       <img
                         src={row.products.image_url}
                         alt=""
+                        // Same reason as the Product List: one thumbnail per
+                        // row, thousands of rows, all fetched at once unless
+                        // the browser is told to wait until they are in view.
+                        loading="lazy"
+                        decoding="async"
                         className="w-8 h-8 object-cover rounded-md mx-auto cursor-zoom-in transition hover:ring-2 hover:ring-slate-300"
                         onClick={() => setLightboxImage(row.products.image_url)}
                         onError={e => (e.target as HTMLImageElement).style.display='none'}

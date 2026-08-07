@@ -629,7 +629,7 @@ export default function PlaceOrder() {
                 <div key={product.id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-50">
                     {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                      <img src={product.image_url} alt={product.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     ) : (
                       <Package size={22} className="text-slate-300" />
                     )}
@@ -726,7 +726,7 @@ export default function PlaceOrder() {
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md bg-slate-50">
-                              {productImage ? <img src={productImage} alt={item.product_name} className="h-full w-full object-cover" /> : <Package size={16} className="text-slate-300" />}
+                              {productImage ? <img src={productImage} alt={item.product_name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Package size={16} className="text-slate-300" />}
                             </div>
                             <span className="max-w-[180px] truncate font-semibold text-navy-800">{item.product_name || '-'}</span>
                           </div>

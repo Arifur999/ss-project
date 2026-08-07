@@ -1436,6 +1436,13 @@ export default function ProductList() {
                         <img
                           src={product.image_url}
                           alt={product.name}
+                          // Without this the browser starts downloading a
+                          // thumbnail for every row the moment the page opens -
+                          // thousands of requests to another host for pictures
+                          // nobody has scrolled to yet. Lazy keeps it to the
+                          // handful actually on screen.
+                          loading="lazy"
+                          decoding="async"
                           className="h-10 w-10 object-cover rounded inline-block cursor-zoom-in transition hover:ring-2 hover:ring-slate-300"
                           onClick={() => setLightboxImage(product.image_url)}
                           onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}

@@ -2054,7 +2054,7 @@ export default function Sales() {
                   >
                     {p.image_url ? (
                       <img 
-                        src={p.image_url} 
+                        src={p.image_url} loading="lazy" decoding="async" 
                         alt={safeText(p.name)} 
                         className="w-12 h-12 object-cover rounded-lg border border-slate-100 flex-shrink-0" 
                         onError={e => ((e.target as HTMLImageElement).style.display = 'none')} 
@@ -2273,7 +2273,7 @@ export default function Sales() {
                             <div className="flex items-center gap-2">
                               {item.image_url ? (
                                 <img 
-                                  src={item.image_url} 
+                                  src={item.image_url} loading="lazy" decoding="async" 
                                   alt="" 
                                   className="w-8 h-8 object-cover rounded-md border border-slate-100 flex-shrink-0"
                                   onError={e => ((e.target as HTMLImageElement).style.display = 'none')}
