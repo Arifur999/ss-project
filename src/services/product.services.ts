@@ -1,7 +1,39 @@
-import { http } from '../lib/httpClient'
+import { api, http } from '../lib/httpClient'
 
 
 export const getProducts = () => http.get<any[]>('/products')
+
+// One page of products, plus how many match in total. Goes through `api`
+// rather than `http` because `http` unwraps to `data` and drops `meta`, and
+// the total is what a paged list needs to know when to stop and what to show
+// as its record count.
+export const getProductsPage = async (options: { page: number; limit: number; search?: string }) => {
+  const params = new URLSearchParams({ page: String(options.page), limit: String(options.limit) })
+  if (options.search) params.set('search', options.search)
+  const response = await api.get(`/products?${params.toString()}`)
+  const rows = (response.data?.data || []) as any[]
+  return { rows, total: Number(response.data?.meta?.total ?? rows.length) }
+}
+
+// Distinct categories in use. The form's suggestion list used to be derived
+// from whatever products the page had loaded; with one page in memory that
+// would only ever show a handful.
+export const getProductCategories = () => http.get<string[]>('/products/categories')
+
+// Ids of every product matching a search. "Select all" and CSV export act on
+// the whole filtered set, not the rows on screen, so they ask for this instead
+// of paging through full records.
+export const getProductIds = (search?: string) =>
+  http.get<string[]>(`/products/ids${search ? `?search=${encodeURIComponent(search)}` : ''}`)
+
+// Every matching product, for CSV export. Deliberately separate from the paged
+// list: it is a deliberate, occasional action where waiting is acceptable, and
+// exporting only the rows that happened to be scrolled into view would be
+// silently wrong.
+export const getAllProductsForExport = async (search?: string) => {
+  const response = await api.get(`/products${search ? `?search=${encodeURIComponent(search)}` : ''}`)
+  return (response.data?.data || []) as any[]
+}
 export const getDeletedProducts = () => http.get<any[]>('/products?deleted=true')
 export const createProduct = (payload: any) => http.post<any>('/products', payload)
 export const bulkUpsertProducts = (products: any[]) => http.post<any[]>('/products/bulk-upsert', { products })

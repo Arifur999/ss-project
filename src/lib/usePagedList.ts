@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 // Loads a list a page at a time and appends as the reader scrolls.
 //
@@ -21,6 +21,12 @@ export type PagedResult<T> = { rows: T[]; total: number }
 export type PagedList<T> = {
   /** Rows loaded so far - page 1 up to whatever scrolling has reached. */
   items: T[]
+  /**
+   * Direct access, for the optimistic updates a page does after a save so the
+   * new row appears without waiting for a refetch. Adding a row this way does
+   * not change `total`; call reload() when the count has to be exact.
+   */
+  setItems: React.Dispatch<React.SetStateAction<T[]>>
   /** Every matching row on the server, not just the loaded ones. */
   total: number
   /** True during the very first load, when there is nothing to show yet. */
@@ -145,7 +151,7 @@ export function usePagedList<T extends { id: string }>(
   }, [])
 
   return {
-    items, total, loading, loadingMore, hasMore,
+    items, setItems, total, loading, loadingMore, hasMore,
     search, setSearch: setSearchValue,
     sentinelRef, reload, patchItem, removeItems,
   }

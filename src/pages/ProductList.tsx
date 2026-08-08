@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Edit2, Trash2, Plus, Search, Printer, Upload, Download, FileSpreadsheet, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
@@ -10,7 +10,9 @@ import { useLang } from '../context/LanguageContext'
 import { addRecycleItem } from '../lib/recycleBin'
 import { useAuth } from '../context/AuthContext'
 import { createOpeningStockBatch } from '../lib/fifoInventory'
-import { deleteProduct as deleteProductRequest } from '../services/product.services'
+import { deleteProduct as deleteProductRequest, getAllProductsForExport, getProductCategories, getProductIds, getProductsPage } from '../services/product.services'
+import { usePagedList } from '../lib/usePagedList'
+import TableSkeleton from '../components/TableSkeleton'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../components/ProgressDialog'
 
 interface Product {
@@ -313,11 +315,25 @@ async function fetchAllRows<T>(query: (from: number, to: number) => any) {
 export default function ProductList() {
   const { t, formatCurr } = useLang()
   const { user, profile } = useAuth()
-  const [products, setProducts] = useState<Product[]>([])
+  // Products arrive a page at a time and append as the reader scrolls, so the
+  // browser never holds the whole catalogue. `paged.total` is the real count
+  // from the server, which is what the header and "select all" need - the
+  // rows in memory are only the ones scrolled to.
+  const paged = usePagedList<Product>(
+    useCallback(({ page, limit, search: term }) => getProductsPage({ page, limit, search: term }), []),
+    { limit: 40 }
+  )
+  const products = paged.items
+  const setProducts = paged.setItems
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [serverCategories, setServerCategories] = useState<string[]>([])
+  const [selectingAll, setSelectingAll] = useState(false)
   const [business, setBusiness] = useState<BusinessSettings | null>(null)
   const [openingQtyMap, setOpeningQtyMap] = useState<Record<string, number>>({})
-  const [search, setSearch] = useState('')
+  // Search runs on the server: it has to look at every product, not just the
+  // pages already fetched.
+  const search = paged.search
+  const setSearch = paged.setSearch
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [tagProduct, setTagProduct] = useState<Product | null>(null)
@@ -648,17 +664,12 @@ export default function ProductList() {
     rememberOpeningQty(productId, Number(form.opening_qty || 0))
   }
 
+  // Everything the page needs BESIDES the products themselves. The product
+  // rows come a page at a time through usePagedList, so this runs once and
+  // stays small no matter how many products exist.
   async function loadData() {
     try {
-      const [productRows, supplierRows, openingBatchRows, businessRes] = await Promise.all([
-        fetchAllRows<Product>((from, to) =>
-          supabase
-            .from('products')
-            .select('*, suppliers(id, name, company_name)')
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
-            .range(from, to)
-        ),
+      const [supplierRows, openingBatchRows, businessRes, categoryRows] = await Promise.all([
         fetchAllRows<Supplier>((from, to) =>
           supabase
             .from('suppliers')
@@ -666,9 +677,8 @@ export default function ProductList() {
             .eq('is_active', true)
             .order('company_name')
             .range(from, to)
-        // A transient failure here must not wipe out the product list below -
-        // Promise.all rejects as a whole otherwise, so setProducts would never
-        // run and a just-added product would stay invisible until reload.
+        // A transient failure here must not take the rest down with it -
+        // Promise.all rejects as a whole otherwise.
         ).catch(() => suppliers),
         fetchAllRows<{ product_id: string; received_qty: number }>((from, to) =>
           supabase
@@ -678,6 +688,9 @@ export default function ProductList() {
             .range(from, to)
         ).catch(() => []),
         supabase.from('business_settings').select('name_bn, name_en, phone, email, address').maybeSingle(),
+        // Derived from every product on the server, not from the page in
+        // memory - the suggestion list has to cover the whole catalogue.
+        getProductCategories().catch(() => [] as string[]),
       ])
 
       const nextOpeningQtyMap: Record<string, number> = readStoredOpeningQty()
@@ -687,22 +700,10 @@ export default function ProductList() {
         }
       }
 
-      const productsWithOpeningQty = (productRows || []).map(product => ({
-        ...product,
-        opening_qty: Number(product.opening_qty ?? nextOpeningQtyMap[product.id] ?? 0),
-      }))
-      // A successful fetch is authoritative - trust it even when it's empty.
-      // (A real fetch failure throws inside fetchAllRows and lands in catch
-      // below, leaving the current list untouched.) The old "fall back to the
-      // cached list when the fresh result is empty" logic meant deleting the
-      // last product just brought it back from stale localStorage.
-      const nextProducts = productsWithOpeningQty
-
-      setProducts(nextProducts)
-      writeProductListCache(nextProducts)
       setSuppliers(supplierRows || [])
       setBusiness((businessRes as any).data || null)
       setOpeningQtyMap(nextOpeningQtyMap)
+      setServerCategories(categoryRows || [])
     } catch (error) {
       toast.error('Failed to load data')
       console.error(error)
@@ -883,6 +884,7 @@ export default function ProductList() {
       setShowModal(false)
       setEditingId(null)
       setForm({ ...EMPTY_FORM })
+      paged.reload()
       loadData()
     } catch (error: any) {
       if (isDuplicateProductCodeError(error)) {
@@ -951,6 +953,7 @@ export default function ProductList() {
       if (error) throw error
       setSelectedIds(prev => prev.filter(selectedId => selectedId !== id))
       toast.success('Product deleted successfully.')
+      paged.removeItems([id])
       loadData()
     } catch (error: any) {
       const message = String(error?.message || '')
@@ -963,37 +966,45 @@ export default function ProductList() {
   }
 
   async function handleBulkDelete() {
-    const selectedProducts = products.filter(product => selectedIds.includes(product.id))
-    if (selectedProducts.length === 0) return toast.error('Select products first')
-    if (!(await confirmAction({ message: `Delete ${selectedProducts.length} selected product${selectedProducts.length === 1 ? '' : 's'}?` }))) return
+    // Works from the selected ids, NOT from the rows in memory. "Select all"
+    // returns every matching id while only a page or two is loaded, so
+    // filtering the loaded rows would delete the forty on screen and report
+    // the full number as done.
+    if (selectedIds.length === 0) return toast.error('Select products first')
+    if (!(await confirmAction({ message: `Delete ${selectedIds.length} selected product${selectedIds.length === 1 ? '' : 's'}?` }))) return
+
+    const loadedById = new Map(products.map(product => [product.id, product]))
 
     try {
-      for (const product of selectedProducts) {
-        addRecycleItem({
-          type: 'products',
-          title: product.name || product.product_code,
-          subtitle: product.product_code,
-          amount: Number(product.selling_price || 0),
-          data: product,
-        })
-      }
-
       // Server-side soft delete puts each product into the recycle bin. One
       // request per product, so a few hundred takes long enough that without
       // the dialog it reads as a frozen page.
       setProgress({
         open: true,
         title: 'Deleting products',
-        subtitle: `${selectedProducts.length.toLocaleString()} selected`,
+        subtitle: `${selectedIds.length.toLocaleString()} selected`,
         step: 'Deleting',
         processed: 0,
-        total: selectedProducts.length,
+        total: selectedIds.length,
         done: false,
       })
 
       let deleted = 0
-      for (const product of selectedProducts) {
-        await deleteProductRequest(product.id)
+      for (const id of selectedIds) {
+        // Display metadata for the recycle bin entry, when the row happens to
+        // be loaded. The server writes the real snapshot from the row itself,
+        // so a product that was never scrolled to is still recorded properly.
+        const product = loadedById.get(id)
+        if (product) {
+          addRecycleItem({
+            type: 'products',
+            title: product.name || product.product_code,
+            subtitle: product.product_code,
+            amount: Number(product.selling_price || 0),
+            data: product,
+          })
+        }
+        await deleteProductRequest(id)
         deleted += 1
         setProgress(current => ({ ...current, processed: deleted }))
       }
@@ -1001,13 +1012,16 @@ export default function ProductList() {
       setProgress(current => ({ ...current, done: true }))
       await new Promise(resolve => setTimeout(resolve, 500))
 
+      const count = selectedIds.length
       setSelectedIds([])
-      toast.success(`${selectedProducts.length} products deleted`)
+      toast.success(`${count} products deleted`)
+      paged.reload()
       loadData()
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete selected products')
       // Whatever was deleted before the failure is gone, so refresh instead of
       // leaving rows on screen that no longer exist.
+      paged.reload()
       loadData()
     } finally {
       setProgress(idleProgress)
@@ -1021,11 +1035,24 @@ export default function ProductList() {
   }
 
   async function handleExportCSV() {
-    if (filteredProducts.length === 0) {
+    if (paged.total === 0) {
       return toast.error('No products to export')
     }
 
-    const rows = filteredProducts.map((p) => {
+    // Fetches every matching product, not the pages scrolled into view.
+    // Exporting only what happened to be on screen would be silently wrong -
+    // the file would look complete and be missing most of the catalogue.
+    setProgress(startProgress('Preparing export', `${paged.total.toLocaleString()} products`, 'Fetching all matching products'))
+    let exportSource: Product[]
+    try {
+      exportSource = await getAllProductsForExport(search.trim() || undefined) as Product[]
+    } catch (error: any) {
+      setProgress(idleProgress)
+      return toast.error(error?.message || 'Could not fetch the products to export')
+    }
+    setProgress(idleProgress)
+
+    const rows = exportSource.map((p) => {
       const supplier = (p as any).suppliers?.company_name || (p as any).suppliers?.name || ''
       const dp = Number(p.cost_price || 0)
       const dpDisc = Number(p.dp_discount || 0)
@@ -1241,6 +1268,7 @@ export default function ProductList() {
         setSelectedIds([])
         toast.dismiss()
         toast.success(`${uniqueProducts.length} products imported/updated`)
+        paged.reload()
         loadData()
       }
     } catch (error: any) {
@@ -1248,6 +1276,7 @@ export default function ProductList() {
       toast.error(error.message || 'Failed to import file')
       // Batches that already went through are saved, so what is on screen is
       // stale either way - reload rather than leave a half-truth.
+      paged.reload()
       loadData()
     } finally {
       setProgress(idleProgress)
@@ -1283,19 +1312,18 @@ export default function ProductList() {
     }
   }, [])
 
-  const filteredProducts = products.filter(p =>
-    !search ||
-    p.product_code.toLowerCase().includes(search.toLowerCase()) ||
-    p.name.toLowerCase().includes(search.toLowerCase())
-  )
-  // Distinct categories already in use, for the Category field's suggestion
-  // dropdown. Derived from the loaded products so it needs no extra request.
-  const categoryOptions = Array.from(
-    new Set(products.map(p => (p.category || '').trim()).filter(Boolean))
-  ).sort((a, b) => a.localeCompare(b))
-  const filteredIds = filteredProducts.map(product => product.id)
+  // The server has already applied the search, so these ARE the matching rows
+  // loaded so far. Filtering again here would drop nothing but would quietly
+  // disagree with paged.total the moment the two rules differed.
+  const filteredProducts = products
+  // Every category in the catalogue, from the server. Deriving it from the
+  // rows in memory would only ever show the ones on the current page.
+  const categoryOptions = serverCategories
   const selectedCount = selectedIds.length
-  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.includes(id))
+  // Against the whole matching set, not the rows on screen: with 3,000
+  // products the box would otherwise tick after 40 and look like everything
+  // was selected.
+  const allFilteredSelected = paged.total > 0 && selectedCount >= paged.total
 
   function toggleProductSelection(productId: string) {
     setSelectedIds(prev => prev.includes(productId)
@@ -1304,13 +1332,22 @@ export default function ProductList() {
     )
   }
 
-  function toggleFilteredSelection() {
-    setSelectedIds(prev => {
-      if (allFilteredSelected) {
-        return prev.filter(id => !filteredIds.includes(id))
-      }
-      return Array.from(new Set([...prev, ...filteredIds]))
-    })
+  // Asks the server for every matching id rather than using the loaded rows,
+  // so "select all" means all of them and not just the ones scrolled past.
+  async function toggleFilteredSelection() {
+    if (allFilteredSelected) {
+      setSelectedIds([])
+      return
+    }
+    try {
+      setSelectingAll(true)
+      const ids = await getProductIds(search.trim() || undefined)
+      setSelectedIds(ids)
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not select all products')
+    } finally {
+      setSelectingAll(false)
+    }
   }
 
   if (loading) {
@@ -1370,19 +1407,32 @@ export default function ProductList() {
 
       {selectedCount > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
-          <p className="text-sm font-semibold text-red-700">{selectedCount} product selected</p>
+          <p className="text-sm font-semibold text-red-700">
+            {selectedCount.toLocaleString()} product{selectedCount === 1 ? '' : 's'} selected
+            {/* Says so explicitly when the selection reaches past what is on
+                screen, so "Delete Selected" can never be a surprise. */}
+            {selectedCount > products.length && <span className="font-normal"> (including rows not yet scrolled to)</span>}
+          </p>
           <button onClick={handleBulkDelete} className="btn-danger">
             <Trash2 size={14} /> Delete Selected
           </button>
         </div>
       )}
 
-      {filteredProducts.length === 0 ? (
+      {/* paged.loading covers the first page and every search: while it is
+          true there is nothing to show yet, and the old code rendered "No
+          products found" in that gap - which reads as an empty catalogue
+          rather than one still arriving. */}
+      {!paged.loading && filteredProducts.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-slate-400 mb-4">No products found.</p>
-          <button onClick={handleOpenNew} className="btn-primary">
-            <Plus size={16} /> Add Product
-          </button>
+          <p className="text-slate-400 mb-4">
+            {search.trim() ? `No products match "${search.trim()}".` : 'No products found.'}
+          </p>
+          {!search.trim() && (
+            <button onClick={handleOpenNew} className="btn-primary">
+              <Plus size={16} /> Add Product
+            </button>
+          )}
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
@@ -1394,10 +1444,11 @@ export default function ProductList() {
                   <input
                     type="checkbox"
                     checked={allFilteredSelected}
+                    disabled={selectingAll}
+                    title={allFilteredSelected ? 'Clear selection' : `Select all ${paged.total.toLocaleString()} matching products`}
                     onChange={toggleFilteredSelection}
                     className="h-4 w-4 rounded border-slate-300 accent-brand-green"
-                    title="Select all visible products"
-                    aria-label="Select all visible products"
+                    aria-label={allFilteredSelected ? 'Clear selection' : 'Select all matching products'}
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">#</th>
@@ -1498,6 +1549,21 @@ export default function ProductList() {
                   </tr>
                 )
               })}
+              {/* First page, or a fresh search: skeleton rows rather than an
+                  empty table, so the reader sees it filling in. */}
+              {paged.loading && <TableSkeleton rows={10} cols={12} />}
+              {/* The sentinel sits after the last row. The observer watching
+                  it has a 600px margin, so the next page starts loading well
+                  before the reader reaches the bottom. */}
+              {paged.hasMore && !paged.loading && (
+                <tr ref={paged.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+                  <td colSpan={12} className="py-4 text-center text-sm text-slate-400">
+                    {paged.loadingMore
+                      ? `Loading more… ${products.length.toLocaleString()} of ${paged.total.toLocaleString()}`
+                      : `${products.length.toLocaleString()} of ${paged.total.toLocaleString()} loaded`}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           </TableScroller>
