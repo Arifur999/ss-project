@@ -12,6 +12,7 @@ import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { formatDate } from '../../lib/utils'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 type PaymentType = 'Salary' | 'Bonus'
 type SalaryPaymentValidationErrors = Partial<Record<
@@ -386,6 +387,10 @@ export default function EmployeeTransactions() {
     })
   }, [employeeFilter, fromDate, toDate, transactions])
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filteredTransactions, { initial: 40, step: 40 })
+
   const totalSalary = filteredTransactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0)
   const totalBonus = filteredTransactions.reduce((sum, transaction) => sum + Number(transaction.bonus || 0), 0)
   const subtotal = totalSalary + totalBonus
@@ -535,7 +540,7 @@ export default function EmployeeTransactions() {
             </tr>
           </thead>
           <tbody>
-            {filteredTransactions.map((txn, index) => {
+            {shown.visible.map((txn, index) => {
               const emp = employeeById[txn.employee_id]
               const paymentType = txn.payment_type || (Number(txn.bonus || 0) > 0 ? 'Bonus' : 'Salary')
               return (
@@ -561,6 +566,16 @@ export default function EmployeeTransactions() {
             })}
             {loading && <TableSkeleton rows={6} cols={11} />}
             {!loading && filteredTransactions.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={11} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
         </TableScroller>

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
 import { useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'
+import { useProgressiveRows } from '../lib/useProgressiveRows'
 
 type SaleHistoryRow = {
   id: string
@@ -114,6 +115,10 @@ export default function SalesHistory() {
     return sorted
   }, [normalizedSearch, rows, period, sortBy, fromDate, toDate])
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filteredRows, { initial: 40, step: 40 })
+
   const totalQty = filteredRows.reduce((sum, row) => sum + row.qty, 0)
   const totalAmount = filteredRows.reduce((sum, row) => sum + row.total_amount, 0)
 
@@ -181,7 +186,7 @@ export default function SalesHistory() {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row, index) => (
+            {shown.visible.map((row, index) => (
               <tr key={row.id} className="table-row border-b border-slate-100 hover:bg-slate-50/50">
                 <td className="px-4 py-3 text-slate-400">{index + 1}</td>
                 <td className="py-3 px-4">
@@ -221,6 +226,16 @@ export default function SalesHistory() {
                 </td>
               </tr>
             )}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={12} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </TableScroller>

@@ -15,6 +15,7 @@ import { buildDuePaymentSms } from '../../lib/smsTemplates'
 import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 const smsReceiptKey = 'due_received_sms_v1'
 
@@ -510,6 +511,10 @@ export default function CustomerDueReceived() {
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
     })
   }, [customerById, expenses, payments, sales])
+
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(groupedPayments, { initial: 40, step: 40 })
   const selectedCustomer = customers.find(customer => customer.id === form.customer_id)
   const currentPaymentTotal = paymentRows.reduce((sum, row) => sum + Number(row.amount || 0), 0)
   const selectedCustomerSalesDue = sales
@@ -584,7 +589,7 @@ export default function CustomerDueReceived() {
               </tr>
             </thead>
             <tbody>
-              {groupedPayments.map((payment, index) => (
+              {shown.visible.map((payment, index) => (
                 <tr key={payment.payment_ids.join('-')} className="table-row">
                   <td className="py-2.5 px-4 font-medium text-slate-500">{index + 1}</td>
                   <td className="py-2.5 px-4 whitespace-nowrap">{formatDate(payment.date)}</td>
@@ -637,6 +642,16 @@ export default function CustomerDueReceived() {
                   </td>
                 </tr>
               )}
+            {/* Draws the next slice 600px before the reader reaches the end.
+                Every row is already loaded - this only limits how many the
+                browser lays out at once, so no total or filter is affected. */}
+            {shown.hasMore && (
+              <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+                <td colSpan={14} className="py-4 text-center text-sm text-slate-400">
+                  {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+                </td>
+              </tr>
+            )}
             </tbody>
           </table>
         </TableScroller>

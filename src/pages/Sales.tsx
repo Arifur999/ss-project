@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext'
 import { useReactToPrint } from 'react-to-print'
 import { useLang } from '../context/LanguageContext'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useProgressiveRows } from '../lib/useProgressiveRows'
 import { addRecycleItem } from '../lib/recycleBin'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
 import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
@@ -1589,7 +1590,12 @@ export default function Sales() {
     (deliveryFilter === 'all' || deliveryStatus(s) === deliveryFilter) &&
     isSaleInLedgerDateRange(s)
   )
+  // Computed over EVERY filtered sale, not the rendered slice - the ledger
+  // total has to cover the whole filter or it is simply wrong.
   const filteredSalesTotal = filteredSales.reduce((sum, sale) => sum + saleSubtotalAfterDiscount(sale), 0)
+  // Draws a slice at a time and grows as the reader scrolls. Every sale stays
+  // in memory, so the total above and the filters below are unchanged.
+  const ledgerRows = useProgressiveRows(filteredSales, { initial: 40, step: 40 })
   const deliveryFilterOptions = [
     { key: 'all', label: 'All' },
     { key: 'pending', label: 'Pending' },
@@ -2634,7 +2640,7 @@ export default function Sales() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSales.map((s, index) => {
+                {ledgerRows.visible.map((s, index) => {
                   const status = deliveryStatus(s)
                   const purchaseAmount = salePurchaseAmount(s)
                   const profit = saleProfit(s)
@@ -2895,6 +2901,16 @@ export default function Sales() {
                 {filteredSales.length === 0 && (
                   <tr>
                     <td colSpan={16} className="text-center py-10 text-slate-400">{t('sales_noSales')}</td>
+                  </tr>
+                )}
+                {/* Draws the next slice 600px before the reader reaches the
+                    end. Every sale is already loaded - this only limits how
+                    many rows the browser has to lay out at once. */}
+                {ledgerRows.hasMore && (
+                  <tr ref={ledgerRows.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+                    <td colSpan={16} className="py-4 text-center text-sm text-slate-400">
+                      {ledgerRows.visibleCount.toLocaleString()} of {ledgerRows.total.toLocaleString()} shown
+                    </td>
                   </tr>
                 )}
               </tbody>

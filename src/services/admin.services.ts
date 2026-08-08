@@ -1,4 +1,4 @@
-import { http } from '../lib/httpClient'
+import { api, http } from '../lib/httpClient'
 
 
 // ---------- Team management (owner) - replaces the manage-users edge function ----------
@@ -59,3 +59,27 @@ export const getRecycleBinItems = (type?: string) =>
 export const restoreRecycleBinItem = (id: string) => http.post<any>(`/recycle-bin/${id}/restore`)
 export const deleteRecycleBinItemPermanently = (id: string) => http.delete<any>(`/recycle-bin/${id}`)
 export const emptyRecycleBin = () => http.delete<any>('/recycle-bin/empty')
+
+// ---------- Paged lists ----------
+// Through `api` rather than `http`, which unwraps to data and drops meta -
+// and meta is where the row count lives.
+export const getCustomersPage = async (options: { page: number; limit: number; search?: string }) => {
+  const params = new URLSearchParams({ page: String(options.page), limit: String(options.limit) })
+  if (options.search) params.set('search', options.search)
+  const response = await api.get(`/customers?${params.toString()}`)
+  const rows = (response.data?.data || []) as any[]
+  return { rows, total: Number(response.data?.meta?.total ?? rows.length) }
+}
+
+export const getSalesPage = async (options: { page: number; limit: number; search?: string }) => {
+  const params = new URLSearchParams({ page: String(options.page), limit: String(options.limit) })
+  if (options.search) params.set('search', options.search)
+  const response = await api.get(`/sales?${params.toString()}`)
+  const rows = (response.data?.data || []) as any[]
+  return {
+    rows,
+    total: Number(response.data?.meta?.total ?? rows.length),
+    // Covers every matching sale, not the page.
+    totalNetAmount: Number(response.data?.meta?.totalNetAmount ?? 0),
+  }
+}

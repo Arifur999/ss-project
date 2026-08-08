@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 export default function EmployeeAttendance() {
   const { t } = useLang()
@@ -309,6 +310,10 @@ export default function EmployeeAttendance() {
     })
   }, [attendance, employeeFilter, fromDate, toDate])
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filteredAttendance, { initial: 40, step: 40 })
+
   const presentCount = filteredAttendance.filter(a => a.present).length
   const absentCount = filteredAttendance.filter(a => !a.present).length
   const totalDays = filteredAttendance.length
@@ -460,7 +465,7 @@ export default function EmployeeAttendance() {
             </tr>
           </thead>
           <tbody>
-            {filteredAttendance.map((att, index) => {
+            {shown.visible.map((att, index) => {
               const emp = employeeById[att.employee_id]
               const display = getAttendanceDisplay(att)
               return (
@@ -490,6 +495,16 @@ export default function EmployeeAttendance() {
             })}
             {loading && <TableSkeleton rows={6} cols={11} />}
             {!loading && filteredAttendance.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={11} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </div>

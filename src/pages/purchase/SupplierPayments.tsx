@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 function escapeHtml(value: string) {
   return String(value || '')
@@ -199,6 +200,10 @@ export default function SupplierPayments() {
     })
   }, [payments, dateFrom, dateTo, supplierFilter])
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filteredPayments, { initial: 40, step: 40 })
+
   const totalPaid = filteredPayments.reduce((s, p) => s + Number(p.amount || 0), 0)
   const selectedSupplier = suppliers.find(supplier => supplier.id === supplierFilter)
   const dateRangeLabel = dateFrom || dateTo
@@ -343,7 +348,7 @@ export default function SupplierPayments() {
             </tr>
           </thead>
           <tbody>
-            {filteredPayments.map((p, index) => (
+            {shown.visible.map((p, index) => (
               <tr key={p.id} className="table-row">
                 <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                 <td className="py-2.5 px-4">{formatDate(p.date)}</td>
@@ -373,6 +378,16 @@ export default function SupplierPayments() {
             ))}
             {loading && <TableSkeleton rows={6} cols={7} />}
             {!loading && filteredPayments.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('common_noRecords')}</td></tr>}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={7} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </div>

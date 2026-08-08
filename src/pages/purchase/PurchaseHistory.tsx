@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 type PurchaseHistoryRow = {
   id: string
@@ -135,6 +136,10 @@ export default function PurchaseHistory() {
     return sorted
   }, [normalizedSearch, rows, period, sortBy, fromDate, toDate])
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filteredRows, { initial: 40, step: 40 })
+
   const totalQty = filteredRows.reduce((sum, row) => sum + row.qty, 0)
   const totalReceived = filteredRows.reduce((sum, row) => sum + row.received_qty, 0)
   const totalAmount = filteredRows.reduce((sum, row) => sum + row.total_amount, 0)
@@ -216,7 +221,7 @@ export default function PurchaseHistory() {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row, index) => {
+            {shown.visible.map((row, index) => {
               const pendingQty = Math.max(0, row.qty - row.received_qty)
               const status = pendingQty <= 0 ? 'received' : pendingQty > 0 && row.shipping_status === 'partial' ? 'partial' : 'pending'
 
@@ -270,6 +275,16 @@ export default function PurchaseHistory() {
                 </td>
               </tr>
             )}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={16} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
         </TableScroller>

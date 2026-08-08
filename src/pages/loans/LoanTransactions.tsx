@@ -13,6 +13,7 @@ import { loanDisplayName, transactionAmounts, transactionLabel } from './loanUti
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id', string>>
 
@@ -223,6 +224,10 @@ export default function LoanTransactions() {
     })
   }, [records, fromDate, toDate, filterLenderName])
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filteredRecords, { initial: 40, step: 40 })
+
   const totalReceived = filteredRecords.reduce((s, r) => s + transactionAmounts(r).received, 0)
   const totalPaid = filteredRecords.reduce((s, r) => s + transactionAmounts(r).paid, 0)
   const lenderFilterOptions = useMemo(() => {
@@ -395,7 +400,7 @@ export default function LoanTransactions() {
             </tr>
           </thead>
           <tbody>
-            {filteredRecords.map((record, index) => {
+            {shown.visible.map((record, index) => {
               const amounts = transactionAmounts(record)
               const isPayment = amounts.type === 'payment'
               const typeText = isPayment ? 'Payment' : 'Receive'
@@ -420,6 +425,16 @@ export default function LoanTransactions() {
             })}
             {loading && <TableSkeleton rows={6} cols={9} />}
             {!loading && filteredRecords.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-slate-400">No loan transactions</td></tr>}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={9} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Download, Plus, Save, Search, Trash2, Pencil, Upload } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'
@@ -8,6 +8,9 @@ import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
+import { usePagedList } from '../../lib/usePagedList'
+import TableSkeleton from '../../components/TableSkeleton'
+import { getCustomersPage } from '../../services/admin.services'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../../components/ProgressDialog'
 import { insertInChunks, CsvImportError, partialImportMessage } from '../../lib/csvImport'
 
@@ -64,10 +67,19 @@ function parseAmount(value: string) {
 
 export default function CustomerList() {
   const { t, formatCurr } = useLang()
-  const [customers, setCustomers] = useState<any[]>([])
+  // A page at a time, appended as the reader scrolls, so the browser never
+  // holds every customer. Search runs on the server: it has to see the ones
+  // not yet fetched.
+  const paged = usePagedList<any>(
+    useCallback(({ page, limit, search: term }) => getCustomersPage({ page, limit, search: term }), []),
+    { limit: 40 }
+  )
+  const customers = paged.items
+  const setCustomers = paged.setItems
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
-  const [search, setSearch] = useState('')
+  const search = paged.search
+  const setSearch = paged.setSearch
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', opening_due: 0 })
   const [errors, setErrors] = useState<CustomerValidationErrors>({})
   const [importingCsv, setImportingCsv] = useState(false)
@@ -76,13 +88,10 @@ export default function CustomerList() {
 
   useEffect(() => { loadAll() }, [])
 
+  // The rows come from the paged hook; this just re-reads from page one after
+  // a save or delete.
   async function loadAll() {
-    const custRes = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-    setCustomers(custRes.data || [])
+    paged.reload()
   }
 
   function openModal(item?: any) {
@@ -292,7 +301,9 @@ export default function CustomerList() {
     URL.revokeObjectURL(url)
   }
 
-  const filtered = customers.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search))
+  // The server applied the search already - filtering again here would only
+  // let the two rules drift apart.
+  const filtered = customers
   const openingDueTotal = customers.reduce((sum, customer) => sum + Number(customer.opening_due || 0), 0)
 
   return (
@@ -365,7 +376,17 @@ export default function CustomerList() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('customers_noCustomers')}</td></tr>}
+            {paged.loading && <TableSkeleton rows={8} cols={6} />}
+            {!paged.loading && filtered.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('customers_noCustomers')}</td></tr>}
+            {paged.hasMore && !paged.loading && (
+              <tr ref={paged.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+                <td colSpan={6} className="py-4 text-center text-sm text-slate-400">
+                  {paged.loadingMore
+                    ? `Loading more… ${customers.length.toLocaleString()} of ${paged.total.toLocaleString()}`
+                    : `${customers.length.toLocaleString()} of ${paged.total.toLocaleString()} loaded`}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

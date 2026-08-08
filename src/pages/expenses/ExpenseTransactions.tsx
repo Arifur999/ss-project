@@ -12,6 +12,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 export default function ExpenseTransactions() {
   const { t, formatCurr } = useLang()
@@ -128,6 +129,10 @@ export default function ExpenseTransactions() {
     return matchSearch && matchCat && matchFromDate && matchToDate
   })
 
+  // Draws a slice at a time as the reader scrolls. Every row stays in
+  // memory, so totals, filters and exports above are untouched.
+  const shown = useProgressiveRows(filtered, { initial: 40, step: 40 })
+
   const totalShown = filtered.reduce((s, e) => s + Number(e.amount || 0), 0)
 
   function printTransactions() {
@@ -176,7 +181,7 @@ export default function ExpenseTransactions() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((expense, index) => (
+            {shown.visible.map((expense, index) => (
               <tr key={`print-${expense.id}`}>
                 <td>{index + 1}</td>
                 <td>{formatDate(expense.date)}</td>
@@ -191,6 +196,16 @@ export default function ExpenseTransactions() {
                 <td colSpan={6}>{t('expTx_noRecords')}</td>
               </tr>
             )}
+          {/* Draws the next slice 600px before the reader reaches the end.
+              Every row is already loaded - this only limits how many the
+              browser lays out at once, so no total or filter is affected. */}
+          {shown.hasMore && (
+            <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+              <td colSpan={7} className="py-4 text-center text-sm text-slate-400">
+                {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
+              </td>
+            </tr>
+          )}
           </tbody>
         </table>
       </section>
