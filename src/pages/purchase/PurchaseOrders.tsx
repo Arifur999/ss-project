@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Save, ChevronDown, ChevronUp, Truck, Edit2, Trash2, Search, SlidersHorizontal, Info, Package, ShoppingCart } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate, generateSINo } from '../../lib/utils'
+import { formatDate, generateSINo, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
@@ -91,7 +91,7 @@ export default function PlaceOrder() {
 
   const [form, setForm] = useState({
     si_no: generateSINo(), supplier_id: '', supplier_name: '',
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     account_id: '', notes: '', shipping_status: 'pending' as const,
   })
   const [items, setItems] = useState<PurchaseItem[]>([{
@@ -113,7 +113,7 @@ export default function PlaceOrder() {
   })
 
   const [receiveForm, setReceiveForm] = useState({
-    receive_date: new Date().toISOString().split('T')[0],
+    receive_date: todayISO(),
     receiver_name: '', received_qty: 0, condition: 'good', notes: ''
   })
 
@@ -402,7 +402,7 @@ export default function PlaceOrder() {
       setShowModal(false)
       setForm({
         si_no: generateSINo(), supplier_id: '', supplier_name: '',
-        date: new Date().toISOString().split('T')[0],
+        date: todayISO(),
         account_id: '', notes: '', shipping_status: 'pending' as const,
       })
       setItems([{ product_id: '', product_code: '', product_name: '', dp_price: 0, discount_pct: 0, actual_dp: 0, qty: 1, total_amount: 0, sp_amount: 0, deposit_amount: 0, received_qty: 0 }])

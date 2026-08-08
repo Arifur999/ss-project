@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit2, Trash2, Download } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
@@ -26,7 +26,7 @@ export default function EmployeeAttendance() {
   const [toDate, setToDate] = useState('')
   const [form, setForm] = useState({
     employee_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     present: true,
     start_time: '',
     end_time: '',
@@ -179,7 +179,7 @@ export default function EmployeeAttendance() {
 
   function resetForm() {
     setEditingId(null)
-    setForm({ employee_id: '', date: new Date().toISOString().split('T')[0], present: true, start_time: '', end_time: '', total_hours: 0, notes: '' })
+    setForm({ employee_id: '', date: todayISO(), present: true, start_time: '', end_time: '', total_hours: 0, notes: '' })
     setShowModal(false)
   }
 

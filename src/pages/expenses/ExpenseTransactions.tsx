@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import TableScroller from '../../components/TableScroller'
 import { Pencil, Plus, Printer, Save, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import SearchableSelect from '../../components/SearchableSelect'
@@ -29,7 +29,7 @@ export default function ExpenseTransactions() {
   const [toDate, setToDate] = useState('')
   const { user } = useAuth()
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     category_id: '', category_name: '',
     amount: 0, account_id: '', account_name: '',
     notes: ''
@@ -68,7 +68,7 @@ export default function ExpenseTransactions() {
       amount: Number(item.amount || 0), account_id: item.account_id || '', account_name: item.account_name || '',
       notes: item.notes || ''
     } : {
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       category_id: '', category_name: '',
       amount: 0, account_id: '', account_name: '',
       notes: ''
@@ -114,7 +114,7 @@ export default function ExpenseTransactions() {
   function resetForm() {
     setEditItem(null)
     setForm({
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       category_id: '', category_name: '',
       amount: 0, account_id: '', account_name: '',
       notes: ''

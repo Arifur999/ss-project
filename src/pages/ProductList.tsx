@@ -14,6 +14,7 @@ import { deleteProduct as deleteProductRequest, getAllProductsForExport, getProd
 import { usePagedList } from '../lib/usePagedList'
 import TableSkeleton from '../components/TableSkeleton'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../components/ProgressDialog'
+import { todayISO } from '../lib/utils'
 
 interface Product {
   id: string
@@ -1079,7 +1080,7 @@ export default function ProductList() {
     })
 
     try {
-      await downloadXlsx(`product-list-${new Date().toISOString().split('T')[0]}.xlsx`, productCsvHeaders, rows)
+      await downloadXlsx(`product-list-${todayISO()}.xlsx`, productCsvHeaders, rows)
       toast.success('Excel downloaded')
     } catch {
       toast.error('Failed to export')

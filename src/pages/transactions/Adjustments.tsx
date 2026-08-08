@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Save, ArrowRight, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import PeriodFilter from '../../components/PeriodFilter'
 import Modal from '../../components/Modal'
@@ -20,7 +20,7 @@ export default function Adjustments() {
   const [showModal, setShowModal] = useState(false)
   const [editingRecord, setEditingRecord] = useState<any>(null)
   const { user } = useAuth()
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], from_account_id: '', from_account_name: '', to_account_id: '', to_account_name: '', amount: 0, notes: '' })
+  const [form, setForm] = useState({ date: todayISO(), from_account_id: '', from_account_name: '', to_account_id: '', to_account_name: '', amount: 0, notes: '' })
   const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -53,14 +53,14 @@ export default function Adjustments() {
 
   function openNewModal() {
     setEditingRecord(null)
-    setForm({ date: new Date().toISOString().split('T')[0], from_account_id: '', from_account_name: '', to_account_id: '', to_account_name: '', amount: 0, notes: '' })
+    setForm({ date: todayISO(), from_account_id: '', from_account_name: '', to_account_id: '', to_account_name: '', amount: 0, notes: '' })
     setShowModal(true)
   }
 
   function openEditModal(record: any) {
     setEditingRecord(record)
     setForm({
-      date: record.date || new Date().toISOString().split('T')[0],
+      date: record.date || todayISO(),
       from_account_id: record.from_account_id || '',
       from_account_name: record.from_account_name || '',
       to_account_id: record.to_account_id || '',

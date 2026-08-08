@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO, toISODate } from '../../lib/utils'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
@@ -27,8 +27,8 @@ const defaultPeriod = () => {
   const first = new Date(today.getFullYear(), today.getMonth(), 1)
   const last = new Date(today.getFullYear(), today.getMonth() + 1, 0)
   return {
-    from: first.toISOString().split('T')[0],
-    to: last.toISOString().split('T')[0],
+    from: toISODate(first),
+    to: toISODate(last),
   }
 }
 
@@ -83,7 +83,7 @@ export default function EmployeeTransactions() {
   const [form, setForm] = useState({
     employee_id: '',
     employee_name: '',
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     payment_type: 'Salary' as PaymentType,
     category_id: '',
     period_from: period.from,
@@ -359,7 +359,7 @@ export default function EmployeeTransactions() {
     setForm({
       employee_id: '',
       employee_name: '',
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       payment_type: 'Salary',
       category_id: '',
       period_from: nextPeriod.from,

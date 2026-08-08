@@ -7,7 +7,7 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import { readOtherIncomeFallbackRows, sortOtherIncomeRows, writeOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
@@ -28,7 +28,7 @@ type OtherIncomeRow = {
   notes: string
 }
 
-const today = new Date().toISOString().split('T')[0]
+const today = todayISO()
 
 function monthStart() {
   const date = new Date()

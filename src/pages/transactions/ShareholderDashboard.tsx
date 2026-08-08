@@ -6,6 +6,7 @@ import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
+import { toISODate } from '../../lib/utils'
 
 const shareholderOpeningAmountFallbackKey = 'shareholder_opening_amount_fallback_v1'
 type FilterMode = 'thisMonth' | 'year' | 'custom'
@@ -29,7 +30,7 @@ export default function ShareholderDashboard() {
   const [yearSearch, setYearSearch] = useState(String(currentYear))
   const [isYearComboboxOpen, setIsYearComboboxOpen] = useState(false)
   const [customStartDate, setCustomStartDate] = useState(`${currentMonth}-01`)
-  const [customEndDate, setCustomEndDate] = useState(today.toISOString().split('T')[0])
+  const [customEndDate, setCustomEndDate] = useState(toISODate(today))
   const [shareholders, setShareholders] = useState<any[]>([])
   const [investments, setInvestments] = useState<any[]>([])
   const [profitWithdrawals, setProfitWithdrawals] = useState<any[]>([])

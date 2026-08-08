@@ -1,5 +1,26 @@
 import { format } from 'date-fns'
 
+// Today, as the operator's calendar shows it, in the yyyy-MM-dd a date input
+// expects.
+//
+// NOT `new Date().toISOString().split('T')[0]`, which is what every form used
+// to do. toISOString converts to UTC first, and Bangladesh is six hours ahead:
+// any entry made between midnight and 6am was dated to the previous day. A sale
+// recorded at 1am landed in yesterday's takings, and the operator had no reason
+// to suspect it - the form looked right when they opened it.
+export function todayISO(): string {
+  return toISODate(new Date())
+}
+
+// Any date as yyyy-MM-dd, read off the local calendar. The same trap as above
+// catches dates built with new Date(year, month, day): those are local
+// midnight, and toISOString() moves them back across the date line in any
+// timezone ahead of UTC - so "the first of this month" came out as the last
+// day of the previous one.
+export function toISODate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 // The single date format used everywhere in the app: 30-Jan-2026.
 // Every screen, table, print-out and PDF must go through this - never
 // toLocaleDateString, which renders differently per browser locale.

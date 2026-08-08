@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Plus, Save, Search, Printer, Pencil, Trash2, Image, Barcode, Filter, Truck, ChevronDown, ChevronUp, Calendar, Clipboard, Eye, EyeOff, Tag } from 'lucide-react'
 import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
-import { formatDate, generateInvoiceNo } from '../lib/utils'
+import { formatDate, generateInvoiceNo, todayISO } from '../lib/utils'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
 import { confirmAction } from '../components/ConfirmDialog'
@@ -136,7 +136,7 @@ export default function Sales() {
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null)
   const [deliveryItem, setDeliveryItem] = useState<any>(null)
   const [deliveryForm, setDeliveryForm] = useState({
-    delivery_date: new Date().toISOString().split('T')[0],
+    delivery_date: todayISO(),
     delivered_by: '',
     delivered_qty: 1,
     notes: ''
@@ -178,7 +178,7 @@ export default function Sales() {
 
   const [form, setForm] = useState({
     invoice_no: generateInvoiceNo(),
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     customer_id: '',
     customer_name: '',
     customer_phone: '',
@@ -1268,7 +1268,7 @@ export default function Sales() {
     setEditingSale(null)
     setForm({
       invoice_no: generateInvoiceNo(),
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       customer_id: '',
       customer_name: '',
       customer_phone: '',
@@ -1502,7 +1502,7 @@ export default function Sales() {
       setShowDeliveryModal(false)
       setDeliveryItem(null)
       setDeliveryForm({
-        delivery_date: new Date().toISOString().split('T')[0],
+        delivery_date: todayISO(),
         delivered_by: '',
         delivered_qty: 1,
         notes: ''
@@ -2829,7 +2829,7 @@ export default function Sales() {
                                                 onClick={() => {
                                                   setDeliveryItem({ ...item, sale_id: s.id, invoice_no: s.invoice_no })
                                                   setDeliveryForm({
-                                                    delivery_date: new Date().toISOString().split('T')[0],
+                                                    delivery_date: todayISO(),
                                                     delivered_by: profile?.full_name || '',
                                                     delivered_qty: Math.min(1, itemPending),
                                                     notes: ''

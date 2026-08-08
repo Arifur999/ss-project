@@ -19,7 +19,7 @@ import {
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'
-import { formatDate } from '../lib/utils'
+import { formatDate, todayISO } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loans/loanFallback'
@@ -297,7 +297,7 @@ export default function Marketing() {
 
   const selectedContacts = contacts.filter(contact => selectedIds.includes(contact.id))
   const selectedWithPhone = selectedContacts.filter(contact => contact.phone)
-  const todayKey = new Date().toISOString().split('T')[0]
+  const todayKey = todayISO()
   const sentToday = campaigns
     .filter(campaign => campaign.created_at.startsWith(todayKey))
     .reduce((sum, campaign) => sum + campaign.success, 0)

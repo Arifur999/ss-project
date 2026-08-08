@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Save, Edit2, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import PeriodFilter from '../../components/PeriodFilter'
 import Modal from '../../components/Modal'
@@ -23,7 +23,7 @@ export default function ProfitWithdraw() {
   const { user } = useAuth()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     shareholder_id: '', shareholder_name: '',
     amount: 0, account_id: '', account_name: '',
     profit_month: new Date().getMonth() + 1,
@@ -108,7 +108,7 @@ export default function ProfitWithdraw() {
   function resetForm() {
     setEditingId(null)
     setForm({
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       shareholder_id: '', shareholder_name: '',
       amount: 0, account_id: '', account_name: '',
       profit_month: new Date().getMonth() + 1,

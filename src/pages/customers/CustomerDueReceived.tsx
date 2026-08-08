@@ -9,7 +9,7 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { buildDuePaymentSms } from '../../lib/smsTemplates'
 import { isValidBdPhone } from '../../lib/phone'
@@ -64,7 +64,7 @@ export default function CustomerDueReceived() {
   const printReceiptRef = useRef<HTMLDivElement>(null)
   const handlePrintReceipt = useReactToPrint({ content: () => printReceiptRef.current })
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     customer_id: '',
     amount: 0,
     account_id: '',
@@ -99,7 +99,7 @@ export default function CustomerDueReceived() {
     setEditItem(null)
     setShowModal(false)
     setForm({
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       customer_id: '',
       amount: 0,
       account_id: '',
@@ -128,7 +128,7 @@ export default function CustomerDueReceived() {
       account_id: payment.account_id || '',
       notes: payment.display_notes ?? displayNotes(payment.notes || ''),
     } : {
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       customer_id: '',
       amount: 0,
       account_id: '',

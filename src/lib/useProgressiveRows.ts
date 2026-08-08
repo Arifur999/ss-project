@@ -21,12 +21,19 @@ export function useProgressiveRows<T>(
 ) {
   const [visibleCount, setVisibleCount] = useState(initial)
 
-  // Any change to the list - a new filter, a search, fresh data - starts again
-  // from the top. Without this, filtering down to five rows would leave the
+  // Starts again from the top when the list actually changes - a new filter, a
+  // search, fresh data. Without it, filtering down to five rows would leave the
   // count at several hundred and filtering back up would show them all at once.
+  //
+  // Keyed on the LENGTH, not the array. Most of these pages build their
+  // filtered list inline, so the array is a new object on every render;
+  // depending on it reset the count on every render, which meant scrolling to
+  // eighty rows immediately snapped back to forty and the page thrashed
+  // between the two. That churn is enough to make an open native date picker
+  // unusable, which is how it was noticed.
   useEffect(() => {
     setVisibleCount(initial)
-  }, [rows, initial])
+  }, [rows.length, initial])
 
   const visible = rows.length <= visibleCount ? rows : rows.slice(0, visibleCount)
   const hasMore = rows.length > visibleCount

@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { rememberBusinessBrand, resolveBusinessName } from '../lib/businessBrand'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../lib/phone'
+import { todayISO } from '../lib/utils'
 
 type Tab = 'business' | 'shareholders' | 'accounts' | 'suppliers' | 'targets' | 'users'
 const SHAREHOLDER_OPENING_AMOUNT_FALLBACK_KEY = 'shareholder_opening_amount_fallback_v1'
@@ -890,7 +891,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
     role: 'sales_staff',
     branch: '',
     status: 'active',
-    joining_date: new Date().toISOString().split('T')[0],
+    joining_date: todayISO(),
     address: '',
     password_expiry_days: 90,
     two_factor: false,

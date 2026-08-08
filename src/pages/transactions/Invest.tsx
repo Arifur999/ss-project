@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Save, Edit2, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import PeriodFilter from '../../components/PeriodFilter'
 import Modal from '../../components/Modal'
@@ -22,7 +22,7 @@ export default function InvestWithdraw() {
   const [showModal, setShowModal] = useState(false)
   const { user } = useAuth()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<{ date: string; type: 'invest' | 'withdraw'; shareholder_id: string; amount: number; account_id: string; notes: string }>({ date: new Date().toISOString().split('T')[0], type: 'invest', shareholder_id: '', amount: 0, account_id: '', notes: '' })
+  const [form, setForm] = useState<{ date: string; type: 'invest' | 'withdraw'; shareholder_id: string; amount: number; account_id: string; notes: string }>({ date: todayISO(), type: 'invest', shareholder_id: '', amount: 0, account_id: '', notes: '' })
   const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -98,7 +98,7 @@ export default function InvestWithdraw() {
 
   function resetForm() {
     setEditingId(null)
-    setForm({ date: new Date().toISOString().split('T')[0], type: 'invest', shareholder_id: '', amount: 0, account_id: '', notes: '' })
+    setForm({ date: todayISO(), type: 'invest', shareholder_id: '', amount: 0, account_id: '', notes: '' })
     setShowModal(false)
   }
 

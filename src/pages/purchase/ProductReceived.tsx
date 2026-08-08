@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Truck, Edit2, Trash2, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
@@ -49,7 +49,7 @@ export default function ReceiveProduct() {
   const [receiveQty, setReceiveQty] = useState(0)
   const [receiverName, setReceiverName] = useState('')
   const [receiveNote, setReceiveNote] = useState('')
-  const [receiveDate, setReceiveDate] = useState(new Date().toISOString().split('T')[0])
+  const [receiveDate, setReceiveDate] = useState(todayISO())
   const [submitting, setSubmitting] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editQty, setEditQty] = useState(0)
@@ -173,7 +173,7 @@ export default function ReceiveProduct() {
             received_qty: totalReceived,
             undelivered_qty: item.qty - totalReceived,
             actual_dp: item.actual_dp,
-            date: purchase?.date || new Date().toISOString().split('T')[0],
+            date: purchase?.date || todayISO(),
             supplier_name: purchase?.supplier_name || '',
             upcomingQty,
             status,
@@ -231,7 +231,7 @@ export default function ReceiveProduct() {
       setReceiveQty(0)
       setReceiverName('')
       setReceiveNote('')
-      setReceiveDate(new Date().toISOString().split('T')[0])
+      setReceiveDate(todayISO())
       loadPendingItems()
     } catch (error) {
       toast.error('Failed to receive product')

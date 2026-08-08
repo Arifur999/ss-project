@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Save } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import toast from 'react-hot-toast'
@@ -15,7 +15,7 @@ export default function Loans() {
   const [showModal, setShowModal] = useState(false)
   const { user } = useAuth()
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     lender_name: '', loan_type: 'personal',
     received_amount: 0, payment_amount: 0,
     account_id: '', account_name: '', notes: ''

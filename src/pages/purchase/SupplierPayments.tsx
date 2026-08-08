@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Edit2, Plus, Printer, Save, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
@@ -37,7 +37,7 @@ export default function SupplierPayments() {
   const [supplierFilter, setSupplierFilter] = useState('')
   const { user } = useAuth()
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     supplier_id: '', supplier_name: '',
     purchase_id: '', purchase_si_no: '',
     amount: 0, account_id: '', account_name: '', notes: ''
@@ -145,7 +145,7 @@ export default function SupplierPayments() {
   function resetForm() {
     setEditingId(null)
     setForm({
-      date: new Date().toISOString().split('T')[0],
+      date: todayISO(),
       supplier_id: '', supplier_name: '',
       purchase_id: '', purchase_si_no: '',
       amount: 0, account_id: '', account_name: '', notes: ''
@@ -160,7 +160,7 @@ export default function SupplierPayments() {
   function editPayment(payment: any) {
     setEditingId(payment.id)
     setForm({
-      date: payment.date || new Date().toISOString().split('T')[0],
+      date: payment.date || todayISO(),
       supplier_id: payment.supplier_id || '',
       supplier_name: payment.supplier_name || '',
       purchase_id: payment.purchase_id || '',

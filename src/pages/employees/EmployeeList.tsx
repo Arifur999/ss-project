@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import TableSkeleton from '../../components/TableSkeleton'
 
 type EmployeeActionType = 'Join' | 'Resign'
@@ -61,7 +61,7 @@ export default function EmployeeList() {
     name: '',
     phone: '',
     address: '',
-    join_date: new Date().toISOString().split('T')[0],
+    join_date: todayISO(),
     resign_date: '',
     notes: '',
     is_active: true
@@ -158,7 +158,7 @@ export default function EmployeeList() {
         name: '',
         phone: '',
         address: '',
-        join_date: new Date().toISOString().split('T')[0],
+        join_date: todayISO(),
         resign_date: '',
         notes: '',
         is_active: true
@@ -227,7 +227,7 @@ export default function EmployeeList() {
       name: '',
       phone: '',
       address: '',
-      join_date: new Date().toISOString().split('T')[0],
+      join_date: todayISO(),
       resign_date: '',
       notes: '',
       is_active: true
@@ -303,8 +303,8 @@ export default function EmployeeList() {
       name: '',
       phone: '',
       address: '',
-      join_date: new Date().toISOString().split('T')[0],
-      resign_date: nextActionType === 'Resign' ? new Date().toISOString().split('T')[0] : '',
+      join_date: todayISO(),
+      resign_date: nextActionType === 'Resign' ? todayISO() : '',
       notes: '',
       is_active: nextActionType === 'Join'
     })
