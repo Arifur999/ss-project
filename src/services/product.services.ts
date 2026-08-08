@@ -42,6 +42,23 @@ export const deleteProduct = (id: string) => http.delete<any>(`/products/${id}`)
 
 // ---------- Inventory ----------
 export const getInventory = () => http.get<any[]>('/inventory')
+// One page of the stock list, with every quantity already worked out on the
+// server. The page used to fetch six whole tables and join them by hand, which
+// cannot survive ten thousand products. totalStockValue covers every matching
+// row, not just the page.
+export const getInventoryPage = async (options: { page: number; limit: number; search?: string; status?: string }) => {
+  const params = new URLSearchParams({ page: String(options.page), limit: String(options.limit) })
+  if (options.search) params.set('search', options.search)
+  if (options.status && options.status !== 'all') params.set('status', options.status)
+  const response = await api.get(`/inventory/list?${params.toString()}`)
+  const payload = response.data?.data || {}
+  return {
+    rows: (payload.rows || []) as any[],
+    total: Number(response.data?.meta?.total ?? 0),
+    totalStockValue: Number(payload.totalStockValue ?? 0),
+  }
+}
+
 export const getInventoryHistory = (productId?: string) =>
   http.get<any[]>(productId ? `/inventory/history?product_id=${productId}` : '/inventory/history')
 export const getInventoryBatches = (productId?: string) =>

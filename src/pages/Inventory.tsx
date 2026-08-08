@@ -3,7 +3,9 @@ import { Search, Download, Image, Printer, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { printTable } from '../lib/printTable'
 import TableScroller from '../components/TableScroller'
-import { setInventoryDpPrice } from '../services/product.services'
+import { getInventoryPage, setInventoryDpPrice } from '../services/product.services'
+import { usePagedList } from '../lib/usePagedList'
+import TableSkeleton from '../components/TableSkeleton'
 import PageHeader from '../components/PageHeader'
 import { useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'
@@ -173,160 +175,57 @@ export default function Inventory() {
   const initialCache = useRef(readInventoryCache())
   const hasShownRows = useRef(false)
   const searchRef = useRef(initialCache.current.search)
-  const [rows, setRows] = useState<InventoryRow[]>([])
-  const [search, setSearch] = useState(initialCache.current.search)
   const [statusFilter, setStatusFilter] = useState<InventoryStatusFilter>(initialCache.current.statusFilter)
-  const [loading, setLoading] = useState(true)
+  // Read inside the loader, which is deliberately not rebuilt when the filter
+  // changes - the effect below reloads instead, so a change cannot leave a
+  // half-filtered page appended to a fully-filtered one.
+  const statusFilterRef = useRef(statusFilter)
+  statusFilterRef.current = statusFilter
+  // Every matching row, from the server. A total that only added up the rows
+  // scrolled into view would be worse than showing none.
+  const [totalStockValue, setTotalStockValue] = useState(0)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [dpEdits, setDpEdits] = useState<Record<string, string>>({})
   const [savingDp, setSavingDp] = useState<Record<string, boolean>>({})
 
-  const load = useCallback(async () => {
-    if (!hasShownRows.current) setLoading(true)
-    try {
-      const [productRows, histRows, purchaseItemRows, receiveRows, saleRows, openingBatchRows] = await Promise.all([
-        loadActiveProducts(),
-        fetchAllRows<any>((from, to) =>
-          supabase
-            .from('inventory_history')
-            .select('product_id, qty_change, change_type')
-            .range(from, to)
-        ).catch(() => []),
-        fetchAllRows<any>((from, to) =>
-          supabase
-            .from('purchase_items')
-            .select('id, product_id, qty, received_qty')
-            .range(from, to)
-        ).catch(() => []),
-        fetchAllRows<any>((from, to) =>
-          supabase
-            .from('purchase_receives')
-            .select('purchase_item_id, received_qty')
-            .range(from, to)
-        ).catch(() => []),
-        fetchAllRows<any>((from, to) =>
-          supabase
-            .from('sale_items')
-            .select('product_id, qty')
-            .range(from, to)
-        ).catch(() => []),
-        fetchAllRows<any>((from, to) =>
-          supabase
-            .from('inventory_batches')
-            .select('product_id, received_qty')
-            .eq('source_type', 'opening_stock')
-            .range(from, to)
-        ).catch(() => []),
-      ])
+  // One request, already computed and paged. This used to fetch products,
+  // inventory, inventory_history, purchase_items, purchase_receives,
+  // sale_items and inventory_batches in full and join them by hand - six
+  // tables and megabytes of rows to show forty. The arithmetic moved to SQL
+  // unchanged; see getInventoryList in the backend service.
+  const paged = usePagedList<InventoryRow>(
+    useCallback(async ({ page, limit, search: term }) => {
+      const result = await getInventoryPage({ page, limit, search: term, status: statusFilterRef.current })
+      setTotalStockValue(result.totalStockValue)
+      return { rows: result.rows as InventoryRow[], total: result.total }
+    }, []),
+    { limit: 40 }
+  )
 
-    const orderQtyMap: Record<string, number> = {}
-    for (const pi of purchaseItemRows || []) orderQtyMap[pi.product_id] = (orderQtyMap[pi.product_id] || 0) + (pi.qty || 0)
 
-    const receiveQtyByPurchaseItem: Record<string, number> = {}
-    for (const pr of receiveRows || []) {
-      receiveQtyByPurchaseItem[pr.purchase_item_id] = (receiveQtyByPurchaseItem[pr.purchase_item_id] || 0) + Number(pr.received_qty || 0)
-    }
 
-    const receivedQtyMap: Record<string, number> = {}
-    const upcomingQtyMap: Record<string, number> = {}
-    for (const pi of purchaseItemRows || []) {
-      const productId = pi.product_id
-      if (!productId) continue
-      const receivedQty = Math.max(Number(pi.received_qty || 0), receiveQtyByPurchaseItem[pi.id] || 0)
-      const pendingQty = Math.max(0, Number(pi.qty || 0) - receivedQty)
-      receivedQtyMap[productId] = (receivedQtyMap[productId] || 0) + receivedQty
-      upcomingQtyMap[productId] = (upcomingQtyMap[productId] || 0) + pendingQty
-    }
-
-    const salesQtyMap: Record<string, number> = {}
-    for (const si of saleRows || []) salesQtyMap[si.product_id] = (salesQtyMap[si.product_id] || 0) + (si.qty || 0)
-
-    const openingQtyMap: Record<string, number> = readStoredOpeningQty()
-    for (const product of productRows || []) {
-      openingQtyMap[product.id] = Number(openingQtyMap[product.id] ?? product.opening_qty ?? 0)
-    }
-    for (const h of histRows || []) {
-      if (h.change_type === 'opening_stock') openingQtyMap[h.product_id] = (openingQtyMap[h.product_id] || 0) + (h.qty_change || 0)
-    }
-    for (const batch of openingBatchRows || []) {
-      openingQtyMap[batch.product_id] = Math.max(
-        openingQtyMap[batch.product_id] || 0,
-        Number(batch.received_qty || 0)
-      )
-    }
-
-      const inventoryRows = await fetchAllRows<any>((from, to) =>
-        supabase
-          .from('inventory')
-          .select('*')
-          .is('branch_id', null)
-          .range(from, to)
-      ).catch(error => {
-        console.warn('Inventory rows could not be loaded', error)
-        return []
-      })
-      // Inventory rows are owned and auto-created by the backend now
-      // (product create bootstraps them) - no client-side reconciliation.
-      const productById = new Map((productRows || []).map(product => [product.id, product]))
-      const activeInventoryRows = (inventoryRows || [])
-      .map(inv => ({ ...inv, products: productById.get(inv.product_id) || inv.products }))
-      .filter(inv => inv.products)
-      const activeInventoryProductIds = new Set(activeInventoryRows.map(inv => inv.product_id))
-      const fallbackRows = (productRows || [])
-        .filter(product => !activeInventoryProductIds.has(product.id))
-        .map(product => ({
-          id: `product:${product.id}`,
-          product_id: product.id,
-          products: product,
-          available_qty: Number(openingQtyMap[product.id] || 0),
-          upcoming_qty: 0,
-          dp_price: product.cost_price || null,
-        }))
-
-      const enriched: InventoryRow[] = [...activeInventoryRows, ...fallbackRows].map(inv => {
-      const productId = inv.product_id
-      const receivedQty = receivedQtyMap[productId] || 0
-      const upcomingQty = upcomingQtyMap[productId] || 0
-      const salesQty = salesQtyMap[productId] || 0
-      const fallbackOpeningQty = Number(inv.available_qty || 0) - receivedQty - upcomingQty + salesQty
-      const openingQty = openingQtyMap[productId] ?? fallbackOpeningQty
-      const manualDp = Number(inv.dp_price ?? inv.products?.cost_price ?? 0)
-      const derivedAvailableQty = openingQty + receivedQty + upcomingQty - salesQty
-      const stockQty = derivedAvailableQty
-
-      return {
-        ...inv,
-        available_qty: stockQty,
-        opening_qty: openingQty || inv.available_qty,
-        order_qty: orderQtyMap[productId] || 0,
-        received_qty: receivedQty,
-        sales_qty: salesQty,
-        upcoming_qty: upcomingQty,
-        fifo_stock_value: stockQty * manualDp,
-        fifo_average_dp: manualDp,
-      }
-    })
-
-      setRows(enriched)
-      hasShownRows.current = true
-      const initial: Record<string, string> = {}
-      for (const r of enriched) initial[r.id] = r.dp_price != null ? String(r.dp_price) : ''
-      setDpEdits(initial)
-      writeInventoryCache({ search: searchRef.current, statusFilter })
-    } catch (error: any) {
-      toast.error(error.message || 'ইনভেন্টরি লোড করা যায়নি')
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load])
+  // The server applied both the search and the status filter, so these are the
+  // matching rows loaded so far. Filtering again here would only risk the two
+  // rules drifting apart.
+  const rows = paged.items
+  const filtered = rows
+  const search = paged.search
+  const setSearch = paged.setSearch
+  const loading = paged.loading
+  const totalValue = totalStockValue
 
   useEffect(() => {
     searchRef.current = search
     writeInventoryCache({ search, statusFilter })
   }, [search, statusFilter])
+
+  // A changed status filter has to start again from page one; appending a
+  // differently-filtered page to the current list would mix the two.
+  const firstStatusRender = useRef(true)
+  useEffect(() => {
+    if (firstStatusRender.current) { firstStatusRender.current = false; return }
+    paged.reload()
+  }, [statusFilter])
 
   async function saveDp(row: InventoryRow) {
     const val = dpEdits[row.id]
@@ -336,7 +235,7 @@ export default function Inventory() {
       // Updates the inventory row + opening stock batches server-side.
       await setInventoryDpPrice(row.product_id, num)
       toast.success(t('inventory_dpSaved'))
-      load()
+      paged.reload()
     } catch (err: any) {
       toast.error(err.message || t('common_error'))
     } finally {
@@ -347,7 +246,7 @@ export default function Inventory() {
   function handleDpChange(row: InventoryRow, value: string) {
     const nextDp = value === '' ? null : Number(value)
     setDpEdits(prev => ({ ...prev, [row.id]: value }))
-    setRows(prev => prev.map(r => {
+    paged.setItems(prev => prev.map(r => {
       if (r.id !== row.id) return r
       const dp = nextDp ?? Number(r.products?.cost_price || 0)
       return {
@@ -372,16 +271,7 @@ export default function Inventory() {
     out_of_stock: { labelKey: 'inventory_statusOutOfStock',   cls: 'badge-red whitespace-nowrap' },
   }
 
-  const filtered = rows.filter(r => {
-    const p = r.products
-    const matchesSearch = !search || p?.name.toLowerCase().includes(search.toLowerCase()) || (p?.product_code || '').toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || getStatus(r) === statusFilter
-    return matchesSearch && matchesStatus
-  })
 
-  const totalValue = filtered.reduce((s, r) => {
-    return s + Number(r.fifo_stock_value || 0)
-  }, 0)
 
   function downloadCSV() {
     const headers = [
@@ -561,7 +451,19 @@ export default function Inventory() {
               )
             })}
             {filtered.length === 0 && !loading && <tr><td colSpan={14} className="text-center py-10 text-slate-400">{t('common_noData')}</td></tr>}
-            {loading && <tr><td colSpan={14} className="text-center py-10 text-slate-400">{t('common_loading')}</td></tr>}
+            {/* Skeleton rows rather than a "loading" line, so the table is
+                seen filling in. */}
+            {loading && <TableSkeleton rows={10} cols={14} />}
+            {/* Loads the next page 600px before the reader reaches the end. */}
+            {paged.hasMore && !loading && (
+              <tr ref={paged.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+                <td colSpan={14} className="py-4 text-center text-sm text-slate-400">
+                  {paged.loadingMore
+                    ? `Loading more… ${rows.length.toLocaleString()} of ${paged.total.toLocaleString()}`
+                    : `${rows.length.toLocaleString()} of ${paged.total.toLocaleString()} loaded`}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         </TableScroller>
