@@ -44,16 +44,25 @@ export function useProgressiveRows<T>(
 
   // Fires while the sentinel is still below the fold, so the next slice is
   // usually rendered before the reader reaches it.
+  //
+  // Reached through a ref so sentinelRef never changes identity - see the
+  // longer note in usePagedList.ts. Depending on showMore rebuilt the observer
+  // on every render, and a new observer reports straight away when its target
+  // is already on screen, so it re-entered itself indefinitely.
   const observer = useRef<IntersectionObserver | null>(null)
+  const showMoreRef = useRef(showMore)
+  showMoreRef.current = showMore
+
   const sentinelRef = useCallback((node: HTMLElement | null) => {
     observer.current?.disconnect()
+    observer.current = null
     if (!node) return
     observer.current = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting) showMore() },
+      (entries) => { if (entries[0]?.isIntersecting) showMoreRef.current() },
       { rootMargin: '600px' }
     )
     observer.current.observe(node)
-  }, [showMore])
+  }, [])
 
   useEffect(() => () => observer.current?.disconnect(), [])
 

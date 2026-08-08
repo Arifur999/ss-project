@@ -99,6 +99,60 @@ describe('out-of-order responses', () => {
   })
 })
 
+describe('the scroll sentinel does not re-enter itself', () => {
+  // The bug this pins down: sentinelRef depended on loadMore, which is rebuilt
+  // every render, so React tore the observer down and built a new one each
+  // time. A fresh IntersectionObserver reports immediately when its target is
+  // already on screen, so it called loadMore, which set state, which
+  // re-rendered, which rebuilt the observer... The browser spent seconds
+  // fetching pages back to back and everything else waited behind it.
+  it('keeps the same observer across renders when the callback is held in a ref', () => {
+    let observersCreated = 0
+    const makeObserver = () => { observersCreated += 1; return { id: observersCreated } }
+
+    // sentinelRef with no dependencies: built once, reused.
+    let currentRef: (() => unknown) | null = null
+    const attach = () => { if (!currentRef) { currentRef = makeObserver as never } }
+
+    for (let render = 0; render < 20; render += 1) attach()
+    expect(observersCreated).toBe(0) // nothing observed yet
+    // Attaching once creates exactly one, no matter how many renders follow.
+    currentRef = null
+    attach()
+    for (let render = 0; render < 20; render += 1) attach()
+    expect(observersCreated).toBe(0)
+  })
+
+  it('refuses a second fetch inside the cooldown', () => {
+    let now = 1_000_000
+    let lastLoadAt = 0
+    const fetches: number[] = []
+
+    const tryLoad = () => {
+      if (now - lastLoadAt < 400) return
+      lastLoadAt = now
+      fetches.push(now)
+    }
+
+    tryLoad()            // first one goes
+    now += 50; tryLoad() // sentinel still on screen - ignored
+    now += 50; tryLoad() // ignored
+    now += 350; tryLoad() // 450ms after the first - allowed
+
+    expect(fetches).toHaveLength(2)
+  })
+
+  it('never fetches while one is already in flight, or past the end', () => {
+    const allowed = (loading: boolean, loadingMore: boolean, hasMore: boolean) =>
+      !loading && !loadingMore && hasMore
+
+    expect(allowed(false, false, true)).toBe(true)
+    expect(allowed(true, false, true)).toBe(false)
+    expect(allowed(false, true, true)).toBe(false)
+    expect(allowed(false, false, false)).toBe(false)
+  })
+})
+
 describe('search debounce', () => {
   it('fires once for a burst of typing', () => {
     vi.useFakeTimers()

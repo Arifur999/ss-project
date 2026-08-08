@@ -107,8 +107,17 @@ export function usePagedList<T extends { id: string }>(
 
   const hasMore = items.length < total
 
+  // Belt and braces on top of the ref above: even with a stable observer, a
+  // sentinel that stays on screen after a page is appended will report again
+  // straight away. Without a floor between fetches that turns into a burst of
+  // requests the moment a list is opened.
+  const lastLoadAt = useRef(0)
+
   const loadMore = useCallback(() => {
     if (loading || loadingMore || !hasMore) return
+    const now = Date.now()
+    if (now - lastLoadAt.current < 400) return
+    lastLoadAt.current = now
     const next = page + 1
     const id = ++requestId.current
     setLoadingMore(true)
@@ -131,16 +140,32 @@ export function usePagedList<T extends { id: string }>(
 
   // Fires while the sentinel is still below the fold, so the next page is
   // usually there before the reader arrives at the end.
+  //
+  // The callback is reached through a ref, and sentinelRef itself has NO
+  // dependencies. That matters more than it looks: loadMore is rebuilt on
+  // every render (it closes over page, loading, the search), so a sentinelRef
+  // that depended on it changed identity every render too. React then called
+  // the old ref with null and the new one with the node, which tore down the
+  // observer and built a new one - and a fresh observer reports immediately if
+  // its target is already on screen. That fired loadMore, which set state,
+  // which re-rendered, which rebuilt the observer, which fired again. The
+  // browser spent whole seconds fetching and parsing pages back to back, and
+  // everything else - including a native date picker's hover - waited behind
+  // it.
   const observer = useRef<IntersectionObserver | null>(null)
+  const loadMoreRef = useRef(loadMore)
+  loadMoreRef.current = loadMore
+
   const sentinelRef = useCallback((node: HTMLElement | null) => {
     observer.current?.disconnect()
+    observer.current = null
     if (!node) return
     observer.current = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting) loadMore() },
+      (entries) => { if (entries[0]?.isIntersecting) loadMoreRef.current() },
       { rootMargin: '600px' }
     )
     observer.current.observe(node)
-  }, [loadMore])
+  }, [])
 
   useEffect(() => () => observer.current?.disconnect(), [])
 
