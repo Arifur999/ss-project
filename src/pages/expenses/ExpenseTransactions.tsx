@@ -7,6 +7,7 @@ import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import SearchableSelect from '../../components/SearchableSelect'
 import { confirmAction } from '../../components/ConfirmDialog'
+import TableSkeleton from '../../components/TableSkeleton'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -33,17 +34,27 @@ export default function ExpenseTransactions() {
     notes: ''
   })
 
+  // Starts true: the first paint happens before the data arrives, and a table
+  // that says "no records" in that gap reads as an empty list rather than one
+  // still loading.
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
-    const [expRes, catRes, accRes] = await Promise.all([
-      supabase.from('expenses').select('*').order('date', { ascending: false }).limit(200),
-      supabase.from('expense_categories').select('*').order('name'),
-      supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
-    ])
-    setExpenses(expRes.data || [])
-    setCategories(catRes.data || [])
-    setAccounts(accRes.data || [])
+    setLoading(true)
+    try {
+      const [expRes, catRes, accRes] = await Promise.all([
+        supabase.from('expenses').select('*').order('date', { ascending: false }).limit(200),
+        supabase.from('expense_categories').select('*').order('name'),
+        supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
+      ])
+      setExpenses(expRes.data || [])
+      setCategories(catRes.data || [])
+      setAccounts(accRes.data || [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   function openModal(item?: any) {
@@ -259,7 +270,9 @@ export default function ExpenseTransactions() {
                 </tr>
               )
             })}
-            {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('expTx_noRecords')}</td></tr>}
+            {loading
+              ? <TableSkeleton rows={6} cols={7} />
+              : filtered.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('expTx_noRecords')}</td></tr>}
           </tbody>
         </table>
         </TableScroller>

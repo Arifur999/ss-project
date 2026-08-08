@@ -12,6 +12,7 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
+import TableSkeleton from '../../components/TableSkeleton'
 
 type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id', string>>
 
@@ -38,6 +39,10 @@ export default function LoanTransactions() {
   const { formatCurr } = useLang()
   const { user, profile } = useAuth()
   const [records, setRecords] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint. It
+  // used to render the empty state instead, which reads as "there is
+  // nothing here" rather than "this is still loading".
+  const [loading, setLoading] = useState(true)
   const [lenders, setLenders] = useState<any[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -50,7 +55,7 @@ export default function LoanTransactions() {
   const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], lender_id: '', transaction_type: 'receive', amount: 0, account_id: '', notes: '' })
 
   useEffect(() => {
-    loadAll()
+    loadAll().finally(() => setLoading(false))
     const channel = supabase
       .channel('loan-transactions-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, loadAll)
@@ -413,7 +418,8 @@ export default function LoanTransactions() {
                 </tr>
               )
             })}
-            {filteredRecords.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-slate-400">No loan transactions</td></tr>}
+            {loading && <TableSkeleton rows={6} cols={9} />}
+            {!loading && filteredRecords.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-slate-400">No loan transactions</td></tr>}
           </tbody>
         </table>
       </div>

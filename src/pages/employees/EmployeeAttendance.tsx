@@ -8,10 +8,15 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
+import TableSkeleton from '../../components/TableSkeleton'
 
 export default function EmployeeAttendance() {
   const { t } = useLang()
   const [attendance, setAttendance] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint. It
+  // used to render the empty state instead, which reads as "there is
+  // nothing here" rather than "this is still loading".
+  const [loading, setLoading] = useState(true)
   const [employees, setEmployees] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -28,7 +33,7 @@ export default function EmployeeAttendance() {
     notes: ''
   })
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadAll().finally(() => setLoading(false)) }, [])
 
   async function loadAll() {
     const [attRes, empRes] = await Promise.all([
@@ -483,7 +488,8 @@ export default function EmployeeAttendance() {
                 </tr>
               )
             })}
-            {filteredAttendance.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+            {loading && <TableSkeleton rows={6} cols={11} />}
+            {!loading && filteredAttendance.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
       </div>

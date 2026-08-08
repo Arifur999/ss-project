@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { formatDate } from '../../lib/utils'
+import TableSkeleton from '../../components/TableSkeleton'
 
 type PaymentType = 'Salary' | 'Bonus'
 type SalaryPaymentValidationErrors = Partial<Record<
@@ -61,6 +62,9 @@ export default function EmployeeTransactions() {
   const { t, formatCurr } = useLang()
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint
+  // instead of the empty state, which reads as "there is nothing here".
+  const [loading, setLoading] = useState(true)
   const [employees, setEmployees] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
@@ -88,7 +92,7 @@ export default function EmployeeTransactions() {
     notes: '',
   })
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadAll().finally(() => setLoading(false)) }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -555,7 +559,8 @@ export default function EmployeeTransactions() {
                 </tr>
               )
             })}
-            {filteredTransactions.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+            {loading && <TableSkeleton rows={6} cols={11} />}
+            {!loading && filteredTransactions.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
         </TableScroller>

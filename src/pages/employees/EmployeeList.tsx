@@ -9,6 +9,7 @@ import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 import { formatDate } from '../../lib/utils'
+import TableSkeleton from '../../components/TableSkeleton'
 
 type EmployeeActionType = 'Join' | 'Resign'
 type EmployeeValidationErrors = Partial<Record<'action_type' | 'employee_id' | 'name' | 'phone' | 'address' | 'join_date' | 'resign_date', string>>
@@ -45,6 +46,9 @@ async function saveEmployeePayload(payload: any, editingId?: string | null) {
 export default function EmployeeList() {
   const { t, formatCurr } = useLang()
   const [employees, setEmployees] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint
+  // instead of the empty state, which reads as "there is nothing here".
+  const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [actionType, setActionType] = useState<EmployeeActionType>('Join')
@@ -64,7 +68,7 @@ export default function EmployeeList() {
   })
 
   useEffect(() => {
-    loadEmployees()
+    loadEmployees().finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -376,7 +380,8 @@ export default function EmployeeList() {
                 </td>
               </tr>
             ))}
-            {employees.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+            {loading && <TableSkeleton rows={6} cols={8} />}
+            {!loading && employees.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
       </div>

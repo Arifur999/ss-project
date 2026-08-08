@@ -6,10 +6,15 @@ import { formatDate } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import { lenderKey, lenderKeyFromLoan, loanBalanceColor, loanBalanceLabel, loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
+import TableSkeleton from '../../components/TableSkeleton'
 
 export default function LoanLedger() {
   const { formatCurr } = useLang()
   const [lenders, setLenders] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint. It
+  // used to render the empty state instead, which reads as "there is
+  // nothing here" rather than "this is still loading".
+  const [loading, setLoading] = useState(true)
   const [loans, setLoans] = useState<any[]>([])
   const [selectedKey, setSelectedKey] = useState('')
   const [lenderSearch, setLenderSearch] = useState('')
@@ -17,7 +22,7 @@ export default function LoanLedger() {
   const lenderBoxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadAll()
+    loadAll().finally(() => setLoading(false))
     const channel = supabase
       .channel('loan-ledger-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, loadAll)
@@ -211,7 +216,8 @@ export default function LoanLedger() {
                     <td className="py-2.5 px-4 text-slate-500">{entry.notes || '-'}</td>
                   </tr>
                 ))}
-                {ledger.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">No transactions</td></tr>}
+                {loading && <TableSkeleton rows={6} cols={7} />}
+            {!loading && ledger.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">No transactions</td></tr>}
               </tbody>
             </table>
           </div>

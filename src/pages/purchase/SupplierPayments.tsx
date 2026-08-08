@@ -9,6 +9,7 @@ import SearchableSelect from '../../components/SearchableSelect'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
+import TableSkeleton from '../../components/TableSkeleton'
 
 function escapeHtml(value: string) {
   return String(value || '')
@@ -22,6 +23,10 @@ function escapeHtml(value: string) {
 export default function SupplierPayments() {
   const { t, formatCurr } = useLang()
   const [payments, setPayments] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint. It
+  // used to render the empty state instead, which reads as "there is
+  // nothing here" rather than "this is still loading".
+  const [loading, setLoading] = useState(true)
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -37,7 +42,7 @@ export default function SupplierPayments() {
     amount: 0, account_id: '', account_name: '', notes: ''
   })
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadAll().finally(() => setLoading(false)) }, [])
 
   async function loadAll() {
     try {
@@ -366,7 +371,8 @@ export default function SupplierPayments() {
                 </td>
               </tr>
             ))}
-            {filteredPayments.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('common_noRecords')}</td></tr>}
+            {loading && <TableSkeleton rows={6} cols={7} />}
+            {!loading && filteredPayments.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('common_noRecords')}</td></tr>}
           </tbody>
         </table>
       </div>

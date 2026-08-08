@@ -14,6 +14,7 @@ import { addRecycleItem } from '../../lib/recycleBin'
 import { buildDuePaymentSms } from '../../lib/smsTemplates'
 import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
+import TableSkeleton from '../../components/TableSkeleton'
 
 const smsReceiptKey = 'due_received_sms_v1'
 
@@ -31,6 +32,10 @@ export default function CustomerDueReceived() {
   const { t, formatCurr } = useLang()
   const { user } = useAuth()
   const [payments, setPayments] = useState<any[]>([])
+  // Starts true so the table shows skeleton rows on the first paint. It
+  // used to render the empty state instead, which reads as "there is
+  // nothing here" rather than "this is still loading".
+  const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
   const [sales, setSales] = useState<any[]>([])
@@ -66,7 +71,7 @@ export default function CustomerDueReceived() {
   })
 
   useEffect(() => {
-    loadAll()
+    loadAll().finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -623,7 +628,8 @@ export default function CustomerDueReceived() {
                   </td>
                 </tr>
               ))}
-              {groupedPayments.length === 0 && (
+              {loading && <TableSkeleton rows={6} cols={14} />}
+            {!loading && groupedPayments.length === 0 && (
                 <tr>
                   <td colSpan={14} className="text-center py-10 text-slate-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
