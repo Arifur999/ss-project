@@ -50,7 +50,9 @@ export default function ConfirmDialogHost() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <button className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" onClick={() => close(false)} aria-label="Cancel confirmation" />
+      {/* Dim only - see the note in Modal.tsx: a full-viewport backdrop blur is
+          re-computed on every repaint and makes anything above it crawl. */}
+      <button className="absolute inset-0 bg-slate-950/55" onClick={() => close(false)} aria-label="Cancel confirmation" />
       <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-red">

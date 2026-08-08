@@ -1095,7 +1095,9 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
-      <div className="sticky bottom-0 -mx-6 mt-4 flex flex-col-reverse gap-2 border-t border-slate-100 bg-white/95 px-6 pt-4 backdrop-blur sm:flex-row sm:justify-end">
+      {/* No backdrop-blur: at 95% opacity it was invisible anyway, and it sits
+          inside a modal where it costs a re-blur on every repaint. */}
+      <div className="sticky bottom-0 -mx-6 mt-4 flex flex-col-reverse gap-2 border-t border-slate-100 bg-white/95 px-6 pt-4 sm:flex-row sm:justify-end">
         <button onClick={onClose} className="btn-secondary justify-center sm:w-32">{t('common_cancel')}</button>
         <button type="button" className="btn-secondary justify-center sm:w-36"><Save size={15} />Save Draft</button>
         <button onClick={save} disabled={loading} className="btn-primary justify-center sm:w-40">

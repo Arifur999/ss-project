@@ -82,7 +82,10 @@ export default function ProgressDialog({ state }: { state: ProgressState }) {
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-live="polite">
       {/* No onClick: clicking outside must not dismiss work in progress. */}
-      <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" />
+      {/* Dim only - see the note in Modal.tsx. This one matters twice over: a
+          long import repaints the progress bar constantly, and each repaint
+          would re-blur the whole page behind it. */}
+      <div className="absolute inset-0 bg-slate-950/55" />
       <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-start gap-4">
           <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${state.done ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-700'}`}>
