@@ -29,8 +29,15 @@ export type PagedList<T> = {
   setItems: React.Dispatch<React.SetStateAction<T[]>>
   /** Every matching row on the server, not just the loaded ones. */
   total: number
-  /** True during the very first load, when there is nothing to show yet. */
+  /**
+   * True only when there is genuinely nothing to show - the very first load.
+   * A search does NOT set this: the previous rows stay on screen until the new
+   * ones arrive, because blanking a table on every keystroke reads as far
+   * slower than it is, even when the server answers in three milliseconds.
+   */
   loading: boolean
+  /** True while a new search is in flight, with the old rows still shown. */
+  searching: boolean
   /** True while a further page is being appended. */
   loadingMore: boolean
   hasMore: boolean
@@ -48,12 +55,18 @@ export type PagedList<T> = {
 
 export function usePagedList<T extends { id: string }>(
   load: (options: { page: number; limit: number; search: string }) => Promise<PagedResult<T>>,
-  { limit = 40, searchDelayMs = 350 }: { limit?: number; searchDelayMs?: number } = {}
+  // 200ms is long enough to collapse a burst of typing into one request and
+  // short enough that the result feels like it followed the keystroke.
+  { limit = 40, searchDelayMs = 200 }: { limit?: number; searchDelayMs?: number } = {}
 ): PagedList<T> {
   const [items, setItems] = useState<T[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [searching, setSearching] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  // Distinguishes "nothing has ever loaded" from "we have rows and are
+  // fetching different ones".
+  const hasLoadedOnce = useRef(false)
   const [search, setSearchValue] = useState('')
   const [activeSearch, setActiveSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -70,19 +83,25 @@ export function usePagedList<T extends { id: string }>(
     return () => clearTimeout(timer)
   }, [search, searchDelayMs])
 
-  // First page, and again whenever the search changes.
+  // First page, and again whenever the search changes. Only the very first
+  // load blanks the table; a search keeps the current rows until the new ones
+  // land, so typing never leaves an empty screen.
   useEffect(() => {
     const id = ++requestId.current
-    setLoading(true)
+    if (hasLoadedOnce.current) setSearching(true)
+    else setLoading(true)
     setPage(1)
     loadRef.current({ page: 1, limit, search: activeSearch })
       .then((result) => {
         if (id !== requestId.current) return
         setItems(result.rows)
         setTotal(result.total)
+        hasLoadedOnce.current = true
       })
       .finally(() => {
-        if (id === requestId.current) setLoading(false)
+        if (id !== requestId.current) return
+        setLoading(false)
+        setSearching(false)
       })
   }, [activeSearch, limit])
 
@@ -151,7 +170,7 @@ export function usePagedList<T extends { id: string }>(
   }, [])
 
   return {
-    items, setItems, total, loading, loadingMore, hasMore,
+    items, setItems, total, loading, searching, loadingMore, hasMore,
     search, setSearch: setSearchValue,
     sentinelRef, reload, patchItem, removeItems,
   }

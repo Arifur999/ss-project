@@ -1350,13 +1350,10 @@ export default function ProductList() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-green border-t-transparent rounded-full" />
-      </div>
-    )
-  }
+  // No full-page spinner. The header, the search box and the buttons are ready
+  // to use immediately; only the table itself shows that it is still filling
+  // in. Blanking the whole screen made a page that was mostly ready look
+  // entirely unavailable.
 
   const tagItems = tagProduct && printCopies > 0 ? Array.from({ length: printCopies }, (_, index) => ({ product: tagProduct, index })) : []
   const businessPhones = String(business?.phone || '').split(',').map(phone => phone.trim()).filter(Boolean)
@@ -1396,6 +1393,12 @@ export default function ProductList() {
       <div className="flex gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          {/* The rows already on screen stay put while a new search runs, so
+              this is the only sign anything is happening - which is far less
+              jarring than emptying the table on every keystroke. */}
+          {paged.searching && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-transparent" />
+          )}
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}

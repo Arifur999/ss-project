@@ -11,6 +11,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { createReceiveStockBatch } from '../../lib/fifoInventory'
 import { deletePurchaseItem, deletePurchaseReceive, receivePurchaseItem, setPurchaseItemReceivedQty } from '../../services/purchase.services'
+import TableSkeleton from '../../components/TableSkeleton'
+import { useProgressiveRows } from '../../lib/useProgressiveRows'
 
 interface PendingProduct {
   id: string
@@ -306,6 +308,10 @@ export default function ReceiveProduct() {
     })
   }, [pendingItems, search, statusFilter])
 
+  // Draws a slice at a time as the reader scrolls; every row stays in
+  // memory so the tabs and totals are unaffected.
+  const shown = useProgressiveRows(filteredItems, { initial: 40, step: 40 })
+
   const totalPurchaseAmount = filteredItems.reduce(
     (sum, item) => sum + (Number(item.actual_dp || 0) * Number(item.qty || 0)),
     0
@@ -318,14 +324,8 @@ export default function ReceiveProduct() {
     { key: 'received', label: 'Received' },
   ] as const
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <PageHeader title="Receive Products" subtitle="Receive and track all ordered products" />
-        <div className="text-center py-8 text-slate-500">Loading...</div>
-      </div>
-    )
-  }
+  // No full-page blank: the header and the status tabs are usable straight
+  // away, and only the table shows that it is still filling in.
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-6">
@@ -384,7 +384,8 @@ export default function ReceiveProduct() {
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map((item, index) => (
+            {loading && <TableSkeleton rows={8} cols={13} />}
+            {shown.visible.map((item, index) => (
               <tr key={item.id} className="table-row">
                 <td className="px-3 py-2.5 text-slate-400">{index + 1}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-700">{item.si_no}</td>
@@ -460,6 +461,15 @@ export default function ReceiveProduct() {
               <tr>
                 <td colSpan={15} className="text-center py-8 text-slate-400">
                   No products found
+                </td>
+              </tr>
+            )}
+            {/* Draws the next slice before the reader reaches the end. Every
+                row stays loaded, so the totals above are untouched. */}
+            {shown.hasMore && (
+              <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
+                <td colSpan={13} className="py-4 text-center text-sm text-slate-400">
+                  {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
                 </td>
               </tr>
             )}
