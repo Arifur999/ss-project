@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -8,59 +8,67 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
-import SubscriptionPlans, { SubscriptionCheckout } from './pages/SubscriptionPlans'
-import Dashboard from './pages/Dashboard'
-import Balance from './pages/Balance'
-import InvestWithdraw from './pages/transactions/Invest'
-import ProfitWithdraw from './pages/transactions/ProfitWithdraw'
-import Adjustments from './pages/transactions/Adjustments'
-import ShareholderDashboard from './pages/transactions/ShareholderDashboard'
-import ExpenseDashboard from './pages/expenses/ExpenseDashboard'
-import ExpenseTransactions from './pages/expenses/ExpenseTransactions'
-import ProductList from './pages/ProductList'
-import PurchaseOrders from './pages/purchase/PurchaseOrders'
-import ProductReceived from './pages/purchase/ProductReceived'
-import SupplierPayments from './pages/purchase/SupplierPayments'
-import SupplierDashboard from './pages/purchase/SupplierDashboard'
-import PurchaseHistory from './pages/purchase/PurchaseHistory'
-import PurchaseLedger from './pages/purchase/PurchaseLedger'
-import OtherIncome from './pages/purchase/OtherIncome'
-import Inventory from './pages/Inventory'
-import Sales from './pages/Sales'
-import SalesHistory from './pages/SalesHistory'
-import CustomerList from './pages/customers/CustomerList'
-import CustomerDueReceived from './pages/customers/CustomerDueReceived'
-import CustomerLedger from './pages/customers/CustomerLedger'
-import CustomerDashboard from './pages/customers/CustomerDashboard'
-import MonthlyReport from './pages/reports/MonthlyReport'
-import YearlyReport from './pages/reports/YearlyReport'
-import ReportSummary from './pages/reports/ReportSummary'
-import Settings from './pages/Settings'
-import CurrentPlan from './pages/CurrentPlan'
-import BillingHistory from './pages/BillingHistory'
-import EmployeeDashboard from './pages/employees/EmployeeDashboard'
-import EmployeeList from './pages/employees/EmployeeList'
-import EmployeeTransactions from './pages/employees/EmployeeTransactions'
-import EmployeeAttendance from './pages/employees/EmployeeAttendance'
-import LoanLenderList from './pages/loans/LoanLenderList'
-import LoanTransactions from './pages/loans/LoanTransactions'
-import LoanLedger from './pages/loans/LoanLedger'
-import LoanDashboard from './pages/loans/LoanDashboard'
-import Marketing from './pages/Marketing'
-import RecycleBin from './pages/RecycleBin'
-import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'
-import SuperAdminOwners from './pages/super-admin/SuperAdminOwners'
-import SuperAdminFreeTrial from './pages/super-admin/SuperAdminFreeTrial'
-import SuperAdminActiveCustomers from './pages/super-admin/SuperAdminActiveCustomers'
-import SuperAdminChurned from './pages/super-admin/SuperAdminChurned'
-import SuperAdminManageOwners from './pages/super-admin/SuperAdminManageOwners'
-import SuperAdminPayments from './pages/super-admin/SuperAdminPayments'
-import SuperAdminFinance from './pages/super-admin/SuperAdminFinance'
-import SuperAdminReports from './pages/super-admin/SuperAdminReports'
-import SuperAdminSettings from './pages/super-admin/SuperAdminSettings'
-import SuperAdminActivity from './pages/super-admin/SuperAdminActivity'
-import SuperAdminSms from './pages/super-admin/SuperAdminSms'
-import SuperAdminNotifications from './pages/super-admin/SuperAdminNotifications'
+
+// Each screen is its own chunk, fetched the first time it is opened. Before
+// this, App.tsx imported all 56 of them up front, so every visit downloaded
+// and parsed the entire application before the first screen could render -
+// which is why a page showing twenty rows took as long as one showing three
+// thousand.
+const SubscriptionPlans = lazy(() => import('./pages/SubscriptionPlans'))
+const SubscriptionCheckout = lazy(() => import('./pages/SubscriptionPlans').then(m => ({ default: m.SubscriptionCheckout })))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Balance = lazy(() => import('./pages/Balance'))
+const InvestWithdraw = lazy(() => import('./pages/transactions/Invest'))
+const ProfitWithdraw = lazy(() => import('./pages/transactions/ProfitWithdraw'))
+const Adjustments = lazy(() => import('./pages/transactions/Adjustments'))
+const ShareholderDashboard = lazy(() => import('./pages/transactions/ShareholderDashboard'))
+const ExpenseDashboard = lazy(() => import('./pages/expenses/ExpenseDashboard'))
+const ExpenseTransactions = lazy(() => import('./pages/expenses/ExpenseTransactions'))
+const ProductList = lazy(() => import('./pages/ProductList'))
+const PurchaseOrders = lazy(() => import('./pages/purchase/PurchaseOrders'))
+const ProductReceived = lazy(() => import('./pages/purchase/ProductReceived'))
+const SupplierPayments = lazy(() => import('./pages/purchase/SupplierPayments'))
+const SupplierDashboard = lazy(() => import('./pages/purchase/SupplierDashboard'))
+const PurchaseHistory = lazy(() => import('./pages/purchase/PurchaseHistory'))
+const PurchaseLedger = lazy(() => import('./pages/purchase/PurchaseLedger'))
+const OtherIncome = lazy(() => import('./pages/purchase/OtherIncome'))
+const Inventory = lazy(() => import('./pages/Inventory'))
+const Sales = lazy(() => import('./pages/Sales'))
+const SalesHistory = lazy(() => import('./pages/SalesHistory'))
+const CustomerList = lazy(() => import('./pages/customers/CustomerList'))
+const CustomerDueReceived = lazy(() => import('./pages/customers/CustomerDueReceived'))
+const CustomerLedger = lazy(() => import('./pages/customers/CustomerLedger'))
+const CustomerDashboard = lazy(() => import('./pages/customers/CustomerDashboard'))
+const MonthlyReport = lazy(() => import('./pages/reports/MonthlyReport'))
+const YearlyReport = lazy(() => import('./pages/reports/YearlyReport'))
+const ReportSummary = lazy(() => import('./pages/reports/ReportSummary'))
+const Settings = lazy(() => import('./pages/Settings'))
+const CurrentPlan = lazy(() => import('./pages/CurrentPlan'))
+const BillingHistory = lazy(() => import('./pages/BillingHistory'))
+const EmployeeDashboard = lazy(() => import('./pages/employees/EmployeeDashboard'))
+const EmployeeList = lazy(() => import('./pages/employees/EmployeeList'))
+const EmployeeTransactions = lazy(() => import('./pages/employees/EmployeeTransactions'))
+const EmployeeAttendance = lazy(() => import('./pages/employees/EmployeeAttendance'))
+const LoanLenderList = lazy(() => import('./pages/loans/LoanLenderList'))
+const LoanTransactions = lazy(() => import('./pages/loans/LoanTransactions'))
+const LoanLedger = lazy(() => import('./pages/loans/LoanLedger'))
+const LoanDashboard = lazy(() => import('./pages/loans/LoanDashboard'))
+const Marketing = lazy(() => import('./pages/Marketing'))
+const RecycleBin = lazy(() => import('./pages/RecycleBin'))
+const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDashboard'))
+const SuperAdminOwners = lazy(() => import('./pages/super-admin/SuperAdminOwners'))
+const SuperAdminFreeTrial = lazy(() => import('./pages/super-admin/SuperAdminFreeTrial'))
+const SuperAdminActiveCustomers = lazy(() => import('./pages/super-admin/SuperAdminActiveCustomers'))
+const SuperAdminChurned = lazy(() => import('./pages/super-admin/SuperAdminChurned'))
+const SuperAdminManageOwners = lazy(() => import('./pages/super-admin/SuperAdminManageOwners'))
+const SuperAdminPayments = lazy(() => import('./pages/super-admin/SuperAdminPayments'))
+const SuperAdminFinance = lazy(() => import('./pages/super-admin/SuperAdminFinance'))
+const SuperAdminReports = lazy(() => import('./pages/super-admin/SuperAdminReports'))
+const SuperAdminSettings = lazy(() => import('./pages/super-admin/SuperAdminSettings'))
+const SuperAdminActivity = lazy(() => import('./pages/super-admin/SuperAdminActivity'))
+const SuperAdminSms = lazy(() => import('./pages/super-admin/SuperAdminSms'))
+const SuperAdminNotifications = lazy(() => import('./pages/super-admin/SuperAdminNotifications'))
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, subscription, subscriptionStatus, subscriptionLocked, signOut } = useAuth()
@@ -138,9 +146,22 @@ function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Shown for the moment a screen's own chunk is being fetched. Deliberately the
+// same spinner ProtectedRoute already uses while the session loads, so moving
+// between screens looks no different than it did when everything was in one
+// bundle.
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="animate-spin w-8 h-8 border-4 border-brand-green border-t-transparent rounded-full" />
+    </div>
+  )
+}
+
 function AppRoutes() {
   const { user, profile } = useAuth()
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
@@ -207,6 +228,7 @@ function AppRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }
 
