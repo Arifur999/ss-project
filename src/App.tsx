@@ -5,9 +5,14 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import ConfirmDialogHost from './components/ConfirmDialog'
 import Layout from './components/Layout'
+// Login stays eager: it is the one screen a signed-out visitor always lands
+// on, so making it a separate chunk would add a round trip to the very first
+// paint. Register and ForgotPassword are rarely opened, and a signed-in owner
+// - which is most traffic, every day - never opens any of them, so those two
+// leave the entry chunk.
 import Login from './pages/Login'
-import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
+const Register = lazy(() => import('./pages/Register'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 
 // Each screen is its own chunk, fetched the first time it is opened. Before
 // this, App.tsx imported all 56 of them up front, so every visit downloaded

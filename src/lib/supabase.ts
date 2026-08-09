@@ -19,36 +19,40 @@ interface TableConfig {
   remove?: (id: string) => string  // DELETE endpoint
   upsertPut?: string      // PUT endpoint for upsert-style tables
   flattenFrom?: { list: string; key: string } // derive rows from a parent list
+  // Which column a gte/lte can be handed to the server as ?from=&to=. Only set
+  // it where the endpoint actually understands those, and only for a real date
+  // column - see buildListQuery below for why this can only ever widen.
+  dateColumn?: string
 }
 
 const TABLES: Record<string, TableConfig> = {
   business_settings: { list: '/business-settings', upsertPut: '/business-settings' },
   shareholders: { list: '/shareholders', create: '/shareholders', update: (id) => `/shareholders/${id}`, remove: (id) => `/shareholders/${id}` },
   accounts: { list: '/accounts', create: '/accounts', update: (id) => `/accounts/${id}`, remove: (id) => `/accounts/${id}` },
-  account_transfers: { list: '/account-transfers', create: '/account-transfers', update: (id) => `/account-transfers/${id}`, remove: (id) => `/account-transfers/${id}` },
+  account_transfers: { list: '/account-transfers', dateColumn: 'date', create: '/account-transfers', update: (id) => `/account-transfers/${id}`, remove: (id) => `/account-transfers/${id}` },
   monthly_targets: { list: '/monthly-targets', upsertPut: '/monthly-targets', update: (id) => `/monthly-targets/${id}`, remove: (id) => `/monthly-targets/${id}` },
   expense_categories: { list: '/expense-categories', create: '/expense-categories', update: (id) => `/expense-categories/${id}`, remove: (id) => `/expense-categories/${id}` },
   suppliers: { list: '/suppliers', create: '/suppliers', update: (id) => `/suppliers/${id}`, remove: (id) => `/suppliers/${id}` },
   customers: { list: '/customers', create: '/customers', update: (id) => `/customers/${id}`, remove: (id) => `/customers/${id}` },
   products: { list: '/products', create: '/products', update: (id) => `/products/${id}`, remove: (id) => `/products/${id}` },
-  investments: { list: '/investments', create: '/investments', update: (id) => `/investments/${id}`, remove: (id) => `/investments/${id}` },
-  profit_withdrawals: { list: '/profit-withdrawals', create: '/profit-withdrawals', update: (id) => `/profit-withdrawals/${id}`, remove: (id) => `/profit-withdrawals/${id}` },
-  loans: { list: '/loans', create: '/loans', update: (id) => `/loans/${id}`, remove: (id) => `/loans/${id}` },
+  investments: { list: '/investments', dateColumn: 'date', create: '/investments', update: (id) => `/investments/${id}`, remove: (id) => `/investments/${id}` },
+  profit_withdrawals: { list: '/profit-withdrawals', dateColumn: 'date', create: '/profit-withdrawals', update: (id) => `/profit-withdrawals/${id}`, remove: (id) => `/profit-withdrawals/${id}` },
+  loans: { list: '/loans', dateColumn: 'date', create: '/loans', update: (id) => `/loans/${id}`, remove: (id) => `/loans/${id}` },
   loan_lenders: { list: '/loan-lenders', create: '/loan-lenders', update: (id) => `/loan-lenders/${id}`, remove: (id) => `/loan-lenders/${id}` },
-  expenses: { list: '/expenses', create: '/expenses', update: (id) => `/expenses/${id}`, remove: (id) => `/expenses/${id}` },
-  other_incomes: { list: '/other-incomes', create: '/other-incomes', update: (id) => `/other-incomes/${id}`, remove: (id) => `/other-incomes/${id}` },
-  purchases: { list: '/purchases', update: (id) => `/purchases/${id}`, remove: (id) => `/purchases/${id}` },
+  expenses: { list: '/expenses', dateColumn: 'date', create: '/expenses', update: (id) => `/expenses/${id}`, remove: (id) => `/expenses/${id}` },
+  other_incomes: { list: '/other-incomes', dateColumn: 'date', create: '/other-incomes', update: (id) => `/other-incomes/${id}`, remove: (id) => `/other-incomes/${id}` },
+  purchases: { list: '/purchases', dateColumn: 'date', update: (id) => `/purchases/${id}`, remove: (id) => `/purchases/${id}` },
   purchase_items: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_items' }, update: (id) => `/purchases/items/${id}`, remove: (id) => `/purchases/items/${id}` },
   purchase_receives: { list: '', flattenFrom: { list: '/purchases', key: 'purchase_receives' } },
-  supplier_payments: { list: '/supplier-payments', create: '/supplier-payments', update: (id) => `/supplier-payments/${id}`, remove: (id) => `/supplier-payments/${id}` },
+  supplier_payments: { list: '/supplier-payments', dateColumn: 'date', create: '/supplier-payments', update: (id) => `/supplier-payments/${id}`, remove: (id) => `/supplier-payments/${id}` },
   inventory: { list: '/inventory' },
   inventory_history: { list: '/inventory/history' },
   inventory_batches: { list: '/inventory/batches' },
-  sales: { list: '/sales', update: (id) => `/sales/${id}`, remove: (id) => `/sales/${id}` },
+  sales: { list: '/sales', dateColumn: 'date', update: (id) => `/sales/${id}`, remove: (id) => `/sales/${id}` },
   sale_items: { list: '', flattenFrom: { list: '/sales', key: 'sale_items' } },
   sale_deliveries: { list: '', flattenFrom: { list: '/sales', key: 'sale_deliveries' } },
-  sale_payments: { list: '/sale-payments', create: '/sale-payments', update: (id) => `/sale-payments/${id}`, remove: (id) => `/sale-payments/${id}` },
-  customer_payments: { list: '/customer-payments', create: '/customer-payments', update: (id) => `/customer-payments/${id}`, remove: (id) => `/customer-payments/${id}` },
+  sale_payments: { list: '/sale-payments', dateColumn: 'date', create: '/sale-payments', update: (id) => `/sale-payments/${id}`, remove: (id) => `/sale-payments/${id}` },
+  customer_payments: { list: '/customer-payments', dateColumn: 'date', create: '/customer-payments', update: (id) => `/customer-payments/${id}`, remove: (id) => `/customer-payments/${id}` },
   employees: { list: '/employees', create: '/employees', update: (id) => `/employees/${id}`, remove: (id) => `/employees/${id}` },
   salary_transactions: { list: '/salary-transactions', create: '/salary-transactions', update: (id) => `/salary-transactions/${id}`, remove: (id) => `/salary-transactions/${id}` },
   attendance: { list: '/attendance', upsertPut: '/attendance', update: (id) => `/attendance/${id}`, remove: (id) => `/attendance/${id}` },
@@ -81,7 +85,15 @@ interface QueryState {
 // for a moment afterwards to cover the calls that follow rather than run
 // alongside. The window is deliberately tiny, and ANY write clears the lot -
 // a read must never answer with data from before a save the user just made.
-const HTTP_CACHE_MS = 600
+// Keyed by the URL actually requested, not the table name. Two things follow
+// from that: `sale_items` and `sales` are one download rather than two (they
+// are the same /sales response, flattened differently), and the same table
+// asked for over two different date ranges is correctly two entries.
+//
+// 5s rather than the 600ms it started at: 600ms only covered calls made in the
+// same Promise.all, and the sequences that repeat a table - fetch, then patch,
+// then read it back - routinely run longer than that.
+const HTTP_CACHE_MS = 5000
 const pending = new Map<string, Promise<Row[]>>()
 const recent = new Map<string, { at: number; rows: Row[] }>()
 
@@ -103,47 +115,84 @@ api.interceptors.response.use((response) => {
   return response
 })
 
-async function fetchRows(table: string): Promise<Row[]> {
+// A plain YYYY-MM-DD, which is the only shape the server accepts. Values that
+// carry a time are cut back to the day, which widens the range rather than
+// narrowing it - see below for why that direction is the safe one.
+const asServerDate = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined
+  const day = value.slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : undefined
+}
+
+// Turns the date bounds already captured on the query into ?from=&to=.
+//
+// This is the whole point of the change: the browser used to download every
+// row the account has ever had and then throw away everything outside the
+// month on screen. Now the server is told the range.
+//
+// It deliberately only ever WIDENS what the server sends back:
+//   - a bound is only pushed for the table's own date column
+//   - `gt`/`lt` are exclusive but go out as inclusive from/to
+//   - a timestamp is cut back to its day
+// queryEngine then applies the very same filters again, unchanged, over the
+// response. So the server narrows and the browser still decides, which is the
+// contract written at the top of queryEngine.ts. Anything unrecognised is
+// simply not pushed, and that table behaves exactly as it did before.
+export function buildListQuery(config: TableConfig, filters: Filter[]): string {
+  if (!config.dateColumn) return ''
+
+  const params = new URLSearchParams()
+  for (const filter of filters) {
+    if (!('column' in filter) || filter.column !== config.dateColumn) continue
+    if (filter.kind !== 'gte' && filter.kind !== 'gt' && filter.kind !== 'lte' && filter.kind !== 'lt') continue
+
+    const day = asServerDate(filter.value)
+    if (!day) continue
+    params.set(filter.kind === 'gte' || filter.kind === 'gt' ? 'from' : 'to', day)
+  }
+  return params.toString()
+}
+
+async function fetchRows(table: string, filters: Filter[] = []): Promise<Row[]> {
   const config = TABLES[table]
   if (!config) throw new Error(`Table not supported by API layer: ${table}`)
 
-  const fresh = recent.get(table)
+  // Pseudo-tables read the parent endpoint, so they share its cache entry.
+  const endpoint = config.flattenFrom ? config.flattenFrom.list : config.list
+  const query = buildListQuery(config, filters)
+  const url = query ? `${endpoint}?${query}` : endpoint
+
+  const parents = await fetchUrl(url)
+
+  if (!config.flattenFrom) return parents
+  if (config.flattenFrom.key === 'purchase_receives') {
+    return parents.flatMap((parent) =>
+      (parent.purchase_items || []).flatMap((item: Row) => item.purchase_receives || []))
+  }
+  return parents.flatMap((parent) => parent[config.flattenFrom!.key] || [])
+}
+
+async function fetchUrl(url: string): Promise<Row[]> {
+  const fresh = recent.get(url)
   if (fresh && Date.now() - fresh.at < HTTP_CACHE_MS) return fresh.rows
 
-  const inFlight = pending.get(table)
+  const inFlight = pending.get(url)
   if (inFlight) return inFlight
 
-  const request = fetchRowsFromApi(table)
-    .then((rows) => {
-      recent.set(table, { at: Date.now(), rows })
+  const request = api.get(url)
+    .then((response) => {
+      const data = response.data.data
+      // Single-object endpoints (business_settings, owner_subscriptions).
+      const rows: Row[] = data && !Array.isArray(data) ? [data] : (data || [])
+      recent.set(url, { at: Date.now(), rows })
       return rows
     })
     .finally(() => {
-      pending.delete(table)
+      pending.delete(url)
     })
 
-  pending.set(table, request)
+  pending.set(url, request)
   return request
-}
-
-async function fetchRowsFromApi(table: string): Promise<Row[]> {
-  const config = TABLES[table]
-
-  if (config.flattenFrom) {
-    const response = await api.get(config.flattenFrom.list)
-    const parents: Row[] = response.data.data || []
-    if (config.flattenFrom.key === 'purchase_receives') {
-      return parents.flatMap((parent) =>
-        (parent.purchase_items || []).flatMap((item: Row) => item.purchase_receives || []))
-    }
-    return parents.flatMap((parent) => parent[config.flattenFrom!.key] || [])
-  }
-
-  const response = await api.get(config.list)
-  const data = response.data.data
-  // Single-object endpoints (business_settings, owner_subscriptions).
-  if (data && !Array.isArray(data)) return [data]
-  return data || []
 }
 
 async function runQuery(state: QueryState): Promise<{ data: any; error: any; count?: number }> {
@@ -153,7 +202,7 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
     if (!config) throw new Error(`Table not supported by API layer: ${state.table}`)
 
     if (state.action === 'select') {
-      let rows = applyFilters(await fetchRows(state.table), state.filters)
+      let rows = applyFilters(await fetchRows(state.table, state.filters), state.filters)
       rows = applyOrder(rows, state.orders)
       rows = applyRange(rows, state.rangeFrom, state.limitCount)
       if (state.single || state.maybe) {
@@ -213,7 +262,7 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
         return { data: state.wantsReturn ? response.data.data : null, error: null }
       }
       // Update by non-id filters: resolve ids first, then patch each.
-      const rows = applyFilters(await fetchRows(state.table), state.filters)
+      const rows = applyFilters(await fetchRows(state.table, state.filters), state.filters)
       const updated: Row[] = []
       for (const row of rows) {
         const response = await api.patch(config.update(row.id), state.payload)
@@ -227,7 +276,7 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
       const idFilter = state.filters.find((f) => f.kind === 'eq' && f.column === 'id') as { value: string } | undefined
       const ids: string[] = idFilter
         ? [idFilter.value]
-        : applyFilters(await fetchRows(state.table), state.filters).map((row) => row.id)
+        : applyFilters(await fetchRows(state.table, state.filters), state.filters).map((row) => row.id)
       for (const id of ids) {
         const recycle = consumeRecycleMeta(state.table, id)
         await api.delete(config.remove(id), recycle ? { data: { recycle } } : undefined)

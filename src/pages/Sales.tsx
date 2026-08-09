@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Plus, Save, Search, Printer, Pencil, Trash2, Image, Barcode, Filter, Truck, ChevronDown, ChevronUp, Calendar, Clipboard, Eye, EyeOff, Tag } from 'lucide-react'
 import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
@@ -332,7 +332,7 @@ export default function Sales() {
 
       if (salRes.error) throw salRes.error
 
-      await backfillSaleAccountIds(salRes.data || [], accRes.data || [])
+      resolveSaleAccountIds(salRes.data || [], accRes.data || [])
       const salesWithPayments = await attachSalePayments(salRes.data || [], accRes.data || [])
       const pickerProducts = productsForPicker(proRes.data)
       setSales(sortLatestSalesFirst(await attachSaleDeliveries(salesWithPayments)))
@@ -395,40 +395,31 @@ export default function Sales() {
     }
   }
 
-  async function backfillSaleAccountIds(salesList: any[], accountList: any[]) {
-    const updates = salesList
+  // Rows written before account_id existed carry the account as text. The
+  // database has since been backfilled once
+  // (20260809130000_backfill_sale_account_ids), so this only resolves the name
+  // in memory for anything that migration could not pair up.
+  //
+  // It used to PATCH every such row on every page load. Those writes cleared
+  // the read cache as they landed, so the payment and delivery fetches that
+  // came next re-downloaded the whole sales ledger - the page paid for its own
+  // migration, every single time it opened.
+  function resolveSaleAccountIds(salesList: any[], accountList: any[]) {
+    salesList
       .filter(sale => !sale.account_id && sale.account_name)
-      .map(sale => ({ sale, accountId: accountIdByName(sale.account_name, accountList) }))
-      .filter(item => item.accountId)
-
-    if (updates.length === 0) return
-
-    await Promise.all(updates.map(({ sale, accountId }) =>
-      supabase.from('sales').update({ account_id: accountId, account_name: '' }).eq('id', sale.id)
-    ))
-
-    updates.forEach(({ sale, accountId }) => {
-      sale.account_id = accountId
-      sale.account_name = ''
-    })
+      .forEach(sale => {
+        const accountId = accountIdByName(sale.account_name, accountList)
+        if (accountId) sale.account_id = accountId
+      })
   }
 
-  async function backfillSalePaymentAccountIds(paymentsList: any[], accountList: any[]) {
-    const updates = paymentsList
+  function resolveSalePaymentAccountIds(paymentsList: any[], accountList: any[]) {
+    paymentsList
       .filter(payment => !payment.account_id && payment.account_name)
-      .map(payment => ({ payment, accountId: accountIdByName(payment.account_name, accountList) }))
-      .filter(item => item.accountId)
-
-    if (updates.length === 0) return
-
-    await Promise.all(updates.map(({ payment, accountId }) =>
-      supabase.from('sale_payments').update({ account_id: accountId, account_name: '' }).eq('id', payment.id)
-    ))
-
-    updates.forEach(({ payment, accountId }) => {
-      payment.account_id = accountId
-      payment.account_name = ''
-    })
+      .forEach(payment => {
+        const accountId = accountIdByName(payment.account_name, accountList)
+        if (accountId) payment.account_id = accountId
+      })
   }
 
   async function attachSalePayments(salesList: any[], accountList: any[] = accounts) {
@@ -446,7 +437,7 @@ export default function Sales() {
       return mergeSalePayments(salesList, {}, fallbackPayments, accountList)
     }
 
-    await backfillSalePaymentAccountIds(data || [], accountList)
+    resolveSalePaymentAccountIds(data || [], accountList)
 
     const paymentsBySale = (data || []).reduce((map: Record<string, any[]>, payment: any) => {
       if (!payment.sale_id) return map
@@ -1579,7 +1570,10 @@ export default function Sales() {
 
   // History table search filter
   const normalizedSearch = search.toLowerCase()
-  const filteredSales = sales.filter(s =>
+  // Memoised because it is not cheap: the date test builds Date objects per
+  // sale, and without this the whole ledger was re-filtered on every render -
+  // including every keystroke in the sale form, which touches none of it.
+  const filteredSales = useMemo(() => sales.filter(s =>
     (
       !search ||
       safeLower(s.customer_name).includes(normalizedSearch) ||
@@ -1589,7 +1583,8 @@ export default function Sales() {
     ) &&
     (deliveryFilter === 'all' || deliveryStatus(s) === deliveryFilter) &&
     isSaleInLedgerDateRange(s)
-  )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [sales, search, normalizedSearch, deliveryFilter, ledgerDateFilter, customDateFrom, customDateTo, accounts])
   // Computed over EVERY filtered sale, not the rendered slice - the ledger
   // total has to cover the whole filter or it is simply wrong.
   const filteredSalesTotal = filteredSales.reduce((sum, sale) => sum + saleSubtotalAfterDiscount(sale), 0)
