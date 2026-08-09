@@ -27,6 +27,21 @@ interface PurchaseItem {
   received_qty: number
 }
 
+// SP is the incentive the supplier gives back on a purchase - the reports read
+// it as exactly that (see YearlyReport: incentive = sp_amount, deposit =
+// total_amount - sp_amount). The owner sets one percentage for the whole order
+// instead of typing a figure per row, so the amount is always derived here and
+// never typed. Every place that changes a row's total has to run through this,
+// or the percentage and the figure beside it would drift apart.
+function applySpPercent(item: PurchaseItem, percent: number): PurchaseItem {
+  const total = Number(item.total_amount || 0)
+  const pct = Number(percent) || 0
+  // total * pct / 100, rounded to two decimals - Math.round(total * pct) is the
+  // same thing with one fewer floating-point step.
+  const spAmount = Math.round(total * pct) / 100
+  return { ...item, sp_amount: spAmount, deposit_amount: Math.max(0, total - spAmount) }
+}
+
 const productListCacheKey = 'product_list_cache_v1'
 
 function readProductListCache() {
@@ -99,6 +114,9 @@ export default function PlaceOrder() {
     dp_price: 0, discount_pct: 0, actual_dp: 0, qty: 1, total_amount: 0, sp_amount: 0, deposit_amount: 0, received_qty: 0
   }])
   const [paidAmount, setPaidAmount] = useState(0)
+  // One incentive percentage for the whole order; every row's SP amount is
+  // worked out from it.
+  const [spPercent, setSpPercent] = useState(0)
   const [quickProductForm, setQuickProductForm] = useState({
     product_code: '',
     name: '',
@@ -242,7 +260,7 @@ export default function PlaceOrder() {
       await createQuickProductInventory(product.id, quickProductForm.opening_qty, quickProductForm.cost_price, quickProductForm.selling_price)
       setProducts(current => [product, ...current.filter(item => item.id !== product.id)])
       setItems(current => current.map((item, index) => index === current.length - 1 && !item.product_code
-        ? {
+        ? applySpPercent({
             ...item,
             product_id: product.id,
             product_code: product.product_code,
@@ -250,8 +268,7 @@ export default function PlaceOrder() {
             dp_price: Number(product.cost_price || 0),
             actual_dp: Number(product.cost_price || 0),
             total_amount: Number(product.cost_price || 0) * item.qty,
-            deposit_amount: Math.max(0, Number(product.cost_price || 0) * item.qty - item.sp_amount),
-          }
+          }, spPercent)
         : item
       ))
       setShowQuickAddProduct(false)
@@ -279,9 +296,15 @@ export default function PlaceOrder() {
     const item = newItems[idx]
     item.actual_dp = item.dp_price * (1 - item.discount_pct / 100)
     item.total_amount = item.actual_dp * item.qty
-    item.deposit_amount = Math.max(0, item.total_amount - item.sp_amount)
-    newItems[idx] = item
+    newItems[idx] = applySpPercent(item, spPercent)
     setItems(newItems)
+  }
+
+  // Changing the percentage re-prices the incentive on every row at once.
+  function changeSpPercent(value: number) {
+    const percent = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0
+    setSpPercent(percent)
+    setItems(current => current.map(item => applySpPercent(item, percent)))
   }
 
   const totalAmount = items.reduce((s, i) => s + i.total_amount, 0)
@@ -316,7 +339,7 @@ export default function PlaceOrder() {
     const dp = Number(product.cost_price || 0)
     const discount = Number(product.discount || 0)
     const actual = dp * (1 - discount / 100)
-    const nextItem: PurchaseItem = {
+    const nextItem: PurchaseItem = applySpPercent({
       product_id: product.id,
       product_code: product.product_code || '',
       product_name: product.name || '',
@@ -328,7 +351,7 @@ export default function PlaceOrder() {
       sp_amount: 0,
       deposit_amount: actual,
       received_qty: 0,
-    }
+    }, spPercent)
 
     setItems(current => {
       // If this product is already in the order, bump its quantity instead of
@@ -339,7 +362,7 @@ export default function PlaceOrder() {
         const ex = next[existingIndex]
         const qty = Number(ex.qty || 0) + 1
         const total = Number(ex.actual_dp || 0) * qty
-        next[existingIndex] = { ...ex, qty, total_amount: total, deposit_amount: Math.max(0, total - Number(ex.sp_amount || 0)) }
+        next[existingIndex] = applySpPercent({ ...ex, qty, total_amount: total }, spPercent)
         return next
       }
       const emptyIndex = current.findIndex(item => !item.product_code && !item.product_name)
@@ -406,6 +429,9 @@ export default function PlaceOrder() {
         account_id: '', notes: '', shipping_status: 'pending' as const,
       })
       setItems([{ product_id: '', product_code: '', product_name: '', dp_price: 0, discount_pct: 0, actual_dp: 0, qty: 1, total_amount: 0, sp_amount: 0, deposit_amount: 0, received_qty: 0 }])
+      // Clear the incentive too - a percentage left over from the last order
+      // would price the next one without anyone asking for it.
+      setSpPercent(0)
       loadAll()
     } catch (err: any) {
       console.error('Save exception:', err)
@@ -736,7 +762,7 @@ export default function PlaceOrder() {
                         <td className="px-3 py-3 text-right font-bold text-navy-800">{formatCurr(item.actual_dp)}</td>
                         <td className="px-3 py-3"><input type="number" min="1" className="input h-10 w-20 text-right text-xs" value={item.qty} onChange={e => updateItem(idx, 'qty', Number(e.target.value))} /></td>
                         <td className="px-3 py-3 text-right font-bold text-navy-800">{formatCurr(item.total_amount)}</td>
-                        <td className="px-3 py-3"><input type="number" min="0" className="input h-10 w-24 text-right text-xs" value={item.sp_amount || ''} onChange={e => updateItem(idx, 'sp_amount', Number(e.target.value))} /></td>
+                        <td className="px-3 py-3"><input type="number" readOnly tabIndex={-1} title="Set by the SP % field in the order summary" className="input h-10 w-24 cursor-not-allowed bg-slate-50 text-right text-xs text-slate-600" value={item.sp_amount || ''} /></td>
                         <td className="px-3 py-3 text-right"><input type="number" min="0" className="input h-10 w-28 text-right text-xs font-bold text-navy-800" value={item.deposit_amount || ''} onChange={e => updateItem(idx, 'deposit_amount', Number(e.target.value))} /></td>
                         <td className="px-3 py-3 text-center"><span className="rounded-md bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-600">●Pending</span></td>
                         <td className="px-3 py-3 text-center">
@@ -788,6 +814,23 @@ export default function PlaceOrder() {
               <div className="space-y-4 border-b border-slate-100 pb-4 text-sm">
                 <div className="flex justify-between"><span className="text-navy-800">Subtotal</span><span className="font-semibold text-navy-800">{formatCurr(grossSubtotal)}</span></div>
                 <div className="flex justify-between"><span className="text-navy-800">Discount</span><span className="font-semibold text-orange-600">-{formatCurr(discountAmount)}</span></div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-navy-800">SP %</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">{formatCurr(totalSpAmount)}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      className="input h-9 w-20 text-right text-sm"
+                      value={spPercent || ''}
+                      onChange={e => changeSpPercent(Number(e.target.value))}
+                      placeholder="0"
+                      title="Incentive percentage - fills the SP Amount of every item"
+                    />
+                  </div>
+                </div>
                 <div className="flex justify-between"><span className="text-navy-800">Transport Cost</span><span className="font-semibold text-navy-800">{formatCurr(0)}</span></div>
                 <div className="flex justify-between"><span className="text-navy-800">Other Charges</span><span className="font-semibold text-navy-800">{formatCurr(0)}</span></div>
               </div>
