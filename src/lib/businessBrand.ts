@@ -24,8 +24,18 @@ export function rememberBusinessName(name: string) {
 export function rememberBusinessBrand(settings: { name_en?: string | null; name_bn?: string | null; logo_url?: string | null }) {
   const name = resolveBusinessName(settings)
   const logoUrl = String(settings.logo_url || '').trim()
+  // Announce only a real change. Anything that re-reads the brand in response
+  // to these events would otherwise be told to re-read after every write of
+  // the same values, and a listener that writes back closes the circle into a
+  // loop that never settles.
+  const changed =
+    localStorage.getItem(BUSINESS_NAME_STORAGE_KEY) !== name ||
+    localStorage.getItem(BUSINESS_LOGO_STORAGE_KEY) !== logoUrl
+
   localStorage.setItem(BUSINESS_NAME_STORAGE_KEY, name)
   localStorage.setItem(BUSINESS_LOGO_STORAGE_KEY, logoUrl)
+  if (!changed) return
+
   window.dispatchEvent(new CustomEvent(BUSINESS_NAME_UPDATED_EVENT, { detail: name }))
   window.dispatchEvent(new CustomEvent(BUSINESS_BRAND_UPDATED_EVENT, { detail: { name, logoUrl } }))
 }
@@ -117,8 +127,14 @@ export function useBusinessBrand() {
     }
 
     loadBusinessBrand()
+    // Deliberately NOT listening for BUSINESS_NAME_UPDATED_EVENT here:
+    // loadBusinessBrand ends by calling rememberBusinessBrand, which fires that
+    // very event, so listening for it made this hook re-fetch its own result
+    // for as long as the page stayed open - about eight requests a second, each
+    // one re-rendering the whole layout. handleBrandChange below already keeps
+    // the sidebar in step with a Settings save, straight from the event detail
+    // and without a round trip.
     window.addEventListener(BUSINESS_BRAND_UPDATED_EVENT, handleBrandChange)
-    window.addEventListener(BUSINESS_NAME_UPDATED_EVENT, loadBusinessBrand)
     window.addEventListener('storage', handleStorageChange)
 
     const channel = supabase
@@ -129,7 +145,6 @@ export function useBusinessBrand() {
     return () => {
       cancelled = true
       window.removeEventListener(BUSINESS_BRAND_UPDATED_EVENT, handleBrandChange)
-      window.removeEventListener(BUSINESS_NAME_UPDATED_EVENT, loadBusinessBrand)
       window.removeEventListener('storage', handleStorageChange)
       supabase.removeChannel(channel)
     }
