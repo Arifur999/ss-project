@@ -50,6 +50,7 @@ const ReportSummary = lazy(() => import('./pages/reports/ReportSummary'))
 const Settings = lazy(() => import('./pages/Settings'))
 const CurrentPlan = lazy(() => import('./pages/CurrentPlan'))
 const BillingHistory = lazy(() => import('./pages/BillingHistory'))
+const SmsPackages = lazy(() => import('./pages/SmsPackages'))
 const EmployeeDashboard = lazy(() => import('./pages/employees/EmployeeDashboard'))
 const EmployeeList = lazy(() => import('./pages/employees/EmployeeList'))
 const EmployeeTransactions = lazy(() => import('./pages/employees/EmployeeTransactions'))
@@ -230,6 +231,7 @@ function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/current-plan" element={<CurrentPlan />} />
         <Route path="/package/billing-history" element={<BillingHistory />} />
+        <Route path="/package/sms" element={<SmsPackages />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

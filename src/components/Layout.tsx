@@ -141,6 +141,7 @@ export default function Layout() {
     businessNavGroups.push({
       key: 'package', label: t('nav_package', 'Package'), icon: <CreditCard size={18} />,
       children: [
+        { key: 'smsPackages', label: t('nav_sms', 'SMS'), icon: <MessageSquareText size={16} />, path: '/package/sms' },
         { key: 'billingHistory', label: t('nav_billingHistory', 'Billing History'), icon: <FileText size={16} />, path: '/package/billing-history' },
         { key: 'currentPlan', label: t('nav_plan', 'Plan'), icon: <CreditCard size={16} />, path: '/current-plan' },
       ],
