@@ -3,9 +3,9 @@ import { api, http } from '../lib/httpClient'
 
 // ---------- Team management (owner) - replaces the manage-users edge function ----------
 export const listTeamUsers = () => http.get<any[]>('/users/list')
-export const createTeamUser = (payload: { email: string; password: string; full_name: string; role: string; phone?: string }) =>
+export const createTeamUser = (payload: { email: string; password: string; full_name: string; role: string; phone?: string; avatar_url?: string }) =>
   http.post<any>('/users/create', payload)
-export const updateTeamUser = (payload: { user_id: string; role?: string; full_name?: string; phone?: string; is_active?: boolean; password?: string }) =>
+export const updateTeamUser = (payload: { user_id: string; role?: string; full_name?: string; phone?: string; is_active?: boolean; password?: string; avatar_url?: string }) =>
   http.put<any>('/users/update', payload)
 export const deleteTeamUser = (userId: string) => http.delete<any>('/users/delete', { user_id: userId })
 

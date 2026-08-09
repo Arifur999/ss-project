@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Save, Plus, Trash2, Building2, Users, CreditCard, Target, Truck, UserCog, Eye, EyeOff, ShieldCheck, ShieldX, Pencil, Camera, Crown, Briefcase, Package, Calculator, ShoppingCart, UserRoundPlus, BarChart3, Cog, Check, X, CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
+import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
@@ -661,9 +662,13 @@ export default function Settings() {
                           <tr key={u.id} className="table-row">
                             <td className="py-2.5 px-4">
                               <div className="flex items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${u.role === 'owner' ? 'bg-slate-900' : u.role === 'manager' ? 'bg-slate-600' : u.role === 'sales_staff' ? 'bg-slate-500' : 'bg-slate-400'}`}>
-                                  {(u.full_name || u.email || '?')[0].toUpperCase()}
-                                </div>
+                                {u.avatar_url ? (
+                                  <img src={u.avatar_url} alt="" loading="lazy" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                                ) : (
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${u.role === 'owner' ? 'bg-slate-900' : u.role === 'manager' ? 'bg-slate-600' : u.role === 'sales_staff' ? 'bg-slate-500' : 'bg-slate-400'}`}>
+                                    {(u.full_name || u.email || '?')[0].toUpperCase()}
+                                  </div>
+                                )}
                                 <span className="font-medium">{u.full_name || '—'}</span>
                                 {isSelf && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{t('settings_youLabel')}</span>}
                               </div>
@@ -899,6 +904,38 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
+
+  // The photo is uploaded as soon as it is picked, so the create request only
+  // ever carries a URL. Picking a second photo simply replaces the first.
+  async function handleAvatarPick(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    // Clear the input straight away, otherwise choosing the same file twice
+    // after a failed upload fires no change event at all.
+    event.target.value = ''
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file (JPG or PNG)')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be smaller than 5MB')
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const { url } = await uploadImage(file)
+      setAvatarUrl(url)
+    } catch (error: any) {
+      toast.error(error.message || 'Could not upload the photo')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const permissionGroups = [
     { title: 'Purchase', icon: <ShoppingCart size={17} />, items: ['View Purchase', 'Add Purchase', 'Edit Purchase', 'Delete Purchase', 'Purchase Book', 'Purchase Book Edit', 'Purchase Book Delete'] },
@@ -947,6 +984,8 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
     if (!form.full_name || !form.email || !form.password) return toast.error(t('common_fillAllFields'))
     if (form.password.length < 6) return toast.error(t('settings_passwordStar'))
     if (form.password !== form.confirm_password) return toast.error('Passwords do not match')
+    // Saving mid-upload would drop the photo silently.
+    if (uploadingAvatar) return toast.error('Please wait for the photo to finish uploading')
 
     setLoading(true)
     try {
@@ -956,6 +995,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
         password: form.password,
         phone: form.phone,
         role: form.role,
+        avatar_url: avatarUrl,
       })
       toast.success(t('common_added'))
       onClose()
@@ -990,11 +1030,41 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
                 <span className="text-[11px] font-semibold text-slate-400">Required fields marked *</span>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[124px_1fr]">
-                <button type="button" className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700"><Camera size={22} /></span>
-                  <span className="text-xs font-semibold">Upload Photo</span>
-                  <span className="text-[10px] text-slate-400">JPG, PNG</span>
-                </button>
+                <div>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarPick}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="flex h-36 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-wait"
+                  >
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <>
+                        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700"><Camera size={22} /></span>
+                        <span className="text-xs font-semibold">{uploadingAvatar ? 'Uploading...' : 'Upload Photo'}</span>
+                        <span className="text-[10px] text-slate-400">JPG, PNG</span>
+                      </>
+                    )}
+                  </button>
+                  {avatarUrl && (
+                    <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
+                      <button type="button" className="font-semibold text-slate-500 hover:text-slate-700" onClick={() => avatarInputRef.current?.click()}>
+                        Change
+                      </button>
+                      <button type="button" className="font-semibold text-red-500 hover:text-red-600" onClick={() => setAvatarUrl('')}>
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-3">
                   <label><span className="label">Full Name *</span><input className="input" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} placeholder="Ahmed Rahman" /></label>
                   <label><span className="label">Email *</span><input type="email" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="ahmedrahman@gmail.com" /></label>
