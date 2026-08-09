@@ -279,7 +279,12 @@ export default function YearlyReport() {
   const startLabel = `1-${monthShort(1)}-${year}`
   const endLabel = `31-${monthShort(12)}-${year}`
   const salesAchievedPct = pct(summary.actualSales, summary.salesGoal)
-  const profitAchievedPct = pct(summary.totalProfit + summary.totalOtherIncome, summary.profitGoal)
+  // What counts as profit against the yearly target: what the sales themselves
+  // made, plus the other two earnings that land in the same pocket - other
+  // income and the incentive the suppliers give back on purchases. Kept as one
+  // value so the figure on the card and the percentage under it cannot drift.
+  const profitAchieved = summary.totalProfit + summary.totalOtherIncome + summary.purchaseIncentive
+  const profitAchievedPct = pct(profitAchieved, summary.profitGoal)
   const hasYearData = rows.some(row => row.actualSales || row.purchaseOrderValue || row.expenses || row.totalProfit || row.otherIncome)
   const bestMonth = rows.reduce((best, row) => row.profitLoss > best.profitLoss ? row : best, rows[0] || null)
   const chartRows = rows.map(row => ({
@@ -297,12 +302,17 @@ export default function YearlyReport() {
     subtitle,
     progress,
     tone = 'slate',
+    valueTone,
   }: {
     title: string
     value: string
     subtitle: string
     progress?: number
     tone?: 'green' | 'red' | 'blue' | 'orange' | 'purple' | 'slate'
+    // Colours the figure itself. Left off, the figure stays near-black - only
+    // the cards where the direction of the money matters at a glance ask for
+    // it, so the row does not turn into a rainbow.
+    valueTone?: 'green' | 'red'
   }) {
     const barClass = {
       green: 'bg-brand-green',
@@ -317,7 +327,7 @@ export default function YearlyReport() {
       <div className="min-h-[148px] rounded-xl border border-slate-200 bg-white p-4 shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_28px_0_rgba(0,0,0,0.08)]">
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase leading-snug tracking-wide text-slate-500">{title}</p>
-          <p className="mt-2 text-2xl font-black leading-tight text-slate-950 tabular-nums break-words">{value}</p>
+          <p className={`mt-2 text-2xl font-black leading-tight tabular-nums break-words ${valueTone === 'green' ? 'text-brand-green' : valueTone === 'red' ? 'text-brand-red' : 'text-slate-950'}`}>{value}</p>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
         </div>
         {progress !== undefined && (
@@ -421,7 +431,7 @@ export default function YearlyReport() {
               <OverviewLine icon={<Target size={14} />} label="Sales Target" value={formatCurr(summary.salesGoal)} />
               <OverviewLine icon={<Target size={14} />} label="Profit Target" value={formatCurr(summary.profitGoal)} />
               <OverviewLine icon={<Package size={14} />} label="Total Purchase" value={formatCurr(summary.totalPurchases)} />
-              <OverviewLine icon={<WalletCards size={14} />} label="Incentive Profit" value={formatCurr(summary.purchaseIncentive)} tone="blue" />
+              <OverviewLine icon={<WalletCards size={14} />} label="Incentive Profit" value={formatCurr(summary.purchaseIncentive)} tone="green" />
               <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales" value={formatCurr(summary.actualSales)} />
               <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales Profit" value={formatCurr(summary.totalProfit)} tone="green" />
               <OverviewLine icon={<WalletCards size={14} />} label="Other Income" value={formatCurr(summary.totalOtherIncome)} tone="green" />
@@ -475,10 +485,10 @@ export default function YearlyReport() {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               <StatCard title="Sales Target And Achievements" value={formatCurr(summary.actualSales)} subtitle={`${salesAchievedPct.toFixed(1)}% of ${formatCurr(summary.salesGoal)}`} tone="blue" progress={salesAchievedPct} />
-              <StatCard title="Profit Targets And Achievements" value={formatCurr(summary.totalProfit + summary.totalOtherIncome)} subtitle={`${profitAchievedPct.toFixed(1)}% of ${formatCurr(summary.profitGoal)}`} tone="green" progress={profitAchievedPct} />
-              <StatCard title="Incentive Profit" value={formatCurr(summary.purchaseIncentive)} subtitle="Purchase incentive revenue" tone="blue" />
+              <StatCard title="Profit Targets And Achievements" value={formatCurr(profitAchieved)} subtitle={`${profitAchievedPct.toFixed(1)}% of ${formatCurr(summary.profitGoal)}`} tone="green" progress={profitAchievedPct} />
+              <StatCard title="Incentive Profit" value={formatCurr(summary.purchaseIncentive)} subtitle="Purchase incentive revenue" tone="green" valueTone="green" />
               <StatCard title="Other Income" value={formatCurr(summary.totalOtherIncome)} subtitle="Miscellaneous income records" tone="blue" />
-              <StatCard title="Total Expenses" value={formatCurr(summary.totalExpenses)} subtitle={`${pct(summary.totalExpenses, summary.actualSales).toFixed(2)}% of sales`} tone="red" />
+              <StatCard title="Total Expenses" value={formatCurr(summary.totalExpenses)} subtitle={`${pct(summary.totalExpenses, summary.actualSales).toFixed(2)}% of sales`} tone="red" valueTone="red" />
               <StatCard title="Profit / Loss" value={formatCurr(summary.profitLoss)} subtitle={`${summary.profitMargin.toFixed(2)}% net profit margin`} tone={summary.profitLoss >= 0 ? 'green' : 'red'} />
             </div>
 
