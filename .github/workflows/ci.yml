@@ -94,6 +94,6 @@ jobs:
       # (Not localhost: port 80 there only redirects now.)
       - name: Verify the site answers
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" https://cosmeticdentalbranding.com/)
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://furnify.softech.agency/)
           if [ "$code" != "200" ]; then echo "Site returned HTTP $code"; exit 1; fi
           echo "Site is up (HTTP $code)"
