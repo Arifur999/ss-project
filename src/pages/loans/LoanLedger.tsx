@@ -114,10 +114,10 @@ export default function LoanLedger() {
       <PageHeader title="Loan Ledger" subtitle="Complete statement by bank/person" />
 
       <div className="w-full max-w-sm mb-6">
-        <label className="label">Select Bank / Person</label>
+        <label className="label" htmlFor="loan-ledger-f1">Select Bank / Person</label>
         <div ref={lenderBoxRef} className="relative">
           <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={17} />
-          <input
+          <input id="loan-ledger-f1"
             type="text"
             className="input h-10 pl-10 pr-20"
             value={lenderSearch}

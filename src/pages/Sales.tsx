@@ -2116,10 +2116,10 @@ export default function Sales() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
-                  <label className="label">Customer *</label>
+                  <label className="label" htmlFor="sales-f1">Customer *</label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <input
+                      <input id="sales-f1"
                         type="text"
                         className="input"
                         value={customerSearch || form.customer_name}
@@ -2172,8 +2172,8 @@ export default function Sales() {
                 </div>
 
                 <div>
-                  <label className="label">Customer Name</label>
-                  <input
+                  <label className="label" htmlFor="sales-f2">Customer Name</label>
+                  <input id="sales-f2"
                     type="text"
                     className="input"
                     value={form.customer_name}
@@ -2185,8 +2185,8 @@ export default function Sales() {
                   />
                 </div>
                 <div>
-                  <label className="label">Customer Phone</label>
-                  <input
+                  <label className="label" htmlFor="sales-f3">Customer Phone</label>
+                  <input id="sales-f3"
                     type="text"
                     inputMode="numeric"
                     className={`input ${form.customer_phone && !isValidBdPhone(form.customer_phone) ? 'border-red-500 focus:ring-red-500' : ''}`}
@@ -2202,8 +2202,8 @@ export default function Sales() {
                   )}
                 </div>
                 <div>
-                  <label className="label">Customer Address</label>
-                  <input
+                  <label className="label" htmlFor="sales-f4">Customer Address</label>
+                  <input id="sales-f4"
                     type="text"
                     className="input"
                     value={form.customer_address}
@@ -2213,8 +2213,8 @@ export default function Sales() {
                 </div>
 
                 <div>
-                  <label className="label">Invoice No</label>
-                  <input
+                  <label className="label" htmlFor="sales-f5">Invoice No</label>
+                  <input id="sales-f5"
                     type="text"
                     className="input bg-slate-50 text-slate-500 font-mono cursor-not-allowed"
                     value={form.invoice_no}
@@ -2223,8 +2223,8 @@ export default function Sales() {
                 </div>
 
                 <div>
-                  <label className="label">Date</label>
-                  <input
+                  <label className="label" htmlFor="sales-f6">Date</label>
+                  <input id="sales-f6"
                     type="date"
                     className="input"
                     value={form.date}
@@ -2931,8 +2931,8 @@ export default function Sales() {
             </div>
 
             <div>
-              <label className="label">Delivery Date</label>
-              <input
+              <label className="label" htmlFor="sales-f7">Delivery Date</label>
+              <input id="sales-f7"
                 type="date"
                 className="input"
                 value={deliveryForm.delivery_date}
@@ -2941,8 +2941,8 @@ export default function Sales() {
             </div>
 
             <div>
-              <label className="label">Delivered Quantity</label>
-              <input
+              <label className="label" htmlFor="sales-f8">Delivered Quantity</label>
+              <input id="sales-f8"
                 type="number"
                 min="1"
                 max={pendingQty(deliveryItem)}
@@ -2954,8 +2954,8 @@ export default function Sales() {
             </div>
 
             <div>
-              <label className="label">Delivered By</label>
-              <input
+              <label className="label" htmlFor="sales-f9">Delivered By</label>
+              <input id="sales-f9"
                 className="input"
                 value={deliveryForm.delivered_by}
                 onChange={e => setDeliveryForm({ ...deliveryForm, delivered_by: e.target.value })}
@@ -2964,8 +2964,8 @@ export default function Sales() {
             </div>
 
             <div>
-              <label className="label">Notes</label>
-              <textarea
+              <label className="label" htmlFor="sales-f10">Notes</label>
+              <textarea id="sales-f10"
                 className="input"
                 rows={2}
                 value={deliveryForm.notes}
@@ -2994,8 +2994,8 @@ export default function Sales() {
       >
         <form className="space-y-4" onSubmit={handleAddCustomer} noValidate>
           <div>
-            <label className="label">Customer Name *</label>
-            <input
+            <label className="label" htmlFor="sales-f11">Customer Name *</label>
+            <input id="sales-f11"
               type="text"
               className={quickCustomerInputClass('name')}
               value={quickCustomerForm.name}
@@ -3010,8 +3010,8 @@ export default function Sales() {
             {quickCustomerErrors.name && <p className="mt-1 text-xs font-medium text-red-600">{quickCustomerErrors.name}</p>}
           </div>
           <div>
-            <label className="label">Phone Number *</label>
-            <input
+            <label className="label" htmlFor="sales-f12">Phone Number *</label>
+            <input id="sales-f12"
               type="text"
               className={quickCustomerInputClass('phone')}
               value={quickCustomerForm.phone}
@@ -3026,8 +3026,8 @@ export default function Sales() {
             {quickCustomerErrors.phone && <p className="mt-1 text-xs font-medium text-red-600">{quickCustomerErrors.phone}</p>}
           </div>
           <div>
-            <label className="label">Address</label>
-            <textarea
+            <label className="label" htmlFor="sales-f13">Address</label>
+            <textarea id="sales-f13"
               className="input h-16"
               value={quickCustomerForm.address}
               onChange={e => setQuickCustomerForm({ ...quickCustomerForm, address: e.target.value })}
@@ -3060,8 +3060,8 @@ export default function Sales() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Code *</label>
-              <input
+              <label className="label" htmlFor="sales-f14">Code *</label>
+              <input id="sales-f14"
                 type="text"
                 className="input"
                 value={quickProductForm.product_code}
@@ -3070,8 +3070,8 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="label">Product Name *</label>
-              <input
+              <label className="label" htmlFor="sales-f15">Product Name *</label>
+              <input id="sales-f15"
                 type="text"
                 className="input"
                 value={quickProductForm.name}
@@ -3082,8 +3082,8 @@ export default function Sales() {
           </div>
 
           <div>
-            <label className="label">Image Link</label>
-            <input
+            <label className="label" htmlFor="sales-f16">Image Link</label>
+            <input id="sales-f16"
               type="url"
               className="input"
               value={quickProductForm.image_url}
@@ -3102,8 +3102,8 @@ export default function Sales() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Supplier *</label>
-              <select
+              <label className="label" htmlFor="sales-f17">Supplier *</label>
+              <select id="sales-f17"
                 className="input"
                 value={quickProductForm.supplier_id}
                 onChange={e => setQuickProductForm({ ...quickProductForm, supplier_id: e.target.value })}
@@ -3117,8 +3117,8 @@ export default function Sales() {
               </select>
             </div>
             <div>
-              <label className="label">Category</label>
-              <input
+              <label className="label" htmlFor="sales-f18">Category</label>
+              <input id="sales-f18"
                 type="text"
                 className="input"
                 value={quickProductForm.category}
@@ -3130,8 +3130,8 @@ export default function Sales() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">DP Rate (Cost)</label>
-              <input
+              <label className="label" htmlFor="sales-f19">DP Rate (Cost)</label>
+              <input id="sales-f19"
                 type="number"
                 min="0"
                 step="0.01"
@@ -3142,8 +3142,8 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="label">DP Discount (%)</label>
-              <input
+              <label className="label" htmlFor="sales-f20">DP Discount (%)</label>
+              <input id="sales-f20"
                 type="number"
                 min="0"
                 max="100"
@@ -3155,8 +3155,8 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="label">MRP (Selling)</label>
-              <input
+              <label className="label" htmlFor="sales-f21">MRP (Selling)</label>
+              <input id="sales-f21"
                 type="number"
                 min="0"
                 step="0.01"
@@ -3167,8 +3167,8 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="label">MRP Discount (%)</label>
-              <input
+              <label className="label" htmlFor="sales-f22">MRP Discount (%)</label>
+              <input id="sales-f22"
                 type="number"
                 min="0"
                 max="100"
@@ -3183,8 +3183,8 @@ export default function Sales() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Opening Qty</label>
-              <input
+              <label className="label" htmlFor="sales-f23">Opening Qty</label>
+              <input id="sales-f23"
                 type="number"
                 min="0"
                 className="input"
@@ -3194,8 +3194,8 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="label">Size</label>
-              <input
+              <label className="label" htmlFor="sales-f24">Size</label>
+              <input id="sales-f24"
                 type="text"
                 className="input"
                 value={quickProductForm.size}
@@ -3204,8 +3204,8 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="label">Weight</label>
-              <input
+              <label className="label" htmlFor="sales-f25">Weight</label>
+              <input id="sales-f25"
                 type="text"
                 className="input"
                 value={quickProductForm.weight}

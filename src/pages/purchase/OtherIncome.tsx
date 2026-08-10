@@ -359,44 +359,44 @@ export default function OtherIncome() {
         <div className="grid gap-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="label">Date <span className="text-brand-red">*</span></label>
-              <input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              <label className="label" htmlFor="other-income-f1">Date <span className="text-brand-red">*</span></label>
+              <input id="other-income-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
             </div>
             <div>
-              <label className="label">Type <span className="text-brand-red">*</span></label>
-              <select className="input" value={form.income_type} onChange={e => setForm({ ...form, income_type: e.target.value as IncomeType, supplier_id: '', source_name: '' })}>
+              <label className="label" htmlFor="other-income-f2">Type <span className="text-brand-red">*</span></label>
+              <select id="other-income-f2" className="input" value={form.income_type} onChange={e => setForm({ ...form, income_type: e.target.value as IncomeType, supplier_id: '', source_name: '' })}>
                 <option value="supplier">Supplier</option>
                 <option value="other">Others</option>
               </select>
             </div>
             {form.income_type === 'supplier' ? (
               <div>
-                <label className="label">Supplier <span className="text-brand-red">*</span></label>
-                <select className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
+                <label className="label" htmlFor="other-income-f3">Supplier <span className="text-brand-red">*</span></label>
+                <select id="other-income-f3" className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
                   <option value="">Select Supplier</option>
                   {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                 </select>
               </div>
             ) : (
               <div>
-                <label className="label">Source <span className="text-brand-red">*</span></label>
-                <input className="input" value={form.source_name} onChange={e => setForm({ ...form, source_name: e.target.value })} placeholder="Enter income source" />
+                <label className="label" htmlFor="other-income-f4">Source <span className="text-brand-red">*</span></label>
+                <input id="other-income-f4" className="input" value={form.source_name} onChange={e => setForm({ ...form, source_name: e.target.value })} placeholder="Enter income source" />
               </div>
             )}
             <div>
-              <label className="label">Amount <span className="text-brand-red">*</span></label>
-              <input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} placeholder="Enter amount" />
+              <label className="label" htmlFor="other-income-f5">Amount <span className="text-brand-red">*</span></label>
+              <input id="other-income-f5" type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} placeholder="Enter amount" />
             </div>
             <div className="md:col-span-2">
-              <label className="label">Receiving Account <span className="text-brand-red">*</span></label>
-              <select className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
+              <label className="label" htmlFor="other-income-f6">Receiving Account <span className="text-brand-red">*</span></label>
+              <select id="other-income-f6" className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
                 <option value="">Select Account</option>
                 {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="label">Notes</label>
-              <textarea className="input min-h-[92px]" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Enter notes (optional)" />
+              <label className="label" htmlFor="other-income-f7">Notes</label>
+              <textarea id="other-income-f7" className="input min-h-[92px]" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Enter notes (optional)" />
             </div>
           </div>
         </div>

@@ -1578,8 +1578,8 @@ export default function ProductList() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Code *</label>
-              <input
+              <label className="label" htmlFor="product-list-f1">Code *</label>
+              <input id="product-list-f1"
                 type="text"
                 className="input"
                 value={form.product_code}
@@ -1588,8 +1588,8 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">Product Name *</label>
-              <input
+              <label className="label" htmlFor="product-list-f2">Product Name *</label>
+              <input id="product-list-f2"
                 type="text"
                 className="input"
                 value={form.name}
@@ -1600,8 +1600,8 @@ export default function ProductList() {
           </div>
 
           <div>
-            <label className="label">Image Link</label>
-            <input
+            <label className="label" htmlFor="product-list-f3">Image Link</label>
+            <input id="product-list-f3"
               type="url"
               className="input"
               value={form.image_url}
@@ -1615,8 +1615,8 @@ export default function ProductList() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Supplier *</label>
-              <select
+              <label className="label" htmlFor="product-list-f4">Supplier *</label>
+              <select id="product-list-f4"
                 className="input"
                 value={form.supplier_id}
                 onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
@@ -1630,10 +1630,10 @@ export default function ProductList() {
               </select>
             </div>
             <div>
-              <label className="label">Category</label>
+              <label className="label" htmlFor="product-list-f5">Category</label>
               {/* Free-text with suggestions: existing categories show up in the
                   dropdown, and typing a brand-new one just adds it. */}
-              <input
+              <input id="product-list-f5"
                 type="text"
                 className="input"
                 list="product-category-options"
@@ -1655,8 +1655,8 @@ export default function ProductList() {
               "Actual DP" and "Actual MRP". */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">DP Rate (Cost)</label>
-              <input
+              <label className="label" htmlFor="product-list-f6">DP Rate (Cost)</label>
+              <input id="product-list-f6"
                 type="number"
                 min="0"
                 step="0.01"
@@ -1667,8 +1667,8 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">DP Discount (%)</label>
-              <input
+              <label className="label" htmlFor="product-list-f7">DP Discount (%)</label>
+              <input id="product-list-f7"
                 type="number"
                 min="0"
                 max="100"
@@ -1680,8 +1680,8 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">Final DP</label>
-              <input
+              <label className="label" htmlFor="product-list-f8">Final DP</label>
+              <input id="product-list-f8"
                 type="text"
                 readOnly
                 tabIndex={-1}
@@ -1691,8 +1691,8 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">MRP (Selling)</label>
-              <input
+              <label className="label" htmlFor="product-list-f9">MRP (Selling)</label>
+              <input id="product-list-f9"
                 type="number"
                 min="0"
                 step="0.01"
@@ -1703,8 +1703,8 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">MRP Discount (%)</label>
-              <input
+              <label className="label" htmlFor="product-list-f10">MRP Discount (%)</label>
+              <input id="product-list-f10"
                 type="number"
                 min="0"
                 max="100"
@@ -1716,8 +1716,8 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">Final Selling MRP</label>
-              <input
+              <label className="label" htmlFor="product-list-f11">Final Selling MRP</label>
+              <input id="product-list-f11"
                 type="text"
                 readOnly
                 tabIndex={-1}
@@ -1730,8 +1730,8 @@ export default function ProductList() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Opening Qty</label>
-              <input
+              <label className="label" htmlFor="product-list-f12">Opening Qty</label>
+              <input id="product-list-f12"
                 type="number"
                 min="0"
                 className="input"
@@ -1741,12 +1741,12 @@ export default function ProductList() {
               />
             </div>
             <div>
-              <label className="label">Size</label>
-              <input type="text" className="input" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} placeholder="e.g., 45x50cm" />
+              <label className="label" htmlFor="product-list-f13">Size</label>
+              <input id="product-list-f13" type="text" className="input" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} placeholder="e.g., 45x50cm" />
             </div>
             <div>
-              <label className="label">Weight</label>
-              <input type="text" className="input" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="e.g., 5kg" />
+              <label className="label" htmlFor="product-list-f14">Weight</label>
+              <input id="product-list-f14" type="text" className="input" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="e.g., 5kg" />
             </div>
           </div>
 

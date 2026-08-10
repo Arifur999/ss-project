@@ -252,17 +252,17 @@ export default function SuperAdminSms() {
             </div>
             <div className="space-y-3 p-5">
               <div>
-                <label className="label">Package name</label>
-                <input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Starter Pack" />
+                <label className="label" htmlFor="super-admin-sms-f1">Package name</label>
+                <input id="super-admin-sms-f1" className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Starter Pack" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">SMS count</label>
-                  <input className="input" type="number" value={form.sms_count} onChange={e => setForm({ ...form, sms_count: e.target.value })} placeholder="500" />
+                  <label className="label" htmlFor="super-admin-sms-f2">SMS count</label>
+                  <input id="super-admin-sms-f2" className="input" type="number" value={form.sms_count} onChange={e => setForm({ ...form, sms_count: e.target.value })} placeholder="500" />
                 </div>
                 <div>
-                  <label className="label">Price (Tk)</label>
-                  <input className="input" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="400" />
+                  <label className="label" htmlFor="super-admin-sms-f3">Price (Tk)</label>
+                  <input id="super-admin-sms-f3" className="input" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="400" />
                 </div>
               </div>
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700">

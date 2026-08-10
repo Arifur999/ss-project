@@ -309,8 +309,8 @@ export default function LoanDashboard() {
             </div>
             <div className="space-y-3 p-5">
               <div>
-                <label className="label">Template</label>
-                <select
+                <label className="label" htmlFor="loan-dashboard-f1">Template</label>
+                <select id="loan-dashboard-f1"
                   className="input"
                   value={smsTemplateName}
                   onChange={e => {
@@ -328,8 +328,8 @@ export default function LoanDashboard() {
                 )}
               </div>
               <div>
-                <label className="label">Message</label>
-                <textarea className="input min-h-[120px] resize-none leading-6" value={smsMessage} onChange={e => setSmsMessage(e.target.value)} placeholder="Type your SMS message..." />
+                <label className="label" htmlFor="loan-dashboard-f2">Message</label>
+                <textarea id="loan-dashboard-f2" className="input min-h-[120px] resize-none leading-6" value={smsMessage} onChange={e => setSmsMessage(e.target.value)} placeholder="Type your SMS message..." />
               </div>
               {smsTargets.length > 1 && (
                 <p className="text-xs text-slate-500">Sending to: {smsTargets.slice(0, 6).map(t => t.name).join(', ')}{smsTargets.length > 6 ? ` +${smsTargets.length - 6} more` : ''}</p>

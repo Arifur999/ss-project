@@ -423,9 +423,9 @@ export default function CustomerList() {
             />
             {errors.phone && <p className="mt-1 text-xs font-medium text-red-600">{errors.phone}</p>}
           </div>
-          <div><label className="label">{t('common_email')}</label><input className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-          <div><label className="label">{t('common_address')}</label><textarea className="input" rows={2} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
-          <div><label className="label">{t('customers_openingDue')}</label><input type="number" min="0" className="input" value={form.opening_due || ''} onChange={e => setForm({ ...form, opening_due: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="customer-list-f1">{t('common_email')}</label><input id="customer-list-f1" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+          <div><label className="label" htmlFor="customer-list-f2">{t('common_address')}</label><textarea id="customer-list-f2" className="input" rows={2} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+          <div><label className="label" htmlFor="customer-list-f3">{t('customers_openingDue')}</label><input id="customer-list-f3" type="number" min="0" className="input" value={form.opening_due || ''} onChange={e => setForm({ ...form, opening_due: Number(e.target.value) })} /></div>
           <div className="flex gap-2 pt-2">
             <button type="submit" className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_save')}</button>
             <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

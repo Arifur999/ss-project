@@ -185,10 +185,10 @@ export default function SuperAdminManageOwners() {
               This permanently deletes <b>all</b> of this owner's data — products, sales, purchases, customers, suppliers, accounts, expenses, employees, loans — and gives them a clean, fresh start.
               Their account and <b>active plan stay exactly as-is</b>. This cannot be undone.
             </div>
-            <label className="label">Enter the owner's password to confirm</label>
+            <label className="label" htmlFor="super-admin-manage-owners-f1">Enter the owner's password to confirm</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
+              <input id="super-admin-manage-owners-f1"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}

@@ -169,7 +169,7 @@ export default function Adjustments() {
 
       <Modal isOpen={showModal} onClose={closeModal} title={editingRecord ? 'Edit Transfer' : t('adjustments_newTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="adjustments-f1">{t('common_date')}</label><input id="adjustments-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
             <label className="label">{t('adjustments_fromAccount')}</label>
             <SearchableSelect
@@ -188,8 +188,8 @@ export default function Adjustments() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('adjustments_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
-          <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="adjustments-f2">{t('adjustments_amountLabel')}</label><input id="adjustments-f2" type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="adjustments-f3">{t('common_note')}</label><textarea id="adjustments-f3" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {editingRecord ? t('common_update', 'Update') : t('common_save')}</button>
             <button onClick={closeModal} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

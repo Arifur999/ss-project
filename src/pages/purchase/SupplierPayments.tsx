@@ -394,10 +394,10 @@ export default function SupplierPayments() {
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm() }} title={editingId ? 'Edit Supplier Payment' : t('supplierPayments_newTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="supplier-payments-f1">{t('common_date')}</label><input id="supplier-payments-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
-            <label className="label">{t('common_supplier')}</label>
-            <select className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
+            <label className="label" htmlFor="supplier-payments-f2">{t('common_supplier')}</label>
+            <select id="supplier-payments-f2" className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
               <option value="">{t('common_select')}</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -415,8 +415,8 @@ export default function SupplierPayments() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('supplierPayments_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
-          <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="supplier-payments-f3">{t('supplierPayments_amountLabel')}</label><input id="supplier-payments-f3" type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="supplier-payments-f4">{t('common_note')}</label><textarea id="supplier-payments-f4" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {editingId ? 'Update' : t('common_save')}</button>
             <button onClick={() => { setShowModal(false); resetForm() }} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

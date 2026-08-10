@@ -442,8 +442,8 @@ export default function LoanTransactions() {
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? 'Edit Loan Transaction' : 'New Loan Transaction'}>
         <form className="space-y-3" onSubmit={event => { event.preventDefault(); save() }} noValidate>
           <div>
-            <label className="label">{requiredLabel('Transaction Type')}</label>
-            <select
+            <label className="label" htmlFor="loan-transactions-f1">{requiredLabel('Transaction Type')}</label>
+            <select id="loan-transactions-f1"
               className={inputClass('transaction_type')}
               value={form.transaction_type}
               required
@@ -459,8 +459,8 @@ export default function LoanTransactions() {
             {errors.transaction_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.transaction_type}</p>}
           </div>
           <div>
-            <label className="label">{requiredLabel('Date')}</label>
-            <input
+            <label className="label" htmlFor="loan-transactions-f2">{requiredLabel('Date')}</label>
+            <input id="loan-transactions-f2"
               type="date"
               className={inputClass('date')}
               value={form.date}
@@ -500,8 +500,8 @@ export default function LoanTransactions() {
             {errors.lender_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_id}</p>}
           </div>
           <div>
-            <label className="label">{requiredLabel('Amount')}</label>
-            <input
+            <label className="label" htmlFor="loan-transactions-f3">{requiredLabel('Amount')}</label>
+            <input id="loan-transactions-f3"
               type="number"
               min="0"
               className={inputClass('amount')}
@@ -515,7 +515,7 @@ export default function LoanTransactions() {
             />
             {errors.amount && <p className="mt-1 text-xs font-medium text-red-600">{errors.amount}</p>}
           </div>
-          <div><label className="label">Notes</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="loan-transactions-f4">Notes</label><textarea id="loan-transactions-f4" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button type="submit" className="btn-primary flex-1 justify-center"><Save size={16} /> {editingId ? 'Update' : 'Save'}</button>
             <button type="button" onClick={resetForm} className="btn-secondary flex-1 justify-center">Cancel</button>

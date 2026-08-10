@@ -163,12 +163,12 @@ export default function SuperAdminChurned() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="label">Subject</label>
-                <input className="input" value={subject} onChange={e => setSubject(e.target.value)} />
+                <label className="label" htmlFor="super-admin-churned-f1">Subject</label>
+                <input id="super-admin-churned-f1" className="input" value={subject} onChange={e => setSubject(e.target.value)} />
               </div>
               <div>
-                <label className="label">Message</label>
-                <textarea className="input min-h-[180px] resize-y" value={message} onChange={e => setMessage(e.target.value)} />
+                <label className="label" htmlFor="super-admin-churned-f2">Message</label>
+                <textarea id="super-admin-churned-f2" className="input min-h-[180px] resize-y" value={message} onChange={e => setMessage(e.target.value)} />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">

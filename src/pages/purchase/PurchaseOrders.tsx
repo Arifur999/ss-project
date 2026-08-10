@@ -1123,11 +1123,11 @@ export default function PlaceOrder() {
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={t('purchase_newOrder')} size="xl">
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
-            <div><label className="label">SI No</label><input className="input font-mono" value={form.si_no} onChange={e => setForm({ ...form, si_no: e.target.value })} /></div>
-            <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+            <div><label className="label" htmlFor="purchase-orders-f1">SI No</label><input id="purchase-orders-f1" className="input font-mono" value={form.si_no} onChange={e => setForm({ ...form, si_no: e.target.value })} /></div>
+            <div><label className="label" htmlFor="purchase-orders-f2">{t('common_date')}</label><input id="purchase-orders-f2" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
             <div>
-              <label className="label">{t('common_supplier')}</label>
-              <select className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
+              <label className="label" htmlFor="purchase-orders-f3">{t('common_supplier')}</label>
+              <select id="purchase-orders-f3" className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
                 <option value="">{t('purchase_selectSupplier')}</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -1207,7 +1207,7 @@ export default function PlaceOrder() {
               <div className="flex justify-between"><span className="text-slate-500">{t('purchase_totalActualDeposit')}</span><span className="text-brand-green font-semibold">{formatCurr(items.reduce((s, i) => s + i.deposit_amount, 0))}</span></div>
             </div>
           </div>
-          <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="purchase-orders-f4">{t('common_note')}</label><textarea id="purchase-orders-f4" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_submit')}</button>
             <button onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
@@ -1224,8 +1224,8 @@ export default function PlaceOrder() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Code *</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f5">Code *</label>
+              <input id="purchase-orders-f5"
                 type="text"
                 className="input"
                 value={quickProductForm.product_code}
@@ -1234,8 +1234,8 @@ export default function PlaceOrder() {
               />
             </div>
             <div>
-              <label className="label">Product Name *</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f6">Product Name *</label>
+              <input id="purchase-orders-f6"
                 type="text"
                 className="input"
                 value={quickProductForm.name}
@@ -1246,8 +1246,8 @@ export default function PlaceOrder() {
           </div>
 
           <div>
-            <label className="label">Image Link</label>
-            <input
+            <label className="label" htmlFor="purchase-orders-f7">Image Link</label>
+            <input id="purchase-orders-f7"
               type="url"
               className="input"
               value={quickProductForm.image_url}
@@ -1265,8 +1265,8 @@ export default function PlaceOrder() {
           </div>
 
           <div>
-            <label className="label">Supplier *</label>
-            <select
+            <label className="label" htmlFor="purchase-orders-f8">Supplier *</label>
+            <select id="purchase-orders-f8"
               className="input"
               value={quickProductForm.supplier_id}
               onChange={e => setQuickProductForm({ ...quickProductForm, supplier_id: e.target.value })}
@@ -1282,8 +1282,8 @@ export default function PlaceOrder() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">DP Rate (Cost)</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f9">DP Rate (Cost)</label>
+              <input id="purchase-orders-f9"
                 type="number"
                 min="0"
                 step="0.01"
@@ -1294,8 +1294,8 @@ export default function PlaceOrder() {
               />
             </div>
             <div>
-              <label className="label">Discount</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f10">Discount</label>
+              <input id="purchase-orders-f10"
                 type="number"
                 min="0"
                 step="0.01"
@@ -1306,8 +1306,8 @@ export default function PlaceOrder() {
               />
             </div>
             <div>
-              <label className="label">MRP (Selling)</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f11">MRP (Selling)</label>
+              <input id="purchase-orders-f11"
                 type="number"
                 min="0"
                 step="0.01"
@@ -1321,8 +1321,8 @@ export default function PlaceOrder() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Opening Qty</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f12">Opening Qty</label>
+              <input id="purchase-orders-f12"
                 type="number"
                 min="0"
                 className="input"
@@ -1332,8 +1332,8 @@ export default function PlaceOrder() {
               />
             </div>
             <div>
-              <label className="label">Size</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f13">Size</label>
+              <input id="purchase-orders-f13"
                 type="text"
                 className="input"
                 value={quickProductForm.size}
@@ -1342,8 +1342,8 @@ export default function PlaceOrder() {
               />
             </div>
             <div>
-              <label className="label">Weight</label>
-              <input
+              <label className="label" htmlFor="purchase-orders-f14">Weight</label>
+              <input id="purchase-orders-f14"
                 type="text"
                 className="input"
                 value={quickProductForm.weight}
@@ -1377,18 +1377,18 @@ export default function PlaceOrder() {
               <p className="font-medium">{receiveItem.product_name}</p>
               <p className="text-slate-500 text-xs">{t('purchase_orderQty')} {receiveItem.qty} | {t('purchase_receivedQty')} {receiveItem.received_qty || 0}</p>
             </div>
-            <div><label className="label">{t('purchase_receiveDate')}</label><input type="date" className="input" value={receiveForm.receive_date} onChange={e => setReceiveForm({ ...receiveForm, receive_date: e.target.value })} /></div>
-            <div><label className="label">{t('purchase_receiverName')}</label><input className="input" value={receiveForm.receiver_name} onChange={e => setReceiveForm({ ...receiveForm, receiver_name: e.target.value })} /></div>
-            <div><label className="label">{t('purchase_receivedQuantity')}</label><input type="number" min="1" max={receiveItem.qty - (receiveItem.received_qty || 0)} className="input" value={receiveForm.received_qty || ''} onChange={e => setReceiveForm({ ...receiveForm, received_qty: Number(e.target.value) })} /></div>
+            <div><label className="label" htmlFor="purchase-orders-f15">{t('purchase_receiveDate')}</label><input id="purchase-orders-f15" type="date" className="input" value={receiveForm.receive_date} onChange={e => setReceiveForm({ ...receiveForm, receive_date: e.target.value })} /></div>
+            <div><label className="label" htmlFor="purchase-orders-f16">{t('purchase_receiverName')}</label><input id="purchase-orders-f16" className="input" value={receiveForm.receiver_name} onChange={e => setReceiveForm({ ...receiveForm, receiver_name: e.target.value })} /></div>
+            <div><label className="label" htmlFor="purchase-orders-f17">{t('purchase_receivedQuantity')}</label><input id="purchase-orders-f17" type="number" min="1" max={receiveItem.qty - (receiveItem.received_qty || 0)} className="input" value={receiveForm.received_qty || ''} onChange={e => setReceiveForm({ ...receiveForm, received_qty: Number(e.target.value) })} /></div>
             <div>
-              <label className="label">{t('purchase_condition')}</label>
-              <select className="input" value={receiveForm.condition} onChange={e => setReceiveForm({ ...receiveForm, condition: e.target.value })}>
+              <label className="label" htmlFor="purchase-orders-f18">{t('purchase_condition')}</label>
+              <select id="purchase-orders-f18" className="input" value={receiveForm.condition} onChange={e => setReceiveForm({ ...receiveForm, condition: e.target.value })}>
                 <option value="good">{t('purchase_conditionGood')}</option>
                 <option value="damaged">{t('purchase_conditionDamaged')}</option>
                 <option value="partial">{t('purchase_conditionPartial')}</option>
               </select>
             </div>
-            <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={receiveForm.notes} onChange={e => setReceiveForm({ ...receiveForm, notes: e.target.value })} /></div>
+            <div><label className="label" htmlFor="purchase-orders-f19">{t('common_note')}</label><textarea id="purchase-orders-f19" className="input" rows={2} value={receiveForm.notes} onChange={e => setReceiveForm({ ...receiveForm, notes: e.target.value })} /></div>
             <div className="flex gap-2 pt-2">
               <button onClick={saveReceive} className="btn-primary flex-1 justify-center"><Truck size={16} /> {t('purchase_confirmReceive')}</button>
               <button onClick={() => setShowReceiveModal(false)} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
@@ -1400,8 +1400,8 @@ export default function PlaceOrder() {
       <Modal isOpen={showEditReceiveModal} onClose={() => setShowEditReceiveModal(false)} title="Edit Receiving" size="sm">
         <div className="space-y-4">
           <div>
-            <label className="label">Received Quantity</label>
-            <input
+            <label className="label" htmlFor="purchase-orders-f20">Received Quantity</label>
+            <input id="purchase-orders-f20"
               type="number"
               min="0"
               value={editReceiveQty}
@@ -1419,8 +1419,8 @@ export default function PlaceOrder() {
       <Modal isOpen={showEditPOModal} onClose={() => setShowEditPOModal(false)} title="Edit Purchase Order" size="sm">
         <div className="space-y-4">
           <div>
-            <label className="label">SI No</label>
-            <input
+            <label className="label" htmlFor="purchase-orders-f21">SI No</label>
+            <input id="purchase-orders-f21"
               type="text"
               value={editPOForm.si_no}
               onChange={e => setEditPOForm({ ...editPOForm, si_no: e.target.value })}
@@ -1428,8 +1428,8 @@ export default function PlaceOrder() {
             />
           </div>
           <div>
-            <label className="label">Date</label>
-            <input
+            <label className="label" htmlFor="purchase-orders-f22">Date</label>
+            <input id="purchase-orders-f22"
               type="date"
               value={editPOForm.date}
               onChange={e => setEditPOForm({ ...editPOForm, date: e.target.value })}
@@ -1437,8 +1437,8 @@ export default function PlaceOrder() {
             />
           </div>
           <div>
-            <label className="label">Supplier</label>
-            <select
+            <label className="label" htmlFor="purchase-orders-f23">Supplier</label>
+            <select id="purchase-orders-f23"
               value={editPOForm.supplier_id}
               onChange={e => setEditPOForm({ ...editPOForm, supplier_id: e.target.value })}
               className="input"

@@ -113,25 +113,25 @@ export default function Loans() {
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={t('loans_newTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-          <div><label className="label">{t('loans_lenderName')}</label><input className="input" value={form.lender_name} onChange={e => setForm({ ...form, lender_name: e.target.value })} /></div>
+          <div><label className="label" htmlFor="loans-f1">{t('common_date')}</label><input id="loans-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="loans-f2">{t('loans_lenderName')}</label><input id="loans-f2" className="input" value={form.lender_name} onChange={e => setForm({ ...form, lender_name: e.target.value })} /></div>
           <div>
-            <label className="label">{t('loans_loanType')}</label>
-            <select className="input" value={form.loan_type} onChange={e => setForm({ ...form, loan_type: e.target.value })}>
+            <label className="label" htmlFor="loans-f3">{t('loans_loanType')}</label>
+            <select id="loans-f3" className="input" value={form.loan_type} onChange={e => setForm({ ...form, loan_type: e.target.value })}>
               <option value="personal">{t('loans_typePersonal')}</option>
               <option value="bank">{t('loans_typeBank')}</option>
             </select>
           </div>
-          <div><label className="label">{t('loans_receivedAmount')}</label><input type="number" min="0" className="input" value={form.received_amount || ''} onChange={e => setForm({ ...form, received_amount: Number(e.target.value) })} /></div>
-          <div><label className="label">{t('loans_paidAmount')}</label><input type="number" min="0" className="input" value={form.payment_amount || ''} onChange={e => setForm({ ...form, payment_amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="loans-f4">{t('loans_receivedAmount')}</label><input id="loans-f4" type="number" min="0" className="input" value={form.received_amount || ''} onChange={e => setForm({ ...form, received_amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="loans-f5">{t('loans_paidAmount')}</label><input id="loans-f5" type="number" min="0" className="input" value={form.payment_amount || ''} onChange={e => setForm({ ...form, payment_amount: Number(e.target.value) })} /></div>
           <div>
-            <label className="label">{t('invest_colAccount')}</label>
-            <select className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
+            <label className="label" htmlFor="loans-f6">{t('invest_colAccount')}</label>
+            <select id="loans-f6" className="input" value={form.account_id} onChange={e => setForm({ ...form, account_id: e.target.value })}>
               <option value="">{t('common_select')}</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
-          <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="loans-f7">{t('common_note')}</label><textarea id="loans-f7" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_save')}</button>
             <button onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

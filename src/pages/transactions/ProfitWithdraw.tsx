@@ -197,7 +197,7 @@ export default function ProfitWithdraw() {
 
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('profitWithdraw_editTitle') : t('profitWithdraw_newTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="profit-withdraw-f1">{t('common_date')}</label><input id="profit-withdraw-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
             <label className="label">{t('common_owner')}</label>
             <SearchableSelect
@@ -207,12 +207,12 @@ export default function ProfitWithdraw() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('profitWithdraw_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="profit-withdraw-f2">{t('profitWithdraw_amountLabel')}</label><input id="profit-withdraw-f2" type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
-            <label className="label">{t('profitWithdraw_whichMonth', 'From month')} → To month</label>
+            <label className="label" htmlFor="profit-withdraw-f3">{t('profitWithdraw_whichMonth', 'From month')} → To month</label>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid grid-cols-2 gap-2">
-                <select className="input" value={form.profit_month} onChange={e => setForm({ ...form, profit_month: Number(e.target.value) })}>
+                <select id="profit-withdraw-f3" className="input" value={form.profit_month} onChange={e => setForm({ ...form, profit_month: Number(e.target.value) })}>
                   {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{monthName(i + 1)}</option>)}
                 </select>
                 <input type="number" className="input" value={form.profit_year} onChange={e => setForm({ ...form, profit_year: Number(e.target.value) })} />
@@ -234,7 +234,7 @@ export default function ProfitWithdraw() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="profit-withdraw-f4">{t('common_note')}</label><textarea id="profit-withdraw-f4" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_save')}</button>
             <button onClick={resetForm} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

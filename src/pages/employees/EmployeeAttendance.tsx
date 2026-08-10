@@ -512,24 +512,24 @@ export default function EmployeeAttendance() {
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('employee_editAttendance') : t('employee_newAttendance')}>
         <div className="space-y-3">
           <div>
-            <label className="label">{t('common_name')} *</label>
-            <select className="input" value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })}>
+            <label className="label" htmlFor="employee-attendance-f1">{t('common_name')} *</label>
+            <select id="employee-attendance-f1" className="input" value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })}>
               <option value="">{t('common_select')}</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </div>
-          <div><label className="label">{t('common_date')} *</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="employee-attendance-f2">{t('common_date')} *</label><input id="employee-attendance-f2" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
-            <label className="label">{t('employee_status')} *</label>
-            <select className="input" value={form.present ? 'present' : 'absent'} onChange={e => setForm({ ...form, present: e.target.value === 'present' })}>
+            <label className="label" htmlFor="employee-attendance-f3">{t('employee_status')} *</label>
+            <select id="employee-attendance-f3" className="input" value={form.present ? 'present' : 'absent'} onChange={e => setForm({ ...form, present: e.target.value === 'present' })}>
               <option value="present">{t('employee_present')}</option>
               <option value="absent">{t('employee_absent')}</option>
             </select>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_140px]">
             <div>
-              <label className="label">Start Time</label>
-              <input
+              <label className="label" htmlFor="employee-attendance-f4">Start Time</label>
+              <input id="employee-attendance-f4"
                 type="time"
                 className="input"
                 value={form.start_time}
@@ -537,8 +537,8 @@ export default function EmployeeAttendance() {
               />
             </div>
             <div>
-              <label className="label">End Time</label>
-              <input
+              <label className="label" htmlFor="employee-attendance-f5">End Time</label>
+              <input id="employee-attendance-f5"
                 type="time"
                 className="input"
                 value={form.end_time}
@@ -552,7 +552,7 @@ export default function EmployeeAttendance() {
               </div>
             </div>
           </div>
-          <div><label className="label">{t('common_notes')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="employee-attendance-f6">{t('common_notes')}</label><textarea id="employee-attendance-f6" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center">{t('common_save')}</button>
             <button onClick={resetForm} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

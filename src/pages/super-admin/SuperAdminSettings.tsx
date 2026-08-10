@@ -151,8 +151,8 @@ export default function SuperAdminSettings() {
 
           <div className="space-y-4">
             <div>
-              <label className="label">bKash number</label>
-              <input
+              <label className="label" htmlFor="super-admin-settings-f1">bKash number</label>
+              <input id="super-admin-settings-f1"
                 className="input"
                 value={settings.bkash_number}
                 onChange={e => updateField('bkash_number', e.target.value.replace(/\D/g, '').slice(0, 11))}
@@ -162,8 +162,8 @@ export default function SuperAdminSettings() {
             </div>
 
             <div>
-              <label className="label">Support number</label>
-              <input
+              <label className="label" htmlFor="super-admin-settings-f2">Support number</label>
+              <input id="super-admin-settings-f2"
                 className="input"
                 value={settings.support_number || ''}
                 onChange={e => updateField('support_number', e.target.value)}
@@ -173,8 +173,8 @@ export default function SuperAdminSettings() {
             </div>
 
             <div>
-              <label className="label">Monthly plan price (৳)</label>
-              <input
+              <label className="label" htmlFor="super-admin-settings-f3">Monthly plan price (৳)</label>
+              <input id="super-admin-settings-f3"
                 type="number"
                 min={0}
                 className="input"
@@ -185,8 +185,8 @@ export default function SuperAdminSettings() {
             </div>
 
             <div>
-              <label className="label">Yearly plan price (৳)</label>
-              <input
+              <label className="label" htmlFor="super-admin-settings-f4">Yearly plan price (৳)</label>
+              <input id="super-admin-settings-f4"
                 type="number"
                 min={0}
                 className="input"
@@ -197,8 +197,8 @@ export default function SuperAdminSettings() {
             </div>
 
             <div>
-              <label className="label">Original price shown crossed-out (৳)</label>
-              <input
+              <label className="label" htmlFor="super-admin-settings-f5">Original price shown crossed-out (৳)</label>
+              <input id="super-admin-settings-f5"
                 type="number"
                 min={0}
                 className="input"
@@ -247,8 +247,8 @@ export default function SuperAdminSettings() {
 
           <div className="space-y-4">
             <div>
-              <label className="label">Subject</label>
-              <input
+              <label className="label" htmlFor="super-admin-settings-f6">Subject</label>
+              <input id="super-admin-settings-f6"
                 className="input"
                 value={settings.reminder_subject}
                 onChange={e => updateField('reminder_subject', e.target.value)}
@@ -256,8 +256,8 @@ export default function SuperAdminSettings() {
             </div>
 
             <div>
-              <label className="label">Body (HTML)</label>
-              <textarea
+              <label className="label" htmlFor="super-admin-settings-f7">Body (HTML)</label>
+              <textarea id="super-admin-settings-f7"
                 className="input min-h-[220px] font-mono text-xs"
                 value={settings.reminder_body}
                 onChange={e => updateField('reminder_body', e.target.value)}

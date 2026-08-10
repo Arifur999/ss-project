@@ -594,8 +594,8 @@ export default function Marketing() {
               <h2 className="text-base font-bold text-slate-900">2. Compose SMS</h2>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
                 <div>
-                  <label className="label">Campaign Name</label>
-                  <input
+                  <label className="label" htmlFor="marketing-f1">Campaign Name</label>
+                  <input id="marketing-f1"
                     className="input"
                     value={campaignName}
                     onChange={e => setCampaignName(e.target.value)}
@@ -603,8 +603,8 @@ export default function Marketing() {
                   />
                 </div>
                 <div>
-                  <label className="label">Select Template</label>
-                  <select
+                  <label className="label" htmlFor="marketing-f2">Select Template</label>
+                  <select id="marketing-f2"
                     className="input"
                     value={selectedTemplate}
                     onChange={e => {
@@ -628,8 +628,8 @@ export default function Marketing() {
               </div>
 
               <div className="mt-4">
-                <label className="label">Write your SMS message</label>
-                <textarea
+                <label className="label" htmlFor="marketing-f3">Write your SMS message</label>
+                <textarea id="marketing-f3"
                   className="input min-h-[180px] resize-none leading-6"
                   value={message}
                   onChange={e => setMessage(e.target.value)}
@@ -779,12 +779,12 @@ export default function Marketing() {
                   <p className="mt-1 text-xs text-slate-500">After sending {money(Number(selectedPackage.price))} via bKash, enter the details below.</p>
                   <div className="mt-4 space-y-3">
                     <div>
-                      <label className="label">Your bKash number (paid from)</label>
-                      <input className="input" value={buySender} onChange={e => setBuySender(e.target.value)} placeholder="01XXXXXXXXX" />
+                      <label className="label" htmlFor="marketing-f4">Your bKash number (paid from)</label>
+                      <input id="marketing-f4" className="input" value={buySender} onChange={e => setBuySender(e.target.value)} placeholder="01XXXXXXXXX" />
                     </div>
                     <div>
-                      <label className="label">bKash Transaction ID</label>
-                      <input className="input" value={buyTrx} onChange={e => setBuyTrx(e.target.value)} placeholder="e.g. 9AB7CDE2FG" />
+                      <label className="label" htmlFor="marketing-f5">bKash Transaction ID</label>
+                      <input id="marketing-f5" className="input" value={buyTrx} onChange={e => setBuyTrx(e.target.value)} placeholder="e.g. 9AB7CDE2FG" />
                     </div>
                   </div>
                   <div className="mt-5 flex gap-3">

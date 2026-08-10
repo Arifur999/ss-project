@@ -180,10 +180,10 @@ export default function InvestWithdraw() {
 
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('invest_editTitle') : t('invest_newTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="invest-f1">{t('common_date')}</label><input id="invest-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
-            <label className="label">{t('common_type', 'Type')}</label>
-            <select className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'invest' | 'withdraw' })}>
+            <label className="label" htmlFor="invest-f2">{t('common_type', 'Type')}</label>
+            <select id="invest-f2" className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'invest' | 'withdraw' })}>
               {/* Its own labels, not the summary cards' - one entry is an
                   investment, not a "Total Investment". The cards above keep
                   the "Total" wording, where it is correct. */}
@@ -200,7 +200,7 @@ export default function InvestWithdraw() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('common_amount', 'Amount')} (৳)</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="invest-f3">{t('common_amount', 'Amount')} (৳)</label><input id="invest-f3" type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
             <label className="label">{t('invest_colAccount')}</label>
             <SearchableSelect
@@ -210,7 +210,7 @@ export default function InvestWithdraw() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('invest_colNotes')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="invest-f4">{t('invest_colNotes')}</label><textarea id="invest-f4" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_save')}</button>
             <button onClick={resetForm} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

@@ -295,11 +295,11 @@ export default function ExpenseTransactions() {
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm() }} title={editItem ? t('common_edit') : t('expTx_newTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('common_date')}</label><input type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label className="label" htmlFor="expense-transactions-f1">{t('common_date')}</label><input id="expense-transactions-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
-            <label className="label">{t('common_category')}</label>
+            <label className="label" htmlFor="expense-transactions-f2">{t('common_category')}</label>
             <div className="relative">
-              <input
+              <input id="expense-transactions-f2"
                 className="input"
                 value={categorySearch}
                 placeholder={t('common_select')}
@@ -329,7 +329,7 @@ export default function ExpenseTransactions() {
               )}
             </div>
           </div>
-          <div><label className="label">{t('expTx_amountLabel')}</label><input type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="expense-transactions-f3">{t('expTx_amountLabel')}</label><input id="expense-transactions-f3" type="number" min="0" className="input" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} /></div>
           <div>
             <label className="label">{t('expTx_paymentAccount')}</label>
             <SearchableSelect
@@ -339,7 +339,7 @@ export default function ExpenseTransactions() {
               placeholder={t('common_select')}
             />
           </div>
-          <div><label className="label">{t('common_note')}</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="expense-transactions-f4">{t('common_note')}</label><textarea id="expense-transactions-f4" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_save')}</button>
             <button onClick={() => { setShowModal(false); resetForm() }} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

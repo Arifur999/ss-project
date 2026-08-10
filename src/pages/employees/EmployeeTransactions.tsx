@@ -584,8 +584,8 @@ export default function EmployeeTransactions() {
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('employee_editTransaction') : 'Create Salary & Bonus Payment'} size="lg">
         <div className="space-y-4">
           <div>
-            <label className="label">{requiredLabel(t('common_date'))}</label>
-            <input
+            <label className="label" htmlFor="employee-transactions-f1">{requiredLabel(t('common_date'))}</label>
+            <input id="employee-transactions-f1"
               type="date"
               className={inputClass('date', 'h-11')}
               value={form.date}
@@ -599,10 +599,10 @@ export default function EmployeeTransactions() {
           </div>
 
           <div>
-            <label className="label">{requiredLabel(t('common_name'))}</label>
+            <label className="label" htmlFor="employee-transactions-f2">{requiredLabel(t('common_name'))}</label>
             <div ref={employeeBoxRef} className="relative">
               <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={16} />
-              <input
+              <input id="employee-transactions-f2"
                 className={inputClass('employee_id', 'h-11 pl-9 pr-16')}
                 value={employeeSearch}
                 onFocus={() => setShowEmployeeOptions(true)}
@@ -643,8 +643,8 @@ export default function EmployeeTransactions() {
           </div>
 
           <div>
-            <label className="label">{requiredLabel('Payment Type')}</label>
-            <select
+            <label className="label" htmlFor="employee-transactions-f3">{requiredLabel('Payment Type')}</label>
+            <select id="employee-transactions-f3"
               className={inputClass('payment_type', 'h-11')}
               value={form.payment_type}
               onChange={e => {
@@ -672,8 +672,8 @@ export default function EmployeeTransactions() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="label">{requiredLabel('From Date')}</label>
-              <input
+              <label className="label" htmlFor="employee-transactions-f4">{requiredLabel('From Date')}</label>
+              <input id="employee-transactions-f4"
                 type="date"
                 className={inputClass('period_from', 'h-11')}
                 value={form.period_from}
@@ -686,8 +686,8 @@ export default function EmployeeTransactions() {
               {fieldError('period_from')}
             </div>
             <div>
-              <label className="label">{requiredLabel('To Date')}</label>
-              <input
+              <label className="label" htmlFor="employee-transactions-f5">{requiredLabel('To Date')}</label>
+              <input id="employee-transactions-f5"
                 type="date"
                 className={inputClass('period_to', 'h-11')}
                 value={form.period_to}
@@ -702,8 +702,8 @@ export default function EmployeeTransactions() {
           </div>
 
           <div>
-            <label className="label">{requiredLabel('Payment Account')}</label>
-            <select
+            <label className="label" htmlFor="employee-transactions-f6">{requiredLabel('Payment Account')}</label>
+            <select id="employee-transactions-f6"
               className={inputClass('account_id', 'h-11')}
               value={form.account_id}
               onChange={e => {
@@ -719,10 +719,10 @@ export default function EmployeeTransactions() {
           </div>
 
           <div>
-            <label className="label">{requiredLabel('Amount')}</label>
+            <label className="label" htmlFor="employee-transactions-f7">{requiredLabel('Amount')}</label>
             <div className="flex">
               <div className={`flex h-11 items-center rounded-l-lg border border-r-0 bg-slate-50 px-4 text-sm font-semibold text-slate-600 ${formErrors.amount ? 'border-red-300' : 'border-slate-200'}`}>TK</div>
-              <input
+              <input id="employee-transactions-f7"
                 type="number"
                 min="1"
                 className={inputClass('amount', 'h-11 rounded-l-none')}
@@ -739,8 +739,8 @@ export default function EmployeeTransactions() {
           </div>
 
           <div>
-            <label className="label">{t('common_notes')}</label>
-            <textarea className="input min-h-[92px]" rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Write remarks or payment notes..." />
+            <label className="label" htmlFor="employee-transactions-f8">{t('common_notes')}</label>
+            <textarea id="employee-transactions-f8" className="input min-h-[92px]" rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Write remarks or payment notes..." />
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

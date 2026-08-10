@@ -384,8 +384,8 @@ export default function LoanLenderList() {
       <Modal isOpen={showModal} onClose={resetForm} title={editItem ? 'Edit Bank / Person' : 'Add Bank / Person'}>
         <form className="space-y-3" onSubmit={event => { event.preventDefault(); save() }} noValidate>
           <div>
-            <label className="label">{requiredLabel('Name')}</label>
-            <input
+            <label className="label" htmlFor="loan-lender-list-f1">{requiredLabel('Name')}</label>
+            <input id="loan-lender-list-f1"
               className={inputClass('name')}
               value={form.name}
               required
@@ -398,8 +398,8 @@ export default function LoanLenderList() {
             {errors.name && <p className="mt-1 text-xs font-medium text-red-600">{errors.name}</p>}
           </div>
           <div>
-            <label className="label">{requiredLabel('Type')}</label>
-            <input
+            <label className="label" htmlFor="loan-lender-list-f2">{requiredLabel('Type')}</label>
+            <input id="loan-lender-list-f2"
               className={inputClass('lender_type')}
               value={form.lender_type}
               required
@@ -413,8 +413,8 @@ export default function LoanLenderList() {
             {errors.lender_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_type}</p>}
           </div>
           <div>
-            <label className="label">{requiredLabel('Phone')}</label>
-            <input
+            <label className="label" htmlFor="loan-lender-list-f3">{requiredLabel('Phone')}</label>
+            <input id="loan-lender-list-f3"
               className={inputClass('phone')}
               value={form.phone}
               required
@@ -426,11 +426,11 @@ export default function LoanLenderList() {
             />
             {errors.phone && <p className="mt-1 text-xs font-medium text-red-600">{errors.phone}</p>}
           </div>
-          <div><label className="label">Address</label><input className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+          <div><label className="label" htmlFor="loan-lender-list-f4">Address</label><input id="loan-lender-list-f4" className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
           <div>
-            <label className="label">Opening Balance</label>
+            <label className="label" htmlFor="loan-lender-list-f5">Opening Balance</label>
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-2">
-              <input
+              <input id="loan-lender-list-f5"
                 type="number"
                 className="input"
                 value={form.opening_balance || ''}
@@ -449,7 +449,7 @@ export default function LoanLenderList() {
               </select>
             </div>
           </div>
-          <div><label className="label">Notes</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="loan-lender-list-f6">Notes</label><textarea id="loan-lender-list-f6" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} /> Active</label>
           <div className="flex gap-2 pt-2">
             <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center disabled:opacity-60 disabled:cursor-not-allowed"><Save size={16} /> {saving ? 'Saving...' : editItem ? 'Update' : 'Save'}</button>

@@ -822,8 +822,8 @@ export default function CustomerDueReceived() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="label">{t('common_date')} <span className="text-brand-red">*</span></label>
-              <input
+              <label className="label" htmlFor="customer-due-received-f1">{t('common_date')} <span className="text-brand-red">*</span></label>
+              <input id="customer-due-received-f1"
                 type="date"
                 className={inputClass(!!errors.date, 'h-11 rounded-xl shadow-sm')}
                 value={form.date}
@@ -837,10 +837,10 @@ export default function CustomerDueReceived() {
               {errors.date && <p className="mt-1 text-xs font-medium text-red-600">{errors.date}</p>}
             </div>
             <div>
-              <label className="label">Payment Receiver <span className="text-brand-red">*</span></label>
+              <label className="label" htmlFor="customer-due-received-f2">Payment Receiver <span className="text-brand-red">*</span></label>
               <div ref={receiverBoxRef} className="relative">
                 <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={16} />
-                <input
+                <input id="customer-due-received-f2"
                   type="text"
                   className={inputClass(!!errors.receiver, 'h-11 rounded-xl pl-9 pr-9 shadow-sm')}
                   value={receiverSearch}
@@ -967,8 +967,8 @@ export default function CustomerDueReceived() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="label">Discount Amount</label>
-                <input
+                <label className="label" htmlFor="customer-due-received-f3">Discount Amount</label>
+                <input id="customer-due-received-f3"
                   type="number"
                   min="0"
                   className="input h-11 rounded-xl shadow-sm"
@@ -986,8 +986,8 @@ export default function CustomerDueReceived() {
               </div>
               {Number(discountAmount || 0) > 0 && (
                 <div>
-                  <label className="label">Expense Category</label>
-                  <select
+                  <label className="label" htmlFor="customer-due-received-f4">Expense Category</label>
+                  <select id="customer-due-received-f4"
                     className={inputClass(!!errors.discount_category, 'h-11 rounded-xl shadow-sm')}
                     value={discountCategoryId}
                     onChange={e => {
@@ -1014,8 +1014,8 @@ export default function CustomerDueReceived() {
           </div>
 
           <div>
-            <label className="label">{t('ledger_notesLabel')}</label>
-            <textarea className="input min-h-[92px] rounded-xl shadow-sm" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Add notes for this receipt..." />
+            <label className="label" htmlFor="customer-due-received-f5">{t('ledger_notesLabel')}</label>
+            <textarea id="customer-due-received-f5" className="input min-h-[92px] rounded-xl shadow-sm" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Add notes for this receipt..." />
           </div>
 
           <div className="flex flex-col gap-3 pt-1 md:flex-row">

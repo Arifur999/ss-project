@@ -244,7 +244,7 @@ export default function ExpenseDashboard() {
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editItem ? t('expenses_editCategory') : t('expenses_newCategoryTitle')}>
         <div className="space-y-3">
-          <div><label className="label">{t('expenses_categoryName')}</label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+          <div><label className="label" htmlFor="expense-dashboard-f1">{t('expenses_categoryName')}</label><input id="expense-dashboard-f1" className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
           <div>
             <label className="label">{t('expenses_color')}</label>
             <div className="flex gap-2 flex-wrap mt-1">
@@ -253,7 +253,7 @@ export default function ExpenseDashboard() {
               ))}
             </div>
           </div>
-          <div><label className="label">{t('expenses_monthlyBudgetField')}</label><input type="number" min="0" className="input" value={form.monthly_budget || ''} onChange={e => setForm({ ...form, monthly_budget: Number(e.target.value) })} /></div>
+          <div><label className="label" htmlFor="expense-dashboard-f2">{t('expenses_monthlyBudgetField')}</label><input id="expense-dashboard-f2" type="number" min="0" className="input" value={form.monthly_budget || ''} onChange={e => setForm({ ...form, monthly_budget: Number(e.target.value) })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center"><Save size={16} /> {t('common_save')}</button>
             <button onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

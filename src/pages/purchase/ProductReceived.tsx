@@ -511,8 +511,8 @@ export default function ReceiveProduct() {
             </div>
 
             <div>
-              <label className="label">Received Quantity</label>
-              <input
+              <label className="label" htmlFor="product-received-f1">Received Quantity</label>
+              <input id="product-received-f1"
                 type="number"
                 min="1"
                 max={selectedItem.undelivered_qty}
@@ -526,8 +526,8 @@ export default function ReceiveProduct() {
             </div>
 
             <div>
-              <label className="label">Receiving Date</label>
-              <input
+              <label className="label" htmlFor="product-received-f2">Receiving Date</label>
+              <input id="product-received-f2"
                 type="date"
                 value={receiveDate}
                 onChange={e => setReceiveDate(e.target.value)}
@@ -536,8 +536,8 @@ export default function ReceiveProduct() {
             </div>
 
             <div>
-              <label className="label">Receiver Name</label>
-              <input
+              <label className="label" htmlFor="product-received-f3">Receiver Name</label>
+              <input id="product-received-f3"
                 type="text"
                 value={receiverName}
                 onChange={e => setReceiverName(e.target.value)}
@@ -547,8 +547,8 @@ export default function ReceiveProduct() {
             </div>
 
             <div>
-              <label className="label">Note</label>
-              <textarea
+              <label className="label" htmlFor="product-received-f4">Note</label>
+              <textarea id="product-received-f4"
                 value={receiveNote}
                 onChange={e => setReceiveNote(e.target.value)}
                 placeholder="Note"
@@ -587,8 +587,8 @@ export default function ReceiveProduct() {
       >
         <div className="space-y-4">
           <div>
-            <label className="label">Received Quantity</label>
-            <input
+            <label className="label" htmlFor="product-received-f5">Received Quantity</label>
+            <input id="product-received-f5"
               type="number"
               min="0"
               value={editQty}

@@ -79,12 +79,12 @@ export default function SuperAdminNotifications() {
           <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-900"><Megaphone size={18} /> New Notification</h2>
           <div className="space-y-3">
             <div>
-              <label className="label">Title</label>
-              <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Scheduled maintenance" maxLength={150} />
+              <label className="label" htmlFor="super-admin-notifications-f1">Title</label>
+              <input id="super-admin-notifications-f1" className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Scheduled maintenance" maxLength={150} />
             </div>
             <div>
-              <label className="label">Message</label>
-              <textarea className="input min-h-[140px] resize-none leading-6" value={message} onChange={e => setMessage(e.target.value)} placeholder="Write your announcement..." maxLength={2000} />
+              <label className="label" htmlFor="super-admin-notifications-f2">Message</label>
+              <textarea id="super-admin-notifications-f2" className="input min-h-[140px] resize-none leading-6" value={message} onChange={e => setMessage(e.target.value)} placeholder="Write your announcement..." maxLength={2000} />
               <p className="mt-1 text-right text-xs text-slate-400">{message.length}/2000</p>
             </div>
             <button onClick={send} disabled={sending} className="btn-primary w-full justify-center disabled:opacity-60">

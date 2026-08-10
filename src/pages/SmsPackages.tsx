@@ -376,8 +376,8 @@ export default function SmsPackages() {
             </p>
 
             <div>
-              <label className="label">{bn ? 'আপনার বিকাশ নম্বর' : 'Your bKash number'}</label>
-              <input
+              <label className="label" htmlFor="sms-packages-f1">{bn ? 'আপনার বিকাশ নম্বর' : 'Your bKash number'}</label>
+              <input id="sms-packages-f1"
                 className="input"
                 value={senderNumber}
                 onChange={e => setSenderNumber(e.target.value)}
@@ -388,8 +388,8 @@ export default function SmsPackages() {
             </div>
 
             <div>
-              <label className="label">{bn ? 'ট্রানজেকশন আইডি (TrxID)' : 'Transaction ID (TrxID)'}</label>
-              <input
+              <label className="label" htmlFor="sms-packages-f2">{bn ? 'ট্রানজেকশন আইডি (TrxID)' : 'Transaction ID (TrxID)'}</label>
+              <input id="sms-packages-f2"
                 className="input"
                 value={trxId}
                 onChange={e => setTrxId(e.target.value.toUpperCase())}

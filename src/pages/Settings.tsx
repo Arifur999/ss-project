@@ -352,8 +352,8 @@ export default function Settings() {
               <h2 className="font-semibold text-slate-800 mb-4">{t('settings_tabBusiness')}</h2>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="label">{requiredLabel(t('settings_businessName'))}</label>
-                  <input
+                  <label className="label" htmlFor="settings-f1">{requiredLabel(t('settings_businessName'))}</label>
+                  <input id="settings-f1"
                     type="text"
                     value={business.name_en || business.name_bn || ''}
                     onChange={e => {
@@ -367,8 +367,8 @@ export default function Settings() {
                   {businessErrors.businessName && <p className="mt-1 text-xs text-red-600">{businessErrors.businessName}</p>}
                 </div>
                 <div>
-                  <label className="label">{requiredLabel(t('settings_businessPhone1'))}</label>
-                  <input
+                  <label className="label" htmlFor="settings-f2">{requiredLabel(t('settings_businessPhone1'))}</label>
+                  <input id="settings-f2"
                     type="text"
                     value={getBusinessPhones()[0]}
                     onChange={e => {
@@ -382,8 +382,8 @@ export default function Settings() {
                   {businessErrors.phone1 && <p className="mt-1 text-xs text-red-600">{businessErrors.phone1}</p>}
                 </div>
                 <div>
-                  <label className="label">{t('settings_businessPhone2')}</label>
-                  <input
+                  <label className="label" htmlFor="settings-f3">{t('settings_businessPhone2')}</label>
+                  <input id="settings-f3"
                     type="text"
                     value={getBusinessPhones()[1]}
                     onChange={e => setBusinessPhone(1, e.target.value)}
@@ -392,8 +392,8 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label className="label">{t('settings_businessEmail')}</label>
-                  <input
+                  <label className="label" htmlFor="settings-f4">{t('settings_businessEmail')}</label>
+                  <input id="settings-f4"
                     type="email"
                     value={business.email || ''}
                     onChange={e => setBusiness({ ...business, email: e.target.value })}
@@ -402,8 +402,8 @@ export default function Settings() {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="label">{requiredLabel(t('settings_businessAddress'))}</label>
-                  <input
+                  <label className="label" htmlFor="settings-f5">{requiredLabel(t('settings_businessAddress'))}</label>
+                  <input id="settings-f5"
                     type="text"
                     value={business.address}
                     onChange={e => {
@@ -417,8 +417,8 @@ export default function Settings() {
                   {businessErrors.address && <p className="mt-1 text-xs text-red-600">{businessErrors.address}</p>}
                 </div>
                 <div>
-                  <label className="label">{t('settings_businessWebsite')}</label>
-                  <input
+                  <label className="label" htmlFor="settings-f6">{t('settings_businessWebsite')}</label>
+                  <input id="settings-f6"
                     type="text"
                     value={business.website || ''}
                     onChange={e => setBusiness({ ...business, website: e.target.value })}
@@ -447,8 +447,8 @@ export default function Settings() {
                   )}
                 </div>
                 <div>
-                  <label className="label">{t('settings_businessUploadLogo')}</label>
-                  <input type="file" accept="image/*" onChange={e => handleLogoUpload(e.target.files?.[0])} className="input" disabled={!businessEditable} />
+                  <label className="label" htmlFor="settings-f7">{t('settings_businessUploadLogo')}</label>
+                  <input id="settings-f7" type="file" accept="image/*" onChange={e => handleLogoUpload(e.target.files?.[0])} className="input" disabled={!businessEditable} />
                 </div>
                 {business.logo_url && (
                   <div className="col-span-3">
@@ -869,27 +869,27 @@ function TargetModal({ item, existingTargets, ownerId, onClose }: { item: any; e
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">{t('settings_monthStar')}</label>
-            <select className="input" value={form.month} onChange={e => setForm({ ...form, month: Number(e.target.value) })}>
+            <label className="label" htmlFor="settings-f8">{t('settings_monthStar')}</label>
+            <select id="settings-f8" className="input" value={form.month} onChange={e => setForm({ ...form, month: Number(e.target.value) })}>
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>{monthName(i + 1)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="label">{t('settings_yearStar')}</label>
-            <select className="input" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })}>
+            <label className="label" htmlFor="settings-f9">{t('settings_yearStar')}</label>
+            <select id="settings-f9" className="input" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })}>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
         </div>
         <div>
-          <label className="label">{t('settings_salesTarget')}</label>
-          <input type="number" min="0" className="input" value={form.sales_target} onChange={e => setForm({ ...form, sales_target: Number(e.target.value) })} placeholder="0" />
+          <label className="label" htmlFor="settings-f10">{t('settings_salesTarget')}</label>
+          <input id="settings-f10" type="number" min="0" className="input" value={form.sales_target} onChange={e => setForm({ ...form, sales_target: Number(e.target.value) })} placeholder="0" />
         </div>
         <div>
-          <label className="label">{t('settings_profitTarget')}</label>
-          <input type="number" min="0" className="input" value={form.profit_target} onChange={e => setForm({ ...form, profit_target: Number(e.target.value) })} placeholder="0" />
+          <label className="label" htmlFor="settings-f11">{t('settings_profitTarget')}</label>
+          <input id="settings-f11" type="number" min="0" className="input" value={form.profit_target} onChange={e => setForm({ ...form, profit_target: Number(e.target.value) })} placeholder="0" />
         </div>
         <div className="pt-1 p-3 rounded-xl bg-slate-50 text-sm text-slate-600">
           <span className="font-medium">{monthName(form.month)} {form.year}</span> — {t('settings_salesTarget').split(' ')[0]}: <span className="text-slate-800 font-medium">{formatCurr(form.sales_target)}</span>, {t('settings_profitTarget').split(' ')[0]}: <span className="text-brand-green font-medium">{formatCurr(form.profit_target)}</span>
@@ -1242,29 +1242,29 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
     <Modal isOpen onClose={onClose} title={t('settings_createUser')} size="lg">
       <div className="space-y-3">
         <div>
-          <label className="label">{t('settings_fullName')}</label>
-          <input className="input" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} placeholder={t('settings_fullNamePlaceholder')} />
+          <label className="label" htmlFor="settings-f12">{t('settings_fullName')}</label>
+          <input id="settings-f12" className="input" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} placeholder={t('settings_fullNamePlaceholder')} />
         </div>
         <div>
-          <label className="label">{t('settings_emailStar')}</label>
-          <input type="email" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder={t('settings_emailPlaceholder')} />
+          <label className="label" htmlFor="settings-f13">{t('settings_emailStar')}</label>
+          <input id="settings-f13" type="email" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder={t('settings_emailPlaceholder')} />
         </div>
         <div>
-          <label className="label">{t('settings_passwordStar')}</label>
+          <label className="label" htmlFor="settings-f14">{t('settings_passwordStar')}</label>
           <div className="relative">
-            <input type={showPassword ? 'text' : 'password'} className="input pr-9" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" />
+            <input id="settings-f14" type={showPassword ? 'text' : 'password'} className="input pr-9" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" />
             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
         </div>
         <div>
-          <label className="label">{t('common_phone')}</label>
-          <input className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder={t('settings_phonePlaceholder')} />
+          <label className="label" htmlFor="settings-f15">{t('common_phone')}</label>
+          <input id="settings-f15" className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder={t('settings_phonePlaceholder')} />
         </div>
         <div>
-          <label className="label">{t('settings_roleStar')}</label>
-          <select className="input" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
+          <label className="label" htmlFor="settings-f16">{t('settings_roleStar')}</label>
+          <select id="settings-f16" className="input" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
             <option value="owner">{t('settings_roleOwner')}</option>
             <option value="manager">{t('settings_roleManager')}</option>
             <option value="sales_staff">{t('settings_roleSalesStaff')}</option>
@@ -1381,8 +1381,8 @@ function ShareholderModal({ item, onClose }: { item: any; onClose: () => void })
     <Modal isOpen onClose={onClose} title={item ? t('settings_editShareholder') : t('settings_newShareholder')}>
       <div className="space-y-3">
         <div>
-          <label className="label">{requiredLabel(t('common_name'))}</label>
-          <input
+          <label className="label" htmlFor="settings-f17">{requiredLabel(t('common_name'))}</label>
+          <input id="settings-f17"
             className={inputClass(Boolean(errors.name))}
             value={form.name}
             onChange={e => {
@@ -1394,8 +1394,8 @@ function ShareholderModal({ item, onClose }: { item: any; onClose: () => void })
           {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
         </div>
         <div>
-          <label className="label">{requiredLabel(t('common_phone'))}</label>
-          <input
+          <label className="label" htmlFor="settings-f18">{requiredLabel(t('common_phone'))}</label>
+          <input id="settings-f18"
             className={inputClass(Boolean(errors.phone))}
             value={form.phone}
             onChange={e => {
@@ -1406,10 +1406,10 @@ function ShareholderModal({ item, onClose }: { item: any; onClose: () => void })
           />
           {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
         </div>
-        <div><label className="label">{t('common_address')}</label><input className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+        <div><label className="label" htmlFor="settings-f19">{t('common_address')}</label><input id="settings-f19" className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
         <div>
-          <label className="label">{t('invest_openingAmount')} (৳)</label>
-          <input
+          <label className="label" htmlFor="settings-f20">{t('invest_openingAmount')} (৳)</label>
+          <input id="settings-f20"
             type="number"
             min="0"
             className="input"
@@ -1452,12 +1452,12 @@ function AccountModal({ item, onClose }: { item: any; onClose: () => void }) {
     <Modal isOpen onClose={onClose} title={item ? `${t('common_edit')} — ${item.name}` : `${t('common_add')} ${t('settings_tabAccounts')}`}>
       <div className="space-y-4">
         <div>
-          <label className="label">{t('common_name')} *</label>
-          <input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} autoFocus />
+          <label className="label" htmlFor="settings-f21">{t('common_name')} *</label>
+          <input id="settings-f21" className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} autoFocus />
         </div>
         <div>
-          <label className="label">{t('settings_openingBalance')} (৳)</label>
-          <input type="number" min="0" className="input" value={form.opening_balance} onChange={e => setForm({ ...form, opening_balance: Number(e.target.value) })} />
+          <label className="label" htmlFor="settings-f22">{t('settings_openingBalance')} (৳)</label>
+          <input id="settings-f22" type="number" min="0" className="input" value={form.opening_balance} onChange={e => setForm({ ...form, opening_balance: Number(e.target.value) })} />
         </div>
         <div className="flex gap-2 pt-1">
           <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
@@ -1504,33 +1504,33 @@ function SupplierModal({ item, onClose }: { item: any; onClose: () => void }) {
     <Modal isOpen onClose={onClose} title={item ? t('settings_editSupplier') : t('settings_newSupplier')} size="sm">
       <div className="space-y-3">
         <div>
-          <label className="label">{t('settings_companyName')} *</label>
-          <input className="input" value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
+          <label className="label" htmlFor="settings-f23">{t('settings_companyName')} *</label>
+          <input id="settings-f23" className="input" value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
         </div>
         <div>
-          <label className="label">{t('settings_personName')}</label>
-          <input className="input" value={form.person_name} onChange={e => setForm({ ...form, person_name: e.target.value })} />
+          <label className="label" htmlFor="settings-f24">{t('settings_personName')}</label>
+          <input id="settings-f24" className="input" value={form.person_name} onChange={e => setForm({ ...form, person_name: e.target.value })} />
         </div>
         <div>
-          <label className="label">{t('settings_phoneStar')}</label>
-          <input className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+          <label className="label" htmlFor="settings-f25">{t('settings_phoneStar')}</label>
+          <input id="settings-f25" className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
         </div>
         <div>
-          <label className="label">{t('common_email')}</label>
-          <input className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          <label className="label" htmlFor="settings-f26">{t('common_email')}</label>
+          <input id="settings-f26" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
         </div>
         <div>
-          <label className="label">{t('common_address')}</label>
-          <input className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+          <label className="label" htmlFor="settings-f27">{t('common_address')}</label>
+          <input id="settings-f27" className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">{t('settings_openingDueTaka')}</label>
-            <input type="number" min="0" className="input" value={form.opening_due} onChange={e => setForm({ ...form, opening_due: Number(e.target.value) })} />
+            <label className="label" htmlFor="settings-f28">{t('settings_openingDueTaka')}</label>
+            <input id="settings-f28" type="number" min="0" className="input" value={form.opening_due} onChange={e => setForm({ ...form, opening_due: Number(e.target.value) })} />
           </div>
           <div>
-            <label className="label">{t('settings_dueType')}</label>
-            <select className="input" value={form.due_type} onChange={e => setForm({ ...form, due_type: e.target.value })}>
+            <label className="label" htmlFor="settings-f29">{t('settings_dueType')}</label>
+            <select id="settings-f29" className="input" value={form.due_type} onChange={e => setForm({ ...form, due_type: e.target.value })}>
               <option value="dena">{t('settings_denaPayable')}</option>
               <option value="pawna">{t('settings_pawnaReceivable')}</option>
             </select>

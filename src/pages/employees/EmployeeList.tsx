@@ -390,8 +390,8 @@ export default function EmployeeList() {
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="label">{requiredLabel('Action Type')}</label>
-              <select className={inputClass('action_type')} value={actionType} onChange={e => handleActionTypeChange(e.target.value as EmployeeActionType)} required>
+              <label className="label" htmlFor="employee-list-f1">{requiredLabel('Action Type')}</label>
+              <select id="employee-list-f1" className={inputClass('action_type')} value={actionType} onChange={e => handleActionTypeChange(e.target.value as EmployeeActionType)} required>
                 <option value="Join">Join</option>
                 <option value="Resign">Resign</option>
               </select>
@@ -399,8 +399,8 @@ export default function EmployeeList() {
             </div>
             {actionType === 'Join' && (
               <div>
-                <label className="label">{requiredLabel(t('employee_joinDate'))}</label>
-                <input
+                <label className="label" htmlFor="employee-list-f2">{requiredLabel(t('employee_joinDate'))}</label>
+                <input id="employee-list-f2"
                   type="date"
                   className={inputClass('join_date')}
                   value={form.join_date}
@@ -418,8 +418,8 @@ export default function EmployeeList() {
           {actionType === 'Join' && (
             <>
               <div>
-                <label className="label">{requiredLabel(t('common_name'))}</label>
-                <input
+                <label className="label" htmlFor="employee-list-f3">{requiredLabel(t('common_name'))}</label>
+                <input id="employee-list-f3"
                   type="text"
                   className={inputClass('name')}
                   value={form.name}
@@ -432,8 +432,8 @@ export default function EmployeeList() {
                 {fieldError('name')}
               </div>
               <div>
-                <label className="label">{requiredLabel(t('common_phone'))}</label>
-                <input
+                <label className="label" htmlFor="employee-list-f4">{requiredLabel(t('common_phone'))}</label>
+                <input id="employee-list-f4"
                   type="text"
                   className={inputClass('phone')}
                   value={form.phone}
@@ -446,8 +446,8 @@ export default function EmployeeList() {
                 {fieldError('phone')}
               </div>
               <div>
-                <label className="label">{requiredLabel(t('common_address'))}</label>
-                <input
+                <label className="label" htmlFor="employee-list-f5">{requiredLabel(t('common_address'))}</label>
+                <input id="employee-list-f5"
                   type="text"
                   className={inputClass('address')}
                   value={form.address}
@@ -465,10 +465,10 @@ export default function EmployeeList() {
           {actionType === 'Resign' && (
             <>
               <div>
-                <label className="label">{requiredLabel('Select Employee')}</label>
+                <label className="label" htmlFor="employee-list-f6">{requiredLabel('Select Employee')}</label>
                 <div ref={employeeBoxRef} className="relative">
                   <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={16} />
-                  <input
+                  <input id="employee-list-f6"
                     className={inputClass('employee_id', 'pl-9 pr-16')}
                     value={employeeSearch}
                     onFocus={() => setShowEmployeeOptions(true)}
@@ -508,16 +508,16 @@ export default function EmployeeList() {
                 {fieldError('employee_id')}
               </div>
               <div>
-                <label className="label">{t('common_phone')}</label>
-                <input type="text" className="input bg-slate-50 text-slate-500" value={form.phone} disabled readOnly />
+                <label className="label" htmlFor="employee-list-f7">{t('common_phone')}</label>
+                <input id="employee-list-f7" type="text" className="input bg-slate-50 text-slate-500" value={form.phone} disabled readOnly />
               </div>
               <div>
-                <label className="label">{t('common_address')}</label>
-                <input type="text" className="input bg-slate-50 text-slate-500" value={form.address} disabled readOnly />
+                <label className="label" htmlFor="employee-list-f8">{t('common_address')}</label>
+                <input id="employee-list-f8" type="text" className="input bg-slate-50 text-slate-500" value={form.address} disabled readOnly />
               </div>
               <div>
-                <label className="label">{requiredLabel(t('employee_resignDate'))}</label>
-                <input
+                <label className="label" htmlFor="employee-list-f9">{requiredLabel(t('employee_resignDate'))}</label>
+                <input id="employee-list-f9"
                   type="date"
                   className={inputClass('resign_date')}
                   value={form.resign_date}
@@ -532,7 +532,7 @@ export default function EmployeeList() {
             </>
           )}
 
-          <div><label className="label">Note</label><textarea className="input" rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          <div><label className="label" htmlFor="employee-list-f10">Note</label><textarea id="employee-list-f10" className="input" rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex gap-2 pt-2">
             <button onClick={save} className="btn-primary flex-1 justify-center">{t('common_save')}</button>
             <button onClick={resetForm} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>

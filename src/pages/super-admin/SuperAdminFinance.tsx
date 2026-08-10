@@ -372,12 +372,12 @@ export default function SuperAdminFinance() {
       <Modal isOpen={expenseModal} onClose={() => setExpenseModal(false)} title={expenseEditId ? 'Edit Expense' : 'Add Expense'}>
         <form onSubmit={saveExpense} className="space-y-3">
           <div>
-            <label className="label">Date *</label>
-            <input type="date" className="input" value={expenseForm.date} onChange={e => setExpenseForm({ ...expenseForm, date: e.target.value })} required />
+            <label className="label" htmlFor="super-admin-finance-f1">Date *</label>
+            <input id="super-admin-finance-f1" type="date" className="input" value={expenseForm.date} onChange={e => setExpenseForm({ ...expenseForm, date: e.target.value })} required />
           </div>
           <div>
-            <label className="label">Category *</label>
-            <input
+            <label className="label" htmlFor="super-admin-finance-f2">Category *</label>
+            <input id="super-admin-finance-f2"
               className="input" list="platform-expense-categories" placeholder="Server, Domain, Marketing..."
               value={expenseForm.category} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })} required
             />
@@ -386,12 +386,12 @@ export default function SuperAdminFinance() {
             </datalist>
           </div>
           <div>
-            <label className="label">Amount *</label>
-            <input type="number" min="0" step="0.01" className="input" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} required />
+            <label className="label" htmlFor="super-admin-finance-f3">Amount *</label>
+            <input id="super-admin-finance-f3" type="number" min="0" step="0.01" className="input" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} required />
           </div>
           <div>
-            <label className="label">Notes</label>
-            <textarea className="input" rows={2} value={expenseForm.notes} onChange={e => setExpenseForm({ ...expenseForm, notes: e.target.value })} />
+            <label className="label" htmlFor="super-admin-finance-f4">Notes</label>
+            <textarea id="super-admin-finance-f4" className="input" rows={2} value={expenseForm.notes} onChange={e => setExpenseForm({ ...expenseForm, notes: e.target.value })} />
           </div>
           <div className="flex gap-2 pt-2">
             <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center disabled:opacity-60"><Save size={16} /> {saving ? 'Saving...' : 'Save'}</button>
@@ -403,20 +403,20 @@ export default function SuperAdminFinance() {
       <Modal isOpen={withdrawalModal} onClose={() => setWithdrawalModal(false)} title={withdrawalEditId ? 'Edit Withdrawal' : 'Add Withdrawal'}>
         <form onSubmit={saveWithdrawal} className="space-y-3">
           <div>
-            <label className="label">Date *</label>
-            <input type="date" className="input" value={withdrawalForm.date} onChange={e => setWithdrawalForm({ ...withdrawalForm, date: e.target.value })} required />
+            <label className="label" htmlFor="super-admin-finance-f5">Date *</label>
+            <input id="super-admin-finance-f5" type="date" className="input" value={withdrawalForm.date} onChange={e => setWithdrawalForm({ ...withdrawalForm, date: e.target.value })} required />
           </div>
           <div>
-            <label className="label">Taken by</label>
-            <input className="input" placeholder="Who took the money" value={withdrawalForm.taken_by} onChange={e => setWithdrawalForm({ ...withdrawalForm, taken_by: e.target.value })} />
+            <label className="label" htmlFor="super-admin-finance-f6">Taken by</label>
+            <input id="super-admin-finance-f6" className="input" placeholder="Who took the money" value={withdrawalForm.taken_by} onChange={e => setWithdrawalForm({ ...withdrawalForm, taken_by: e.target.value })} />
           </div>
           <div>
-            <label className="label">Amount *</label>
-            <input type="number" min="0" step="0.01" className="input" value={withdrawalForm.amount} onChange={e => setWithdrawalForm({ ...withdrawalForm, amount: e.target.value })} required />
+            <label className="label" htmlFor="super-admin-finance-f7">Amount *</label>
+            <input id="super-admin-finance-f7" type="number" min="0" step="0.01" className="input" value={withdrawalForm.amount} onChange={e => setWithdrawalForm({ ...withdrawalForm, amount: e.target.value })} required />
           </div>
           <div>
-            <label className="label">Notes</label>
-            <textarea className="input" rows={2} value={withdrawalForm.notes} onChange={e => setWithdrawalForm({ ...withdrawalForm, notes: e.target.value })} />
+            <label className="label" htmlFor="super-admin-finance-f8">Notes</label>
+            <textarea id="super-admin-finance-f8" className="input" rows={2} value={withdrawalForm.notes} onChange={e => setWithdrawalForm({ ...withdrawalForm, notes: e.target.value })} />
           </div>
           <div className="flex gap-2 pt-2">
             <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center disabled:opacity-60"><Save size={16} /> {saving ? 'Saving...' : 'Save'}</button>
