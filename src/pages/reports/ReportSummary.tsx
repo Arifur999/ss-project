@@ -746,18 +746,24 @@ export default function ReportSummary() {
     title,
     value,
     subtitle,
-    valueClassName = 'text-slate-900',
+    valueClassName,
   }: {
     title: string
     value: string
     subtitle?: string
     valueClassName?: string
   }) {
+    // Money that has gone the wrong way should read that way without anyone
+    // having to check the sign. An explicit valueClassName still wins, so a
+    // card that wants its own colour keeps it.
+    const isNegative = value.includes("-")
+    const toneClass = valueClassName || (isNegative ? "text-brand-red" : "text-slate-900")
+
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className={`mt-1 text-xl font-bold leading-tight tabular-nums ${valueClassName}`}>{value}</p>
+          <p className={`mt-1 text-xl font-bold leading-tight tabular-nums ${toneClass}`}>{value}</p>
           {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
         </div>
       </div>
@@ -1017,7 +1023,7 @@ export default function ReportSummary() {
               <ProgressCard title="Profit Targets" value={achievedProfit} target={data.profitTarget} progress={profitAchievedPct} tone="green" />
               <MetricCard title="Incentive Profit" value={formatCurr(data.purchaseIncentive)} subtitle="SP amount from purchase items" valueClassName="text-brand-green" />
               <MetricCard title="Other Income" value={formatCurr(data.totalOtherIncome)} subtitle="Supplier and other sources" />
-              <MetricCard title="Total Expenses" value={formatCurr(data.totalExpenses)} subtitle={`${percentText(pct(data.totalExpenses, data.totalSales))} of sales`} />
+              <MetricCard title="Total Expenses" value={formatCurr(data.totalExpenses)} subtitle={`${percentText(pct(data.totalExpenses, data.totalSales))} of sales`} valueClassName="text-brand-red" />
               <MetricCard title="Profit / Loss" value={formatCurr(data.profitLoss)} subtitle={`${profitMargin.toFixed(2)}% margin`} />
             </div>
 

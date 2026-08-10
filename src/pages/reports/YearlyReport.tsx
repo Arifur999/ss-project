@@ -327,7 +327,13 @@ export default function YearlyReport() {
       <div className="min-h-[148px] rounded-xl border border-slate-200 bg-white p-4 shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_28px_0_rgba(0,0,0,0.08)]">
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase leading-snug tracking-wide text-slate-500">{title}</p>
-          <p className={`mt-2 text-2xl font-black leading-tight tabular-nums break-words ${valueTone === 'green' ? 'text-brand-green' : valueTone === 'red' ? 'text-brand-red' : 'text-slate-950'}`}>{value}</p>
+          {/* A negative figure reads red on its own, so a loss never has to be
+              spotted by its minus sign. An explicit valueTone still wins. */}
+          <p className={`mt-2 text-2xl font-black leading-tight tabular-nums break-words ${
+            valueTone === 'green' ? 'text-brand-green'
+              : valueTone === 'red' || value.includes('-') ? 'text-brand-red'
+              : 'text-slate-950'
+          }`}>{value}</p>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
         </div>
         {progress !== undefined && (
