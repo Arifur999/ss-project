@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Settings, Wallet, TrendingUp, ArrowLeftRight,
@@ -23,6 +23,15 @@ export default function Layout() {
   const businessBrand = useBusinessBrand()
   const navigate = useNavigate()
   const location = useLocation()
+
+  // The page scrolls inside <main>, not the window, so a route change left the
+  // new page showing wherever the last one was scrolled to - land on a sales
+  // ledger halfway down its own table and it reads as missing rows. Put every
+  // new page back at the top.
+  const mainRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, left: 0 })
+  }, [location.pathname])
 
   function toggleGroup(key: string) {
     setExpandedGroup(prev => (prev === key ? null : key))
@@ -268,7 +277,7 @@ export default function Layout() {
           </div>
         </div>
 
-        <main className="flex-1 overflow-auto">
+        <main ref={mainRef} className="flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>

@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
 import { confirmAction } from '../components/ConfirmDialog'
 import toast from 'react-hot-toast'
+import SearchableSelect from '../components/SearchableSelect'
 import { useAuth } from '../context/AuthContext'
 import { useReactToPrint } from 'react-to-print'
 import { useLang } from '../context/LanguageContext'
@@ -233,6 +234,12 @@ export default function Sales() {
 
   useEffect(() => {
     setViewMode(location.pathname === '/sales/ledger' ? 'history' : 'create')
+    // /sales and /sales/ledger are the same component, so React re-renders it
+    // rather than building it again and nothing resets by itself. Leaving for
+    // the ledger and coming back used to show the picker still filtered by
+    // whatever was typed before. The form itself is deliberately left alone -
+    // a half-written invoice must survive a look at the ledger.
+    setProductSearch('')
   }, [location.pathname])
 
   useEffect(() => {
@@ -1270,6 +1277,9 @@ export default function Sales() {
     })
     setCustomerSearch('')
     setShowCustomerSuggestions(false)
+    // The product search was left behind, so the next invoice opened with the
+    // last one's search still filtering the picker.
+    setProductSearch('')
     setItems([emptyItem()])
     setPaymentRows([emptyPaymentRow()])
     setPreviousDuePay(0)
@@ -2442,19 +2452,15 @@ export default function Sales() {
                         <div className="flex h-9 w-7 items-center justify-center rounded-md bg-green-50 text-xs font-bold text-brand-green">
                           {index + 1}
                         </div>
-                        <label>
-                          <span className="label mb-0.5">Account</span>
-                          <select
-                            className="input h-9 py-1 text-xs"
+                        <div>
+                          <span className="label mb-0.5 block">Account</span>
+                          <SearchableSelect
                             value={row.account_id}
-                            onChange={e => updatePaymentRow(row.id, 'account_id', e.target.value)}
-                          >
-                            <option value="">Select Account</option>
-                            {accounts.map(account => (
-                              <option key={account.id} value={account.id}>{account.name}</option>
-                            ))}
-                          </select>
-                        </label>
+                            onChange={accountId => updatePaymentRow(row.id, 'account_id', accountId)}
+                            options={accounts.map(a => ({ value: a.id, label: a.name }))}
+                            placeholder="Select Account"
+                          />
+                        </div>
                         <label>
                           <span className="label mb-0.5">Amount</span>
                           <input
