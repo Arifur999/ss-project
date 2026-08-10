@@ -36,6 +36,7 @@ export default function PurchaseHistory() {
   const [search, setSearch] = useState('')
   const [period, setPeriod] = useState<Period>('all')
   const [sortBy, setSortBy] = useState<SortBy>('date_desc')
+  const [companyFilter, setCompanyFilter] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [loading, setLoading] = useState(true)
@@ -98,6 +99,14 @@ export default function PurchaseHistory() {
   }
 
   const normalizedSearch = search.trim().toLowerCase()
+  // Only the companies that actually appear, so the filter never offers a
+  // choice that returns nothing.
+  const companies = useMemo(() => {
+    const names = new Set<string>()
+    rows.forEach(row => { if (row.supplier_name && row.supplier_name !== '-') names.add(row.supplier_name) })
+    return [...names].sort((a, b) => a.localeCompare(b))
+  }, [rows])
+
   const filteredRows = useMemo(() => {
     const now = new Date()
     const from = fromDate ? new Date(fromDate + 'T00:00:00') : null
@@ -119,7 +128,8 @@ export default function PurchaseHistory() {
         row.product_name.toLowerCase().includes(normalizedSearch) ||
         row.product_code.toLowerCase().includes(normalizedSearch) ||
         row.supplier_name.toLowerCase().includes(normalizedSearch)
-      return matchesSearch && inPeriod(row.date)
+      const matchesCompany = !companyFilter || row.supplier_name === companyFilter
+      return matchesSearch && matchesCompany && inPeriod(row.date)
     })
 
     const sorted = [...result]
@@ -134,7 +144,7 @@ export default function PurchaseHistory() {
       }
     })
     return sorted
-  }, [normalizedSearch, rows, period, sortBy, fromDate, toDate])
+  }, [normalizedSearch, rows, period, sortBy, fromDate, toDate, companyFilter])
 
   // Draws a slice at a time as the reader scrolls. Every row stays in
   // memory, so totals, filters and exports above are untouched.
@@ -161,6 +171,10 @@ export default function PurchaseHistory() {
             className="input pl-9"
           />
         </div>
+        <select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)} className="input min-w-[150px] max-w-[190px]" title="Company">
+          <option value="">All Company</option>
+          {companies.map(name => <option key={name} value={name}>{name}</option>)}
+        </select>
         <select value={period} onChange={e => setPeriod(e.target.value as Period)} className="input min-w-[130px] max-w-[160px]" title="Period">
           <option value="all">All Time</option>
           <option value="month">This Month</option>
