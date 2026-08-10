@@ -831,8 +831,6 @@ export default function PlaceOrder() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-between"><span className="text-navy-800">Transport Cost</span><span className="font-semibold text-navy-800">{formatCurr(0)}</span></div>
-                <div className="flex justify-between"><span className="text-navy-800">Other Charges</span><span className="font-semibold text-navy-800">{formatCurr(0)}</span></div>
               </div>
               <div className="mt-5 flex justify-between text-lg font-bold">
                 <span className="text-navy-800">Grand Total</span>
