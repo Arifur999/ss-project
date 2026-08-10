@@ -703,18 +703,15 @@ export default function EmployeeTransactions() {
 
           <div>
             <label className="label" htmlFor="employee-transactions-f6">{requiredLabel('Payment Account')}</label>
-            <select id="employee-transactions-f6"
-              className={inputClass('account_id', 'h-11')}
+            <SearchableSelect
               value={form.account_id}
-              onChange={e => {
+              onChange={accountId => {
                 clearFormError('account_id')
-                setForm({ ...form, account_id: e.target.value })
+                setForm({ ...form, account_id: accountId })
               }}
-              required
-            >
-              <option value="">{t('common_select')}</option>
-              {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
-            </select>
+              options={accounts.map(account => ({ value: account.id, label: account.name }))}
+              placeholder={t('common_select')}
+            />
             {fieldError('account_id')}
           </div>
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Search, X } from 'lucide-react'
 
 export type SelectOption = { value: string; label: string }
@@ -23,19 +24,56 @@ export default function SearchableSelect({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const boxRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Where to draw the list. It is rendered into <body>, so these are viewport
+  // coordinates rather than offsets inside the form.
+  const [panel, setPanel] = useState({ top: 0, left: 0, width: 0, dropUp: false })
 
   const selected = options.find(o => o.value === value)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setQuery('')
-      }
+      const target = e.target as Node
+      // The list now lives outside this element in the DOM, so a click on an
+      // option is "outside" as far as contains() is concerned.
+      if (boxRef.current?.contains(target) || panelRef.current?.contains(target)) return
+      setOpen(false)
+      setQuery('')
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [])
+
+  // A dialog body scrolls, and an absolutely positioned list inside it is
+  // simply cut off at the dialog's edge - which is why only two or three
+  // accounts could be seen. Drawn into <body> instead, nothing clips it; the
+  // cost is having to place it by hand, and to follow the trigger when
+  // anything scrolls.
+  useLayoutEffect(() => {
+    if (!open) return
+
+    function place() {
+      const trigger = boxRef.current?.getBoundingClientRect()
+      if (!trigger) return
+      const spaceBelow = window.innerHeight - trigger.bottom
+      // 260px is the list at its tallest (search box + max-h-56).
+      const dropUp = spaceBelow < 260 && trigger.top > spaceBelow
+      setPanel({
+        top: dropUp ? trigger.top - 4 : trigger.bottom + 4,
+        left: trigger.left,
+        width: trigger.width,
+        dropUp,
+      })
+    }
+
+    place()
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
+  }, [open])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -63,8 +101,18 @@ export default function SearchableSelect({
         </span>
       </button>
 
-      {open && (
-        <div className="absolute z-40 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-xl">
+      {open && createPortal(
+        <div
+          ref={panelRef}
+          style={{
+            position: 'fixed',
+            top: panel.dropUp ? undefined : panel.top,
+            bottom: panel.dropUp ? window.innerHeight - panel.top : undefined,
+            left: panel.left,
+            width: panel.width,
+          }}
+          className="z-[60] rounded-lg border border-slate-200 bg-white shadow-xl"
+        >
           <div className="relative border-b border-slate-100 p-2">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input
@@ -88,7 +136,8 @@ export default function SearchableSelect({
             ))}
             {filtered.length === 0 && <div className="px-3 py-6 text-center text-sm text-slate-400">No matches</div>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
