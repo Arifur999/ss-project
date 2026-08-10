@@ -281,6 +281,24 @@ export default function CustomerDueReceived() {
       return toast.error(t('ledger_fillAllFields'))
     }
 
+    // A receipt can only settle what is actually owed. Taking more than the
+    // due used to go through silently and leave the customer's balance
+    // reading zero while the extra sat in an account with nothing behind it.
+    const collected = currentPaymentTotal + Number(discountAmount || 0)
+    if (collected > previousDue) {
+      const excess = collected - previousDue
+      await confirmAction({
+        title: 'Amount is more than the due',
+        message:
+          `This customer owes ${formatCurr(previousDue)}, but this receipt adds up to ` +
+          `${formatCurr(collected)} - ${formatCurr(excess)} too much.\n\n` +
+          `Lower the amount (or the discount) to ${formatCurr(previousDue)} or less and save again.`,
+        confirmText: 'OK',
+        cancelText: '',
+      })
+      return
+    }
+
     const customer = customers.find(c => c.id === form.customer_id)
     const discountCategory = expenseCategories.find(category => category.id === discountCategoryId)
     const paymentReceiver = receiverName.trim()

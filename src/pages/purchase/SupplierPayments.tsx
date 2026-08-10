@@ -397,10 +397,12 @@ export default function SupplierPayments() {
           <div><label className="label" htmlFor="supplier-payments-f1">{t('common_date')}</label><input id="supplier-payments-f1" type="date" className="input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           <div>
             <label className="label" htmlFor="supplier-payments-f2">{t('common_supplier')}</label>
-            <select id="supplier-payments-f2" className="input" value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
-              <option value="">{t('common_select')}</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.supplier_id}
+              onChange={supplierId => setForm({ ...form, supplier_id: supplierId })}
+              options={suppliers.map(s => ({ value: s.id, label: s.name }))}
+              placeholder={t("common_select")}
+            />
           </div>
           {/* Account first, then amount: you pick where the money comes from
               before deciding how much, and it matches the Due Received form. */}

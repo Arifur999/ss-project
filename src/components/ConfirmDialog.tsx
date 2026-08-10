@@ -25,7 +25,9 @@ export function confirmAction(options: ConfirmOptions) {
       title: options.title || 'Confirm Delete',
       message: options.message,
       confirmText: options.confirmText || 'Confirm',
-      cancelText: options.cancelText || 'Cancel',
+      // ?? not ||: an explicit empty string means "no cancel button", which is
+      // how a plain warning with a single OK is asked for.
+      cancelText: options.cancelText ?? 'Cancel',
       resolve,
     })
   })
@@ -64,9 +66,11 @@ export default function ConfirmDialogHost() {
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={() => close(false)} className="btn-secondary min-w-28 justify-center">
-            {request.cancelText}
-          </button>
+          {request.cancelText ? (
+            <button type="button" onClick={() => close(false)} className="btn-secondary min-w-28 justify-center">
+              {request.cancelText}
+            </button>
+          ) : null}
           <button type="button" onClick={() => close(true)} className="btn-danger min-w-28 justify-center">
             {request.confirmText}
           </button>
