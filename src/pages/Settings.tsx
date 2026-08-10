@@ -428,7 +428,23 @@ export default function Settings() {
                 </div>
                 <div>
                   <label className="label">{t('settings_businessLogoUrl')}</label>
-                  <input type="text" value={business.logo_url} onChange={e => setBusiness({ ...business, logo_url: e.target.value })} className="input" placeholder={t('settings_businessLogoPlaceholder')} disabled={!businessEditable} />
+                  {/* An uploaded logo is stored inline as base64 - thousands of
+                      characters. Shown as raw text it invites an accidental
+                      keystroke that silently corrupts the image, and there is
+                      nothing useful to read there anyway. A pasted URL is still
+                      editable as before; only the uploaded form is summarised. */}
+                  {business.logo_url.startsWith('data:') ? (
+                    <div className="input flex items-center justify-between gap-2 bg-slate-50 text-slate-600">
+                      <span className="truncate text-xs">
+                        Uploaded image ({Math.round(business.logo_url.length / 1024)} KB)
+                      </span>
+                      <span className="shrink-0 text-[11px] text-slate-400">
+                        {businessEditable ? 'Replace it below' : 'Locked'}
+                      </span>
+                    </div>
+                  ) : (
+                    <input type="text" value={business.logo_url} onChange={e => setBusiness({ ...business, logo_url: e.target.value })} className="input" placeholder={t('settings_businessLogoPlaceholder')} disabled={!businessEditable} />
+                  )}
                 </div>
                 <div>
                   <label className="label">{t('settings_businessUploadLogo')}</label>
@@ -440,12 +456,18 @@ export default function Settings() {
                   </div>
                 )}
                 <div className="col-span-3 flex items-center gap-3">
-                  <button onClick={saveBusiness} className="btn-primary" disabled={!businessEditable}>
-                    <Save size={16} /> {t('common_save')}
-                  </button>
-                  <button onClick={() => setBusinessEditable(true)} className="btn-secondary" type="button">
-                    <Pencil size={16} /> Edit
-                  </button>
+                  {/* One action at a time: the form is read-only until Edit is
+                      pressed, so there is never a Save sitting there that does
+                      nothing. */}
+                  {businessEditable ? (
+                    <button onClick={saveBusiness} className="btn-primary">
+                      <Save size={16} /> {t('common_save')}
+                    </button>
+                  ) : (
+                    <button onClick={() => setBusinessEditable(true)} className="btn-primary" type="button">
+                      <Pencil size={16} /> Edit
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
