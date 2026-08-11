@@ -13,6 +13,27 @@ import { addRecycleItem } from '../../lib/recycleBin'
 import { createPurchase as createPurchaseRequest, deletePurchaseReceive, receivePurchaseItem, updatePurchaseReceive } from '../../services/purchase.services'
 import { createOpeningStockBatch, createReceiveStockBatch } from '../../lib/fifoInventory'
 
+type OrderStatus = 'pending' | 'partial' | 'received'
+
+// The three order statuses, in the colours the legend at the top of the page
+// uses, so the dropdown reads the same way as the badges in the list below.
+//
+// `partial` cannot be chosen when creating an order: it means "some of these
+// arrived", and how many of each is exactly what this form has no field for.
+// That is recorded on the Product Received page, and the status then follows
+// from the quantities actually received.
+const ORDER_STATUS_META: Record<OrderStatus, { label: string; hex: string; textClass: string; dot: string }> = {
+  pending: { label: 'Pending Receive', hex: '#d97706', textClass: 'text-amber-600', dot: '●' },
+  partial: { label: 'Partially Received', hex: '#475569', textClass: 'text-slate-600', dot: '●' },
+  received: { label: 'Received', hex: '#1D9E75', textClass: 'text-brand-green', dot: '●' },
+}
+
+const ORDER_STATUS_OPTIONS = (Object.keys(ORDER_STATUS_META) as OrderStatus[]).map(value => ({
+  value,
+  ...ORDER_STATUS_META[value],
+  disabledOnCreate: value === 'partial',
+}))
+
 interface PurchaseItem {
   product_id: string
   product_code: string
@@ -104,10 +125,16 @@ export default function PlaceOrder() {
   const [editPOForm, setEditPOForm] = useState({ si_no: '', date: '', supplier_id: '' })
   const { user, touchOwnerActivity } = useAuth()
 
-  const [form, setForm] = useState({
+  // shipping_status is typed as the union, not inferred from the initial value:
+  // `'pending' as const` narrowed the whole field to that one literal, so the
+  // dropdown could never actually put anything else in here.
+  const [form, setForm] = useState<{
+    si_no: string; supplier_id: string; supplier_name: string
+    date: string; account_id: string; notes: string; shipping_status: OrderStatus
+  }>({
     si_no: generateSINo(), supplier_id: '', supplier_name: '',
     date: todayISO(),
-    account_id: '', notes: '', shipping_status: 'pending' as const,
+    account_id: '', notes: '', shipping_status: 'pending',
   })
   const [items, setItems] = useState<PurchaseItem[]>([{
     product_id: '', product_code: '', product_name: '',
@@ -389,12 +416,28 @@ export default function PlaceOrder() {
     const hasAllFields = items.every(i => i.product_code && i.product_name && i.qty > 0 && i.dp_price > 0)
     if (!hasAllFields) return toast.error(t('purchase_fillAllProductFields'))
 
+    // Saving as "Received" moves stock, so it is confirmed first. Previously it
+    // only wrote the word on the order: the items stayed at zero received, the
+    // ledger went on showing Pending, and - the part that actually mattered -
+    // nothing was ever added to inventory.
+    const receiveNow = form.shipping_status === 'received'
+    if (receiveNow) {
+      const totalQty = items.reduce((sum, item) => sum + Number(item.qty || 0), 0)
+      const confirmed = await confirmAction({
+        title: 'Receive this order into stock?',
+        message: `Saving with status "Received" adds ${totalQty} item(s) to your stock right away. Choose "Pending Receive" instead if the goods have not arrived yet.`,
+        confirmText: 'Yes, receive into stock',
+        cancelText: 'Cancel',
+      })
+      if (!confirmed) return
+    }
+
     try {
       const sup = suppliers.find(s => s.id === form.supplier_id)
       const due = totalAmount
 
       // One transactional request creates the purchase with all items.
-      await createPurchaseRequest({
+      const created = await createPurchaseRequest({
         si_no: form.si_no,
         supplier_id: form.supplier_id,
         supplier_name: sup?.name || '',
@@ -420,13 +463,33 @@ export default function PlaceOrder() {
         })),
       })
 
+      // Receiving goes through the same endpoint the Product Received page
+      // uses, rather than writing received_qty directly - that is what records
+      // the receipt, adds the stock and lays down the FIFO cost layer, so a
+      // purchase received here is costed identically to one received there.
+      if (receiveNow) {
+        const createdItems: any[] = created?.purchase_items || []
+        for (const createdItem of createdItems) {
+          const qty = Number(createdItem.qty || 0)
+          if (!createdItem.product_id || qty <= 0) continue
+          await receivePurchaseItem(created.id, {
+            purchase_item_id: createdItem.id,
+            receive_date: form.date,
+            received_qty: qty,
+            receiver_name: '',
+            condition: 'good',
+            notes: 'Received on order creation',
+          })
+        }
+      }
+
       await touchOwnerActivity(true)
-      toast.success(t('common_saved'))
+      toast.success(receiveNow ? 'Purchase order saved and received into stock' : t('common_saved'))
       setShowModal(false)
       setForm({
         si_no: generateSINo(), supplier_id: '', supplier_name: '',
         date: todayISO(),
-        account_id: '', notes: '', shipping_status: 'pending' as const,
+        account_id: '', notes: '', shipping_status: 'pending',
       })
       setItems([{ product_id: '', product_code: '', product_name: '', dp_price: 0, discount_pct: 0, actual_dp: 0, qty: 1, total_amount: 0, sp_amount: 0, deposit_amount: 0, received_qty: 0 }])
       // Clear the incentive too - a percentage left over from the last order
@@ -708,11 +771,31 @@ export default function PlaceOrder() {
               </label>
               <label>
                 <span className="label">Order Status</span>
-                <select className="input text-orange-600" value={form.shipping_status} onChange={e => setForm({ ...form, shipping_status: e.target.value as any })}>
-                  <option value="pending">● Pending Receive</option>
-                  <option value="partial">● Partially Received</option>
-                  <option value="received">● Received</option>
+                <select
+                  className={`input font-semibold ${ORDER_STATUS_META[form.shipping_status].textClass}`}
+                  value={form.shipping_status}
+                  onChange={e => setForm({ ...form, shipping_status: e.target.value as OrderStatus })}
+                >
+                  {ORDER_STATUS_OPTIONS.map(option => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      disabled={option.disabledOnCreate}
+                      // Inline colour: a native option list cannot be styled by
+                      // class, and this is what browsers do honour.
+                      style={{ color: option.hex }}
+                    >
+                      {option.dot} {option.label}{option.disabledOnCreate ? ' - receive on the Product Received page' : ''}
+                    </option>
+                  ))}
                 </select>
+                {/* Says plainly what saving as Received will do, because it
+                    moves stock rather than only labelling the order. */}
+                {form.shipping_status === 'received' && (
+                  <p className="mt-1 text-xs font-medium text-brand-green">
+                    All items will be received in full and added to stock when you submit.
+                  </p>
+                )}
               </label>
             </div>
           </section>
