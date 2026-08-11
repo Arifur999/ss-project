@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useBusinessBrand } from '../lib/businessBrand'
+import { whatsAppLink } from '../lib/support'
 import NotificationBell from './NotificationBell'
 import ExpiryReminder from './ExpiryReminder'
 import toast from 'react-hot-toast'
@@ -288,11 +289,9 @@ export default function Layout() {
   )
 }
 
-// Dummy support WhatsApp number - replace with the real one later.
-const WHATSAPP_SUPPORT_NUMBER = '8801700000000'
-
 function WhatsAppSupport() {
-  const href = `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=${encodeURIComponent('Hi, I need help with my Furniture Management account.')}`
+  // The number itself lives in lib/support.ts so it is defined in one place.
+  const href = whatsAppLink()
   return (
     <a
       href={href}

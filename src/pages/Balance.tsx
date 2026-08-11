@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader'
 import TableScroller from '../components/TableScroller'
 import { useLang } from '../context/LanguageContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
+import { amountClass } from '../lib/utils'
 
 const BALANCE_CACHE_KEY = 'balance-accounts'
 
@@ -194,7 +195,7 @@ export default function Balance() {
                     {columns.map(col => {
                       const val = (acc as any)[col.key] || 0
                       return (
-                        <td key={col.key} className={`py-2.5 px-3 text-right ${col.color} ${col.key === 'current_balance' ? 'bg-slate-50' : ''}`}>
+                        <td key={col.key} className={`py-2.5 px-3 text-right ${amountClass(val, col.color)} ${col.key === 'current_balance' ? 'bg-slate-50' : ''}`}>
                           {val === 0 ? '—' : formatCurr(val)}
                         </td>
                       )
@@ -207,7 +208,9 @@ export default function Balance() {
                   {columns.map(col => {
                     const total = accounts.reduce((s, a) => s + ((a as any)[col.key] || 0), 0)
                     return (
-                      <td key={col.key} className="py-2.5 px-3 text-right font-semibold">
+                      // A lighter red than text-brand-red: this row sits on
+                      // slate-900, where the darker one is hard to pick out.
+                      <td key={col.key} className={`py-2.5 px-3 text-right font-semibold ${total < 0 ? 'text-red-400' : ''}`}>
                         {total === 0 ? '—' : formatCurr(total)}
                       </td>
                     )

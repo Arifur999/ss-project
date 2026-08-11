@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Phone, ShieldCheck, Timer } from 'lucide-react'
 import type { Lang } from '../context/LanguageContext'
+import { supportNumberOrFallback, whatsAppLink } from '../lib/support'
 
 // Approval window shown after a manual payment is submitted. The countdown is
 // anchored to the server's `submittedAt`, so reloading the page keeps the real
@@ -89,15 +90,23 @@ export default function PendingApproval({
           )}
         </div>
 
-        {supportNumber && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600">
-            <Phone size={15} className="text-slate-400" />
-            <span>{bn ? 'সাহায্য দরকার?' : 'Need help?'}</span>
-            <a href={`tel:${supportNumber.replace(/\s+/g, '')}`} className="font-bold text-slate-900 hover:underline">
-              {supportNumber}
-            </a>
-          </div>
-        )}
+        {/* Falls back to the support line in lib/support.ts, so this block is
+            shown even before platform settings have loaded. */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600">
+          <Phone size={15} className="text-slate-400" />
+          <span>{bn ? 'সাহায্য দরকার?' : 'Need help?'}</span>
+          <a href={`tel:${supportNumberOrFallback(supportNumber).replace(/\s+/g, '')}`} className="font-bold text-slate-900 hover:underline">
+            {supportNumberOrFallback(supportNumber)}
+          </a>
+          <a
+            href={whatsAppLink(supportNumberOrFallback(supportNumber))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full bg-[#25D366] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#20bd5a]"
+          >
+            WhatsApp
+          </a>
+        </div>
 
         {onGoDashboard && (
           <button onClick={onGoDashboard} className="mt-6 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black">

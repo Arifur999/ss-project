@@ -39,6 +39,18 @@ export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }
 
+// A money figure below zero always reads red, whatever the column it sits in.
+//
+// A negative balance is money owed, and it has to be impossible to miss - on
+// the Balance sheet it used to render in the same dark text as a healthy one,
+// so an account Tk 203,054 in the red looked no different from one in credit.
+//
+// Pass the column's own class as `positiveClass`; it is returned untouched for
+// zero and positive values, so nothing about the existing colouring changes.
+export function amountClass(value: number, positiveClass = ''): string {
+  return Number(value) < 0 ? cn(positiveClass.replace(/text-\S+/g, ''), 'text-brand-red') : positiveClass
+}
+
 export const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
