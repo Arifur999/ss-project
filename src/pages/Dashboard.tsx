@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  ArrowUpRight,
   BarChart3,
   CalendarDays,
   ClipboardList,
   ShoppingCart,
   TrendingUp,
+  Wallet,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
@@ -518,7 +520,6 @@ export default function Dashboard() {
       <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.35fr)_minmax(0,1fr)]">
         <HeroCard
           label="Net Profit"
-          hint="Profit + other income - expenses"
           value={formatCurr(data.netProfit)}
           trend={pctChange(data.netProfit, data.previous.netProfit)}
           onWithdraw={() => navigate("/transactions/profit")}
@@ -632,59 +633,81 @@ export default function Dashboard() {
 // A trend that says "+100.0%" because last period was zero tells the reader
 // nothing, so it is only drawn when there is a real previous figure to compare
 // against.
-function TrendLine({ trend, inverted = false, onDark = false }: { trend: number; inverted?: boolean; onDark?: boolean }) {
-  if (!Number.isFinite(trend) || Math.abs(trend) < 0.05 || Math.abs(trend) === 100) {
-    return <span className={onDark ? "text-xs text-white/40" : "text-xs text-neutral-500"}>vs last period</span>
-  }
+function TrendLine({ trend, inverted = false }: { trend: number; inverted?: boolean }) {
+  // A trend of exactly 100% means last period was zero, which compares
+  // nothing; showing it on almost every card taught the eye to skip the line.
+  if (!Number.isFinite(trend) || Math.abs(trend) < 0.05 || Math.abs(trend) === 100) return null
   const good = inverted ? trend <= 0 : trend >= 0
   return (
-    <span className={`text-xs font-bold ${good ? "text-brand-green" : "text-brand-red"}`}>
-      {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}%
-      <span className={onDark ? "ml-1 font-medium text-white/40" : "ml-1 font-medium text-neutral-500"}>vs last period</span>
+    <span className={`text-xs font-semibold ${good ? "text-brand-green" : "text-brand-red"}`}>
+      {trend >= 0 ? "↑" : "↓"} {Math.abs(trend).toFixed(2)}%
     </span>
   )
 }
 
-// The one figure the owner is looking for, on the brand gradient.
-function HeroCard({ label, hint, value, trend, onWithdraw, onSavings }: {
-  label: string; hint: string; value: string; trend: number; onWithdraw: () => void; onSavings: () => void
+// The one figure the owner is looking for. The sweep across the black is two
+// soft light streaks laid over the gradient - the flat two-stop version read
+// as a grey rectangle next to the white cards.
+function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
+  label: string; value: string; trend: number; onWithdraw: () => void; onSavings: () => void
 }) {
   return (
-    <section className="relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1117] via-[#1b1f28] to-[#2A2D34] p-5 text-white">
+    <section
+      className="relative flex min-h-[232px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white"
+      style={{
+        backgroundColor: "#0F1117",
+        backgroundImage: [
+          "linear-gradient(118deg, rgba(255,255,255,0.16) 8%, rgba(255,255,255,0) 34%)",
+          "linear-gradient(122deg, rgba(255,255,255,0.10) 30%, rgba(255,255,255,0) 58%)",
+          "linear-gradient(135deg, #0F1117 0%, #1b1f28 55%, #2A2D34 100%)",
+        ].join(", "),
+      }}
+    >
       <div>
-        <p className="text-xs font-semibold text-white/60">{label}</p>
+        <p className="text-sm font-medium text-white/70">{label}</p>
         {/* A loss reads red here too, the same rule the reports follow. */}
-        <p className={`mt-3 text-4xl font-bold tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>{value}</p>
-        <p className="mt-2 text-[11px] text-white/40">{hint}</p>
+        <p className={`mt-2 text-[34px] font-bold tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>
+          {value}
+        </p>
+        <div className="mt-2 h-4"><TrendLine trend={trend} /></div>
       </div>
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <TrendLine trend={trend} onDark />
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button type="button" onClick={onWithdraw} className="flex-1 rounded-full bg-white px-4 py-2 text-xs font-semibold text-navy-900 transition-colors hover:bg-white/90">
-          Withdraw
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onWithdraw}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-white/90"
+        >
+          <ArrowUpRight size={16} /> Withdraw
         </button>
-        <button type="button" onClick={onSavings} className="flex-1 rounded-full border border-white/25 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10">
-          Savings
+        <button
+          type="button"
+          onClick={onSavings}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+        >
+          <Wallet size={16} /> Savings
         </button>
       </div>
     </section>
   )
 }
 
-// Label and icon on one line, the figure large beneath it. No icon tile: nine
-// solid black squares used to outweigh the numbers they sat beside.
+// Icon in its own outlined square with the label beside it, the figure large
+// below, and the change under that - nothing else. Anything more competed
+// with the number the card exists to show.
 function StatCard({ label, icon, value, trend, inverted = false }: {
   label: string; icon: React.ReactNode; value: string; trend: number; inverted?: boolean
 }) {
   return (
-    <section className="card flex min-h-[97px] flex-col justify-between p-4">
-      <div className="flex items-center gap-2 text-neutral-500">
-        {icon}
-        <span className="truncate text-xs font-semibold">{label}</span>
+    <section className="card flex min-h-[108px] flex-col justify-between p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700">
+          {icon}
+        </span>
+        <span className="truncate text-sm text-neutral-700">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-bold tabular-nums leading-none text-navy-900">{value}</p>
-      <div className="mt-2"><TrendLine trend={trend} inverted={inverted} /></div>
+      <p className="mt-3 text-2xl font-bold tabular-nums leading-none text-navy-900">{value}</p>
+      <div className="mt-2 h-4"><TrendLine trend={trend} inverted={inverted} /></div>
     </section>
   )
 }
