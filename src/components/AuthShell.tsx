@@ -22,7 +22,6 @@ interface AuthShellProps {
  * present yet the panel simply falls back to the dark base colour + overlay.
  */
 export default function AuthShell({ image, imageAlt, brandName, heading, subtitle, lang, setLang, children }: AuthShellProps) {
-  const initial = (brandName.trim()[0] || 'B').toUpperCase()
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#eef0f6] p-3 sm:p-6">
@@ -37,10 +36,7 @@ export default function AuthShell({ image, imageAlt, brandName, heading, subtitl
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40" />
           <div className="relative z-10 flex h-full flex-col justify-between p-10 text-white">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-base font-black text-slate-900">{initial}</span>
-              <span className="text-lg font-bold tracking-tight">{brandName}</span>
-            </div>
+            <img src="/logo-light.png" alt={brandName} className="h-8 w-auto self-start object-contain" />
             <div>
               <h1 className="text-3xl font-black leading-tight xl:text-[34px]">{heading}</h1>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">{subtitle}</p>
@@ -66,6 +62,9 @@ export default function AuthShell({ image, imageAlt, brandName, heading, subtitl
             </button>
           </div>
           <div className="mx-auto w-full max-w-sm">
+            {/* The dark mark, because this panel is white. The brand panel on
+                the left carries the light one against its photograph. */}
+            <img src="/logo-dark.png" alt={brandName} className="mb-7 h-9 w-auto object-contain" />
             {children}
           </div>
         </div>

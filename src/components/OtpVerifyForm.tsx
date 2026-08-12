@@ -15,28 +15,17 @@ import { useLang } from '../context/LanguageContext'
 //      the auth cookies, so a successful verify IS a successful login
 //   3. onVerified() lets the parent page navigate wherever it wants
 //
-// Two separate clocks run here, and keeping them apart matters:
-//
-//   - how long the CODE stays valid (5 minutes, set by the server and stated
-//     in the email), shown as the main countdown
-//   - how long until the user may ask for ANOTHER code (60 seconds), shown on
-//     the resend button
-//
-// Only the 60-second one used to be on screen, with no label saying what it
-// counted. People read it as the code's lifetime and thought they had one
-// minute, while the email told them five.
+// The one clock on screen counts down to when another code may be asked for
+// (60 seconds), and its label says exactly that. The code's own lifetime -
+// 2 minutes, set by OTP_TTL_MINUTES on the server and stated in the email -
+// is deliberately not shown: a second countdown beside the first only invited
+// the two to be confused for each other, and the server is the authority on
+// whether a code still works.
 // ---------------------------------------------------------------------------
 
 const RESEND_COOLDOWN_SECONDS = 60
-// Must match OTP_TTL_MINUTES in the backend's utils/otp.ts.
-const OTP_VALIDITY_SECONDS = 5 * 60
 const OTP_LENGTH = 6
 const EMPTY_DIGITS = Array(OTP_LENGTH).fill('')
-
-const mmss = (totalSeconds: number) => {
-  const safe = Math.max(0, totalSeconds)
-  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`
-}
 
 interface OtpVerifyFormProps {
   email: string          // the address the code was sent to (shown to the user)
@@ -53,14 +42,12 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
   const [digits, setDigits] = useState<string[]>(EMPTY_DIGITS)
   const [verifying, setVerifying] = useState(false)
   const [resending, setResending] = useState(false)
-  // Both countdowns start now: the backend has just sent a code.
+  // Starts now: the backend has just sent a code.
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS)
-  const [validFor, setValidFor] = useState(OTP_VALIDITY_SECONDS)
   const boxRefs = useRef<Array<HTMLInputElement | null>>([])
   const autoSubmittedRef = useRef(false)
 
   const code = digits.join('')
-  const expired = validFor <= 0
 
   // Tick the resend cooldown once per second until it reaches zero.
   useEffect(() => {
@@ -68,15 +55,6 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
     const timer = setTimeout(() => setCooldown(current => current - 1), 1000)
     return () => clearTimeout(timer)
   }, [cooldown])
-
-  // ...and the code's own lifetime. The server is still the authority on
-  // whether a code has expired; this only tells the user where they stand, so
-  // a second of clock drift either way does no harm.
-  useEffect(() => {
-    if (validFor <= 0) return
-    const timer = setTimeout(() => setValidFor(current => current - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [validFor])
 
   // Focus the first box as soon as the form appears.
   useEffect(() => {
@@ -96,8 +74,6 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
       success: 'লগইন সফল হয়েছে!',
       resent: 'নতুন কোড পাঠানো হয়েছে',
       invalid: 'সঠিক ৬-সংখ্যার কোড দিন',
-      validFor: (time: string) => `কোডটি আরও ${time} মিনিট বৈধ`,
-      expired: 'কোডের মেয়াদ শেষ। নতুন কোড নিন।',
     }
     : {
       title: 'Security verification',
@@ -110,8 +86,6 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
       success: 'Signed in successfully!',
       resent: 'A new code has been sent',
       invalid: 'Please enter the 6-digit code',
-      validFor: (time: string) => `Code valid for ${time}`,
-      expired: 'This code has expired. Please request a new one.',
     }
 
   async function verifyCode(candidate: string) {
@@ -145,7 +119,7 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
   }
 
   // Auto-submit the instant all 6 boxes are filled (typed or pasted) - saves
-  // an extra click, which matters a lot on a code that's only valid 5 minutes.
+  // an extra click, which matters a lot on a code that's only valid 2 minutes.
   useEffect(() => {
     if (code.length === OTP_LENGTH && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true
@@ -237,7 +211,6 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
       autoSubmittedRef.current = false
       // A resend mints a brand new code, so both clocks start over.
       setCooldown(RESEND_COOLDOWN_SECONDS)
-      setValidFor(OTP_VALIDITY_SECONDS)
       boxRefs.current[0]?.focus()
     } finally {
       setResending(false)
@@ -254,11 +227,6 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
         <h2 className="text-xl font-semibold text-slate-800">{copy.title}</h2>
         <p className="mt-1 text-sm text-slate-500">
           {copy.sentTo} <span className="font-semibold text-slate-700">{email}</span>
-        </p>
-        {/* The code's own lifetime, matching the "valid for 5 minutes" line in
-            the email. Distinct from the resend cooldown on the button below. */}
-        <p className={`mt-2 text-sm font-semibold ${expired ? 'text-brand-red' : 'text-slate-600'}`}>
-          {expired ? copy.expired : copy.validFor(mmss(validFor))}
         </p>
       </div>
 

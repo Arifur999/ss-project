@@ -221,10 +221,10 @@ export default function Layout() {
       <aside className={`${collapsed ? 'w-16' : 'w-64'} bg-shell flex flex-col transition-all duration-300 flex-shrink-0`}>
         <div className="flex items-center justify-between p-4">
           {!collapsed && (
-            <div>
-              <h1 className="text-white font-bold text-sm">{t('appName')}</h1>
-              <p className="text-white/50 text-xs">{t('appSubtitle')}</p>
-            </div>
+            // The light mark, because the sidebar shares the dark frame. It is
+            // hidden when collapsed - the sidebar is 64px there and a wordmark
+            // this wide would only squash.
+            <img src="/logo-light.png" alt={t('appName')} className="h-7 w-auto object-contain" />
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}

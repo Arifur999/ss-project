@@ -166,9 +166,6 @@ export default function Register() {
       ) : (
       <>
           <div className="mb-5 text-center">
-            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-lg font-black text-white">
-              {(businessName.trim()[0] || 'B').toUpperCase()}
-            </div>
             <h2 className="text-2xl font-black leading-tight text-slate-950">{regT('title')}</h2>
             <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-slate-500">
               {regT('subtitle')}

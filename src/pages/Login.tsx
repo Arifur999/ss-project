@@ -91,9 +91,6 @@ export default function Login() {
       ) : (
         <>
           <div className="mb-7 text-center">
-            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-lg font-black text-white">
-              {(businessName.trim()[0] || 'B').toUpperCase()}
-            </div>
             <h2 className="text-2xl font-black text-slate-950">{t('login_title')}</h2>
             <p className="mt-1.5 text-sm text-slate-500">{copy.welcome}</p>
           </div>
