@@ -1,122 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Save, Plus, Trash2, Building2, Users, CreditCard, Target, Truck, UserCog, Eye, EyeOff, ShieldCheck, ShieldX, Pencil, Camera, Crown, Briefcase, Package, Calculator, ShoppingCart, UserRoundPlus, BarChart3, Cog, Check, X, CalendarDays } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
 import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
-import { confirmAction } from '../components/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
-import { rememberBusinessBrand, resolveBusinessName } from '../lib/businessBrand'
-import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../lib/phone'
 import { todayISO } from '../lib/utils'
 
-type Tab = 'business' | 'shareholders' | 'accounts' | 'suppliers' | 'targets' | 'users'
-const SHAREHOLDER_OPENING_AMOUNT_FALLBACK_KEY = 'shareholder_opening_amount_fallback_v1'
-const REQUIRED_FIELD_MESSAGE = 'This field is required!'
 
-type BusinessValidationErrors = Partial<Record<'businessName' | 'phone1' | 'address', string>>
-type ShareholderValidationErrors = Partial<Record<'name' | 'phone', string>>
-
-function readShareholderOpeningAmountFallback() {
-  try {
-    return JSON.parse(localStorage.getItem(SHAREHOLDER_OPENING_AMOUNT_FALLBACK_KEY) || '{}') as Record<string, number>
-  } catch {
-    return {}
-  }
-}
-
-function saveShareholderOpeningAmountFallback(shareholderId: string, amount: number) {
-  if (!shareholderId) return
-  const current = readShareholderOpeningAmountFallback()
-  localStorage.setItem(SHAREHOLDER_OPENING_AMOUNT_FALLBACK_KEY, JSON.stringify({
-    ...current,
-    [shareholderId]: Number(amount || 0),
-  }))
-}
-
-function isMissingOpeningAmountColumn(error: any) {
-  const message = String(error?.message || '').toLowerCase()
-  return message.includes('opening_amount') && (
-    message.includes('schema cache') ||
-    message.includes('column') ||
-    error?.code === 'PGRST204'
-  )
-}
 
 export default function Settings() {
-  const { t, formatCurr, monthName } = useLang()
-  const [activeTab, setActiveTab] = useState<Tab>('business')
-  const [business, setBusiness] = useState({ name_bn: '', name_en: '', phone: '', email: '', address: '', website: '', trade_license: '', logo_url: '' })
-  const [businessEditable, setBusinessEditable] = useState(true)
-  const [businessErrors, setBusinessErrors] = useState<BusinessValidationErrors>({})
-  const [shareholders, setShareholders] = useState<any[]>([])
-  const [investments, setInvestments] = useState<any[]>([])
-  const [profitWithdrawals, setProfitWithdrawals] = useState<any[]>([])
-  const [accounts, setAccounts] = useState<any[]>([])
-  const [suppliers, setSuppliers] = useState<any[]>([])
-  const [targets, setTargets] = useState<any[]>([])
-  const [showTargetModal, setShowTargetModal] = useState(false)
-  const [editTarget, setEditTarget] = useState<any>(null)
+  const { t } = useLang()
   const [users, setUsers] = useState<any[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
-  const [showModal, setShowModal] = useState(false)
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<any>(null)
-  const [modalType, setModalType] = useState('')
-  const [editItem, setEditItem] = useState<any>(null)
-  const currentYear = new Date().getFullYear()
   const { profile: currentProfile } = useAuth()
 
-  useEffect(() => { loadAll() }, [])
-  useEffect(() => { if (activeTab === 'users') loadUsers() }, [activeTab])
+  useEffect(() => { loadUsers() }, [])
 
   // Team management now goes through the backend API (replaces the old
   // Supabase manage-users edge function).
 
-  async function loadTargets() {
-    const { data, error } = await supabase
-      .from('monthly_targets')
-      .select('id, month, year, sales_target, profit_target, created_at, updated_at')
-      .order('year', { ascending: false })
-      .order('month', { ascending: true })
-
-    if (error) throw error
-    return data || []
-  }
-
-  async function loadAll() {
-    const [bizRes, shRes, accRes, supRes, targetRows, invRes, profitWithdrawRes] = await Promise.all([
-      supabase.from('business_settings').select('*').maybeSingle(),
-      supabase.from('shareholders').select('*').order('sort_order'),
-      supabase.from('accounts').select('*').order('sort_order'),
-      supabase.from('suppliers').select('*'),
-      loadTargets().catch(error => {
-        console.error('Error loading targets:', error)
-        toast.error('Error loading targets: ' + (error.message || 'Unknown error'))
-        return []
-      }),
-      supabase.from('investments').select('*'),
-      supabase.from('profit_withdrawals').select('id, shareholder_id, shareholder_name, amount, date'),
-    ])
-    if (bizRes.data) {
-      setBusiness(bizRes.data)
-      rememberBusinessBrand(bizRes.data)
-      setBusinessEditable(false)
-    }
-    const openingAmountFallback = readShareholderOpeningAmountFallback()
-    setShareholders((shRes.data || []).map((shareholder: any) => ({
-      ...shareholder,
-      opening_amount: Number(shareholder.opening_amount ?? openingAmountFallback[shareholder.id] ?? 0),
-    })))
-    setAccounts(accRes.data || [])
-    setSuppliers(supRes.data || [])
-    setTargets(targetRows)
-    setInvestments(invRes.data || [])
-    setProfitWithdrawals(profitWithdrawRes.data || [])
-  }
 
   async function loadUsers() {
     setUsersLoading(true)
@@ -161,96 +68,13 @@ export default function Settings() {
     }
   }
 
-  async function saveBusiness() {
-    const businessName = (business.name_en || business.name_bn || '').trim()
-    const [phone1Raw, phone2Raw] = getBusinessPhones()
-    const phone1 = phone1Raw.trim()
-    const phone2 = phone2Raw.trim()
-    const address = (business.address || '').trim()
-    const nextErrors: BusinessValidationErrors = {}
 
-    if (!businessName) nextErrors.businessName = REQUIRED_FIELD_MESSAGE
-    if (!phone1) nextErrors.phone1 = REQUIRED_FIELD_MESSAGE
-    if (!address) nextErrors.address = REQUIRED_FIELD_MESSAGE
 
-    setBusinessErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
 
-    const payload = {
-      ...business,
-      name_bn: businessName,
-      name_en: businessName,
-      address,
-      phone: [phone1, phone2].filter(Boolean).join(', '),
-      trade_license: '',
-    }
-    const { data } = await supabase.from('business_settings').select('id').maybeSingle()
-    let saveError: { message?: string } | null = null
-    if (data?.id) {
-      const { error } = await supabase.from('business_settings').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', data.id)
-      saveError = error
-    } else {
-      const { error } = await supabase.from('business_settings').insert(payload)
-      saveError = error
-    }
 
-    if (saveError) {
-      toast.error(saveError.message || t('common_error'))
-      return
-    }
 
-    setBusiness(payload)
-    rememberBusinessBrand(payload)
-    setBusinessEditable(false)
-    toast.success(t('settings_businessSaved'))
-  }
 
-  function clearBusinessError(field: keyof BusinessValidationErrors) {
-    setBusinessErrors(current => {
-      if (!current[field]) return current
-      const { [field]: _removed, ...rest } = current
-      return rest
-    })
-  }
 
-  function requiredLabel(label: string) {
-    return (
-      <>
-        {label}<span className="text-red-500"> *</span>
-      </>
-    )
-  }
-
-  function requiredInputClass(hasError: boolean) {
-    return `input ${hasError ? 'border-red-300 focus:ring-red-400' : ''}`
-  }
-
-  function handleLogoUpload(file?: File) {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      setBusiness(prev => ({ ...prev, logo_url: String(reader.result || '') }))
-    }
-    reader.readAsDataURL(file)
-  }
-
-  function getBusinessPhones() {
-    const phones = (business.phone || '').split(',').map(phone => phone.trim())
-    return [phones[0] || '', phones.slice(1).join(', ') || '']
-  }
-
-  function setBusinessPhone(index: 0 | 1, value: string) {
-    const [phone1, phone2] = getBusinessPhones()
-    const nextPhones = index === 0 ? [value, phone2] : [phone1, value]
-    setBusiness({ ...business, phone: nextPhones.filter(Boolean).join(', ') })
-  }
-
-  async function deleteTarget(id: string) {
-    const { error } = await supabase.from('monthly_targets').delete().eq('id', id)
-    if (error) { toast.error(error.message || t('common_error')); return }
-    toast.success(t('common_deleted'))
-    setTargets(await loadTargets())
-  }
 
   // Shared delete flow for the simple config tables (shareholders, accounts,
   // suppliers). The old inline handlers fired the delete and immediately
@@ -258,66 +82,11 @@ export default function Settings() {
   // shareholder that still has investment records, blocked by an onDelete:
   // Restrict foreign key), the row silently stayed and the user saw nothing
   // happen. Now we confirm first and surface the real reason on failure.
-  async function deleteRow(table: string, id: string, linkedHint: string) {
-    const confirmed = await confirmAction({ message: t('common_confirmDelete') })
-    if (!confirmed) return
 
-    const { error } = await supabase.from(table).delete().eq('id', id)
-    if (error) {
-      const message = String(error.message || '')
-      // Foreign-key / linked-record rejections come back as a 409 from the
-      // backend; give a human explanation instead of the raw DB wording.
-      const isLinked = error.code === 409 || /linked|foreign|constraint/i.test(message)
-      toast.error(isLinked ? linkedHint : (message || t('common_error')))
-      return
-    }
-    toast.success(t('common_deleted'))
-    loadAll()
-  }
 
-  async function toggleAccount(id: string, is_active: boolean) {
-    await supabase.from('accounts').update({ is_active }).eq('id', id)
-    loadAll()
-  }
 
-  function openModal(type: string, item?: any) {
-    setModalType(type)
-    setEditItem(item || null)
-    setShowModal(true)
-  }
 
-  function shareholderCapital(shareholder: any) {
-    const investAmount = investments
-      .filter(record => record.shareholder_id === shareholder.id)
-      .reduce((sum, record) => sum + Number(record.invest_amount || 0), 0)
-    const withdrawAmount = investments
-      .filter(record => record.shareholder_id === shareholder.id)
-      .reduce((sum, record) => sum + Number(record.withdraw_amount || 0), 0)
-    const profitWithdrawalAmount = profitWithdrawals
-      .filter(record => record.shareholder_id === shareholder.id || (!record.shareholder_id && record.shareholder_name === shareholder.name))
-      .reduce((sum, record) => sum + Number(record.amount || 0), 0)
-    const openingAmount = Number(shareholder.opening_amount || 0)
 
-    return {
-      openingAmount,
-      investAmount,
-      withdrawAmount,
-      profitWithdrawalAmount,
-      netAmount: openingAmount + investAmount - withdrawAmount,
-    }
-  }
-
-  const totalShareCapital = shareholders.reduce((sum, shareholder) => sum + shareholderCapital(shareholder).netAmount, 0)
-  const totalSharePercent = totalShareCapital > 0 ? 100 : 0
-
-  const tabs = [
-    { id: 'business', label: t('settings_tabBusiness'), icon: <Building2 size={16} /> },
-    { id: 'shareholders', label: t('settings_tabShareholders'), icon: <Users size={16} /> },
-    { id: 'accounts', label: t('settings_tabAccounts'), icon: <CreditCard size={16} /> },
-    { id: 'suppliers', label: t('settings_tabSuppliers'), icon: <Truck size={16} /> },
-    { id: 'targets', label: t('settings_tabTargets'), icon: <Target size={16} /> },
-    { id: 'users', label: t('settings_tabUsers'), icon: <UserCog size={16} /> },
-  ]
 
   const ROLE_LABELS: Record<string, string> = {
     owner: t('settings_roleOwner'),
@@ -327,429 +96,95 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6">
-      <PageHeader title={t('settings_title')} subtitle={t('settings_subtitle')} />
+    <div className="min-h-screen bg-slate-50 p-6">
+      <PageHeader title={t('settings_userManagement', 'User Management')} subtitle={t('settings_usersList')} />
 
-      <div className="flex gap-6">
-        <div className="w-48 flex-shrink-0">
-          <nav className="space-y-1">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as Tab)}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+      <div className="space-y-4">
+        <div className="card p-0">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100">
+            <h2 className="font-semibold text-slate-800">{t('settings_usersList')} ({users.length})</h2>
+            <button onClick={() => setShowCreateUser(true)} className="btn-primary">
+              <Plus size={16} /> {t('settings_newUser')}
+            </button>
+          </div>
 
-        <div className="flex-1">
-          {activeTab === 'business' && (
-            <div className="card">
-              <h2 className="font-semibold text-slate-800 mb-4">{t('settings_tabBusiness')}</h2>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="label" htmlFor="settings-f1">{requiredLabel(t('settings_businessName'))}</label>
-                  <input id="settings-f1"
-                    type="text"
-                    value={business.name_en || business.name_bn || ''}
-                    onChange={e => {
-                      clearBusinessError('businessName')
-                      setBusiness({ ...business, name_bn: e.target.value, name_en: e.target.value })
-                    }}
-                    className={requiredInputClass(Boolean(businessErrors.businessName))}
-                    disabled={!businessEditable}
-                    required
-                  />
-                  {businessErrors.businessName && <p className="mt-1 text-xs text-red-600">{businessErrors.businessName}</p>}
-                </div>
-                <div>
-                  <label className="label" htmlFor="settings-f2">{requiredLabel(t('settings_businessPhone1'))}</label>
-                  <input id="settings-f2"
-                    type="text"
-                    value={getBusinessPhones()[0]}
-                    onChange={e => {
-                      clearBusinessError('phone1')
-                      setBusinessPhone(0, e.target.value)
-                    }}
-                    className={requiredInputClass(Boolean(businessErrors.phone1))}
-                    disabled={!businessEditable}
-                    required
-                  />
-                  {businessErrors.phone1 && <p className="mt-1 text-xs text-red-600">{businessErrors.phone1}</p>}
-                </div>
-                <div>
-                  <label className="label" htmlFor="settings-f3">{t('settings_businessPhone2')}</label>
-                  <input id="settings-f3"
-                    type="text"
-                    value={getBusinessPhones()[1]}
-                    onChange={e => setBusinessPhone(1, e.target.value)}
-                    className="input"
-                    disabled={!businessEditable}
-                  />
-                </div>
-                <div>
-                  <label className="label" htmlFor="settings-f4">{t('settings_businessEmail')}</label>
-                  <input id="settings-f4"
-                    type="email"
-                    value={business.email || ''}
-                    onChange={e => setBusiness({ ...business, email: e.target.value })}
-                    className="input"
-                    disabled={!businessEditable}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="label" htmlFor="settings-f5">{requiredLabel(t('settings_businessAddress'))}</label>
-                  <input id="settings-f5"
-                    type="text"
-                    value={business.address}
-                    onChange={e => {
-                      clearBusinessError('address')
-                      setBusiness({ ...business, address: e.target.value })
-                    }}
-                    className={requiredInputClass(Boolean(businessErrors.address))}
-                    disabled={!businessEditable}
-                    required
-                  />
-                  {businessErrors.address && <p className="mt-1 text-xs text-red-600">{businessErrors.address}</p>}
-                </div>
-                <div>
-                  <label className="label" htmlFor="settings-f6">{t('settings_businessWebsite')}</label>
-                  <input id="settings-f6"
-                    type="text"
-                    value={business.website || ''}
-                    onChange={e => setBusiness({ ...business, website: e.target.value })}
-                    className="input"
-                    disabled={!businessEditable}
-                  />
-                </div>
-                <div>
-                  <label className="label">{t('settings_businessLogoUrl')}</label>
-                  {/* An uploaded logo is stored inline as base64 - thousands of
-                      characters. Shown as raw text it invites an accidental
-                      keystroke that silently corrupts the image, and there is
-                      nothing useful to read there anyway. A pasted URL is still
-                      editable as before; only the uploaded form is summarised. */}
-                  {business.logo_url.startsWith('data:') ? (
-                    <div className="input flex items-center justify-between gap-2 bg-slate-50 text-slate-600">
-                      <span className="truncate text-xs">
-                        Uploaded image ({Math.round(business.logo_url.length / 1024)} KB)
-                      </span>
-                      <span className="shrink-0 text-[11px] text-slate-400">
-                        {businessEditable ? 'Replace it below' : 'Locked'}
-                      </span>
-                    </div>
-                  ) : (
-                    <input type="text" value={business.logo_url} onChange={e => setBusiness({ ...business, logo_url: e.target.value })} className="input" placeholder={t('settings_businessLogoPlaceholder')} disabled={!businessEditable} />
-                  )}
-                </div>
-                <div>
-                  <label className="label" htmlFor="settings-f7">{t('settings_businessUploadLogo')}</label>
-                  <input id="settings-f7" type="file" accept="image/*" onChange={e => handleLogoUpload(e.target.files?.[0])} className="input" disabled={!businessEditable} />
-                </div>
-                {business.logo_url && (
-                  <div className="col-span-3">
-                    <img src={business.logo_url} alt="Business logo preview" className="h-20 max-w-48 object-contain border border-slate-200 rounded-lg bg-white p-2" />
-                  </div>
-                )}
-                <div className="col-span-3 flex items-center gap-3">
-                  {/* One action at a time: the form is read-only until Edit is
-                      pressed, so there is never a Save sitting there that does
-                      nothing. */}
-                  {businessEditable ? (
-                    <button onClick={saveBusiness} className="btn-primary">
-                      <Save size={16} /> {t('common_save')}
-                    </button>
-                  ) : (
-                    <button onClick={() => setBusinessEditable(true)} className="btn-primary" type="button">
-                      <Pencil size={16} /> Edit
-                    </button>
-                  )}
-                </div>
-              </div>
+          {usersLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin w-6 h-6 border-4 border-brand-green border-t-transparent rounded-full" />
             </div>
-          )}
-
-          {activeTab === 'shareholders' && (
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="font-semibold text-slate-800">{t('settings_shareholderList')}</h2>
-                  <p className="text-xs text-slate-500">{t('settings_totalShare')} {totalSharePercent.toFixed(1)}%</p>
-                </div>
-                <button onClick={() => openModal('shareholder')} className="btn-primary">
-                  <Plus size={16} /> {t('common_add')}
-                </button>
-              </div>
-              <div className="w-full overflow-x-auto rounded-lg shadow-sm">
-                <table className="w-full min-w-[820px] text-sm">
-                  <thead className="table-header">
-                    <tr>
-                      <th className="text-left py-2 px-3 w-12">#</th>
-                      <th className="text-left py-2 px-3">{t('common_name')}</th>
-                      <th className="text-left py-2 px-3">{t('common_phone')}</th>
-                      <th className="text-left py-2 px-3">{t('common_address')}</th>
-                      <th className="text-right py-2 px-3">{t('invest_openingAmount')}</th>
-                      <th className="text-right py-2 px-3">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shareholders.map((sh, index) => {
-                      const openingAmount = Number(sh.opening_amount || 0)
-                      return (
-                        <tr key={sh.id} className="table-row">
-                          <td className="py-2 px-3 text-slate-500">{index + 1}</td>
-                          <td className="py-2 px-3 font-medium">{sh.name}</td>
-                          <td className="py-2 px-3 text-slate-500">{sh.phone || '-'}</td>
-                          <td className="py-2 px-3 text-slate-500">{sh.address || '-'}</td>
-                          <td className="py-2 px-3 text-right text-slate-500">{formatCurr(openingAmount)}</td>
-                          <td className="py-2 px-3 text-right">
-                            <div className="flex gap-1 justify-end">
-                              <button onClick={() => openModal('shareholder', sh)} className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"><Pencil size={13} /></button>
-                              <button onClick={() => deleteRow('shareholders', sh.id, 'This shareholder has investment or withdrawal records and cannot be deleted. Remove those entries first.')} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'accounts' && (
-            <div className="card p-0">
-              <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-800">{t('settings_tabAccounts')}</h2>
-                <button onClick={() => openModal('account')} className="btn-primary"><Plus size={16} /> {t('common_add')}</button>
-              </div>
-              <table className="w-full text-sm">
-                <thead className="table-header">
-                  <tr>
-                    <th className="text-left py-2 px-4">{t('common_name')}</th>
-                    <th className="text-right py-2 px-4">{t('settings_openingBalance')}</th>
-                    <th className="text-center py-2 px-4">{t('common_active')}</th>
-                    <th className="py-2 px-4"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {accounts.map(acc => (
-                    <tr key={acc.id} className="table-row">
-                      <td className="py-2.5 px-4 font-medium">{acc.name}</td>
-                      <td className="py-2.5 px-4 text-right">{formatCurr(acc.opening_balance)}</td>
-                      <td className="py-2.5 px-4 text-center">
-                        <button
-                          onClick={() => toggleAccount(acc.id, !acc.is_active)}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${acc.is_active ? 'bg-slate-900' : 'bg-slate-300'}`}
-                        >
-                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${acc.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                        </button>
-                      </td>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="table-header">
+                <tr>
+                  <th className="text-left py-2 px-4">{t('common_name')}</th>
+                  <th className="text-left py-2 px-4">{t('common_email')}</th>
+                  <th className="text-left py-2 px-4">{t('common_phone')}</th>
+                  <th className="text-left py-2 px-4">{t('common_type')}</th>
+                  <th className="py-2 px-4 text-center">{t('common_status')}</th>
+                  <th className="py-2 px-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => {
+                  const isSelf = u.id === currentProfile?.id
+                  return (
+                    <tr key={u.id} className="table-row">
                       <td className="py-2.5 px-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openModal('account', acc)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"><Pencil size={13} /></button>
-                          <button onClick={() => deleteRow('accounts', acc.id, 'This account has linked transactions and cannot be deleted.')} className="p-1.5 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
+                        <div className="flex items-center gap-2">
+                          {u.avatar_url ? (
+                            <img src={u.avatar_url} alt="" loading="lazy" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                          ) : (
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${u.role === 'owner' ? 'bg-slate-900' : u.role === 'manager' ? 'bg-slate-600' : u.role === 'sales_staff' ? 'bg-slate-500' : 'bg-slate-400'}`}>
+                              {(u.full_name || u.email || '?')[0].toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-medium">{u.full_name || '—'}</span>
+                          {isSelf && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{t('settings_youLabel')}</span>}
                         </div>
                       </td>
-                    </tr>
-                  ))}
-                  {accounts.length === 0 && (
-                    <tr><td colSpan={4} className="text-center py-10 text-slate-400">{t('common_noData')}</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'suppliers' && (
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-slate-800">{t('settings_supplierList')}</h2>
-                <button onClick={() => openModal('supplier')} className="btn-primary"><Plus size={16} /> {t('common_add')}</button>
-              </div>
-              <table className="w-full text-sm">
-                <thead className="table-header">
-                  <tr>
-                    <th className="text-left py-2 px-3">{t('settings_companyName')}</th>
-                    <th className="text-left py-2 px-3">{t('settings_personName')}</th>
-                    <th className="text-left py-2 px-3">{t('common_phone')}</th>
-                    <th className="text-right py-2 px-3">{t('settings_openingDue')}</th>
-                    <th className="text-left py-2 px-3">{t('settings_dueType')}</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {suppliers.map(sup => (
-                    <tr key={sup.id} className="table-row">
-                      <td className="py-2 px-3 font-medium">{sup.company_name || sup.name}</td>
-                      <td className="py-2 px-3 text-slate-500">{sup.person_name}</td>
-                      <td className="py-2 px-3 text-slate-500">{sup.phone}</td>
-                      <td className="py-2 px-3 text-right font-medium text-brand-red">{formatCurr(sup.opening_due)}</td>
-                      <td className="py-2 px-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${sup.due_type === 'pawna' ? 'badge-green' : 'badge-red'}`}>
-                          {sup.due_type === 'pawna' ? t('settings_pawnaReceivable').split(' ')[0] : t('settings_denaPayable').split(' ')[0]}
-                        </span>
+                      <td className="py-2.5 px-4 text-slate-500 text-xs">{u.email}</td>
+                      <td className="py-2.5 px-4 text-slate-500">{u.phone || '—'}</td>
+                      <td className="py-2.5 px-4">
+                        {isSelf ? (
+                          <span className="badge-green">{ROLE_LABELS[u.role]}</span>
+                        ) : (
+                          <select value={u.role} onChange={e => updateUserRole(u.id, e.target.value)} className="input py-1 text-xs w-44">
+                            <option value="owner">{t('settings_roleOwner')}</option>
+                            <option value="manager">{t('settings_roleManager')}</option>
+                            <option value="sales_staff">{t('settings_roleSalesStaff')}</option>
+                            <option value="accountant">{t('settings_roleAccountant')}</option>
+                          </select>
+                        )}
                       </td>
-                      <td className="py-2 px-3">
-                        <div className="flex gap-1 justify-end">
-                          <button onClick={() => openModal('supplier', sup)} className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"><Pencil size={13} /></button>
-                          <button onClick={() => deleteRow('suppliers', sup.id, 'This supplier has linked purchases or payments and cannot be deleted.')} className="p-1 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
-                        </div>
+                      <td className="py-2.5 px-4 text-center">
+                        {isSelf ? (
+                          <span className="badge-green">{t('common_active')}</span>
+                        ) : (
+                          <button
+                            onClick={() => toggleUserActive(u.id, !u.is_active)}
+                            className={`flex items-center gap-1 mx-auto text-xs px-2 py-1 rounded-lg transition-colors ${u.is_active ? 'bg-green-50 text-brand-green hover:bg-green-100' : 'bg-red-50 text-brand-red hover:bg-red-100'}`}
+                          >
+                            {u.is_active ? <ShieldCheck size={12} /> : <ShieldX size={12} />}
+                            {u.is_active ? t('common_active') : t('common_inactive')}
+                          </button>
+                        )}
                       </td>
-                    </tr>
-                  ))}
-                  {suppliers.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('common_noData')}</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'targets' && (
-            <div className="card p-0">
-              <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-800">{t('settings_targetsList')} ({targets.length})</h2>
-                <button onClick={() => { setEditTarget(null); setShowTargetModal(true) }} className="btn-primary">
-                  <Plus size={16} /> {t('settings_addTarget')}
-                </button>
-              </div>
-              <table className="w-full text-sm">
-                <thead className="table-header">
-                  <tr>
-                    <th className="text-left py-2 px-4">{t('settings_monthStar')}</th>
-                    <th className="text-left py-2 px-4">{t('settings_yearStar')}</th>
-                    <th className="text-right py-2 px-4">{t('settings_salesTarget')}</th>
-                    <th className="text-right py-2 px-4">{t('settings_profitTarget')}</th>
-                    <th className="py-2 px-4"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {targets.map(tgt => (
-                    <tr key={tgt.id} className="table-row">
-                      <td className="py-2.5 px-4 font-medium">{monthName(tgt.month)}</td>
-                      <td className="py-2.5 px-4 text-slate-500">{tgt.year}</td>
-                      <td className="py-2.5 px-4 text-right font-medium text-slate-800">{formatCurr(tgt.sales_target)}</td>
-                      <td className="py-2.5 px-4 text-right font-medium text-brand-green">{formatCurr(tgt.profit_target)}</td>
                       <td className="py-2.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => { setEditTarget(tgt); setShowTargetModal(true) }} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"><Pencil size={13} /></button>
-                          <button onClick={() => deleteTarget(tgt.id)} className="p-1.5 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
-                        </div>
+                        {!isSelf && (
+                          <button onClick={() => toggleUserActive(u.id, false)} className="text-slate-300 hover:text-brand-red transition-colors p-1 rounded-lg hover:bg-red-50" title="Deactivate"><Trash2 size={14} /></button>
+                        )}
                       </td>
                     </tr>
-                  ))}
-                  {targets.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-10 text-slate-400">{t('common_noData')}</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'users' && (
-            <div className="space-y-4">
-              <div className="card p-0">
-                <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                  <h2 className="font-semibold text-slate-800">{t('settings_usersList')} ({users.length})</h2>
-                  <button onClick={() => setShowCreateUser(true)} className="btn-primary">
-                    <Plus size={16} /> {t('settings_newUser')}
-                  </button>
-                </div>
-
-                {usersLoading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="animate-spin w-6 h-6 border-4 border-brand-green border-t-transparent rounded-full" />
-                  </div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="table-header">
-                      <tr>
-                        <th className="text-left py-2 px-4">{t('common_name')}</th>
-                        <th className="text-left py-2 px-4">{t('common_email')}</th>
-                        <th className="text-left py-2 px-4">{t('common_phone')}</th>
-                        <th className="text-left py-2 px-4">{t('common_type')}</th>
-                        <th className="py-2 px-4 text-center">{t('common_status')}</th>
-                        <th className="py-2 px-4"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map(u => {
-                        const isSelf = u.id === currentProfile?.id
-                        return (
-                          <tr key={u.id} className="table-row">
-                            <td className="py-2.5 px-4">
-                              <div className="flex items-center gap-2">
-                                {u.avatar_url ? (
-                                  <img src={u.avatar_url} alt="" loading="lazy" className="h-7 w-7 shrink-0 rounded-full object-cover" />
-                                ) : (
-                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${u.role === 'owner' ? 'bg-slate-900' : u.role === 'manager' ? 'bg-slate-600' : u.role === 'sales_staff' ? 'bg-slate-500' : 'bg-slate-400'}`}>
-                                    {(u.full_name || u.email || '?')[0].toUpperCase()}
-                                  </div>
-                                )}
-                                <span className="font-medium">{u.full_name || '—'}</span>
-                                {isSelf && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{t('settings_youLabel')}</span>}
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-4 text-slate-500 text-xs">{u.email}</td>
-                            <td className="py-2.5 px-4 text-slate-500">{u.phone || '—'}</td>
-                            <td className="py-2.5 px-4">
-                              {isSelf ? (
-                                <span className="badge-green">{ROLE_LABELS[u.role]}</span>
-                              ) : (
-                                <select value={u.role} onChange={e => updateUserRole(u.id, e.target.value)} className="input py-1 text-xs w-44">
-                                  <option value="owner">{t('settings_roleOwner')}</option>
-                                  <option value="manager">{t('settings_roleManager')}</option>
-                                  <option value="sales_staff">{t('settings_roleSalesStaff')}</option>
-                                  <option value="accountant">{t('settings_roleAccountant')}</option>
-                                </select>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-4 text-center">
-                              {isSelf ? (
-                                <span className="badge-green">{t('common_active')}</span>
-                              ) : (
-                                <button
-                                  onClick={() => toggleUserActive(u.id, !u.is_active)}
-                                  className={`flex items-center gap-1 mx-auto text-xs px-2 py-1 rounded-lg transition-colors ${u.is_active ? 'bg-green-50 text-brand-green hover:bg-green-100' : 'bg-red-50 text-brand-red hover:bg-red-100'}`}
-                                >
-                                  {u.is_active ? <ShieldCheck size={12} /> : <ShieldX size={12} />}
-                                  {u.is_active ? t('common_active') : t('common_inactive')}
-                                </button>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-4 text-right">
-                              {!isSelf && (
-                                <button onClick={() => toggleUserActive(u.id, false)} className="text-slate-300 hover:text-brand-red transition-colors p-1 rounded-lg hover:bg-red-50" title="Deactivate"><Trash2 size={14} /></button>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                      {users.length === 0 && (
-                        <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('common_noData')}</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                  )
+                })}
+                {users.length === 0 && (
+                  <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('common_noData')}</td></tr>
                 )}
-              </div>
-            </div>
+              </tbody>
+            </table>
           )}
         </div>
       </div>
-
-          {showTargetModal && (
-            <TargetModal
-              item={editTarget}
-              existingTargets={targets}
-              ownerId={currentProfile?.owner_id || currentProfile?.id || null}
-              onClose={() => { setShowTargetModal(false); setEditTarget(null); loadAll() }}
-            />
-          )}
 
       {showCreateUser && (
         <CreateUserModalV2 onClose={() => { setShowCreateUser(false); loadUsers() }} />
@@ -770,139 +205,7 @@ export default function Settings() {
           </div>
         </Modal>
       )}
-
-      {showModal && modalType === 'shareholder' && (
-        <ShareholderModal item={editItem} onClose={() => { setShowModal(false); loadAll() }} />
-      )}
-      {showModal && modalType === 'account' && (
-        <AccountModal item={editItem} onClose={() => { setShowModal(false); loadAll() }} />
-      )}
-      {showModal && modalType === 'supplier' && (
-        <SupplierModal item={editItem} onClose={() => { setShowModal(false); loadAll() }} />
-      )}
     </div>
-  )
-}
-
-function TargetModal({ item, existingTargets, ownerId, onClose }: { item: any; existingTargets: any[]; ownerId: string | null; onClose: () => void }) {
-  const { t, formatCurr, monthName } = useLang()
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 1 + i)
-  const [form, setForm] = useState({
-    month: item?.month ?? (new Date().getMonth() + 1),
-    year: item?.year ?? currentYear,
-    sales_target: item?.sales_target ?? 0,
-    profit_target: item?.profit_target ?? 0,
-  })
-  const [loading, setLoading] = useState(false)
-
-  function isDuplicateTargetError(error: any) {
-    const message = String(error?.message || '')
-    return error?.code === '23505' || message.includes('monthly_targets_year_month_key')
-  }
-
-  async function save() {
-    setLoading(true)
-    try {
-      const payload = {
-        month: Number(form.month),
-        year: Number(form.year),
-        sales_target: Number(form.sales_target || 0),
-        profit_target: Number(form.profit_target || 0),
-        owner_id: ownerId,
-        updated_at: new Date().toISOString(),
-      }
-
-      if (item?.id) {
-        const duplicate = existingTargets.find(t => (
-          Number(t.month) === payload.month &&
-          Number(t.year) === payload.year &&
-          t.id !== item.id
-        ))
-        if (duplicate) {
-          toast.error('This month target already exists!')
-          return
-        }
-
-        const { error } = await supabase.from('monthly_targets').update(payload).eq('id', item.id)
-        if (error) {
-          toast.error(isDuplicateTargetError(error) ? 'This month target already exists!' : error.message)
-          return
-        }
-        toast.success(t('common_updated'))
-      } else {
-        const exists = existingTargets.find(t => Number(t.month) === payload.month && Number(t.year) === payload.year)
-        if (exists?.id) {
-          const { error } = await supabase.from('monthly_targets').update(payload).eq('id', exists.id)
-          if (error) {
-            toast.error(error.message)
-            return
-          }
-          toast.success(t('common_updated'))
-          onClose()
-          return
-        }
-
-        const { error } = await supabase
-          .from('monthly_targets')
-          .upsert(payload, { onConflict: 'year,month' })
-        if (error) {
-          if (isDuplicateTargetError(error)) {
-            toast.error('This month target already exists!')
-          } else {
-            toast.error(error.message)
-          }
-          return
-        }
-        toast.success(t('common_added'))
-      }
-      onClose()
-    } catch (err: any) {
-      toast.error(err.message || 'Error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Modal isOpen onClose={onClose} title={item ? t('settings_editTarget') : t('settings_addTarget')} size="sm">
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label" htmlFor="settings-f8">{t('settings_monthStar')}</label>
-            <select id="settings-f8" className="input" value={form.month} onChange={e => setForm({ ...form, month: Number(e.target.value) })}>
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>{monthName(i + 1)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="settings-f9">{t('settings_yearStar')}</label>
-            <select id="settings-f9" className="input" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })}>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f10">{t('settings_salesTarget')}</label>
-          <input id="settings-f10" type="number" min="0" className="input" value={form.sales_target} onChange={e => setForm({ ...form, sales_target: Number(e.target.value) })} placeholder="0" />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f11">{t('settings_profitTarget')}</label>
-          <input id="settings-f11" type="number" min="0" className="input" value={form.profit_target} onChange={e => setForm({ ...form, profit_target: Number(e.target.value) })} placeholder="0" />
-        </div>
-        <div className="pt-1 p-3 rounded-xl bg-slate-50 text-sm text-slate-600">
-          <span className="font-medium">{monthName(form.month)} {form.year}</span> — {t('settings_salesTarget').split(' ')[0]}: <span className="text-slate-800 font-medium">{formatCurr(form.sales_target)}</span>, {t('settings_profitTarget').split(' ')[0]}: <span className="text-brand-green font-medium">{formatCurr(form.profit_target)}</span>
-        </div>
-        <div className="flex gap-3 pt-1">
-          <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
-            {loading ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Save size={15} />}
-            {loading ? t('common_saving') : t('common_save')}
-          </button>
-          <button onClick={onClose} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
-        </div>
-      </div>
-    </Modal>
   )
 }
 
@@ -1201,349 +504,3 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
   )
 }
 
-function CreateUserModal({ onClose }: { onClose: () => void }) {
-  const { t } = useLang()
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', phone: '', role: 'sales_staff' })
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  async function save() {
-    if (!form.full_name || !form.email || !form.password) {
-      toast.error(t('common_fillAllFields'))
-      return
-    }
-    if (form.password.length < 6) {
-      toast.error(t('settings_passwordStar'))
-      return
-    }
-    if (form.phone.trim() && !isValidBdPhone(form.phone)) {
-      toast.error(INVALID_PHONE_MESSAGE)
-      return
-    }
-    setLoading(true)
-    try {
-      await createTeamUser({
-        full_name: form.full_name,
-        email: form.email,
-        password: form.password,
-        phone: form.phone,
-        role: form.role,
-      })
-      toast.success(t('common_added'))
-      onClose()
-    } catch (error: any) {
-      toast.error(error.message || t('common_error'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Modal isOpen onClose={onClose} title={t('settings_createUser')} size="lg">
-      <div className="space-y-3">
-        <div>
-          <label className="label" htmlFor="settings-f12">{t('settings_fullName')}</label>
-          <input id="settings-f12" className="input" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} placeholder={t('settings_fullNamePlaceholder')} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f13">{t('settings_emailStar')}</label>
-          <input id="settings-f13" type="email" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder={t('settings_emailPlaceholder')} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f14">{t('settings_passwordStar')}</label>
-          <div className="relative">
-            <input id="settings-f14" type={showPassword ? 'text' : 'password'} className="input pr-9" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f15">{t('common_phone')}</label>
-          <input id="settings-f15" className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder={t('settings_phonePlaceholder')} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f16">{t('settings_roleStar')}</label>
-          <select id="settings-f16" className="input" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-            <option value="owner">{t('settings_roleOwner')}</option>
-            <option value="manager">{t('settings_roleManager')}</option>
-            <option value="sales_staff">{t('settings_roleSalesStaff')}</option>
-            <option value="accountant">{t('settings_roleAccountant')}</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
-        <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
-          {loading ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Plus size={16} />}
-          {loading ? t('settings_creating') : t('settings_createUserBtn')}
-        </button>
-        <button onClick={onClose} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
-      </div>
-    </Modal>
-  )
-}
-
-function ShareholderModal({ item, onClose }: { item: any; onClose: () => void }) {
-  const { t } = useLang()
-  const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<ShareholderValidationErrors>({})
-  const [form, setForm] = useState({
-    name: item?.name || '',
-    phone: item?.phone || '',
-    address: item?.address || '',
-    opening_amount: Number(item?.opening_amount || 0),
-    share_percentage: Number(item?.share_percentage || 0),
-  })
-
-  function clearError(field: keyof ShareholderValidationErrors) {
-    setErrors(current => {
-      if (!current[field]) return current
-      const { [field]: _removed, ...rest } = current
-      return rest
-    })
-  }
-
-  function requiredLabel(label: string) {
-    return (
-      <>
-        {label}<span className="text-red-500"> *</span>
-      </>
-    )
-  }
-
-  function inputClass(hasError: boolean) {
-    return `input ${hasError ? 'border-red-300 focus:ring-red-400' : ''}`
-  }
-
-  async function save() {
-    const nextErrors: ShareholderValidationErrors = {}
-    const name = form.name.trim()
-    const phone = form.phone.trim()
-
-    if (!name) nextErrors.name = REQUIRED_FIELD_MESSAGE
-    if (!phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
-    // Only enforce the format for new records or when the phone was changed, so
-    // editing an old record with a legacy number isn't blocked.
-    else if ((!item || phone !== String(item.phone || '').trim()) && !isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
-
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
-
-    setLoading(true)
-    try {
-      const payload = {
-        ...form,
-        name,
-        phone,
-        address: form.address.trim(),
-        opening_amount: Number(form.opening_amount || 0),
-        share_percentage: Number(form.share_percentage || 0),
-      }
-      const basePayload = {
-        name: payload.name,
-        phone: payload.phone,
-        address: payload.address,
-        share_percentage: payload.share_percentage,
-      }
-      const result = item?.id
-        ? await supabase.from('shareholders').update(payload).eq('id', item.id)
-        : await supabase.from('shareholders').insert(payload).select('id').maybeSingle()
-
-      if (result.error) {
-        if (!isMissingOpeningAmountColumn(result.error)) {
-          toast.error(result.error.message || t('common_error'))
-          return
-        }
-
-        const retry = item?.id
-          ? await supabase.from('shareholders').update(basePayload).eq('id', item.id)
-          : await supabase.from('shareholders').insert(basePayload).select('id').maybeSingle()
-
-        if (retry.error) {
-          toast.error(retry.error.message || t('common_error'))
-          return
-        }
-
-        const shareholderId = item?.id || retry.data?.id
-        saveShareholderOpeningAmountFallback(shareholderId, payload.opening_amount)
-      } else {
-        const shareholderId = item?.id || result.data?.id
-        saveShareholderOpeningAmountFallback(shareholderId, payload.opening_amount)
-      }
-
-      toast.success(t('common_saved'))
-      onClose()
-    } finally {
-      setLoading(false)
-    }
-  }
-  return (
-    <Modal isOpen onClose={onClose} title={item ? t('settings_editShareholder') : t('settings_newShareholder')}>
-      <div className="space-y-3">
-        <div>
-          <label className="label" htmlFor="settings-f17">{requiredLabel(t('common_name'))}</label>
-          <input id="settings-f17"
-            className={inputClass(Boolean(errors.name))}
-            value={form.name}
-            onChange={e => {
-              clearError('name')
-              setForm({ ...form, name: e.target.value })
-            }}
-            required
-          />
-          {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f18">{requiredLabel(t('common_phone'))}</label>
-          <input id="settings-f18"
-            className={inputClass(Boolean(errors.phone))}
-            value={form.phone}
-            onChange={e => {
-              clearError('phone')
-              setForm({ ...form, phone: e.target.value })
-            }}
-            required
-          />
-          {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
-        </div>
-        <div><label className="label" htmlFor="settings-f19">{t('common_address')}</label><input id="settings-f19" className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
-        <div>
-          <label className="label" htmlFor="settings-f20">{t('invest_openingAmount')} (৳)</label>
-          <input id="settings-f20"
-            type="number"
-            min="0"
-            className="input"
-            value={form.opening_amount || ''}
-            onChange={e => setForm({ ...form, opening_amount: Number(e.target.value) })}
-            placeholder="0"
-          />
-        </div>
-        <div className="flex gap-2 pt-2">
-          <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
-            {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Save size={16} />}
-            {t('common_save')}
-          </button>
-          <button onClick={onClose} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
-        </div>
-      </div>
-    </Modal>
-  )
-}
-
-function AccountModal({ item, onClose }: { item: any; onClose: () => void }) {
-  const { t } = useLang()
-  const [form, setForm] = useState({ name: item?.name || '', type: item?.type || 'cash', opening_balance: item?.opening_balance || 0 })
-  const [loading, setLoading] = useState(false)
-
-  async function save() {
-    if (!form.name.trim()) { toast.error(t('common_fillAllFields')); return }
-    setLoading(true)
-    try {
-      if (item?.id) { await supabase.from('accounts').update(form).eq('id', item.id) }
-      else { await supabase.from('accounts').insert({ ...form, is_active: true }) }
-      toast.success(t('common_saved'))
-      onClose()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Modal isOpen onClose={onClose} title={item ? `${t('common_edit')} — ${item.name}` : `${t('common_add')} ${t('settings_tabAccounts')}`}>
-      <div className="space-y-4">
-        <div>
-          <label className="label" htmlFor="settings-f21">{t('common_name')} *</label>
-          <input id="settings-f21" className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} autoFocus />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f22">{t('settings_openingBalance')} (৳)</label>
-          <input id="settings-f22" type="number" min="0" className="input" value={form.opening_balance} onChange={e => setForm({ ...form, opening_balance: Number(e.target.value) })} />
-        </div>
-        <div className="flex gap-2 pt-1">
-          <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
-            {loading ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Save size={15} />}
-            {t('common_save')}
-          </button>
-          <button onClick={onClose} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
-        </div>
-      </div>
-    </Modal>
-  )
-}
-
-function SupplierModal({ item, onClose }: { item: any; onClose: () => void }) {
-  const { t } = useLang()
-  const [form, setForm] = useState({
-    company_name: item?.company_name || item?.name || '',
-    person_name: item?.person_name || '',
-    phone: item?.phone || '',
-    email: item?.email || '',
-    address: item?.address || '',
-    opening_due: item?.opening_due || 0,
-    due_type: item?.due_type || 'dena',
-  })
-  const [loading, setLoading] = useState(false)
-
-  async function save() {
-    if (!form.company_name.trim()) { toast.error(t('settings_companyNameRequired')); return }
-    if (!form.phone.trim()) { toast.error(t('settings_phoneRequired')); return }
-    if ((!item || form.phone.trim() !== String(item.phone || '').trim()) && !isValidBdPhone(form.phone)) { toast.error(INVALID_PHONE_MESSAGE); return }
-    setLoading(true)
-    try {
-      const payload = { ...form, name: form.company_name }
-      if (item?.id) { await supabase.from('suppliers').update(payload).eq('id', item.id) }
-      else { await supabase.from('suppliers').insert(payload) }
-      toast.success(t('common_saved'))
-      onClose()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Modal isOpen onClose={onClose} title={item ? t('settings_editSupplier') : t('settings_newSupplier')} size="sm">
-      <div className="space-y-3">
-        <div>
-          <label className="label" htmlFor="settings-f23">{t('settings_companyName')} *</label>
-          <input id="settings-f23" className="input" value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f24">{t('settings_personName')}</label>
-          <input id="settings-f24" className="input" value={form.person_name} onChange={e => setForm({ ...form, person_name: e.target.value })} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f25">{t('settings_phoneStar')}</label>
-          <input id="settings-f25" className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f26">{t('common_email')}</label>
-          <input id="settings-f26" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-        </div>
-        <div>
-          <label className="label" htmlFor="settings-f27">{t('common_address')}</label>
-          <input id="settings-f27" className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label" htmlFor="settings-f28">{t('settings_openingDueTaka')}</label>
-            <input id="settings-f28" type="number" min="0" className="input" value={form.opening_due} onChange={e => setForm({ ...form, opening_due: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label className="label" htmlFor="settings-f29">{t('settings_dueType')}</label>
-            <select id="settings-f29" className="input" value={form.due_type} onChange={e => setForm({ ...form, due_type: e.target.value })}>
-              <option value="dena">{t('settings_denaPayable')}</option>
-              <option value="pawna">{t('settings_pawnaReceivable')}</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-2 pt-2">
-          <button onClick={save} disabled={loading} className="btn-primary flex-1 justify-center">
-            {loading ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Save size={15} />}
-            {t('common_save')}
-          </button>
-          <button onClick={onClose} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
-        </div>
-      </div>
-    </Modal>
-  )
-}

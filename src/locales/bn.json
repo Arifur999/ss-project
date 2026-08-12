@@ -680,5 +680,8 @@
   "employee_newAttendance": "নতুন উপস্থিতি",
   "common_signOut": "লগ আউট",
   "settings_businessInfo": "ব্যবসার তথ্য",
-  "settings_updateBusinessInfo": "ব্যবসার তথ্য হালনাগাদ করুন"
+  "settings_updateBusinessInfo": "ব্যবসার তথ্য হালনাগাদ করুন",
+  "nav_wallet": "ওয়ালেট",
+  "settings_userManagement": "ব্যবহারকারী ব্যবস্থাপনা",
+  "settings_monthlyTargets": "মাস অনুযায়ী বিক্রয় ও মুনাফার লক্ষ্য"
 }

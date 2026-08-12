@@ -48,6 +48,11 @@ const MonthlyReport = lazy(() => import('./pages/reports/MonthlyReport'))
 const YearlyReport = lazy(() => import('./pages/reports/YearlyReport'))
 const ReportSummary = lazy(() => import('./pages/reports/ReportSummary'))
 const Settings = lazy(() => import('./pages/Settings'))
+// Four sections moved out of Settings to sit beside the data they describe.
+const ShareholderList = lazy(() => import('./pages/transactions/ShareholderList'))
+const Wallet = lazy(() => import('./pages/balance/Wallet'))
+const SupplierList = lazy(() => import('./pages/purchase/SupplierList'))
+const MonthlyTarget = lazy(() => import('./pages/reports/MonthlyTarget'))
 const CurrentPlan = lazy(() => import('./pages/CurrentPlan'))
 const BillingHistory = lazy(() => import('./pages/BillingHistory'))
 const SmsPackages = lazy(() => import('./pages/SmsPackages'))
@@ -229,6 +234,10 @@ function AppRoutes() {
         <Route path="/employees/transactions" element={<EmployeeTransactions />} />
         <Route path="/employees/attendance" element={<EmployeeAttendance />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/transactions/shareholders" element={<ShareholderList />} />
+        <Route path="/balance/wallet" element={<Wallet />} />
+        <Route path="/purchase/suppliers-list" element={<SupplierList />} />
+        <Route path="/reports/monthly-target" element={<MonthlyTarget />} />
         <Route path="/current-plan" element={<CurrentPlan />} />
         <Route path="/package/billing-history" element={<BillingHistory />} />
         <Route path="/package/sms" element={<SmsPackages />} />

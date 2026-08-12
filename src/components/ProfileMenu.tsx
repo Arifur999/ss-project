@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Building2, ChevronDown, Mail, Phone, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useBusinessBrand } from '../lib/businessBrand'
+import BusinessInfoModal from './BusinessInfoModal'
 
 /**
  * The signed-in identity, in the header beside the bell.
@@ -16,8 +16,8 @@ export default function ProfileMenu() {
   const { profile, user } = useAuth()
   const { t } = useLang()
   const brand = useBusinessBrand()
-  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -34,9 +34,11 @@ export default function ProfileMenu() {
   const avatar = String((profile as any)?.avatar_url || '').trim()
   const initial = (name.trim()[0] || 'O').toUpperCase()
 
-  function openSettings() {
+  // Edited here rather than on a page of its own: this is where the same
+  // fields are already being shown.
+  function openBusinessInfo() {
     setOpen(false)
-    navigate('/settings')
+    setEditing(true)
   }
 
   return (
@@ -97,13 +99,15 @@ export default function ProfileMenu() {
           </div>
 
           <div className="border-t border-neutral-200 p-3">
-            <button type="button" onClick={openSettings} className="btn-primary w-full justify-center text-xs">
+            <button type="button" onClick={openBusinessInfo} className="btn-primary w-full justify-center text-xs">
               <SettingsIcon size={14} />
               {t('settings_updateBusinessInfo', 'Update business info')}
             </button>
           </div>
         </div>
       )}
+
+      {editing && <BusinessInfoModal onClose={() => setEditing(false)} />}
     </div>
   )
 }

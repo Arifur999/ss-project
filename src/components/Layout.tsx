@@ -6,7 +6,7 @@ import {
   Calendar, LogOut, ChevronDown, ChevronRight, Menu, X,
   FileText, Building2, Globe, Briefcase, Plus,
   BookOpen, Trash2, ShieldCheck, Bell, Activity, Megaphone, FileBarChart, Sparkles,
-  UserCheck, UserX, MessageSquareText
+  UserCheck, UserX, MessageSquareText, Target, UserCog, Truck
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -66,6 +66,7 @@ export default function Layout() {
       children: [
         { key: 'balanceOverview', label: t('nav_overview'), icon: <Wallet size={16} />, path: '/balance' },
         { key: 'balanceTransfer', label: t('nav_adjustments'), icon: <ArrowLeftRight size={16} />, path: '/balance/transfer' },
+        { key: 'balanceWallet', label: t('nav_wallet', 'Wallet'), icon: <Wallet size={16} />, path: '/balance/wallet' },
       ],
     },
     {
@@ -74,6 +75,7 @@ export default function Layout() {
         { key: 'shareholderDashboard', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/transactions/dashboard' },
         { key: 'invest', label: t('nav_investWithdraw'), icon: <Wallet size={16} />, path: '/transactions/invest' },
         { key: 'profit', label: t('nav_profitWithdraw'), icon: <TrendingUp size={16} />, path: '/transactions/profit' },
+        { key: 'shareholderList', label: t('settings_shareholderList'), icon: <Users size={16} />, path: '/transactions/shareholders' },
       ],
     },
     {
@@ -103,6 +105,7 @@ export default function Layout() {
         { key: 'suppDash', label: t('nav_supplierDashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
         { key: 'purchaseHistory', label: t('nav_purchaseHistory'), icon: <BookOpen size={16} />, path: '/purchase/history' },
         { key: 'otherIncome', label: t('nav_otherIncome', 'Others Income'), icon: <FileText size={16} />, path: '/purchase/other-income' },
+        { key: 'supplierList', label: t('settings_supplierList', 'Suppliers list'), icon: <Truck size={16} />, path: '/purchase/suppliers-list' },
       ],
     },
     { key: 'inventory', label: t('nav_inventory'), icon: <Boxes size={18} />, path: '/inventory' },
@@ -131,6 +134,7 @@ export default function Layout() {
         // labelled "Monthly" here.
         { key: 'reportSummary', label: t('nav_monthly'), icon: <FileBarChart size={16} />, path: '/reports' },
         { key: 'yearly', label: t('nav_yearly'), icon: <BarChart3 size={16} />, path: '/reports/yearly' },
+        { key: 'monthlyTarget', label: t('settings_tabTargets'), icon: <Target size={16} />, path: '/reports/monthly-target' },
       ],
     },
     { key: 'marketing', label: t('nav_marketing'), icon: <Megaphone size={18} />, path: '/marketing' },
@@ -155,7 +159,7 @@ export default function Layout() {
         { key: 'currentPlan', label: t('nav_plan', 'Plan'), icon: <CreditCard size={16} />, path: '/current-plan' },
       ],
     } as any)
-    businessNavGroups.push({ key: 'settings', label: t('nav_settings'), icon: <Settings size={18} />, path: '/settings' } as any)
+    businessNavGroups.push({ key: 'settings', label: t('settings_userManagement', 'User Management'), icon: <UserCog size={18} />, path: '/settings' } as any)
   }
 
   const navGroups = profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups

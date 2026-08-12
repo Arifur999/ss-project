@@ -680,5 +680,8 @@
   "employee_newAttendance": "New Attendance",
   "common_signOut": "Logout",
   "settings_businessInfo": "Business Info",
-  "settings_updateBusinessInfo": "Update business info"
+  "settings_updateBusinessInfo": "Update business info",
+  "nav_wallet": "Wallet",
+  "settings_userManagement": "User Management",
+  "settings_monthlyTargets": "Sales and profit targets by month"
 }
