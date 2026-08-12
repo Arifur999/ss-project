@@ -182,7 +182,7 @@ export default function Layout() {
         <div key={item.key}>
           <button
             onClick={() => toggleGroup(item.key)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all text-white/60 hover:bg-white/10 hover:text-white"
           >
             {item.icon}
             {!collapsed && (
@@ -193,7 +193,7 @@ export default function Layout() {
             )}
           </button>
           {isExpanded && !collapsed && (
-            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-200 pl-3">
+            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
               {item.children.map((child: any) => renderItem(child, depth + 1))}
             </div>
           )}
@@ -215,18 +215,20 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#eef0f6] antialiased">
-      <aside className={`${collapsed ? 'w-16' : 'w-64'} bg-white border-r border-slate-200 flex flex-col transition-all duration-300 flex-shrink-0`}>
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+    // The app sits inside a dark frame: the sidebar shares the frame's colour
+    // and the working area is a white sheet inset within it.
+    <div className="flex h-screen gap-0 overflow-hidden bg-shell p-3 antialiased">
+      <aside className={`${collapsed ? 'w-16' : 'w-64'} bg-shell flex flex-col transition-all duration-300 flex-shrink-0`}>
+        <div className="flex items-center justify-between p-4">
           {!collapsed && (
             <div>
-              <h1 className="text-slate-900 font-bold text-sm">{t('appName')}</h1>
-              <p className="text-slate-500 text-xs">{t('appSubtitle')}</p>
+              <h1 className="text-white font-bold text-sm">{t('appName')}</h1>
+              <p className="text-white/50 text-xs">{t('appSubtitle')}</p>
             </div>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-slate-400 hover:text-slate-900 transition-colors p-1"
+            className="text-white/50 hover:text-white transition-colors p-1"
           >
             {collapsed ? <Menu size={18} /> : <X size={18} />}
           </button>
@@ -236,9 +238,9 @@ export default function Layout() {
           {navGroups.map(item => renderItem(item))}
         </nav>
 
-        <div className="p-3 border-t border-slate-200">
+        <div className="p-3 border-t border-white/10">
           <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 overflow-hidden bg-slate-900 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 overflow-hidden bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
               {businessBrand.logoUrl ? (
                 <img src={businessBrand.logoUrl} alt={businessBrand.name} className="h-full w-full object-cover" />
               ) : (
@@ -247,31 +249,31 @@ export default function Layout() {
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-slate-900 text-xs font-medium truncate">{businessBrand.name}</p>
-                <p className="text-slate-500 text-xs capitalize">{profile?.role?.replace('_', ' ') || 'owner'}</p>
+                <p className="text-white text-xs font-medium truncate">{businessBrand.name}</p>
+                <p className="text-white/50 text-xs capitalize">{profile?.role?.replace('_', ' ') || 'owner'}</p>
               </div>
             )}
-            <button onClick={handleSignOut} className="text-slate-400 hover:text-slate-900 transition-colors">
+            <button onClick={handleSignOut} className="text-white/50 hover:text-white transition-colors">
               <LogOut size={16} />
             </button>
           </div>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="h-12 bg-white border-b border-slate-200 flex items-center justify-end gap-3 px-5 flex-shrink-0">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-2xl bg-white">
+        <div className="h-12 bg-white border-b border-neutral-200 flex items-center justify-end gap-3 px-5 flex-shrink-0 rounded-t-2xl">
           <NotificationBell />
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
-            <Globe size={13} className="text-slate-400 ml-1.5" />
+          <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-0.5">
+            <Globe size={13} className="text-neutral-500 ml-1.5" />
             <button
               onClick={() => setLang('en')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${lang === 'en' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-full transition-all ${lang === 'en' ? 'bg-white text-navy-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
             >
               EN
             </button>
             <button
               onClick={() => setLang('bn')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${lang === 'bn' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-full transition-all ${lang === 'bn' ? 'bg-white text-navy-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
             >
               বাংলা
             </button>
