@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
   CalendarDays,
   ClipboardList,
-  CreditCard,
   ShoppingCart,
-  Target,
-  Tag,
   TrendingUp,
-  Users,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
@@ -54,6 +50,11 @@ type DashboardData = {
     netProfit: number
   }
   monthlySales: { month: string; sales: number; profit: number }[]
+  // Money in against money out, by month. Both sides come from figures already
+  // fetched for the cards, so this costs no extra request.
+  monthlyCashflow: { month: string; moneyIn: number; moneyOut: number }[]
+  // Expenses grouped by their category, largest first, for the donut.
+  spendingByCategory: { name: string; amount: number }[]
   topCustomers: { name: string; totalSales: number; dueAmount: number }[]
   recentTransactions: { id: string; title: string; ref: string; amount: number; date: string; tone: CardTone }[]
   dueCollectionRows: { id: string; customerName: string; amount: number; date: string; accountName: string }[]
@@ -80,17 +81,6 @@ const emptyMetrics = {
   totalDiscountAllowed: 0,
   totalCustomers: 0,
   netProfit: 0,
-}
-
-// Kept for the "Business Summary" donut fills. The palette is monochrome-graded
-// (slate ramp) with brand green for money-in categories and brand red for
-// money-out, so the chart reads on-theme with the black/white/grey reference.
-const toneClasses: Record<CardTone, { icon: string; soft: string; text: string; fill: string }> = {
-  green: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-brand-green', fill: '#1D9E75' },
-  blue: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-slate-700', fill: '#334155' },
-  orange: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-slate-700', fill: '#94a3b8' },
-  purple: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-slate-700', fill: '#0f172a' },
-  red: { icon: 'bg-slate-100 text-slate-700', soft: 'bg-slate-100', text: 'text-brand-red', fill: '#E24B4A' },
 }
 
 function toDateInputValue(date: Date) {
@@ -175,6 +165,8 @@ const emptyDashboardData: DashboardData = {
   ...emptyMetrics,
   previous: emptyMetrics,
   monthlySales: [],
+  monthlyCashflow: [],
+  spendingByCategory: [],
   topCustomers: [],
   recentTransactions: [],
   dueCollectionRows: [],
@@ -183,6 +175,7 @@ const emptyDashboardData: DashboardData = {
 export default function Dashboard() {
   const { t, formatCurr, formatDateShort, monthShort } = useLang()
   const { touchOwnerActivity } = useAuth()
+  const navigate = useNavigate()
   // Paint the last-known dashboard for the default range instantly; only show
   // the spinner when there's nothing cached yet. loadDashboard() refetches.
   const initialCached = readPageCache<DashboardData>(dashboardCacheKey('thisMonth', '', ''))
@@ -293,6 +286,32 @@ export default function Dashboard() {
       monthlyMap[month].profit += Number(income.amount || 0)
     })
 
+    // Cashflow: what came in against what went out, month by month. The same
+    // rows the cards are counted from, bucketed by month instead of summed.
+    const cashflowMap: Record<number, { moneyIn: number; moneyOut: number }> = {}
+    const bucket = (dateStr: string) => {
+      const month = new Date(dateStr).getMonth() + 1
+      if (!cashflowMap[month]) cashflowMap[month] = { moneyIn: 0, moneyOut: 0 }
+      return cashflowMap[month]
+    }
+    sales.forEach((sale: any) => { bucket(sale.date).moneyIn += getSaleAmount(sale) })
+    otherIncomes.forEach((income: any) => { bucket(income.date).moneyIn += Number(income.amount || 0) })
+    ;(dueCollectionsRes.data || []).forEach((payment: any) => { bucket(payment.date).moneyIn += Number(payment.amount || 0) })
+    ;(purchasesRes.data || []).forEach((purchase: any) => { bucket(purchase.date).moneyOut += Number(purchase.net_amount || 0) })
+    ;(expensesRes.data || []).forEach((expense: any) => { bucket(expense.date).moneyOut += Number(expense.amount || 0) })
+    ;(supplierPaymentsRes.data || []).forEach((payment: any) => { bucket(payment.date).moneyOut += Number(payment.amount || 0) })
+
+    // Expenses by category, biggest first. Anything without a category is
+    // grouped rather than dropped, so the donut always totals the real spend.
+    const categoryMap: Record<string, number> = {}
+    ;(expensesRes.data || []).forEach((expense: any) => {
+      const name = String(expense.category_name || '').trim() || 'Uncategorised'
+      categoryMap[name] = (categoryMap[name] || 0) + Number(expense.amount || 0)
+    })
+    const spendingByCategory = Object.entries(categoryMap)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+
     const customerMap: Record<string, { name: string; totalSales: number; dueAmount: number }> = {}
     sales.forEach((sale: any) => {
       const key = sale.customer_name || 'Walk In Customer'
@@ -372,6 +391,12 @@ export default function Dashboard() {
         sales: monthlyMap[i + 1]?.sales || 0,
         profit: monthlyMap[i + 1]?.profit || 0,
       })),
+      monthlyCashflow: Array.from({ length: 12 }, (_, i) => ({
+        month: monthShort(i + 1),
+        moneyIn: cashflowMap[i + 1]?.moneyIn || 0,
+        moneyOut: cashflowMap[i + 1]?.moneyOut || 0,
+      })),
+      spendingByCategory,
       topCustomers: Object.values(customerMap).sort((a, b) => b.totalSales - a.totalSales).slice(0, 10),
       recentTransactions: [...recentSales, ...recentPurchases, ...recentExpenses, ...recentSupplierPayments, ...recentOtherIncome]
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -389,15 +414,6 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  const summaryTotal = Math.max(1, data.totalSales + data.totalPurchases + data.totalExpenses + data.totalOtherIncome + data.supplierPayments + data.dueCollections)
-  const summaryData = [
-    { name: 'Sales', value: data.totalSales, color: toneClasses.green.fill },
-    { name: 'Purchase', value: data.totalPurchases, color: toneClasses.blue.fill },
-    { name: 'Expenses', value: data.totalExpenses, color: toneClasses.orange.fill },
-    { name: 'Other Income', value: data.totalOtherIncome, color: toneClasses.green.fill },
-    { name: 'Supplier Payments', value: data.supplierPayments, color: toneClasses.purple.fill },
-    { name: 'Due Collections', value: data.dueCollections, color: toneClasses.green.fill },
-  ]
 
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
@@ -435,69 +451,114 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard title="Total Sales" value={formatCurr(data.totalSales)} icon={<TrendingUp size={22} />} tone="green" trend={pctChange(data.totalSales, data.previous.totalSales)} />
-        <MetricCard title="Total Profit" value={formatCurr(data.totalProfit)} icon={<BarChart3 size={22} />} tone="green" trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
-        <MetricCard title="Total Purchase" value={formatCurr(data.totalPurchases)} icon={<ShoppingCart size={22} />} tone="blue" trend={pctChange(data.totalPurchases, data.previous.totalPurchases)} inverted />
-        <MetricCard title="Total Expenses" value={formatCurr(data.totalExpenses)} icon={<ClipboardList size={22} />} tone="orange" trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
-        <MetricCard title="Other Income" value={formatCurr(data.totalOtherIncome)} icon={<CreditCard size={22} />} tone="green" trend={pctChange(data.totalOtherIncome, data.previous.totalOtherIncome)} />
-      </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <MetricCard title="Supplier Payments" value={formatCurr(data.supplierPayments)} icon={<CreditCard size={22} />} tone="purple" trend={pctChange(data.supplierPayments, data.previous.supplierPayments)} inverted />
-        <MetricCard title="Due Collections" value={formatCurr(data.dueCollections)} icon={<CreditCard size={22} />} tone="purple" trend={pctChange(data.dueCollections, data.previous.dueCollections)} />
-        <MetricCard title="Total Discount Allowed" value={formatCurr(data.totalDiscountAllowed)} icon={<Tag size={22} />} tone="orange" trend={pctChange(data.totalDiscountAllowed, data.previous.totalDiscountAllowed)} inverted />
-        <MetricCard title="Net Profit (Profit + Other Income - Expenses)" value={formatCurr(data.netProfit)} icon={<Target size={22} />} tone="green" trend={pctChange(data.netProfit, data.previous.netProfit)} wide hero />
-      </div>
+      {/* Row 1 - the headline, the four figures, and where the money moved. */}
+      <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.4fr)]">
+        <HeroCard
+          label="Net Profit"
+          hint="Profit + other income - expenses"
+          value={formatCurr(data.netProfit)}
+          trend={pctChange(data.netProfit, data.previous.netProfit)}
+          onWithdraw={() => navigate("/transactions/profit")}
+          onSavings={() => navigate("/balance")}
+        />
 
-      <div className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <section className="card xl:col-span-3">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard label="Total Purchase" icon={<ShoppingCart size={16} />} value={formatCurr(data.totalPurchases)} trend={pctChange(data.totalPurchases, data.previous.totalPurchases)} inverted />
+          <StatCard label="Total Sales" icon={<TrendingUp size={16} />} value={formatCurr(data.totalSales)} trend={pctChange(data.totalSales, data.previous.totalSales)} />
+          <StatCard label="Total Profit" icon={<BarChart3 size={16} />} value={formatCurr(data.totalProfit)} trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
+          <StatCard label="Total Expenses" icon={<ClipboardList size={16} />} value={formatCurr(data.totalExpenses)} trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
+        </div>
+
+        <section className="card border-navy-900 bg-navy-900 p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h2 className="font-bold text-slate-800">Sales & Profit Overview</h2>
-              <div className="mt-3 flex items-center gap-5 text-xs text-slate-500">
-                <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-slate-900" />Sales</span>
-                <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-brand-green" />Profit</span>
-              </div>
+              <h2 className="text-sm font-bold text-white">Cashflow</h2>
+              <p className="text-xs text-white/50">Money in against money out</p>
             </div>
-            <select className="input h-9 w-32 text-xs" value="monthly" aria-label="Chart interval" onChange={() => undefined}>
-              <option value="monthly">Monthly</option>
-            </select>
+            <div className="flex items-center gap-3 text-[11px] font-semibold">
+              <span className="flex items-center gap-1.5 text-white/70"><i className="h-2 w-2 rounded-full bg-brand-green" /> In</span>
+              <span className="flex items-center gap-1.5 text-white/70"><i className="h-2 w-2 rounded-full bg-brand-red" /> Out</span>
+            </div>
           </div>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data.monthlySales}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `${(Number(v) / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v: number) => formatCurr(v)} />
-              <Bar dataKey="sales" fill="#0b0b0f" radius={[5, 5, 0, 0]} name="Sales" />
-              <Bar dataKey="profit" fill="#1D9E75" radius={[5, 5, 0, 0]} name="Profit" />
+          <ResponsiveContainer width="100%" height={190}>
+            <BarChart data={data.monthlyCashflow} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+              <Tooltip
+                cursor={{ fill: "#ffffff0d" }}
+                contentStyle={{ background: "#0F1117", border: "1px solid #ffffff1a", borderRadius: 12, fontSize: 12, color: "#fff" }}
+                formatter={(value: any) => formatCurr(Number(value))}
+              />
+              <Bar dataKey="moneyIn" name="In" fill="#22C55E" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="moneyOut" name="Out" fill="#EF4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </section>
+      </div>
+
+      {/* Row 2 - where it was spent, purchases against sales, best customers. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)]">
+        <section className="card">
+          <h2 className="text-sm font-bold text-navy-900">Monthly Spendings</h2>
+          <p className="mb-2 text-xs text-neutral-500">Where the expenses went</p>
+          <SpendingDonut rows={data.spendingByCategory} total={data.totalExpenses} formatCurr={formatCurr} />
+        </section>
+
+        <section className="card">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-navy-900">Purchase & Sales</h2>
+              <p className="text-xs text-neutral-500">Month by month</p>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] font-semibold text-neutral-500">
+              <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-navy-900" /> Sales</span>
+              <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-brand-green" /> Profit</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={data.monthlySales} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+              <Tooltip
+                cursor={{ fill: "#F3F4F6" }}
+                contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }}
+                formatter={(value: any) => formatCurr(Number(value))}
+              />
+              <Bar dataKey="sales" name="Sales" fill="#0F1117" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit" name="Profit" fill="#22C55E" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </section>
 
-        <section className="card xl:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800">Top 10 Customers</h2>
-            <Link to="/customers/dashboard" className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black">View All</Link>
+        <section className="card overflow-hidden p-0">
+          <div className="flex items-center justify-between gap-3 p-5 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-navy-900">Top Customers</h2>
+              <p className="text-xs text-neutral-500">By sales this period</p>
+            </div>
+            <Link to="/customers" className="btn-secondary h-8 px-3 text-xs">View all</Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-xs">
-              <thead>
-                <tr className="bg-slate-50 text-left text-slate-500">
-                  <th className="px-3 py-2">#</th>
-                  <th className="px-3 py-2">Customer Name</th>
-                  <th className="px-3 py-2 text-right">Total Sales</th>
-                  <th className="px-3 py-2 text-right">Due Amount</th>
+          <div className="max-h-[250px] overflow-y-auto px-5 pb-5">
+            <table className="w-full text-sm">
+              <thead className="table-header">
+                <tr>
+                  <th className="py-2 text-left">Customer</th>
+                  <th className="py-2 text-right">Sales</th>
+                  <th className="py-2 text-right">Due</th>
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: 10 }, (_, index) => data.topCustomers[index]).map((customer, index) => (
-                  <tr key={`${customer?.name || 'empty'}-${index}`} className="border-b border-slate-50 last:border-0">
-                    <td className="px-3 py-2 text-slate-500">{index + 1}</td>
-                    <td className="px-3 py-2 font-semibold text-slate-700">{customer?.name || '-'}</td>
-                    <td className="px-3 py-2 text-right text-slate-700">{formatCurr(customer?.totalSales || 0)}</td>
-                    <td className="px-3 py-2 text-right text-slate-700">{formatCurr(customer?.dueAmount || 0)}</td>
+                {data.topCustomers.length === 0 && (
+                  <tr><td colSpan={3} className="py-10 text-center text-neutral-500">No customers yet</td></tr>
+                )}
+                {data.topCustomers.map((customer, index) => (
+                  <tr key={`${customer.name}-${index}`} className="border-t border-neutral-200">
+                    <td className="py-2.5 font-medium text-navy-900">{customer.name}</td>
+                    <td className="py-2.5 text-right tabular-nums text-neutral-700">{formatCurr(customer.totalSales)}</td>
+                    <td className={`py-2.5 text-right tabular-nums font-semibold ${customer.dueAmount > 0 ? "text-brand-red" : "text-neutral-500"}`}>{formatCurr(customer.dueAmount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -505,138 +566,115 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <section className="card">
-          <h2 className="mb-4 font-bold text-slate-800">Business Summary</h2>
-          <div className="grid items-center gap-4 sm:grid-cols-[180px_1fr]">
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={summaryData} dataKey="value" innerRadius={54} outerRadius={78} paddingAngle={2}>
-                  {summaryData.map(item => <Cell key={item.name} fill={item.color} />)}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="space-y-3">
-              {summaryData.map(item => (
-                <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />{item.name}</span>
-                  <span className="font-semibold text-slate-700">{formatCurr(item.value)} ({((item.value / summaryTotal) * 100).toFixed(1)}%)</span>
-                </div>
-              ))}
-              <div className="flex justify-between border-t border-slate-100 pt-3 text-sm">
-                <span className="text-slate-500">Total</span>
-                <span className="font-bold text-slate-800">{formatCurr(summaryTotal)}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800">Recent Transactions</h2>
-            <Link to="/reports/monthly" className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black">View All</Link>
-          </div>
-          <div className="space-y-3">
-            {data.recentTransactions.map(item => (
-              <div key={item.id} className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                  {item.tone === 'green' ? <ShoppingCart size={18} /> : item.tone === 'blue' ? <CreditCard size={18} /> : item.tone === 'purple' ? <Users size={18} /> : <ClipboardList size={18} />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800">{item.title}</p>
-                  <p className="truncate text-xs text-slate-400">{item.ref}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-800">{formatCurr(item.amount)}</p>
-                  <p className="text-xs text-slate-400">{formatDateShort(item.date)}</p>
-                </div>
-              </div>
-            ))}
-            {data.recentTransactions.length === 0 && <p className="py-8 text-center text-sm text-slate-400">No transactions found</p>}
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800">Due Collections</h2>
-            <Link to="/customers/due-received" className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black">View All</Link>
-          </div>
-          <div className="space-y-3">
-            {data.dueCollectionRows.map(payment => (
-              <div key={payment.id} className="flex items-center gap-3 border-b border-slate-50 pb-3 last:border-0 last:pb-0">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                  <CreditCard size={18} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800">{payment.customerName}</p>
-                  <p className="truncate text-xs text-slate-400">{payment.accountName} · {formatDateShort(payment.date)}</p>
-                </div>
-                <p className="text-sm font-bold text-brand-green">{formatCurr(payment.amount)}</p>
-              </div>
-            ))}
-            {data.dueCollectionRows.length === 0 && <p className="py-8 text-center text-sm text-slate-400">No due collections found</p>}
-          </div>
-        </section>
-      </div>
     </div>
   )
 }
 
-function MetricCard({ title, value, icon, tone, trend, inverted = false, wide = false, hero = false }: { title: string; value: string; icon: React.ReactNode; tone: CardTone; trend: number; inverted?: boolean; wide?: boolean; hero?: boolean }) {
-  const positive = inverted ? trend <= 0 : trend >= 0
-  const trendText = `${trend >= 0 ? '+' : '-'}${Math.abs(trend).toFixed(1)}%`
 
-  // `hero` renders the black highlight tile (reference look). Trend stays
-  // green/red for money semantics, tuned lighter so it reads on black.
-  if (hero) {
-    return (
-      <section className={`card min-h-[132px] overflow-hidden border-slate-900 bg-slate-900 ${wide ? 'lg:col-span-1' : ''}`}>
-        <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
-            {icon}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase text-slate-400">{title}</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</p>
-            <div className="mt-5 flex items-center justify-between gap-3">
-              <p className={`text-xs font-bold ${positive ? 'text-brand-green-light' : 'text-brand-red'}`}>
-                {trendText} <span className="font-semibold text-slate-400">vs Last Period</span>
-              </p>
-              <Sparkline color={positive ? '#22c55e' : '#f87171'} />
-            </div>
-          </div>
-        </div>
-      </section>
-    )
+// A trend that says "+100.0%" because last period was zero tells the reader
+// nothing, so it is only drawn when there is a real previous figure to compare
+// against.
+function TrendLine({ trend, inverted = false, onDark = false }: { trend: number; inverted?: boolean; onDark?: boolean }) {
+  if (!Number.isFinite(trend) || Math.abs(trend) < 0.05 || Math.abs(trend) === 100) {
+    return <span className={onDark ? "text-xs text-white/40" : "text-xs text-neutral-500"}>vs last period</span>
   }
-
+  const good = inverted ? trend <= 0 : trend >= 0
   return (
-    <section className={`card min-h-[132px] overflow-hidden ${wide ? 'lg:col-span-1' : ''}`}>
-      <div className="flex items-start gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase text-slate-500">{title}</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <p className={`text-xs font-bold ${positive ? 'text-brand-green' : 'text-brand-red'}`}>
-              {trendText} <span className="font-semibold text-slate-500">vs Last Period</span>
-            </p>
-            <Sparkline color={positive ? '#22c55e' : '#ef4444'} />
-          </div>
-        </div>
+    <span className={`text-xs font-bold ${good ? "text-brand-green" : "text-brand-red"}`}>
+      {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}%
+      <span className={onDark ? "ml-1 font-medium text-white/40" : "ml-1 font-medium text-neutral-500"}>vs last period</span>
+    </span>
+  )
+}
+
+// The one figure the owner is looking for, on the brand gradient.
+function HeroCard({ label, hint, value, trend, onWithdraw, onSavings }: {
+  label: string; hint: string; value: string; trend: number; onWithdraw: () => void; onSavings: () => void
+}) {
+  return (
+    <section className="relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1117] via-[#1b1f28] to-[#2A2D34] p-5 text-white">
+      <div>
+        <p className="text-xs font-semibold text-white/60">{label}</p>
+        {/* A loss reads red here too, the same rule the reports follow. */}
+        <p className={`mt-3 text-4xl font-bold tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>{value}</p>
+        <p className="mt-2 text-[11px] text-white/40">{hint}</p>
+      </div>
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <TrendLine trend={trend} onDark />
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button type="button" onClick={onWithdraw} className="flex-1 rounded-full bg-white px-4 py-2 text-xs font-semibold text-navy-900 transition-colors hover:bg-white/90">
+          Withdraw
+        </button>
+        <button type="button" onClick={onSavings} className="flex-1 rounded-full border border-white/25 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10">
+          Savings
+        </button>
       </div>
     </section>
   )
 }
 
-function Sparkline({ color }: { color: string }) {
+// Label and icon on one line, the figure large beneath it. No icon tile: nine
+// solid black squares used to outweigh the numbers they sat beside.
+function StatCard({ label, icon, value, trend, inverted = false }: {
+  label: string; icon: React.ReactNode; value: string; trend: number; inverted?: boolean
+}) {
   return (
-    <svg width="86" height="28" viewBox="0 0 86 28" fill="none" aria-hidden="true" className="shrink-0">
-      <path d="M1 23C8 20 12 21 18 17C24 13 28 16 34 12C40 8 45 9 51 5C58 11 63 7 68 13C74 17 80 12 85 9" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M1 23C8 20 12 21 18 17C24 13 28 16 34 12C40 8 45 9 51 5C58 11 63 7 68 13C74 17 80 12 85 9V28H1V23Z" fill={color} opacity="0.08" />
-    </svg>
+    <section className="card flex min-h-[97px] flex-col justify-between p-4">
+      <div className="flex items-center gap-2 text-neutral-500">
+        {icon}
+        <span className="truncate text-xs font-semibold">{label}</span>
+      </div>
+      <p className="mt-2 text-2xl font-bold tabular-nums leading-none text-navy-900">{value}</p>
+      <div className="mt-2"><TrendLine trend={trend} inverted={inverted} /></div>
+    </section>
+  )
+}
+
+// Expenses by category. The slice colours are a grey ramp with the largest
+// category in near-black, so the chart stays inside the palette.
+const donutFills = ["#0F1117", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB", "#E5E7EB"]
+
+function SpendingDonut({ rows, total, formatCurr }: {
+  rows: { name: string; amount: number }[]; total: number; formatCurr: (value: number) => string
+}) {
+  if (rows.length === 0) {
+    return <div className="flex h-[250px] items-center justify-center text-sm text-neutral-500">No expenses in this period</div>
+  }
+
+  // Anything past the fifth category is one "Other" slice, or the legend runs
+  // longer than the chart it explains.
+  const top = rows.slice(0, 5)
+  const rest = rows.slice(5).reduce((sum, row) => sum + row.amount, 0)
+  const slices = rest > 0 ? [...top, { name: "Other", amount: rest }] : top
+
+  return (
+    <>
+      <div className="relative">
+        <ResponsiveContainer width="100%" height={170}>
+          <PieChart>
+            <Pie data={slices} dataKey="amount" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none">
+              {slices.map((slice, index) => <Cell key={slice.name} fill={donutFills[index % donutFills.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }} formatter={(value: any) => formatCurr(Number(value))} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-lg font-bold tabular-nums text-navy-900">{formatCurr(total)}</p>
+          <p className="text-[11px] text-neutral-500">Total expenses</p>
+        </div>
+      </div>
+      <ul className="mt-3 space-y-1.5">
+        {slices.map((slice, index) => (
+          <li key={slice.name} className="flex items-center justify-between gap-2 text-xs">
+            <span className="flex min-w-0 items-center gap-2">
+              <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: donutFills[index % donutFills.length] }} />
+              <span className="truncate text-neutral-700">{slice.name}</span>
+            </span>
+            <span className="shrink-0 font-semibold tabular-nums text-navy-900">{formatCurr(slice.amount)}</span>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
