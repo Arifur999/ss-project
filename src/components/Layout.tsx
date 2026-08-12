@@ -4,15 +4,15 @@ import {
   LayoutDashboard, Settings, Wallet, TrendingUp, ArrowLeftRight,
   CreditCard, Package, ShoppingCart, Boxes, Users, BarChart3,
   Calendar, LogOut, ChevronDown, ChevronRight, Menu, X,
-  FileText, Building2, UserCircle, Globe, Briefcase, Plus,
+  FileText, Building2, Globe, Briefcase, Plus,
   BookOpen, Trash2, ShieldCheck, Bell, Activity, Megaphone, FileBarChart, Sparkles,
   UserCheck, UserX, MessageSquareText
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
-import { useBusinessBrand } from '../lib/businessBrand'
 import { whatsAppLink } from '../lib/support'
 import NotificationBell from './NotificationBell'
+import ProfileMenu from './ProfileMenu'
 import ExpiryReminder from './ExpiryReminder'
 import toast from 'react-hot-toast'
 
@@ -21,7 +21,6 @@ export default function Layout() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
   const { profile, signOut } = useAuth()
   const { lang, setLang, t } = useLang()
-  const businessBrand = useBusinessBrand()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -238,25 +237,17 @@ export default function Layout() {
           {navGroups.map(item => renderItem(item))}
         </nav>
 
-        <div className="p-3 border-t border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 overflow-hidden bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
-              {businessBrand.logoUrl ? (
-                <img src={businessBrand.logoUrl} alt={businessBrand.name} className="h-full w-full object-cover" />
-              ) : (
-                <UserCircle size={18} className="text-white" />
-              )}
-            </div>
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-medium truncate">{businessBrand.name}</p>
-                <p className="text-white/50 text-xs capitalize">{profile?.role?.replace('_', ' ') || 'owner'}</p>
-              </div>
-            )}
-            <button onClick={handleSignOut} className="text-white/50 hover:text-white transition-colors">
-              <LogOut size={16} />
-            </button>
-          </div>
+        {/* Who is signed in now lives in the header, beside the bell, so the
+            sidebar ends with the one action it needs. */}
+        <div className="border-t border-white/10 p-3">
+          <button
+            onClick={handleSignOut}
+            className="sidebar-link w-full"
+            title={t('common_signOut', 'Logout')}
+          >
+            <LogOut size={18} />
+            {!collapsed && <span>{t('common_signOut', 'Logout')}</span>}
+          </button>
         </div>
       </aside>
 
@@ -278,6 +269,7 @@ export default function Layout() {
               বাংলা
             </button>
           </div>
+          <ProfileMenu />
         </div>
 
         <main ref={mainRef} className="flex-1 overflow-auto">

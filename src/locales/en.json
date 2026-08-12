@@ -1,7 +1,6 @@
 {
   "appName": "Furniture Management",
   "appSubtitle": "Business Management System",
-
   "nav_dashboard": "Dashboard",
   "nav_balance": "Balance",
   "nav_transactions": "Shareholders",
@@ -46,7 +45,6 @@
   "nav_salesHistory": "Sales History",
   "nav_marketing": "Marketing",
   "nav_recycleBin": "Recycle Bin",
-
   "common_save": "Save",
   "common_saving": "Saving...",
   "common_cancel": "Cancel",
@@ -110,7 +108,6 @@
   "common_shareholder": "Shareholder",
   "common_lender": "Lender",
   "common_owner": "Owner",
-
   "login_title": "Sign In",
   "login_createAccount": "Create Account",
   "login_emailAddress": "Email Address",
@@ -121,7 +118,6 @@
   "login_noAccount": "Don't have an account? Register",
   "login_accountCreated": "Account created! Please sign in.",
   "login_creating": "Creating...",
-
   "dashboard_title": "Dashboard",
   "dashboard_overview": "Overview",
   "dashboard_totalSales": "Total Sales",
@@ -144,7 +140,6 @@
   "dashboard_newPurchase": "New Purchase",
   "dashboard_addExpense": "Add Expense",
   "dashboard_viewBalance": "View Balance",
-
   "balance_title": "Balance Dashboard",
   "balance_subtitle": "Account Balance Overview",
   "balance_totalBalance": "Total Balance",
@@ -167,7 +162,6 @@
   "balance_expensePaid": "Expense Paid (-)",
   "balance_transferIn": "Transfer In (+)",
   "balance_transferOut": "Transfer Out (-)",
-
   "products_title": "Product List",
   "products_new": "New Product",
   "products_edit": "Edit Product",
@@ -197,7 +191,6 @@
   "products_csvFile": "CSV File",
   "products_noValidRows": "No valid rows found",
   "products_csvUploadTitle": "Upload CSV",
-
   "inventory_title": "Inventory",
   "inventory_subtitle": "Stock Management",
   "inventory_csvDownload": "CSV Download",
@@ -222,7 +215,6 @@
   "inventory_statusUpcoming": "Upcoming",
   "inventory_statusLowStock": "Low Stock",
   "inventory_statusOutOfStock": "Out of Stock",
-
   "sales_title": "Sales Management",
   "sales_ledger": "Sales Ledger",
   "sales_new": "New Sale",
@@ -259,7 +251,6 @@
   "sales_invoiceThankYou": "Thanks! Come again.",
   "sales_printInvoice": "Print Invoice",
   "sales_fillAllFields": "Please fill all fields",
-
   "purchase_title": "Purchase Orders",
   "purchaseLedger_title": "Purchase Ledger",
   "purchaseLedger_subtitle": "Final received purchase invoices by supplier",
@@ -309,7 +300,6 @@
   "purchase_conditionDamaged": "Damaged",
   "purchase_conditionPartial": "Partial",
   "purchase_confirmReceive": "Confirm Receive",
-
   "supplier_dashTitle": "Supplier Dashboard",
   "supplier_dashSubtitle": "Supplier Overview",
   "supplier_totalPurchase": "Total Purchase",
@@ -323,7 +313,6 @@
   "supplier_colTotalPaid": "Total Paid",
   "supplier_colPayable": "Payable",
   "supplier_colProgress": "Progress",
-
   "supplierPayments_title": "Supplier Transactions",
   "supplierPayments_new": "New Payment",
   "supplierPayments_totalPaid": "Total Paid",
@@ -335,7 +324,6 @@
   "supplierPayments_amountLabel": "Amount (৳)",
   "supplierPayments_dueLabel": "— Due:",
   "supplierPayments_saved": "Payment saved!",
-
   "customers_listTitle": "Customer List",
   "customers_new": "New Customer",
   "customers_edit": "Edit Customer",
@@ -352,7 +340,6 @@
   "customers_nameStar": "Name *",
   "customers_phoneStar": "Phone *",
   "customers_openingDue": "Opening Due (৳)",
-
   "customerDash_title": "Customer Dashboard",
   "customerDash_subtitle": "Customer Overview",
   "customerDash_totalCustomers": "Total Customers",
@@ -374,7 +361,6 @@
   "customerDash_colCollectionsAmount": "Collections Amount",
   "customerDash_colDue": "Due",
   "customerDash_noData": "No data",
-
   "ledger_title": "Customer Ledger",
   "ledger_addPayment": "Add Payment",
   "ledger_selectCustomer": "Select Customer",
@@ -399,7 +385,6 @@
   "ledger_fillAllFields": "Please fill all fields",
   "ledger_paymentSaved": "Payment saved!",
   "ledger_selectToView": "Select a customer to view transactions",
-
   "expenses_dashTitle": "Expense Dashboard",
   "expenses_dashSubtitle": "Expense Categories Overview",
   "expenses_newCategory": "New Category",
@@ -419,7 +404,6 @@
   "expenses_categoryName": "Category Name",
   "expenses_color": "Color",
   "expenses_monthlyBudgetField": "Monthly Budget (৳)",
-
   "expTx_title": "Expense Transactions",
   "expTx_new": "New Expense",
   "expTx_searchPlaceholder": "Search...",
@@ -437,7 +421,6 @@
   "expTx_paymentAccount": "Payment Account",
   "expTx_fillAllFields": "Please fill all required fields",
   "expTx_saved": "Expense saved!",
-
   "invest_title": "Shareholder capital in & out",
   "invest_subtitle": "Investment / Withdrawal",
   "invest_new": "New Entry",
@@ -462,7 +445,6 @@
   "invest_withdrawAmount": "Withdrawal Amount (৳)",
   "invest_fillAllFields": "Please fill all required fields",
   "invest_saved": "Saved!",
-
   "loans_title": "Loan Management",
   "loans_subtitle": "Loan Management",
   "loans_new": "New Entry",
@@ -488,7 +470,6 @@
   "loans_paidAmount": "Loan Paid (৳)",
   "loans_fillAllFields": "Please fill all required fields",
   "loans_saved": "Saved!",
-
   "profitWithdraw_title": "Profit Withdrawal",
   "profitWithdraw_new": "New Entry",
   "profitWithdraw_totalWithdrawal": "Total Withdrawal",
@@ -507,7 +488,6 @@
   "profitWithdraw_whichMonth": "Which Month",
   "profitWithdraw_fillAllFields": "Please fill all required fields",
   "profitWithdraw_saved": "Saved!",
-
   "adjustments_title": "Balance Transfer",
   "adjustments_subtitle": "Account Balance Transfer",
   "adjustments_new": "New Transfer",
@@ -526,7 +506,6 @@
   "adjustments_fillAllFields": "Please fill all required fields",
   "adjustments_differentAccounts": "From and To accounts must be different",
   "adjustments_saved": "Transfer recorded!",
-
   "monthly_title": "Monthly Report",
   "monthly_totalSales": "Total Sales",
   "monthly_totalPurchase": "Total Purchase",
@@ -540,7 +519,6 @@
   "monthly_qtyLabel": "Qty:",
   "monthly_noSales": "No sales",
   "monthly_dailySales": "Daily Sales",
-
   "yearly_title": "Yearly Report",
   "yearly_compareYear": "Compare Year",
   "yearly_annualSales": "Annual Sales",
@@ -558,7 +536,6 @@
   "yearly_colExpenses": "Expenses",
   "yearly_colEstProfit": "Estimated Profit",
   "yearly_colTotal": "Total",
-
   "settings_title": "Settings",
   "settings_subtitle": "Business Configuration",
   "settings_tabBusiness": "Business Info",
@@ -636,7 +613,6 @@
   "settings_roleUpdated": "Role updated!",
   "settings_failedLoadUsers": "Failed to load users",
   "settings_youLabel": "You",
-
   "month_jan": "January",
   "month_feb": "February",
   "month_mar": "March",
@@ -649,7 +625,6 @@
   "month_oct": "October",
   "month_nov": "November",
   "month_dec": "December",
-
   "month_short_jan": "Jan",
   "month_short_feb": "Feb",
   "month_short_mar": "Mar",
@@ -662,7 +637,6 @@
   "month_short_oct": "Oct",
   "month_short_nov": "Nov",
   "month_short_dec": "Dec",
-
   "employee_dashboardTitle": "Employee Management",
   "employee_dashboardSubtitle": "Employee Dashboard",
   "employee_totalEmployees": "Total Employees",
@@ -703,5 +677,8 @@
   "employee_totalRecords": "Total Records",
   "employee_attendanceList": "Attendance List",
   "employee_editAttendance": "Edit Attendance",
-  "employee_newAttendance": "New Attendance"
+  "employee_newAttendance": "New Attendance",
+  "common_signOut": "Logout",
+  "settings_businessInfo": "Business Info",
+  "settings_updateBusinessInfo": "Update business info"
 }

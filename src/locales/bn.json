@@ -1,7 +1,6 @@
 {
   "appName": "ফার্নিচার ম্যানেজমেন্ট",
   "appSubtitle": "ব্যবসা ব্যবস্থাপনা সিস্টেম",
-
   "nav_dashboard": "ড্যাশবোর্ড",
   "nav_balance": "ব্যালেন্স",
   "nav_transactions": "লেনদেন",
@@ -46,7 +45,6 @@
   "nav_salesHistory": "বিক্রয় ইতিহাস",
   "nav_marketing": "মার্কেটিং",
   "nav_recycleBin": "রিসাইকেল বিন",
-
   "common_save": "সংরক্ষণ",
   "common_saving": "সংরক্ষণ হচ্ছে...",
   "common_cancel": "বাতিল",
@@ -110,7 +108,6 @@
   "common_shareholder": "শেয়ারহোল্ডার",
   "common_lender": "ঋণদাতা",
   "common_owner": "মালিক",
-
   "login_title": "সাইন ইন",
   "login_createAccount": "অ্যাকাউন্ট তৈরি করুন",
   "login_emailAddress": "ইমেইল ঠিকানা",
@@ -121,7 +118,6 @@
   "login_noAccount": "অ্যাকাউন্ট নেই? রেজিস্টার করুন",
   "login_accountCreated": "অ্যাকাউন্ট তৈরি হয়েছে! সাইন ইন করুন।",
   "login_creating": "তৈরি হচ্ছে...",
-
   "dashboard_title": "ড্যাশবোর্ড",
   "dashboard_overview": "সংক্ষিপ্ত বিবরণ",
   "dashboard_totalSales": "মোট বিক্রয়",
@@ -144,7 +140,6 @@
   "dashboard_newPurchase": "নতুন ক্রয়",
   "dashboard_addExpense": "খরচ যোগ",
   "dashboard_viewBalance": "ব্যালেন্স দেখুন",
-
   "balance_title": "ব্যালেন্স ড্যাশবোর্ড",
   "balance_subtitle": "অ্যাকাউন্ট ব্যালেন্স সংক্ষিপ্ত",
   "balance_totalBalance": "মোট ব্যালেন্স",
@@ -167,7 +162,6 @@
   "balance_expensePaid": "খরচ পরিশোধ (-)",
   "balance_transferIn": "ট্রান্সফার ইন (+)",
   "balance_transferOut": "ট্রান্সফার আউট (-)",
-
   "products_title": "পণ্য তালিকা",
   "products_new": "নতুন পণ্য",
   "products_edit": "পণ্য সম্পাদনা",
@@ -197,7 +191,6 @@
   "products_csvFile": "CSV ফাইল",
   "products_noValidRows": "কোনো বৈধ সারি নেই",
   "products_csvUploadTitle": "CSV আপলোড",
-
   "inventory_title": "ইনভেন্টরি",
   "inventory_subtitle": "মজুদ ব্যবস্থাপনা",
   "inventory_csvDownload": "CSV ডাউনলোড",
@@ -222,7 +215,6 @@
   "inventory_statusUpcoming": "আসছে",
   "inventory_statusLowStock": "কম স্টক",
   "inventory_statusOutOfStock": "স্টক নেই",
-
   "sales_title": "বিক্রয় ব্যবস্থাপনা",
   "sales_ledger": "বিক্রয় খাতা",
   "sales_new": "নতুন বিক্রয়",
@@ -259,7 +251,6 @@
   "sales_invoiceThankYou": "ধন্যবাদ! আবার আসবেন।",
   "sales_printInvoice": "ইনভয়েস প্রিন্ট করুন",
   "sales_fillAllFields": "সব তথ্য পূরণ করুন",
-
   "purchase_title": "ক্রয় অর্ডার",
   "purchaseLedger_title": "Purchase Ledger",
   "purchaseLedger_subtitle": "Final received purchase invoices by supplier",
@@ -309,7 +300,6 @@
   "purchase_conditionDamaged": "ক্ষতিগ্রস্ত",
   "purchase_conditionPartial": "আংশিক",
   "purchase_confirmReceive": "গ্রহণ নিশ্চিত করুন",
-
   "supplier_dashTitle": "সরবরাহকারী ড্যাশবোর্ড",
   "supplier_dashSubtitle": "সরবরাহকারী সংক্ষিপ্ত",
   "supplier_totalPurchase": "মোট ক্রয়",
@@ -323,7 +313,6 @@
   "supplier_colTotalPaid": "মোট পরিশোধ",
   "supplier_colPayable": "বকেয়া",
   "supplier_colProgress": "অগ্রগতি",
-
   "supplierPayments_title": "Supplier Transactions",
   "supplierPayments_new": "নতুন পেমেন্ট",
   "supplierPayments_totalPaid": "মোট পরিশোধ",
@@ -335,7 +324,6 @@
   "supplierPayments_amountLabel": "পরিমাণ (৳)",
   "supplierPayments_dueLabel": "— বাকি:",
   "supplierPayments_saved": "পেমেন্ট সংরক্ষিত!",
-
   "customers_listTitle": "গ্রাহক তালিকা",
   "customers_new": "নতুন গ্রাহক",
   "customers_edit": "গ্রাহক সম্পাদনা",
@@ -352,7 +340,6 @@
   "customers_nameStar": "নাম *",
   "customers_phoneStar": "ফোন *",
   "customers_openingDue": "প্রারম্ভিক বাকি (৳)",
-
   "customerDash_title": "গ্রাহক ড্যাশবোর্ড",
   "customerDash_subtitle": "গ্রাহক সংক্ষিপ্ত",
   "customerDash_totalCustomers": "মোট গ্রাহক",
@@ -374,7 +361,6 @@
   "customerDash_colCollectionsAmount": "আদায়ের পরিমাণ",
   "customerDash_colDue": "বাকি",
   "customerDash_noData": "কোনো ডেটা নেই",
-
   "ledger_title": "গ্রাহক খাতা",
   "ledger_addPayment": "পেমেন্ট যোগ",
   "ledger_selectCustomer": "গ্রাহক নির্বাচন করুন",
@@ -399,7 +385,6 @@
   "ledger_fillAllFields": "সব তথ্য পূরণ করুন",
   "ledger_paymentSaved": "পেমেন্ট সংরক্ষিত!",
   "ledger_selectToView": "লেনদেন দেখতে একটি গ্রাহক নির্বাচন করুন",
-
   "expenses_dashTitle": "খরচ ড্যাশবোর্ড",
   "expenses_dashSubtitle": "খরচের ক্যাটাগরি সংক্ষিপ্ত",
   "expenses_newCategory": "নতুন ক্যাটাগরি",
@@ -419,7 +404,6 @@
   "expenses_categoryName": "ক্যাটাগরির নাম",
   "expenses_color": "রঙ",
   "expenses_monthlyBudgetField": "মাসিক বাজেট (৳)",
-
   "expTx_title": "খরচ লেনদেন",
   "expTx_new": "নতুন খরচ",
   "expTx_searchPlaceholder": "খুঁজুন...",
@@ -437,7 +421,6 @@
   "expTx_paymentAccount": "পেমেন্ট অ্যাকাউন্ট",
   "expTx_fillAllFields": "সব তথ্য পূরণ করুন",
   "expTx_saved": "খরচ সংরক্ষণ হয়েছে!",
-
   "invest_title": "শেয়ারহোল্ডারের মূলধন জমা ও উত্তোলন",
   "invest_subtitle": "বিনিয়োগ / উত্তোলন",
   "invest_new": "নতুন এন্ট্রি",
@@ -462,7 +445,6 @@
   "invest_withdrawAmount": "উত্তোলন পরিমাণ (৳)",
   "invest_fillAllFields": "সব তথ্য পূরণ করুন",
   "invest_saved": "সংরক্ষিত!",
-
   "loans_title": "ঋণ ব্যবস্থাপনা",
   "loans_subtitle": "ঋণ ব্যবস্থাপনা",
   "loans_new": "নতুন এন্ট্রি",
@@ -488,7 +470,6 @@
   "loans_paidAmount": "ঋণ পরিশোধ (৳)",
   "loans_fillAllFields": "সব তথ্য পূরণ করুন",
   "loans_saved": "সংরক্ষিত!",
-
   "profitWithdraw_title": "মুনাফা উত্তোলন",
   "profitWithdraw_new": "নতুন এন্ট্রি",
   "profitWithdraw_totalWithdrawal": "মোট উত্তোলন",
@@ -507,7 +488,6 @@
   "profitWithdraw_whichMonth": "কোন মাস",
   "profitWithdraw_fillAllFields": "সব তথ্য পূরণ করুন",
   "profitWithdraw_saved": "সংরক্ষিত!",
-
   "adjustments_title": "হিসাব সমন্বয় / ট্রান্সফার",
   "adjustments_subtitle": "অ্যাকাউন্ট ট্রান্সফার ও সমন্বয়",
   "adjustments_new": "নতুন ট্রান্সফার",
@@ -526,7 +506,6 @@
   "adjustments_fillAllFields": "সব তথ্য পূরণ করুন",
   "adjustments_differentAccounts": "From এবং To অ্যাকাউন্ট আলাদা হতে হবে",
   "adjustments_saved": "ট্রান্সফার সংরক্ষিত!",
-
   "monthly_title": "মাসিক রিপোর্ট",
   "monthly_totalSales": "মোট বিক্রয়",
   "monthly_totalPurchase": "মোট ক্রয়",
@@ -540,7 +519,6 @@
   "monthly_qtyLabel": "পরিমাণ:",
   "monthly_noSales": "কোনো বিক্রয় নেই",
   "monthly_dailySales": "দৈনিক বিক্রয়",
-
   "yearly_title": "বার্ষিক রিপোর্ট",
   "yearly_compareYear": "তুলনা বছর",
   "yearly_annualSales": "বার্ষিক বিক্রয়",
@@ -558,7 +536,6 @@
   "yearly_colExpenses": "খরচ",
   "yearly_colEstProfit": "আনুমানিক লাভ",
   "yearly_colTotal": "মোট",
-
   "settings_title": "সেটিংস",
   "settings_subtitle": "ব্যবসার কনফিগারেশন",
   "settings_tabBusiness": "ব্যবসার তথ্য",
@@ -636,7 +613,6 @@
   "settings_roleUpdated": "ভূমিকা আপডেট হয়েছে!",
   "settings_failedLoadUsers": "ব্যবহারকারী লোড ব্যর্থ",
   "settings_youLabel": "আপনি",
-
   "month_jan": "জানুয়ারি",
   "month_feb": "ফেব্রুয়ারি",
   "month_mar": "মার্চ",
@@ -649,7 +625,6 @@
   "month_oct": "অক্টোবর",
   "month_nov": "নভেম্বর",
   "month_dec": "ডিসেম্বর",
-
   "month_short_jan": "জান",
   "month_short_feb": "ফেব",
   "month_short_mar": "মার্চ",
@@ -662,7 +637,6 @@
   "month_short_oct": "অক্ট",
   "month_short_nov": "নভে",
   "month_short_dec": "ডিসে",
-
   "employee_dashboardTitle": "কর্মচারী ব্যবস্থাপনা",
   "employee_dashboardSubtitle": "কর্মচারী ড্যাশবোর্ড",
   "employee_totalEmployees": "মোট কর্মচারী",
@@ -703,5 +677,8 @@
   "employee_totalRecords": "মোট রেকর্ড",
   "employee_attendanceList": "উপস্থিতি তালিকা",
   "employee_editAttendance": "উপস্থিতি সম্পাদনা করুন",
-  "employee_newAttendance": "নতুন উপস্থিতি"
+  "employee_newAttendance": "নতুন উপস্থিতি",
+  "common_signOut": "লগ আউট",
+  "settings_businessInfo": "ব্যবসার তথ্য",
+  "settings_updateBusinessInfo": "ব্যবসার তথ্য হালনাগাদ করুন"
 }
