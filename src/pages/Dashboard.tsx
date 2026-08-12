@@ -187,7 +187,8 @@ const emptyDashboardData: DashboardData = {
 
 export default function Dashboard() {
   const { t, formatCurr, formatDateShort, monthShort } = useLang()
-  const { touchOwnerActivity } = useAuth()
+  const { touchOwnerActivity, profile, user } = useAuth()
+  const ownerName = profile?.full_name?.trim() || user?.email || 'Owner'
   const navigate = useNavigate()
   // Paint the last-known dashboard for the default range instantly; only show
   // the spinner when there's nothing cached yet. loadDashboard() refetches.
@@ -489,8 +490,12 @@ export default function Dashboard() {
     <div className="min-h-full p-6">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('dashboard_title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">Overview of your business performance</p>
+          <h1 className="text-2xl font-bold text-navy-900">
+            {t('dashboard_welcome', 'Welcome Back')}, {ownerName}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            {t('dashboard_welcomeSub', 'Everything you need to manage your business.')}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 xl:justify-end">
@@ -653,7 +658,7 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
 }) {
   return (
     <section
-      className="relative flex min-h-[232px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white"
+      className="relative flex min-h-[248px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white"
       style={{
         backgroundColor: "#0F1117",
         backgroundImage: [
@@ -666,7 +671,7 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
       <div>
         <p className="text-sm font-medium text-white/70">{label}</p>
         {/* A loss reads red here too, the same rule the reports follow. */}
-        <p className={`mt-2 text-[34px] font-bold tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>
+        <p className={`mt-4 text-[42px] font-medium tracking-tight tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>
           {value}
         </p>
         <div className="mt-2 h-4"><TrendLine trend={trend} /></div>
@@ -699,14 +704,14 @@ function StatCard({ label, icon, value, trend, inverted = false }: {
   label: string; icon: React.ReactNode; value: string; trend: number; inverted?: boolean
 }) {
   return (
-    <section className="card flex min-h-[108px] flex-col justify-between p-5">
+    <section className="card flex min-h-[124px] flex-col justify-between p-5">
       <div className="flex items-center gap-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
           {icon}
         </span>
         <span className="truncate text-sm text-neutral-700">{label}</span>
       </div>
-      <p className="mt-3 text-2xl font-bold tabular-nums leading-none text-navy-900">{value}</p>
+      <p className="mt-5 text-2xl font-medium tracking-tight tabular-nums leading-none text-navy-900">{value}</p>
       <div className="mt-2 h-4"><TrendLine trend={trend} inverted={inverted} /></div>
     </section>
   )

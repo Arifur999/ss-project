@@ -27,11 +27,11 @@ export default function StatCard({ title, value, icon, trend, color = 'default',
     <div className="card min-w-0 transition-shadow duration-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{title}</p>
-          <p className="text-xl sm:text-2xl font-bold text-slate-800 mt-1 break-words tabular-nums">{value}</p>
-          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">{title}</p>
+          <p className="mt-4 break-words text-xl font-medium tracking-tight tabular-nums text-navy-900 sm:text-2xl">{value}</p>
+          {subtitle && <p className="mt-1.5 text-xs text-neutral-500">{subtitle}</p>}
           {trend !== undefined && (
-            <div className={cn('flex items-center gap-1 mt-1 text-xs font-medium', trend >= 0 ? 'text-brand-green' : 'text-brand-red')}>
+            <div className={cn('mt-1.5 flex items-center gap-1 text-xs font-semibold', trend >= 0 ? 'text-brand-green' : 'text-brand-red')}>
               <span>{trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}%</span>
             </div>
           )}

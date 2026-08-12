@@ -683,5 +683,7 @@
   "settings_updateBusinessInfo": "Update business info",
   "nav_wallet": "Wallet",
   "settings_userManagement": "User Management",
-  "settings_monthlyTargets": "Sales and profit targets by month"
+  "settings_monthlyTargets": "Sales and profit targets by month",
+  "dashboard_welcome": "Welcome Back",
+  "dashboard_welcomeSub": "Everything you need to manage your business."
 }
