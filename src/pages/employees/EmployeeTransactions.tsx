@@ -718,7 +718,7 @@ export default function EmployeeTransactions() {
           <div>
             <label className="label" htmlFor="employee-transactions-f7">{requiredLabel('Amount')}</label>
             <div className="flex">
-              <div className={`flex h-11 items-center rounded-l-lg border border-r-0 bg-slate-50 px-4 text-sm font-semibold text-slate-600 ${formErrors.amount ? 'border-red-300' : 'border-slate-200'}`}>TK</div>
+              <div className={`flex h-11 items-center rounded-l-lg border border-r-0 bg-white px-4 text-sm font-semibold text-slate-600 ${formErrors.amount ? 'border-red-300' : 'border-slate-200'}`}>TK</div>
               <input id="employee-transactions-f7"
                 type="number"
                 min="1"

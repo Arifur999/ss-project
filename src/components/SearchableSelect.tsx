@@ -129,7 +129,7 @@ export default function SearchableSelect({
                 key={o.value}
                 type="button"
                 onClick={() => { onChange(o.value); setOpen(false); setQuery('') }}
-                className={`block w-full truncate px-3 py-2 text-left text-sm hover:bg-slate-50 ${o.value === value ? 'bg-slate-50 font-semibold text-slate-900' : 'text-slate-700'}`}
+                className={`block w-full truncate px-3 py-2 text-left text-sm hover:bg-neutral-100 ${o.value === value ? 'bg-neutral-100 font-semibold text-slate-900' : 'text-slate-700'}`}
               >
                 {o.label}
               </button>

@@ -690,7 +690,7 @@ export default function PlaceOrder() {
                     <button
                       type="button"
                       onClick={() => { setCategoryFilter(''); setShowCategoryFilter(false) }}
-                      className={`block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 ${!categoryFilter ? 'font-bold text-slate-900' : 'text-slate-600'}`}
+                      className={`block w-full px-3 py-2 text-left text-xs hover:bg-neutral-100 ${!categoryFilter ? 'font-bold text-slate-900' : 'text-slate-600'}`}
                     >
                       All categories
                     </button>
@@ -699,7 +699,7 @@ export default function PlaceOrder() {
                         key={category}
                         type="button"
                         onClick={() => { setCategoryFilter(category); setShowCategoryFilter(false) }}
-                        className={`block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 ${categoryFilter === category ? 'font-bold text-slate-900' : 'text-slate-600'}`}
+                        className={`block w-full px-3 py-2 text-left text-xs hover:bg-neutral-100 ${categoryFilter === category ? 'font-bold text-slate-900' : 'text-slate-600'}`}
                       >
                         {category}
                       </button>
@@ -716,7 +716,7 @@ export default function PlaceOrder() {
               const stock = inventoryByProduct[product.id] || 0
               return (
                 <div key={product.id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
                     {product.image_url ? (
                       <img src={product.image_url} alt={product.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     ) : (
@@ -755,11 +755,11 @@ export default function PlaceOrder() {
               </label>
               <label>
                 <span className="label">Supplier Name</span>
-                <input className="input bg-slate-50" value={selectedSupplier?.company_name || selectedSupplier?.name || ''} placeholder="Auto populated" readOnly />
+                <input className="input bg-white" value={selectedSupplier?.company_name || selectedSupplier?.name || ''} placeholder="Auto populated" readOnly />
               </label>
               <label>
                 <span className="label">Supplier Phone</span>
-                <input className="input bg-slate-50" value={selectedSupplier?.phone || ''} placeholder="Auto populated" readOnly />
+                <input className="input bg-white" value={selectedSupplier?.phone || ''} placeholder="Auto populated" readOnly />
               </label>
               <label>
                 <span className="label">Purchase Order No</span>
@@ -804,7 +804,7 @@ export default function PlaceOrder() {
             <h2 className="mb-4 text-base font-bold text-navy-800">Purchase Items</h2>
             <TableScroller className="overflow-x-auto rounded-lg border border-slate-100">
               <table className="w-full min-w-[1240px] text-xs">
-                <thead className="bg-slate-50 text-[11px] font-bold uppercase text-navy-800">
+                <thead className="bg-white text-[11px] font-bold uppercase text-navy-800">
                   <tr className="whitespace-nowrap">
                     <th className="px-3 py-3 text-left">#</th>
                     <th className="px-3 py-3 text-left">Product Code</th>
@@ -834,7 +834,7 @@ export default function PlaceOrder() {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md bg-slate-50">
+                            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md bg-white">
                               {productImage ? <img src={productImage} alt={item.product_name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Package size={16} className="text-slate-300" />}
                             </div>
                             <span className="max-w-[180px] truncate font-semibold text-navy-800">{item.product_name || '-'}</span>
@@ -845,7 +845,7 @@ export default function PlaceOrder() {
                         <td className="px-3 py-3 text-right font-bold text-navy-800">{formatCurr(item.actual_dp)}</td>
                         <td className="px-3 py-3"><input type="number" min="1" className="input h-10 w-20 text-right text-xs" value={item.qty} onChange={e => updateItem(idx, 'qty', Number(e.target.value))} /></td>
                         <td className="px-3 py-3 text-right font-bold text-navy-800">{formatCurr(item.total_amount)}</td>
-                        <td className="px-3 py-3"><input type="number" readOnly tabIndex={-1} title="Set by the SP % field in the order summary" className="input h-10 w-24 cursor-not-allowed bg-slate-50 text-right text-xs text-slate-600" value={item.sp_amount || ''} /></td>
+                        <td className="px-3 py-3"><input type="number" readOnly tabIndex={-1} title="Set by the SP % field in the order summary" className="input h-10 w-24 cursor-not-allowed bg-white text-right text-xs text-slate-600" value={item.sp_amount || ''} /></td>
                         <td className="px-3 py-3 text-right"><input type="number" min="0" className="input h-10 w-28 text-right text-xs font-bold text-navy-800" value={item.deposit_amount || ''} onChange={e => updateItem(idx, 'deposit_amount', Number(e.target.value))} /></td>
                         <td className="px-3 py-3 text-center"><span className="rounded-md bg-brand-blue-soft px-2 py-1 text-[11px] font-bold text-brand-blue">●Pending</span></td>
                         <td className="px-3 py-3 text-center">
@@ -859,7 +859,7 @@ export default function PlaceOrder() {
                 </tbody>
               </table>
             </TableScroller>
-            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600">
+            <div className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs font-medium text-slate-600">
               <Info size={15} className="mr-2 inline" /> Product code, product name and image are auto-filled from the selected product in the product list.
             </div>
             <button onClick={() => setItems([...items, { product_id: '', product_code: '', product_name: '', dp_price: 0, discount_pct: 0, actual_dp: 0, qty: 1, total_amount: 0, sp_amount: 0, deposit_amount: 0, received_qty: 0 }])} className="btn-secondary mt-4 text-xs">
@@ -888,7 +888,7 @@ export default function PlaceOrder() {
                   <p className={`mt-3 text-2xl font-bold ${totalPayable >= 0 ? 'text-navy-800' : 'text-brand-green'}`}>{formatCurr(totalPayable)}</p>
                 </div>
               </div>
-              <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600">
+              <div className="mt-8 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs font-medium text-slate-600">
                 <Info size={15} className="mr-2 inline" /> Previous balance is based on Supplier Dashboard available balance. Total payable is current purchase amount minus previous balance.
               </div>
             </section>
@@ -959,12 +959,12 @@ export default function PlaceOrder() {
             </thead>
             <tbody>
               {allProducts.map((product, idx) => (
-                <tr key={product.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={product.id} className="border-t border-slate-100 hover:bg-neutral-100">
                   <td className="py-2 px-2 text-slate-500">{idx + 1}</td>
                   <td className="py-2 px-2 font-medium">{product.si_no}</td>
                   <td className="py-2 px-2">{product.company}</td>
                   <td className="py-2 px-2">{formatDate(product.date)}</td>
-                  <td className="py-2 px-2 font-mono text-xs bg-slate-50 px-2 py-1 rounded">{product.product_code}</td>
+                  <td className="py-2 px-2 font-mono text-xs bg-white px-2 py-1 rounded">{product.product_code}</td>
                   <td className="py-2 px-2 text-slate-700">{product.product_name}</td>
                   <td className="py-2 px-2 text-right">{formatCurr(product.dp_price)}</td>
                   <td className="py-2 px-2 text-right">{product.discount_pct}%</td>
@@ -1051,7 +1051,7 @@ export default function PlaceOrder() {
                     </td>
                   </tr>
                   {expandedId === po.id && (
-                    <tr><td colSpan={7} className="bg-slate-50 px-4 py-4">
+                    <tr><td colSpan={7} className="bg-white px-4 py-4">
                       <div className="space-y-4">
                         <div>
                           <h4 className="text-xs font-semibold text-slate-700 mb-2">ORDER DETAILS</h4>
@@ -1454,7 +1454,7 @@ export default function PlaceOrder() {
       <Modal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} title={t('purchase_receiveTitle')}>
         {receiveItem && (
           <div className="space-y-3">
-            <div className="p-3 bg-slate-50 rounded-xl text-sm">
+            <div className="p-3 bg-white rounded-xl text-sm">
               <p className="font-medium">{receiveItem.product_name}</p>
               <p className="text-slate-500 text-xs">{t('purchase_orderQty')} {receiveItem.qty} | {t('purchase_receivedQty')} {receiveItem.received_qty || 0}</p>
             </div>

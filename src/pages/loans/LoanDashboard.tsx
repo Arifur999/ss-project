@@ -233,7 +233,7 @@ export default function LoanDashboard() {
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[900px] text-sm">
             <thead className="sticky top-0 z-10 bg-white">
-              <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-700">
+              <tr className="bg-white text-xs uppercase tracking-wide text-slate-700">
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-left">Bank / Person</th>
                 <th className="px-4 py-3 text-right">Opening Balance</th>
@@ -247,7 +247,7 @@ export default function LoanDashboard() {
               {displayed.map((item: any, index: number) => {
                 const phone = personPhone(item)
                 return (
-                  <tr key={item.key} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
+                  <tr key={item.key} className="border-b border-slate-100 last:border-b-0 hover:bg-white/60">
                     <td className="px-4 py-5 font-semibold text-slate-700">{index + 1}</td>
                     <td className="px-4 py-5">
                       <div className="font-medium text-slate-900">{item.name}</div>

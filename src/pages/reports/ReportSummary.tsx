@@ -825,7 +825,7 @@ export default function ReportSummary() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              <tr className="bg-slate-50 font-black text-slate-900">
+              <tr className="bg-white font-black text-slate-900">
                 {columns.map(column => (
                   <td
                     key={column.label}
@@ -840,7 +840,7 @@ export default function ReportSummary() {
                   <td className="px-3 py-8 text-center text-sm text-slate-400" colSpan={columns.length}>No data</td>
                 </tr>
               ) : rows.map((row, rowIndex) => (
-                <tr key={`${row.name}-${rowIndex}`} className="hover:bg-slate-50">
+                <tr key={`${row.name}-${rowIndex}`} className="hover:bg-neutral-100">
                   {columns.map(column => (
                     <td key={column.label} className={`px-3 py-2 ${column.align === 'right' ? 'text-right font-medium tabular-nums text-slate-800' : 'font-medium text-slate-800'}`}>
                       {column.render(row)}
@@ -986,7 +986,7 @@ export default function ReportSummary() {
               <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <table className="w-full table-fixed text-[10px]">
-                  <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600">
+                  <thead className="sticky top-0 z-10 bg-white text-slate-600">
                     <tr>
                       <th className="w-[42%] px-2 py-2 text-left font-bold">Company</th>
                       <th className="w-[29%] px-1.5 py-2 text-right font-bold">Purchase</th>

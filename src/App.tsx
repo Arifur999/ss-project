@@ -107,7 +107,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   } as const
   const currentLock = lockContent[(subscriptionStatus === 'trial' || subscriptionStatus === 'active') ? 'none' : subscriptionStatus as keyof typeof lockContent] || lockContent.none
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
         <div className="animate-spin w-10 h-10 border-4 border-brand-green border-t-transparent rounded-full mx-auto mb-3" />
         <p className="text-slate-500 text-sm">Loading...</p>
@@ -120,7 +120,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // pay and regain access, so there's nothing useful to show them here.
   if (subscriptionStatus === 'expired') return <Navigate to="/choose-plan" replace />
   if (subscriptionLocked) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
         <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${currentLock.tone}`}>
           <span className="text-2xl font-bold">!</span>
@@ -146,7 +146,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
         <div className="animate-spin w-10 h-10 border-4 border-brand-green border-t-transparent rounded-full mx-auto mb-3" />
         <p className="text-slate-500 text-sm">Loading...</p>
@@ -163,7 +163,7 @@ function SuperAdminRoute({ children }: { children: React.ReactNode }) {
 // bundle.
 function RouteFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="animate-spin w-8 h-8 border-4 border-brand-green border-t-transparent rounded-full" />
     </div>
   )

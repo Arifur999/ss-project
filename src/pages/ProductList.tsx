@@ -1472,7 +1472,7 @@ export default function ProductList() {
               {filteredProducts.map((product, index) => {
                 const supplier = (product as any).suppliers?.company_name || (product as any).suppliers?.name || '-'
                 return (
-                  <tr key={product.id} className="border-b border-slate-200 hover:bg-slate-50 transition">
+                  <tr key={product.id} className="border-b border-slate-200 hover:bg-neutral-100 transition">
                     <td className="px-6 py-4 text-sm text-slate-600">
                       <input
                         type="checkbox"
@@ -1685,7 +1685,7 @@ export default function ProductList() {
                 type="text"
                 readOnly
                 tabIndex={-1}
-                className="input bg-slate-50 text-slate-700"
+                className="input bg-white text-slate-700"
                 value={afterDiscount(Number(form.cost_price || 0), Number(form.dp_discount || 0)).toLocaleString('en-US')}
                 title="DP rate after the DP discount - calculated, not typed"
               />
@@ -1721,7 +1721,7 @@ export default function ProductList() {
                 type="text"
                 readOnly
                 tabIndex={-1}
-                className="input bg-slate-50 text-slate-700"
+                className="input bg-white text-slate-700"
                 value={afterDiscount(Number(form.selling_price || 0), Number(form.mrp_discount || 0)).toLocaleString('en-US')}
                 title="MRP after the MRP discount - this is what the customer pays"
               />
@@ -1774,7 +1774,7 @@ export default function ProductList() {
             autoFocus
           />
           {tagProduct && (
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            <p className="rounded-lg bg-white px-3 py-2 text-xs text-slate-500">
               {tagProduct.product_code} - {tagProduct.name}
             </p>
           )}

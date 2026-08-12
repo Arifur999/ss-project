@@ -147,7 +147,7 @@ export default function SmsPackages() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-white p-4 sm:p-6">
       <PageHeader
         title={bn ? 'এসএমএস প্যাকেজ' : 'SMS Packages'}
         subtitle={bn ? 'এসএমএস ক্রেডিট কিনুন এবং আপনার ব্যালেন্স দেখুন' : 'Buy SMS credits and track your balance'}
@@ -195,7 +195,7 @@ export default function SmsPackages() {
         {loading && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2].map(key => (
-              <div key={key} className="h-44 animate-pulse rounded-xl border border-slate-100 bg-slate-50" />
+              <div key={key} className="h-44 animate-pulse rounded-xl border border-slate-100 bg-white" />
             ))}
           </div>
         )}
@@ -307,7 +307,7 @@ export default function SmsPackages() {
       >
         {selected && step === 'pay' && (
           <div className="space-y-4">
-            <div className="rounded-xl bg-slate-50 p-4">
+            <div className="rounded-xl bg-white p-4">
               <p className="text-sm font-semibold text-slate-700">{selected.name}</p>
               <p className="mt-1 text-sm text-slate-500">
                 {formatNum(Number(selected.sms_count || 0))} {bn ? 'এসএমএস ক্রেডিট' : 'SMS credits'}

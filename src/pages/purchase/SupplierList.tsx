@@ -47,7 +47,7 @@ export default function SupplierList() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader title={t('settings_supplierList', 'Suppliers list')} subtitle={t('settings_tabSuppliers')} />
 
       <div className="card">

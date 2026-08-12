@@ -370,7 +370,7 @@ export default function MonthlyReport() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 space-y-6">
+    <div className="min-h-screen bg-white p-6 space-y-6">
       <PageHeader title={t('monthly_title')} subtitle={`${monthName(month)} ${year} performance dashboard`} />
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
@@ -602,7 +602,7 @@ function BreakdownTable({
       <div className="bg-slate-800 px-4 py-3 text-center text-sm font-bold uppercase tracking-[0.2em] text-white">{title}</div>
       <div className="flex-1 overflow-hidden">
         <table className="w-full table-fixed text-[11px]">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-white text-slate-600">
             <tr>
               {columns.map(([label, key]) => (
                 <th key={String(key)} className={`px-2 py-2 ${key === 'name' ? 'w-[34%] text-left' : 'text-right'}`}>{label}</th>
@@ -618,7 +618,7 @@ function BreakdownTable({
               ))}
             </tr>
             {rows.map((row, index) => (
-              <tr key={`${row.name}-${index}`} className="border-t border-slate-100 hover:bg-slate-50">
+              <tr key={`${row.name}-${index}`} className="border-t border-slate-100 hover:bg-neutral-100">
                 {columns.map(([, key]) => (
                   <td key={String(key)} className={`px-2 py-2 ${key === 'name' ? 'truncate font-medium text-slate-700' : 'text-right text-slate-600'}`} title={String(row[key] || '')}>
                     {formatValue(key, row[key])}

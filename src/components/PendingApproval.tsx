@@ -51,7 +51,7 @@ export default function PendingApproval({
   const waiting = remainingMs > 0
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-white p-4">
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-brand-green">
           <ShieldCheck size={28} />
@@ -66,7 +66,7 @@ export default function PendingApproval({
             : `You have submitted payment for the ${planLabel} plan. Please wait for approval.`}
         </p>
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <Timer size={14} /> {bn ? 'অনুমোদন হচ্ছে' : 'Approval in progress'}
           </div>

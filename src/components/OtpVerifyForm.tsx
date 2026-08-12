@@ -248,7 +248,7 @@ export default function OtpVerifyForm({ email, onVerified, onBack }: OtpVerifyFo
               onKeyDown={e => handleKeyDown(index, e)}
               onFocus={e => e.target.select()}
               className={`h-12 w-11 rounded-lg border text-center text-xl font-bold text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:opacity-50 sm:h-14 sm:w-12 ${
-                digit ? 'border-slate-900 bg-slate-50' : 'border-slate-300 bg-white'
+                digit ? 'border-slate-900 bg-white' : 'border-slate-300 bg-white'
               }`}
             />
           ))}

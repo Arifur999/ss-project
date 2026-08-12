@@ -349,7 +349,7 @@ export default function ReceiveProduct() {
               className={`min-w-[72px] rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
                 statusFilter === tab.key
                   ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-navy-800'
+                  : 'text-slate-600 hover:bg-neutral-100 hover:text-navy-800'
               }`}
             >
               {tab.label}
@@ -380,7 +380,7 @@ export default function ReceiveProduct() {
               <th className="text-left py-2 px-3">Receiver Name</th>
               <th className="text-left py-2 px-3">Note</th>
               <th className="text-center py-2 px-3">Duration (Days)</th>
-              <th className="sticky right-0 min-w-[150px] bg-slate-50 px-3 py-2 text-right">Actions</th>
+              <th className="sticky right-0 min-w-[150px] bg-white px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -489,7 +489,7 @@ export default function ReceiveProduct() {
       >
         {selectedItem && (
           <div className="space-y-4">
-            <div className="bg-slate-50 p-3 rounded-lg text-sm">
+            <div className="bg-white p-3 rounded-lg text-sm">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-xs text-slate-500">Product</p>

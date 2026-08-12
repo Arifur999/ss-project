@@ -96,7 +96,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader title={t('settings_userManagement', 'User Management')} subtitle={t('settings_usersList')} />
 
       <div className="space-y-4">
@@ -334,7 +334,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
   return (
     <Modal isOpen onClose={onClose} title="Create New User" size="full">
       <div className="flex min-h-full flex-col space-y-5">
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-brand-green shadow-sm">
               <UserRoundPlus size={22} />
@@ -367,7 +367,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={uploadingAvatar}
-                    className="flex h-36 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-wait"
+                    className="flex h-36 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-wait"
                   >
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -474,7 +474,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
             </div>
             <div className="grid max-h-[calc(100vh-420px)] min-h-[420px] grid-cols-1 gap-3 overflow-y-auto pr-1 lg:grid-cols-2 2xl:grid-cols-3">
               {permissionGroups.map(group => (
-                <div key={group.title} className="rounded-xl border border-slate-200 bg-slate-50/40 p-3">
+                <div key={group.title} className="rounded-xl border border-slate-200 bg-white/40 p-3">
                   <h5 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700">{group.icon}</span>{group.title}</h5>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {group.items.map(item => (

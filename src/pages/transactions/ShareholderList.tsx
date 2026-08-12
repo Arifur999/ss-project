@@ -83,7 +83,7 @@ export default function ShareholderList() {
   const totalSharePercent = totalShareCapital > 0 ? 100 : 0
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader title={t('settings_shareholderList')} subtitle={t('settings_tabShareholders')} />
 
       <div className="card">

@@ -221,7 +221,7 @@ export default function SuperAdminPayments() {
                 <Detail label="Joined" value={contactRow.contact.joined} />
               </div>
 
-              <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm">
+              <div className="mt-4 rounded-xl bg-white p-4 text-sm">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">This payment</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Detail label="Invoice" value={contactRow.invoice} />

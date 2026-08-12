@@ -571,7 +571,7 @@ export default function CustomerDueReceived() {
   const businessName = business?.name_en || business?.name_bn || 'Furniture Management'
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50 p-6">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
       <PageHeader
         title={t('customers_dueReceived', 'Due received')}
         subtitle={t('customers_dueReceived', 'Due received')}
@@ -915,7 +915,7 @@ export default function CustomerDueReceived() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-white/70 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-slate-900">Split Payment / Account</p>

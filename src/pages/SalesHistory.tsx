@@ -123,7 +123,7 @@ export default function SalesHistory() {
   const totalAmount = filteredRows.reduce((sum, row) => sum + row.total_amount, 0)
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50 p-6">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
       <PageHeader
         title="Sales History"
         subtitle="Search product-wise sales by date and customer"
@@ -173,7 +173,7 @@ export default function SalesHistory() {
       <TableScroller wrapClassName="card min-h-0 flex-1 flex flex-col bg-white p-0" className="min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[980px] text-sm">
           <thead className="table-header">
-            <tr className="border-b border-slate-100 bg-slate-50/55">
+            <tr className="border-b border-slate-100 bg-white/55">
               <th className="w-12 px-4 py-3 text-left">#</th>
               <th className="text-left py-3 px-4">Date</th>
               <th className="text-left py-3 px-4">Product</th>
@@ -187,7 +187,7 @@ export default function SalesHistory() {
           </thead>
           <tbody>
             {shown.visible.map((row, index) => (
-              <tr key={row.id} className="table-row border-b border-slate-100 hover:bg-slate-50/50">
+              <tr key={row.id} className="table-row border-b border-slate-100 hover:bg-white/50">
                 <td className="px-4 py-3 text-slate-400">{index + 1}</td>
                 <td className="py-3 px-4">
                   <span className="inline-flex items-center gap-1.5">

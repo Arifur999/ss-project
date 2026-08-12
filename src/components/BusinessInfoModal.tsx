@@ -204,7 +204,7 @@ export default function BusinessInfoModal({ onClose }: { onClose: () => void }) 
                         nothing useful to read there anyway. A pasted URL is still
                         editable as before; only the uploaded form is summarised. */}
                     {String(business.logo_url || '').startsWith('data:') ? (
-                      <div className="input flex items-center justify-between gap-2 bg-slate-50 text-slate-600">
+                      <div className="input flex items-center justify-between gap-2 bg-white text-slate-600">
                         <span className="truncate text-xs">
                           Uploaded image ({Math.round(business.logo_url.length / 1024)} KB)
                         </span>

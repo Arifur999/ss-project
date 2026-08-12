@@ -155,7 +155,7 @@ export default function PurchaseHistory() {
   const totalAmount = filteredRows.reduce((sum, row) => sum + row.total_amount, 0)
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50 p-6">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
       <PageHeader
         title="Purchase History"
         subtitle="Search product-wise purchases by date and supplier"
@@ -215,7 +215,7 @@ export default function PurchaseHistory() {
         <TableScroller wrapClassName="flex min-h-0 flex-1 flex-col" className="min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[1680px] text-sm">
           <thead className="table-header">
-            <tr className="border-b border-slate-100 bg-slate-50/55">
+            <tr className="border-b border-slate-100 bg-white/55">
               <th className="text-left py-3 px-4">#</th>
               <th className="text-left py-3 px-4">SI No</th>
               <th className="text-left py-3 px-4">Company</th>
@@ -240,7 +240,7 @@ export default function PurchaseHistory() {
               const status = pendingQty <= 0 ? 'received' : pendingQty > 0 && row.shipping_status === 'partial' ? 'partial' : 'pending'
 
               return (
-                <tr key={row.id} className="table-row border-b border-slate-100 hover:bg-slate-50/50">
+                <tr key={row.id} className="table-row border-b border-slate-100 hover:bg-white/50">
                   <td className="py-3 px-4 text-slate-400">{index + 1}</td>
                   <td className="py-3 px-4 font-mono text-xs">{row.si_no}</td>
                   <td className="py-3 px-4 font-medium text-slate-700">{row.supplier_name}</td>

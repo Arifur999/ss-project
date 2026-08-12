@@ -421,7 +421,7 @@ export default function Marketing() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader
         title="Marketing"
         subtitle="Send SMS campaigns to customers, suppliers, employees and contact list"
@@ -490,7 +490,7 @@ export default function Marketing() {
 
             {/* Numbers that are not in the system at all - typed in by hand and
                 kept alongside the rest of the Contact List. */}
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
               <p className="text-xs font-bold text-slate-700">Add a number manually</p>
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                 <input
@@ -544,7 +544,7 @@ export default function Marketing() {
               </div>
             ) : filteredContacts.length > 0 ? (
               filteredContacts.map(contact => (
-                <div key={contact.id} className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 hover:bg-slate-50">
+                <div key={contact.id} className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 hover:bg-neutral-100">
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(contact.id)}

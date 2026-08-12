@@ -479,7 +479,7 @@ export default function CustomerLedger() {
   const visibleLedger = [...ledger].sort((a, b) => (b.txIndex ?? 0) - (a.txIndex ?? 0))
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader
         title={t('ledger_title', 'Customer Ledger')}
         subtitle={t('ledger_title', 'Customer Ledger')}

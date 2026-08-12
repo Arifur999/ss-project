@@ -30,6 +30,13 @@ export default {
           DEFAULT: '#0F1117',
           soft: '#111827',
         },
+        // Card surface and its border, from the owner's reference. The page
+        // behind them is plain white, so the cards are what separates content
+        // from background rather than a tinted page doing it.
+        surface: {
+          DEFAULT: '#F7F7F9',
+          border: '#F4F4F4',
+        },
         // The system's greys under their own names, for new work.
         neutral: {
           900: '#111827',

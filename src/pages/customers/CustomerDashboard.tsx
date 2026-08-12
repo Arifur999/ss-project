@@ -234,7 +234,7 @@ export default function CustomerDashboard() {
           </thead>
           <tbody>
             {displayed.map((c, i) => (
-              <tr key={c.id} className={`table-row ${selectedIds.includes(c.id) ? 'bg-slate-50' : ''}`}>
+              <tr key={c.id} className={`table-row ${selectedIds.includes(c.id) ? 'bg-white' : ''}`}>
                 <td className="py-2.5 pl-4 pr-1">
                   <input
                     type="checkbox"

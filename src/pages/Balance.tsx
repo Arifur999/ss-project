@@ -175,8 +175,8 @@ export default function Balance() {
             <table className="w-full text-xs">
               <thead className="table-header sticky top-0">
                 <tr>
-                  <th className="sticky left-0 z-30 w-12 bg-slate-50 py-3 px-3 text-left shadow-[1px_0_0_#e2e8f0]">#</th>
-                  <th className="sticky left-12 z-30 min-w-[220px] bg-slate-50 py-3 px-4 text-left shadow-[1px_0_0_#e2e8f0]">{t('common_account')}</th>
+                  <th className="sticky left-0 z-30 w-12 bg-white py-3 px-3 text-left shadow-[1px_0_0_#e2e8f0]">#</th>
+                  <th className="sticky left-12 z-30 min-w-[220px] bg-white py-3 px-4 text-left shadow-[1px_0_0_#e2e8f0]">{t('common_account')}</th>
                   {columns.map(col => (
                     <th key={col.key} className="text-right py-3 px-3 min-w-[100px] whitespace-nowrap">{t(col.labelKey)}</th>
                   ))}
@@ -195,7 +195,7 @@ export default function Balance() {
                     {columns.map(col => {
                       const val = (acc as any)[col.key] || 0
                       return (
-                        <td key={col.key} className={`py-2.5 px-3 text-right ${amountClass(val, col.color)} ${col.key === 'current_balance' ? 'bg-slate-50' : ''}`}>
+                        <td key={col.key} className={`py-2.5 px-3 text-right ${amountClass(val, col.color)} ${col.key === 'current_balance' ? 'bg-white' : ''}`}>
                           {val === 0 ? '—' : formatCurr(val)}
                         </td>
                       )

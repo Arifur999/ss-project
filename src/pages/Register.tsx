@@ -195,7 +195,7 @@ export default function Register() {
               onChange={value => updateField('confirmPassword', value)}
             />
 
-            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
               <CheckCircle2 className="flex-shrink-0 fill-brand-green text-white" size={20} />
               <span>{regT('bannerText')}</span>
             </div>

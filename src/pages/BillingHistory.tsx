@@ -107,7 +107,7 @@ export default function BillingHistory() {
   const currentSmsPackage = paidRows.find(r => r.kind === 'sms')
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-white p-4 sm:p-6">
       <PageHeader
         title={bn ? 'বিলিং হিস্টোরি' : 'Billing History'}
         subtitle={bn ? 'আপনার কেনা সব প্ল্যান ও এসএমএস প্যাকেজ' : 'Every plan and SMS package you have purchased'}

@@ -116,7 +116,7 @@ export default function Adjustments() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTransfer')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{formatCurr(totalTransferred)}</p></div>
         <div className="card"><p className="text-xs text-slate-500">{t('adjustments_totalTx')}</p><p className="text-2xl font-bold text-slate-800 mt-1">{filtered.length}</p></div>
-        <div className="card bg-slate-50 border-slate-200">
+        <div className="card bg-white border-slate-200">
           <p className="text-xs text-slate-700 font-medium">{t('adjustments_note')}</p>
           <p className="text-xs text-slate-500 mt-1">{t('adjustments_noteText')}</p>
         </div>

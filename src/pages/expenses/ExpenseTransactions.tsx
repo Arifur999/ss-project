@@ -316,7 +316,7 @@ export default function ExpenseTransactions() {
                         key={c.id}
                         type="button"
                         onClick={() => { setForm({ ...form, category_id: c.id, category_name: c.name }); setCategorySearch(c.name); setShowCategoryList(false) }}
-                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-50 ${form.category_id === c.id ? 'bg-slate-50 font-bold text-slate-900' : 'text-slate-600'}`}
+                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-neutral-100 ${form.category_id === c.id ? 'bg-white font-bold text-slate-900' : 'text-slate-600'}`}
                       >
                         {c.name}
                       </button>

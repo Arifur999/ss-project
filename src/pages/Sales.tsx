@@ -1957,7 +1957,7 @@ export default function Sales() {
   }, [customerSearch, customers, form.customer_id])
 
   return (
-    <div className={viewMode === 'create' ? 'p-6 space-y-6 bg-slate-50 min-h-screen' : 'flex h-full min-h-0 flex-col overflow-hidden bg-slate-50 p-6'}>
+    <div className={viewMode === 'create' ? 'p-6 space-y-6 bg-white min-h-screen' : 'flex h-full min-h-0 flex-col overflow-hidden bg-white p-6'}>
       <PageHeader
         title={viewMode === 'create' ? 'New Sale / Create Invoice' : t('sales_ledger', 'Sales Ledger')}
         subtitle={viewMode === 'create' ? 'Manage and generate retail invoices' : 'Invoice ledger and profit management'}
@@ -2012,7 +2012,7 @@ export default function Sales() {
               </button>
               <button 
                 onClick={() => toast.success('Barcode scan active')} 
-                className="p-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition"
+                className="p-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-neutral-100 transition"
                 title="Barcode Scanner Mode"
               >
                 <Barcode size={16} />
@@ -2022,7 +2022,7 @@ export default function Sales() {
                   onClick={() => setShowProductSort(current => !current)}
                   className={`p-2 border rounded-lg transition ${
                     categoryFilter === ''
-                      ? 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                      ? 'border-slate-200 text-slate-500 hover:bg-neutral-100'
                       : 'border-brand-green bg-green-50 text-brand-green'
                   }`}
                   title="Filter by category"
@@ -2035,7 +2035,7 @@ export default function Sales() {
                     <div className="absolute right-0 top-11 z-20 max-h-72 w-48 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-xs font-semibold shadow-lg">
                       <button
                         onClick={() => { setCategoryFilter(''); setShowProductSort(false) }}
-                        className={`block w-full px-3 py-2 text-left hover:bg-slate-50 ${categoryFilter === '' ? 'text-brand-green' : 'text-slate-700'}`}
+                        className={`block w-full px-3 py-2 text-left hover:bg-neutral-100 ${categoryFilter === '' ? 'text-brand-green' : 'text-slate-700'}`}
                       >
                         All categories
                       </button>
@@ -2043,7 +2043,7 @@ export default function Sales() {
                         <button
                           key={category}
                           onClick={() => { setCategoryFilter(category); setShowProductSort(false) }}
-                          className={`block w-full px-3 py-2 text-left hover:bg-slate-50 ${categoryFilter === category ? 'text-brand-green' : 'text-slate-700'}`}
+                          className={`block w-full px-3 py-2 text-left hover:bg-neutral-100 ${categoryFilter === category ? 'text-brand-green' : 'text-slate-700'}`}
                         >
                           {category}
                         </button>
@@ -2071,7 +2071,7 @@ export default function Sales() {
                         onError={e => ((e.target as HTMLImageElement).style.display = 'none')} 
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-slate-50 rounded-lg flex items-center justify-center border border-slate-100 text-slate-300 flex-shrink-0">
+                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center border border-slate-100 text-slate-300 flex-shrink-0">
                         <Image size={16} />
                       </div>
                     )}
@@ -2156,7 +2156,7 @@ export default function Sales() {
                               key={customer.id}
                               type="button"
                               onClick={() => selectCustomer(customer)}
-                              className="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50"
+                              className="block w-full px-3 py-2 text-left text-xs hover:bg-neutral-100"
                             >
                               <span className="block font-semibold text-slate-800">{customer.name}</span>
                               <span className="block text-slate-500">{customer.phone || 'No phone'}</span>
@@ -2226,7 +2226,7 @@ export default function Sales() {
                   <label className="label" htmlFor="sales-f5">Invoice No</label>
                   <input id="sales-f5"
                     type="text"
-                    className="input bg-slate-50 text-slate-500 font-mono cursor-not-allowed"
+                    className="input bg-white text-slate-500 font-mono cursor-not-allowed"
                     value={form.invoice_no}
                     disabled
                   />
@@ -2259,7 +2259,7 @@ export default function Sales() {
 
               <TableScroller className="overflow-x-auto border border-slate-100 rounded-xl">
                 <table className="w-full text-xs text-left min-w-[940px]">
-                  <thead className="bg-slate-50 border-b border-slate-100">
+                  <thead className="bg-white border-b border-slate-100">
                     <tr>
                       <th className="py-3 px-3 text-slate-500 w-10 text-center">#</th>
                       <th className="py-3 px-3 text-slate-500 w-60">Product Name</th>
@@ -2278,7 +2278,7 @@ export default function Sales() {
                   <tbody>
                     {items.map((item, idx) => {
                       return (
-                        <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                        <tr key={idx} className="border-b border-slate-50 hover:bg-white/50 transition-colors">
                           <td className="py-3 px-3 text-slate-400 text-center font-medium">{idx + 1}</td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2">
@@ -2290,7 +2290,7 @@ export default function Sales() {
                                   onError={e => ((e.target as HTMLImageElement).style.display = 'none')}
                                 />
                               ) : (
-                                <div className="w-8 h-8 bg-slate-50 rounded-md flex items-center justify-center border border-slate-100 text-slate-300 flex-shrink-0">
+                                <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center border border-slate-100 text-slate-300 flex-shrink-0">
                                   <Image size={12} />
                                 </div>
                               )}
@@ -2318,7 +2318,7 @@ export default function Sales() {
                               <button
                                 type="button"
                                 onClick={() => updateItem(idx, 'qty', Math.max(1, item.qty - 1))}
-                                className="w-6 h-6 border border-slate-200 rounded flex items-center justify-center hover:bg-slate-50 text-slate-500 font-bold transition"
+                                className="w-6 h-6 border border-slate-200 rounded flex items-center justify-center hover:bg-neutral-100 text-slate-500 font-bold transition"
                               >
                                 -
                               </button>
@@ -2332,7 +2332,7 @@ export default function Sales() {
                               <button
                                 type="button"
                                 onClick={() => updateItem(idx, 'qty', item.qty + 1)}
-                                className="w-6 h-6 border border-slate-200 rounded flex items-center justify-center hover:bg-slate-50 text-slate-500 font-bold transition"
+                                className="w-6 h-6 border border-slate-200 rounded flex items-center justify-center hover:bg-neutral-100 text-slate-500 font-bold transition"
                               >
                                 +
                               </button>
@@ -2493,7 +2493,7 @@ export default function Sales() {
                 </div>
 
                 <div className="space-y-2 py-2">
-                  <div className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800">
+                  <div className="flex justify-between rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-800">
                     <span>Total Bill</span>
                     <span>{formatCurr(grandTotal)}</span>
                   </div>
@@ -2588,7 +2588,7 @@ export default function Sales() {
                           : option.key === 'delivered'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-slate-800 text-white'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                      : 'text-slate-500 hover:bg-neutral-100 hover:text-slate-700'
                   }`}
                 >
                   {option.label}
@@ -2621,7 +2621,7 @@ export default function Sales() {
                 <col style={{ width: '5.5%' }} />
               </colgroup>
               <thead className="table-header">
-                <tr className="border-b border-slate-100 bg-slate-50/55">
+                <tr className="border-b border-slate-100 bg-white/55">
                   <th className="py-2 px-1"></th>
                   <th className="text-left py-2 px-1">#</th>
                   <th className="text-left py-2 px-2">Invoice</th>
@@ -2650,7 +2650,7 @@ export default function Sales() {
                   const missingPurchaseAmount = saleHasMissingPurchaseAmount(s)
                   return (
                     <React.Fragment key={s.id}>
-                  <tr className={`table-row border-b border-slate-100 transition-colors ${missingPurchaseAmount ? 'bg-brand-blue-soft hover:bg-brand-blue-soft/70' : 'hover:bg-slate-50/50'}`}>
+                  <tr className={`table-row border-b border-slate-100 transition-colors ${missingPurchaseAmount ? 'bg-brand-blue-soft hover:bg-brand-blue-soft/70' : 'hover:bg-white/50'}`}>
                     <td className="py-2 px-1 text-center">
                       <button
                         onClick={() => setExpandedSaleId(expandedSaleId === s.id ? null : s.id)}
@@ -2735,7 +2735,7 @@ export default function Sales() {
 
                               <TableScroller className="overflow-x-auto">
                                 <table className="w-full min-w-[1120px] text-xs">
-                                  <thead className="bg-slate-50 text-[11px] uppercase text-slate-600">
+                                  <thead className="bg-white text-[11px] uppercase text-slate-600">
                                     <tr>
                                       <th className="text-left py-3 px-4 w-[280px]">Product</th>
                                       <th className="text-right py-3 px-3">Price (৳)</th>
@@ -2760,7 +2760,7 @@ export default function Sales() {
                                         <tr key={item.id} className="border-t border-slate-100 align-middle">
                                           <td className="py-4 px-4">
                                             <div className="flex items-center gap-3">
-                                              <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-slate-100 bg-slate-50">
+                                              <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-slate-100 bg-white">
                                                 {imageUrl ? (
                                                   <img src={imageUrl} alt={item.product_name} className="h-full w-full object-cover" />
                                                 ) : (
@@ -2860,7 +2860,7 @@ export default function Sales() {
                                   <ChevronUp size={14} className="text-slate-400" />
                                 </div>
                                 <table className="w-full text-xs">
-                                  <thead className="bg-slate-50 text-[11px] uppercase text-slate-600">
+                                  <thead className="bg-white text-[11px] uppercase text-slate-600">
                                     <tr>
                                       <th className="text-left py-3 px-4">Date</th>
                                       <th className="text-left py-3 px-4">Product</th>
@@ -2882,7 +2882,7 @@ export default function Sales() {
                                     {saleDeliveryRows(s).length === 0 && (
                                       <tr>
                                         <td colSpan={5} className="py-10 text-center">
-                                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400">
+                                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
                                             <Clipboard size={28} />
                                           </div>
                                           <p className="mt-3 text-xs font-medium text-slate-400">No delivery yet</p>
@@ -2928,7 +2928,7 @@ export default function Sales() {
       >
         {deliveryItem && (
           <div className="space-y-4">
-            <div className="bg-slate-50 p-3 rounded-lg text-sm">
+            <div className="bg-white p-3 rounded-lg text-sm">
               <p className="font-medium text-slate-700">{deliveryItem.product_name}</p>
               <p className="text-xs text-slate-500 mt-1">
                 Ordered: {deliveryItem.qty} | Delivered: {deliveredQty(deliveryItem)} | Pending: {pendingQty(deliveryItem)}
@@ -3296,7 +3296,7 @@ export default function Sales() {
 
                 <table className="mt-3 w-full text-[12px] border border-slate-600">
                   <thead>
-                    <tr className="bg-slate-50">
+                    <tr className="bg-white">
                       <th className="border border-slate-600 py-1 px-1 w-8">#</th>
                       <th className="border border-slate-600 py-1 px-2 text-center min-w-0">{invoiceLabels.productName}</th>
                       <th className="border border-slate-600 py-1 px-1 text-center w-20">Unit MRP</th>

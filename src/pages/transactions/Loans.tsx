@@ -67,7 +67,7 @@ export default function Loans() {
           <h3 className="font-semibold text-slate-800 mb-3">{t('loans_lenderSummary')}</h3>
           <div className="grid grid-cols-3 gap-3">
             {Object.entries(byLender).map(([name, data]) => (
-              <div key={name} className="p-3 bg-slate-50 rounded-xl">
+              <div key={name} className="p-3 bg-white rounded-xl">
                 <p className="font-semibold text-slate-800 text-sm">{name}</p>
                 <div className="flex justify-between mt-2 text-xs">
                   <span className="text-slate-500">{t('loans_summaryReceived')} <span className="text-brand-green font-medium">{formatCurr(data.received)}</span></span>

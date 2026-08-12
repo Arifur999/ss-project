@@ -318,7 +318,7 @@ export default function PurchaseLedger() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50 p-6">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
       <PageHeader
         title={t('purchaseLedger_title', 'Purchase Ledger')}
         subtitle={t('purchaseLedger_subtitle', 'Submitted purchase invoices by supplier')}
@@ -378,7 +378,7 @@ export default function PurchaseLedger() {
                     </button>
                     <button
                       onClick={() => setSelectedInvoice(invoice)}
-                      className="rounded p-1.5 text-slate-600 hover:bg-slate-50"
+                      className="rounded p-1.5 text-slate-600 hover:bg-neutral-100"
                       title="Print invoice"
                     >
                       <Printer size={15} />
@@ -424,7 +424,7 @@ export default function PurchaseLedger() {
 
                 <table className="mt-5 w-full text-[9px] border border-slate-600">
                   <thead>
-                    <tr className="bg-slate-50">
+                    <tr className="bg-white">
                       <th className="border border-slate-600 px-1.5 py-2 text-center w-6">#</th>
                       <th className="border border-slate-600 px-1.5 py-2 text-left">Product Code</th>
                       <th className="border border-slate-600 px-1.5 py-2 text-left">Product</th>
@@ -503,7 +503,7 @@ export default function PurchaseLedger() {
 
             <div className="overflow-x-auto rounded-lg border border-slate-100">
               <table className="w-full min-w-[980px] text-xs">
-                <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-600">
+                <thead className="bg-white text-[11px] font-bold uppercase text-slate-600">
                   <tr>
                     <th className="px-3 py-3 text-left">#</th>
                     <th className="px-3 py-3 text-left">Product Code</th>
@@ -557,15 +557,15 @@ export default function PurchaseLedger() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="card bg-slate-50 shadow-none">
+              <div className="card bg-white shadow-none">
                 <p className="text-xs text-slate-500">Total Bill</p>
                 <p className="mt-1 text-xl font-bold text-slate-800">{formatCurr(editTotal)}</p>
               </div>
-              <div className="card bg-slate-50 shadow-none">
+              <div className="card bg-white shadow-none">
                 <p className="text-xs text-slate-500">Paid Amount</p>
                 <p className="mt-1 text-xl font-bold text-brand-green">{formatCurr(editingInvoice.paid_amount)}</p>
               </div>
-              <div className="card bg-slate-50 shadow-none">
+              <div className="card bg-white shadow-none">
                 <p className="text-xs text-slate-500">Due Amount</p>
                 <p className="mt-1 text-xl font-bold text-brand-red">{formatCurr(editDue)}</p>
               </div>

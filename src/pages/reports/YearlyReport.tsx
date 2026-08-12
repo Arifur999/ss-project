@@ -391,7 +391,7 @@ export default function YearlyReport() {
             <p className="mt-1 text-sm text-slate-500">Purchase, Sales & Profit Overview</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <label className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <label className="rounded-lg border border-slate-200 bg-white px-3 py-2">
               <span className="block text-[10px] font-semibold uppercase text-slate-500">Year</span>
               <select className="mt-1 w-full bg-transparent text-sm font-bold text-slate-800 outline-none" value={year} onChange={e => setYear(Number(e.target.value))}>
                 {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map(item => (
@@ -399,7 +399,7 @@ export default function YearlyReport() {
                 ))}
               </select>
             </label>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
               <span className="block text-[10px] font-semibold uppercase text-slate-500">Date Range</span>
               <div className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-800"><CalendarDays size={14} /> {startLabel} - {endLabel}</div>
             </div>
@@ -451,7 +451,7 @@ export default function YearlyReport() {
               <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <table className="w-full table-fixed text-[10px]">
-                  <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600">
+                  <thead className="sticky top-0 z-10 bg-white text-slate-600">
                     <tr>
                       <th className="w-[42%] px-2 py-2 text-left font-bold">Company</th>
                       <th className="w-[29%] px-1.5 py-2 text-right font-bold">Purchase</th>
@@ -543,9 +543,9 @@ export default function YearlyReport() {
                 <div className="bg-slate-800 px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white">Yearly Business Performance & Profit Overview ({year})</div>
                 <TableScroller className="overflow-x-auto">
                   <table className="w-full min-w-[1120px] text-[11px]">
-                    <thead className="bg-slate-50 text-slate-600">
+                    <thead className="bg-white text-slate-600">
                       <tr>
-                        <th className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left">Month</th>
+                        <th className="sticky left-0 z-10 bg-white px-2 py-2 text-left">Month</th>
                         <th className="px-2 py-2 text-right">Sales Target</th>
                         <th className="px-2 py-2 text-right">Actual Sales</th>
                         <th className="px-2 py-2 text-right">Profit Target</th>
@@ -560,7 +560,7 @@ export default function YearlyReport() {
                     </thead>
                     <tbody>
                       {rows.map(row => (
-                        <tr key={row.monthIndex} className="border-t border-slate-100 hover:bg-slate-50">
+                        <tr key={row.monthIndex} className="border-t border-slate-100 hover:bg-neutral-100">
                           <td className="sticky left-0 bg-white px-2 py-2 font-medium text-slate-700">{monthName(row.monthIndex)}</td>
                           <TableValue value={row.salesGoal} />
                           <TableValue value={row.actualSales} tone="green" />

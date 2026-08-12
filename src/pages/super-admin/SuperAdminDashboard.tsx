@@ -160,14 +160,14 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-white p-4 sm:p-6">
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Super Admin</p>
           <h1 className="text-2xl font-bold text-slate-900">Platform Control Dashboard</h1>
               <p className="mt-1 text-sm text-slate-500">Registration requests, owner approval and account access</p>
         </div>
-        <button onClick={refreshOwners} className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+        <button onClick={refreshOwners} className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-neutral-100">
           <RefreshCw size={16} className="text-slate-600" />
           Refresh
         </button>

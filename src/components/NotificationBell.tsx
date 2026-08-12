@@ -92,7 +92,7 @@ export default function NotificationBell() {
                   key={n.id}
                   type="button"
                   onClick={() => { setSelected(n); setOpen(false) }}
-                  className="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50"
+                  className="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-neutral-100"
                 >
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">

@@ -50,7 +50,7 @@ export default function CurrentPlan() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader title={bn ? 'বর্তমান প্ল্যান' : 'Current Plan'} subtitle={bn ? 'আপনার সাবস্ক্রিপশন ও প্ল্যান' : 'Your subscription & plan'} />
 
       {/* Current status */}
@@ -168,7 +168,7 @@ function PlanCard({
       ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
       : highlighted
         ? 'bg-slate-900 text-white hover:bg-black'
-        : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
+        : 'border border-slate-300 bg-white text-slate-800 hover:bg-neutral-100'
 
   return (
     <section className={`relative flex flex-col rounded-2xl border bg-white px-[30px] py-[60px] shadow-sm ${isCurrent ? 'border-brand-green ring-2 ring-green-100' : highlighted ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200'}`}>

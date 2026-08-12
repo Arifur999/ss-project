@@ -53,7 +53,7 @@ export default function MonthlyTarget() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PageHeader title={t('settings_tabTargets')} subtitle={t('settings_monthlyTargets', 'Sales and profit targets by month')} />
 
       <div className="card p-0">
@@ -214,7 +214,7 @@ function TargetModal({ item, existingTargets, ownerId, onClose }: { item: any; e
           <label className="label" htmlFor="settings-f11">{t('settings_profitTarget')}</label>
           <input id="settings-f11" type="number" min="0" className="input" value={form.profit_target} onChange={e => setForm({ ...form, profit_target: Number(e.target.value) })} placeholder="0" />
         </div>
-        <div className="pt-1 p-3 rounded-xl bg-slate-50 text-sm text-slate-600">
+        <div className="pt-1 p-3 rounded-xl bg-white text-sm text-slate-600">
           <span className="font-medium">{monthName(form.month)} {form.year}</span> — {t('settings_salesTarget').split(' ')[0]}: <span className="text-slate-800 font-medium">{formatCurr(form.sales_target)}</span>, {t('settings_profitTarget').split(' ')[0]}: <span className="text-brand-green font-medium">{formatCurr(form.profit_target)}</span>
         </div>
         <div className="flex gap-3 pt-1">

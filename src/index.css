@@ -45,17 +45,65 @@
     @apply bg-white text-navy-900;
   }
   .card {
-    @apply bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,17,23,0.04),0_8px_24px_-12px_rgba(15,17,23,0.08)] border border-neutral-200 p-5;
+    @apply bg-surface border-surface-border rounded-2xl border p-5;
   }
-  /* Primary action = black (reference accent). */
+  /* The reference button: a black pill lit from the upper left, with a soft
+     sheen across it and the shadow of a raised object beneath. Built from
+     gradients and shadows rather than an image so it scales to any width and
+     stays crisp on every display.
+
+       - the first gradient is the sheen: a pale band crossing the face
+       - the second is the body, lighter at the top so it reads as lit
+       - the inset white line is the highlight along the top edge
+       - the two outer shadows are contact (tight) and ambient (soft) */
   .btn-primary {
-    @apply bg-navy-900 hover:bg-shell text-white px-5 py-2 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+    @apply text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2;
+    background-image:
+      linear-gradient(112deg, rgba(255, 255, 255, 0.13) 10%, rgba(255, 255, 255, 0) 42%),
+      linear-gradient(165deg, #33333a 0%, #17171c 46%, #0b0b0e 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 1px 2px rgba(11, 11, 14, 0.32),
+      0 8px 18px -6px rgba(11, 11, 14, 0.38);
   }
+  .btn-primary:hover {
+    background-image:
+      linear-gradient(112deg, rgba(255, 255, 255, 0.17) 10%, rgba(255, 255, 255, 0) 44%),
+      linear-gradient(165deg, #3b3b43 0%, #1d1d23 46%, #0f0f13 100%);
+  }
+  /* Pressed: the highlight and the lift both go, so it reads as pushed in. */
+  .btn-primary:active {
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.45),
+      0 1px 1px rgba(11, 11, 14, 0.25);
+  }
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  /* Same pill and the same lift, in the outline weight - the reference pairs
+     these two side by side. */
   .btn-secondary {
-    @apply bg-white border border-neutral-200 hover:bg-neutral-100 text-neutral-700 px-5 py-2 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+    @apply bg-white border border-neutral-200 hover:bg-neutral-100 text-neutral-700 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2;
+    box-shadow: 0 1px 2px rgba(11, 11, 14, 0.06), 0 6px 14px -8px rgba(11, 11, 14, 0.18);
   }
+  .btn-secondary:active {
+    box-shadow: inset 0 1px 2px rgba(11, 11, 14, 0.10);
+  }
+
+  /* Destructive keeps its colour - the shape follows, the meaning does not. */
   .btn-danger {
-    @apply bg-brand-red hover:bg-red-600 text-white px-5 py-2 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2;
+    @apply text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2;
+    background-image:
+      linear-gradient(112deg, rgba(255, 255, 255, 0.18) 10%, rgba(255, 255, 255, 0) 42%),
+      linear-gradient(165deg, #f26a6a 0%, #ef4444 46%, #d92d2d 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 1px 2px rgba(217, 45, 45, 0.30),
+      0 8px 18px -6px rgba(217, 45, 45, 0.35);
+  }
+  .btn-danger:active {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.30);
   }
   .input {
     @apply w-full border border-neutral-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy-900/15 focus:border-neutral-500 bg-white text-navy-900;

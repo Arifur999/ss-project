@@ -547,7 +547,7 @@ export default function EmployeeAttendance() {
             </div>
             <div>
               <label className="label">Total Hours</label>
-              <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+              <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
                 {formatTotalHours(form.total_hours)}
               </div>
             </div>

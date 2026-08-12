@@ -509,11 +509,11 @@ export default function EmployeeList() {
               </div>
               <div>
                 <label className="label" htmlFor="employee-list-f7">{t('common_phone')}</label>
-                <input id="employee-list-f7" type="text" className="input bg-slate-50 text-slate-500" value={form.phone} disabled readOnly />
+                <input id="employee-list-f7" type="text" className="input bg-white text-slate-500" value={form.phone} disabled readOnly />
               </div>
               <div>
                 <label className="label" htmlFor="employee-list-f8">{t('common_address')}</label>
-                <input id="employee-list-f8" type="text" className="input bg-slate-50 text-slate-500" value={form.address} disabled readOnly />
+                <input id="employee-list-f8" type="text" className="input bg-white text-slate-500" value={form.address} disabled readOnly />
               </div>
               <div>
                 <label className="label" htmlFor="employee-list-f9">{requiredLabel(t('employee_resignDate'))}</label>

@@ -51,7 +51,7 @@ export default function TableScroller({ children, className = '', wrapClassName 
             onClick={() => scrollBy(-1)}
             disabled={!canLeft}
             aria-label="Scroll table left"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-30"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-neutral-100 disabled:opacity-30"
           >
             <ChevronLeft size={16} />
           </button>
@@ -60,7 +60,7 @@ export default function TableScroller({ children, className = '', wrapClassName 
             onClick={() => scrollBy(1)}
             disabled={!canRight}
             aria-label="Scroll table right"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-30"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-neutral-100 disabled:opacity-30"
           >
             <ChevronRight size={16} />
           </button>

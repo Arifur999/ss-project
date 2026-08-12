@@ -246,7 +246,7 @@ export default function OtherIncome() {
   }, [filteredRows])
 
   return (
-    <div className="min-h-full bg-slate-50 p-6">
+    <div className="min-h-full bg-white p-6">
       <PageHeader
         title="Others Income"
         subtitle="Supplier commission and other income received"
@@ -424,10 +424,10 @@ export default function OtherIncome() {
 
 function SummaryCard({ title, value, subtitle, icon, tone }: { title: string; value: string; subtitle: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'orange' | 'purple' }) {
   const tones = {
-    blue: 'border-slate-200 bg-slate-50 text-slate-700',
+    blue: 'border-slate-200 bg-white text-slate-700',
     green: 'border-green-100 bg-green-50/60 text-brand-green',
     orange: 'border-brand-blue/20 bg-brand-blue-soft/60 text-brand-blue',
-    purple: 'border-slate-200 bg-slate-50 text-slate-700',
+    purple: 'border-slate-200 bg-white text-slate-700',
   }
 
   return (
@@ -448,7 +448,7 @@ function SummaryCard({ title, value, subtitle, icon, tone }: { title: string; va
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 rounded-lg bg-slate-50 px-3 py-2">
+    <div className="flex justify-between gap-4 rounded-lg bg-white px-3 py-2">
       <span className="text-slate-500">{label}</span>
       <span className="text-right font-semibold text-slate-800">{value}</span>
     </div>

@@ -194,7 +194,7 @@ export default function SubscriptionPlans() {
       disabled: trialUsed,
       icon: <Sparkles size={22} />,
       cardClass: 'border-slate-200',
-      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
+      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-neutral-100',
     },
     {
       id: 'monthly' as const,
@@ -209,7 +209,7 @@ export default function SubscriptionPlans() {
       disabled: false,
       icon: <Timer size={22} />,
       cardClass: 'border-slate-200',
-      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
+      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-neutral-100',
     },
     {
       id: 'yearly' as const,
@@ -317,7 +317,7 @@ export default function SubscriptionPlans() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-8">
+    <div className="min-h-screen bg-white px-4 py-8">
       <div className="fixed right-4 top-4 z-20 flex items-center gap-1 rounded-lg bg-white p-0.5 shadow-sm">
         <Globe size={13} className="ml-1.5 text-slate-400" />
         <button onClick={() => setLang('en')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'en' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>EN</button>
@@ -402,7 +402,7 @@ export default function SubscriptionPlans() {
                   type="email"
                   value={user?.email || ''}
                   readOnly
-                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
+                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500"
                 />
               </div>
               <div>
@@ -435,7 +435,7 @@ export default function SubscriptionPlans() {
                   type="button"
                   onClick={() => setShowTrialPopup(false)}
                   disabled={startingTrial}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-neutral-100 disabled:opacity-60"
                 >
                   {copy('trialCancel')}
                 </button>
@@ -606,7 +606,7 @@ export function SubscriptionCheckout() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-white p-4">
       <div className="fixed right-4 top-4 z-20 flex items-center gap-1 rounded-lg bg-white p-0.5 shadow-sm">
         <Globe size={13} className="ml-1.5 text-slate-400" />
         <button onClick={() => setLang('en')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'en' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>EN</button>
@@ -627,7 +627,7 @@ export function SubscriptionCheckout() {
             <div className={`mt-6 grid gap-5 ${paymentInfo?.bkash_qr_url ? 'md:grid-cols-2 md:items-stretch' : ''}`}>
               {/* Left column: amount, bKash number, timer */}
               <div className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{copy('amountLabel')} · {planId === 'monthly' ? (lang === 'bn' ? 'মাসিক' : 'Monthly') : (lang === 'bn' ? 'বার্ষিক' : 'Yearly')}</p>
                   <p className="mt-1 text-3xl font-black text-slate-950">
                     {checkoutAmount !== null ? formatBDT(checkoutAmount) : '...'}
@@ -661,7 +661,7 @@ export function SubscriptionCheckout() {
 
               {/* Right column: large scannable QR that fills the box */}
               {paymentInfo?.bkash_qr_url && (
-                <div className="flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-center text-sm font-semibold text-slate-600">{copy('scanQr')}</p>
                   <div className="flex flex-1 items-center justify-center">
                     <img src={paymentInfo.bkash_qr_url} alt="bKash QR code" className="aspect-square w-full max-w-[380px] rounded-xl border border-slate-200 bg-white object-contain p-3" />
@@ -671,7 +671,7 @@ export function SubscriptionCheckout() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button onClick={() => navigate('/choose-plan')} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              <button onClick={() => navigate('/choose-plan')} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-neutral-100">
                 {copy('backToPlans')}
               </button>
               <button onClick={() => setStep(2)} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black">
@@ -717,7 +717,7 @@ export function SubscriptionCheckout() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => setStep(1)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              <button type="button" onClick={() => setStep(1)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-neutral-100">
                 {copy('back')}
               </button>
               <button type="submit" disabled={submitting} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-black disabled:opacity-60">

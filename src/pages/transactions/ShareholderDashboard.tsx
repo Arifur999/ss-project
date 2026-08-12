@@ -256,7 +256,7 @@ export default function ShareholderDashboard() {
   }))
   const filterControls = (
     <div className="flex w-full flex-wrap items-center justify-end gap-3">
-      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+      <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
         {[
           { key: 'thisMonth', label: 'This Month' },
           { key: 'year', label: 'Year Select' },
@@ -269,7 +269,7 @@ export default function ShareholderDashboard() {
             className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
               filterMode === option.key
                 ? 'bg-brand-green text-white shadow-sm'
-                : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                : 'text-slate-600 hover:bg-neutral-100 hover:text-slate-900'
             }`}
           >
             {option.label}
@@ -318,7 +318,7 @@ export default function ShareholderDashboard() {
                   type="button"
                   onMouseDown={event => event.preventDefault()}
                   onClick={() => commitYear(year)}
-                  className={`block w-full px-3 py-1.5 text-left text-sm font-medium hover:bg-slate-50 ${
+                  className={`block w-full px-3 py-1.5 text-left text-sm font-medium hover:bg-neutral-100 ${
                     year === selectedYear ? 'bg-brand-green text-white hover:bg-brand-green' : 'text-slate-700'
                   }`}
                 >

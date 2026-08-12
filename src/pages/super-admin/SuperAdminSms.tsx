@@ -162,7 +162,7 @@ export default function SuperAdminSms() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {packages.map(pkg => (
-                <div key={pkg.id} className={`flex flex-col rounded-xl border p-4 ${pkg.active ? 'border-slate-200' : 'border-slate-200 bg-slate-50 opacity-70'}`}>
+                <div key={pkg.id} className={`flex flex-col rounded-xl border p-4 ${pkg.active ? 'border-slate-200' : 'border-slate-200 bg-white opacity-70'}`}>
                   <div className="flex items-start justify-between">
                     <span className="text-xs font-black uppercase tracking-wide text-slate-400">{pkg.name}</span>
                     <span className={pkg.active ? 'badge-green' : 'badge-red'}>{pkg.active ? 'Active' : 'Off'}</span>
