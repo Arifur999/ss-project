@@ -62,9 +62,6 @@ export default function AuthShell({ image, imageAlt, brandName, heading, subtitl
             </button>
           </div>
           <div className="mx-auto w-full max-w-sm">
-            {/* The dark mark, because this panel is white. The brand panel on
-                the left carries the light one against its photograph. */}
-            <img src="/logo-dark.png" alt={brandName} className="mb-7 h-9 w-auto object-contain" />
             {children}
           </div>
         </div>

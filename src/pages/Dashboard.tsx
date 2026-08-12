@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
@@ -51,15 +51,16 @@ type DashboardData = {
     totalCustomers: number
     netProfit: number
   }
-  monthlySales: { month: string; sales: number; profit: number }[]
+  monthlySales: { monthIndex: number; sales: number; profit: number }[]
   // Money in against money out, by month. Both sides come from figures already
   // fetched for the cards, so this costs no extra request.
-  monthlyCashflow: { month: string; moneyIn: number; moneyOut: number }[]
+  monthlyCashflow: { monthIndex: number; moneyIn: number; moneyOut: number }[]
   // Both sides of the money, split by month, for the Monthly Spendings card:
   // its tabs switch between them and its picker switches month.
   monthlyBreakdown: {
     key: string
-    label: string
+    monthIndex: number
+    year: string
     income: { name: string; amount: number }[]
     expenses: { name: string; amount: number }[]
     incomeTotal: number
@@ -194,6 +195,22 @@ export default function Dashboard() {
   const [rangeType, setRangeType] = useState<RangeType>('thisMonth')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
+
+  // Month names are applied at render, not at fetch, so switching language
+  // renames every axis and picker immediately - and the cached data stays
+  // language-agnostic instead of freezing whichever language loaded it.
+  const salesSeries = useMemo(
+    () => data.monthlySales.map(row => ({ ...row, month: monthShort(row.monthIndex) })),
+    [data.monthlySales, monthShort]
+  )
+  const cashflowSeries = useMemo(
+    () => data.monthlyCashflow.map(row => ({ ...row, month: monthShort(row.monthIndex) })),
+    [data.monthlyCashflow, monthShort]
+  )
+  const breakdownMonths = useMemo(
+    () => data.monthlyBreakdown.map(row => ({ ...row, label: `${monthShort(row.monthIndex)} ${row.year}` })),
+    [data.monthlyBreakdown, monthShort]
+  )
 
   const range = getRange(rangeType, customStart, customEnd)
   const dateRangeText = `${formatDateShort(range.start)} - ${formatDateShort(range.end)}`
@@ -348,7 +365,8 @@ export default function Dashboard() {
       const [year, month] = key.split('-')
       return {
         key,
-        label: `${monthShort(Number(month))} ${year}`,
+        monthIndex: Number(month),
+        year,
         income,
         expenses,
         incomeTotal: income.reduce((sum, row) => sum + row.amount, 0),
@@ -431,12 +449,12 @@ export default function Dashboard() {
         netProfit: previousProfitWithOtherIncome - previousTotalExpenses,
       },
       monthlySales: Array.from({ length: 12 }, (_, i) => ({
-        month: monthShort(i + 1),
+        monthIndex: i + 1,
         sales: monthlyMap[i + 1]?.sales || 0,
         profit: monthlyMap[i + 1]?.profit || 0,
       })),
       monthlyCashflow: Array.from({ length: 12 }, (_, i) => ({
-        month: monthShort(i + 1),
+        monthIndex: i + 1,
         moneyIn: cashflowMap[i + 1]?.moneyIn || 0,
         moneyOut: cashflowMap[i + 1]?.moneyOut || 0,
       })),
@@ -526,7 +544,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={190}>
-            <LineChart data={data.monthlyCashflow}>
+            <LineChart data={cashflowSeries}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} width={38} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
@@ -544,7 +562,7 @@ export default function Dashboard() {
 
       {/* Row 2 - where it was spent, purchases against sales, best customers. */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)]">
-        <MonthlySpendings months={data.monthlyBreakdown} formatCurr={formatCurr} />
+        <MonthlySpendings months={breakdownMonths} formatCurr={formatCurr} />
 
         <section className="card">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -558,7 +576,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data.monthlySales} barGap={2}>
+            <BarChart data={salesSeries} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
