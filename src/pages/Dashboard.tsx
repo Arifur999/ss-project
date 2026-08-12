@@ -14,6 +14,8 @@ import { readPageCache, writePageCache } from '../lib/pageCache'
 import {
   Bar,
   BarChart,
+  Line,
+  LineChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -53,8 +55,16 @@ type DashboardData = {
   // Money in against money out, by month. Both sides come from figures already
   // fetched for the cards, so this costs no extra request.
   monthlyCashflow: { month: string; moneyIn: number; moneyOut: number }[]
-  // Expenses grouped by their category, largest first, for the donut.
-  spendingByCategory: { name: string; amount: number }[]
+  // Both sides of the money, split by month, for the Monthly Spendings card:
+  // its tabs switch between them and its picker switches month.
+  monthlyBreakdown: {
+    key: string
+    label: string
+    income: { name: string; amount: number }[]
+    expenses: { name: string; amount: number }[]
+    incomeTotal: number
+    expenseTotal: number
+  }[]
   topCustomers: { name: string; totalSales: number; dueAmount: number }[]
   recentTransactions: { id: string; title: string; ref: string; amount: number; date: string; tone: CardTone }[]
   dueCollectionRows: { id: string; customerName: string; amount: number; date: string; accountName: string }[]
@@ -166,7 +176,7 @@ const emptyDashboardData: DashboardData = {
   previous: emptyMetrics,
   monthlySales: [],
   monthlyCashflow: [],
-  spendingByCategory: [],
+  monthlyBreakdown: [],
   topCustomers: [],
   recentTransactions: [],
   dueCollectionRows: [],
@@ -301,16 +311,50 @@ export default function Dashboard() {
     ;(expensesRes.data || []).forEach((expense: any) => { bucket(expense.date).moneyOut += Number(expense.amount || 0) })
     ;(supplierPaymentsRes.data || []).forEach((payment: any) => { bucket(payment.date).moneyOut += Number(payment.amount || 0) })
 
-    // Expenses by category, biggest first. Anything without a category is
-    // grouped rather than dropped, so the donut always totals the real spend.
-    const categoryMap: Record<string, number> = {}
-    ;(expensesRes.data || []).forEach((expense: any) => {
-      const name = String(expense.category_name || '').trim() || 'Uncategorised'
-      categoryMap[name] = (categoryMap[name] || 0) + Number(expense.amount || 0)
+    // Money in and money out by month, each broken down by where it came from
+    // or went. Expenses carry their own category; income is grouped by the
+    // three things that bring money in.
+    const breakdownMap: Record<string, { income: Record<string, number>; expenses: Record<string, number> }> = {}
+    const monthKey = (dateStr: string) => {
+      const date = new Date(dateStr)
+      if (Number.isNaN(date.getTime())) return null
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    }
+    const addTo = (side: 'income' | 'expenses', dateStr: string, name: string, amount: number) => {
+      const key = monthKey(dateStr)
+      if (!key || !amount) return
+      if (!breakdownMap[key]) breakdownMap[key] = { income: {}, expenses: {} }
+      breakdownMap[key][side][name] = (breakdownMap[key][side][name] || 0) + amount
+    }
+    // Income is what the business earned. Due collections are cash arriving
+    // against sales already counted here, so including them would report the
+    // same money twice.
+    sales.forEach((sale: any) => addTo('income', sale.date, 'Sales', getSaleAmount(sale)))
+    otherIncomes.forEach((income: any) => addTo('income', income.date, 'Other Income', Number(income.amount || 0)))
+    // Expenses means the same thing here as on the Total Expenses card above -
+    // the expense records, nothing else. Purchases and supplier payments are
+    // money out, but they are stock and settlements, and showing them under
+    // the same word would put two different figures called "expenses" on one
+    // screen. Cashflow, which is about money moving, does count them.
+    ;(expensesRes.data || []).forEach((expense: any) =>
+      addTo('expenses', expense.date, String(expense.category_name || '').trim() || 'Uncategorised', Number(expense.amount || 0)))
+
+    const sortRows = (rows: Record<string, number>) =>
+      Object.entries(rows).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount)
+
+    const monthlyBreakdown = Object.keys(breakdownMap).sort().reverse().map(key => {
+      const income = sortRows(breakdownMap[key].income)
+      const expenses = sortRows(breakdownMap[key].expenses)
+      const [year, month] = key.split('-')
+      return {
+        key,
+        label: `${monthShort(Number(month))} ${year}`,
+        income,
+        expenses,
+        incomeTotal: income.reduce((sum, row) => sum + row.amount, 0),
+        expenseTotal: expenses.reduce((sum, row) => sum + row.amount, 0),
+      }
     })
-    const spendingByCategory = Object.entries(categoryMap)
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
 
     const customerMap: Record<string, { name: string; totalSales: number; dueAmount: number }> = {}
     sales.forEach((sale: any) => {
@@ -396,7 +440,7 @@ export default function Dashboard() {
         moneyIn: cashflowMap[i + 1]?.moneyIn || 0,
         moneyOut: cashflowMap[i + 1]?.moneyOut || 0,
       })),
-      spendingByCategory,
+      monthlyBreakdown,
       topCustomers: Object.values(customerMap).sort((a, b) => b.totalSales - a.totalSales).slice(0, 10),
       recentTransactions: [...recentSales, ...recentPurchases, ...recentExpenses, ...recentSupplierPayments, ...recentOtherIncome]
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -453,7 +497,7 @@ export default function Dashboard() {
 
 
       {/* Row 1 - the headline, the four figures, and where the money moved. */}
-      <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.4fr)]">
+      <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.35fr)_minmax(0,1fr)]">
         <HeroCard
           label="Net Profit"
           hint="Profit + other income - expenses"
@@ -482,29 +526,25 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={190}>
-            <BarChart data={data.monthlyCashflow} barGap={2}>
+            <LineChart data={data.monthlyCashflow}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+              <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} width={38} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
               <Tooltip
-                cursor={{ fill: "#ffffff0d" }}
+                cursor={{ stroke: "#ffffff33" }}
                 contentStyle={{ background: "#0F1117", border: "1px solid #ffffff1a", borderRadius: 12, fontSize: 12, color: "#fff" }}
                 formatter={(value: any) => formatCurr(Number(value))}
               />
-              <Bar dataKey="moneyIn" name="In" fill="#22C55E" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="moneyOut" name="Out" fill="#EF4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
+              <Line type="monotone" dataKey="moneyIn" name="In" stroke="#22C55E" strokeWidth={3} dot={false} />
+              <Line type="monotone" dataKey="moneyOut" name="Out" stroke="#EF4444" strokeWidth={3} dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         </section>
       </div>
 
       {/* Row 2 - where it was spent, purchases against sales, best customers. */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)]">
-        <section className="card">
-          <h2 className="text-sm font-bold text-navy-900">Monthly Spendings</h2>
-          <p className="mb-2 text-xs text-neutral-500">Where the expenses went</p>
-          <SpendingDonut rows={data.spendingByCategory} total={data.totalExpenses} formatCurr={formatCurr} />
-        </section>
+        <MonthlySpendings months={data.monthlyBreakdown} formatCurr={formatCurr} />
 
         <section className="card">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -631,50 +671,112 @@ function StatCard({ label, icon, value, trend, inverted = false }: {
   )
 }
 
-// Expenses by category. The slice colours are a grey ramp with the largest
-// category in near-black, so the chart stays inside the palette.
+// Slice colours are a grey ramp with the largest share in near-black, so the
+// chart stays inside the palette.
 const donutFills = ["#0F1117", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB", "#E5E7EB"]
 
-function SpendingDonut({ rows, total, formatCurr }: {
-  rows: { name: string; amount: number }[]; total: number; formatCurr: (value: number) => string
+type BreakdownMonth = {
+  key: string
+  label: string
+  income: { name: string; amount: number }[]
+  expenses: { name: string; amount: number }[]
+  incomeTotal: number
+  expenseTotal: number
+}
+
+function MonthlySpendings({ months, formatCurr }: {
+  months: BreakdownMonth[]; formatCurr: (value: number) => string
 }) {
-  if (rows.length === 0) {
-    return <div className="flex h-[250px] items-center justify-center text-sm text-neutral-500">No expenses in this period</div>
+  const [monthKey, setMonthKey] = useState("")
+  const [side, setSide] = useState<"income" | "expenses">("expenses")
+
+  // The picker can only offer months the loaded data actually covers, so the
+  // newest of those is the sensible default and it has to follow the range
+  // selector at the top of the page.
+  const active = months.find(month => month.key === monthKey) || months[0]
+
+  if (!active) {
+    return (
+      <section className="card">
+        <h2 className="text-sm font-bold text-navy-900">Monthly Spendings</h2>
+        <div className="flex h-[250px] items-center justify-center text-sm text-neutral-500">Nothing in this period</div>
+      </section>
+    )
   }
 
-  // Anything past the fifth category is one "Other" slice, or the legend runs
-  // longer than the chart it explains.
+  const rows = side === "income" ? active.income : active.expenses
+  const total = side === "income" ? active.incomeTotal : active.expenseTotal
+
+  // Past the fifth entry everything is one "Other" slice, or the legend runs
+  // longer than the chart explaining it.
   const top = rows.slice(0, 5)
   const rest = rows.slice(5).reduce((sum, row) => sum + row.amount, 0)
   const slices = rest > 0 ? [...top, { name: "Other", amount: rest }] : top
 
   return (
-    <>
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={170}>
-          <PieChart>
-            <Pie data={slices} dataKey="amount" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none">
-              {slices.map((slice, index) => <Cell key={slice.name} fill={donutFills[index % donutFills.length]} />)}
-            </Pie>
-            <Tooltip contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }} formatter={(value: any) => formatCurr(Number(value))} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-lg font-bold tabular-nums text-navy-900">{formatCurr(total)}</p>
-          <p className="text-[11px] text-neutral-500">Total expenses</p>
-        </div>
+    <section className="card">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-navy-900">Monthly Spendings</h2>
+        <select
+          className="input h-8 w-auto rounded-full py-0 text-xs font-semibold"
+          value={active.key}
+          onChange={event => setMonthKey(event.target.value)}
+          aria-label="Month"
+        >
+          {months.map(month => <option key={month.key} value={month.key}>{month.label}</option>)}
+        </select>
       </div>
-      <ul className="mt-3 space-y-1.5">
-        {slices.map((slice, index) => (
-          <li key={slice.name} className="flex items-center justify-between gap-2 text-xs">
-            <span className="flex min-w-0 items-center gap-2">
-              <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: donutFills[index % donutFills.length] }} />
-              <span className="truncate text-neutral-700">{slice.name}</span>
-            </span>
-            <span className="shrink-0 font-semibold tabular-nums text-navy-900">{formatCurr(slice.amount)}</span>
-          </li>
-        ))}
-      </ul>
-    </>
+
+      <div className="mb-3 flex border-b border-neutral-200 text-xs font-semibold">
+        <button
+          type="button"
+          onClick={() => setSide("income")}
+          className={`-mb-px border-b-2 px-3 pb-2 transition-colors ${side === "income" ? "border-navy-900 text-navy-900" : "border-transparent text-neutral-500 hover:text-neutral-700"}`}
+        >
+          Income ({formatCurr(active.incomeTotal)})
+        </button>
+        <button
+          type="button"
+          onClick={() => setSide("expenses")}
+          className={`-mb-px border-b-2 px-3 pb-2 transition-colors ${side === "expenses" ? "border-navy-900 text-navy-900" : "border-transparent text-neutral-500 hover:text-neutral-700"}`}
+        >
+          Expenses ({formatCurr(active.expenseTotal)})
+        </button>
+      </div>
+
+      {slices.length === 0 ? (
+        <div className="flex h-[210px] items-center justify-center text-sm text-neutral-500">
+          No {side} in {active.label}
+        </div>
+      ) : (
+        <>
+          <div className="relative">
+            <ResponsiveContainer width="100%" height={170}>
+              <PieChart>
+                <Pie data={slices} dataKey="amount" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none">
+                  {slices.map((slice, index) => <Cell key={slice.name} fill={donutFills[index % donutFills.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }} formatter={(value: any) => formatCurr(Number(value))} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <p className="text-lg font-bold tabular-nums text-navy-900">{formatCurr(total)}</p>
+              <p className="text-[11px] text-neutral-500">Total {side}</p>
+            </div>
+          </div>
+          <ul className="mt-3 space-y-1.5">
+            {slices.map((slice, index) => (
+              <li key={slice.name} className="flex items-center justify-between gap-2 text-xs">
+                <span className="flex min-w-0 items-center gap-2">
+                  <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: donutFills[index % donutFills.length] }} />
+                  <span className="truncate text-neutral-700">{slice.name}</span>
+                </span>
+                <span className="shrink-0 font-semibold tabular-nums text-navy-900">{formatCurr(slice.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   )
 }
