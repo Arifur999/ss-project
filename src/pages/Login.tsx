@@ -99,7 +99,7 @@ export default function Login() {
           </div>
 
           {subscriptionBlockMessage && (
-            <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 text-sm font-medium text-orange-700">
+            <div className="mb-4 rounded-xl border border-brand-blue/30 bg-brand-blue-soft px-3 py-3 text-sm font-medium text-brand-blue">
               {subscriptionBlockMessage}
             </div>
           )}

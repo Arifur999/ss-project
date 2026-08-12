@@ -426,7 +426,7 @@ function SummaryCard({ title, value, subtitle, icon, tone }: { title: string; va
   const tones = {
     blue: 'border-slate-200 bg-slate-50 text-slate-700',
     green: 'border-green-100 bg-green-50/60 text-brand-green',
-    orange: 'border-orange-100 bg-orange-50/60 text-orange-600',
+    orange: 'border-brand-blue/20 bg-brand-blue-soft/60 text-brand-blue',
     purple: 'border-slate-200 bg-slate-50 text-slate-700',
   }
 

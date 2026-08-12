@@ -113,7 +113,7 @@ export default function SuperAdminManageOwners() {
                       </td>
                       <td className="px-4 py-2.5"><span className="badge-green">{planTypeLabel(owner.planType)}</span></td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-slate-700">{registeredDays(owner.joinedAt)} days</td>
-                      <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${remaining < 0 ? 'text-brand-red' : remaining <= 3 ? 'text-orange-600' : 'text-slate-700'}`}>
+                      <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${remaining < 0 ? 'text-brand-red' : remaining <= 3 ? 'text-brand-blue' : 'text-slate-700'}`}>
                         {remaining < 0 ? 'Expired' : `${remaining} days`}
                       </td>
                       <td className="px-4 py-2.5 text-center"><span className={statusClass[owner.effectiveStatus]}>{owner.effectiveStatus}</span></td>

@@ -333,7 +333,7 @@ export default function MonthlyReport() {
       green: 'bg-green-100 text-green-700',
       red: 'bg-red-100 text-red-700',
       blue: 'bg-slate-100 text-slate-700',
-      orange: 'bg-orange-100 text-orange-700',
+      orange: 'bg-brand-blue-soft text-brand-blue',
     }[tone]
 
     return (

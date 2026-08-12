@@ -448,7 +448,7 @@ export default function YearlyReport() {
             </div>
 
             <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="bg-blue-800 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
+              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <table className="w-full table-fixed text-[10px]">
                   <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600">
@@ -484,7 +484,7 @@ export default function YearlyReport() {
 
           <main className="min-w-0 space-y-4">
             {!hasYearData && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <div className="rounded-lg border border-brand-blue/30 bg-brand-blue-soft px-4 py-3 text-sm font-medium text-brand-blue">
                 No yearly activity found for {year}. Targets can still appear if they were set in Settings.
               </div>
             )}
@@ -574,8 +574,8 @@ export default function YearlyReport() {
                           <TableValue value={row.availableProfit} tone={row.availableProfit >= 0 ? 'green' : 'red'} strong />
                         </tr>
                       ))}
-                      <tr className="bg-blue-800 text-white">
-                        <td className="sticky left-0 bg-blue-800 px-2 py-2 font-bold">Total</td>
+                      <tr className="bg-navy-900 text-white">
+                        <td className="sticky left-0 bg-navy-900 px-2 py-2 font-bold">Total</td>
                         <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.salesGoal)}</td>
                         <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.actualSales)}</td>
                         <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.profitGoal)}</td>

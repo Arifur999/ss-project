@@ -135,7 +135,7 @@ export default function SuperAdminFreeTrial() {
                     <td className="py-2.5 px-4 text-slate-600">{owner.phone}</td>
                     <td className="py-2.5 px-4 text-slate-600 max-w-[220px] truncate" title={owner.address}>{owner.address}</td>
                     <td className="py-2.5 px-4 text-slate-600">{formatDate(owner.trialStart)}</td>
-                    <td className={`py-2.5 px-4 text-right font-semibold ${remaining < 0 ? 'text-brand-red' : remaining <= 2 ? 'text-orange-600' : 'text-slate-700'}`}>
+                    <td className={`py-2.5 px-4 text-right font-semibold ${remaining < 0 ? 'text-brand-red' : remaining <= 2 ? 'text-brand-blue' : 'text-slate-700'}`}>
                       {remaining < 0 ? 'Expired' : `${remaining} day${remaining === 1 ? '' : 's'}`}
                     </td>
                     <td className="py-2.5 px-4 text-center">

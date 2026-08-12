@@ -183,7 +183,7 @@ export default function LoanLedger() {
             <div className="card"><p className="text-xs text-slate-500">Opening Balance</p><p className={`text-xl font-bold mt-1 ${loanBalanceColor(Number(selected?.opening_balance || 0))}`}>{formatCurr(Number(selected?.opening_balance || 0))}</p></div>
             <div className="card"><p className="text-xs text-slate-500">Receive</p><p className="text-xl font-bold text-brand-green mt-1">{formatCurr(totalReceived)}</p></div>
             <div className="card"><p className="text-xs text-slate-500">Payment</p><p className="text-xl font-bold text-brand-red mt-1">{formatCurr(totalPaid)}</p></div>
-            <div className="card"><p className="text-xs text-slate-500">Interest</p><p className="text-xl font-bold text-orange-600 mt-1">{formatCurr(totalInterest)}</p></div>
+            <div className="card"><p className="text-xs text-slate-500">Interest</p><p className="text-xl font-bold text-brand-blue mt-1">{formatCurr(totalInterest)}</p></div>
             <div className="card"><p className="text-xs text-slate-500">Current Balance</p><p className={`text-xl font-bold mt-1 ${loanBalanceColor(currentBalance)}`}>{formatCurr(currentBalance)} <span className="text-xs">({loanBalanceLabel(currentBalance)})</span></p></div>
           </div>
 
@@ -208,7 +208,7 @@ export default function LoanLedger() {
                     <td className="py-2.5 px-4"><span className="badge-blue">{transactionLabel(entry.amounts.type)}</span></td>
                     <td className="py-2.5 px-4 text-right text-brand-green">{entry.amounts.received ? formatCurr(entry.amounts.received) : '-'}</td>
                     <td className="py-2.5 px-4 text-right text-brand-red">{entry.amounts.paid ? formatCurr(entry.amounts.paid) : '-'}</td>
-                    <td className="py-2.5 px-4 text-right text-orange-600">{entry.amounts.interest ? formatCurr(entry.amounts.interest) : '-'}</td>
+                    <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.interest ? formatCurr(entry.amounts.interest) : '-'}</td>
                     <td className={`py-2.5 px-4 text-right font-semibold ${loanBalanceColor(entry.running_balance)}`}>
                       {formatCurr(entry.running_balance)}
                       <div className="text-xs">({loanBalanceLabel(entry.running_balance)})</div>

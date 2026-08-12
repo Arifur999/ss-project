@@ -257,7 +257,7 @@ export default function PurchaseHistory() {
                   <td className="py-3 px-4 text-right text-slate-600">{formatCurr(row.actual_dp)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-slate-700">{formatNum(row.qty)}</td>
                   <td className="py-3 px-4 text-right font-bold text-slate-800">{formatCurr(row.total_amount)}</td>
-                  <td className="py-3 px-4 text-right text-amber-600">{formatCurr(row.discount_amount)}</td>
+                  <td className="py-3 px-4 text-right text-brand-blue">{formatCurr(row.discount_amount)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-green">{formatCurr(row.deposit_amount)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-green">{formatNum(row.received_qty)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-red">{formatNum(pendingQty)}</td>
@@ -267,7 +267,7 @@ export default function PurchaseHistory() {
                         ? 'bg-green-100 text-green-700'
                         : status === 'partial'
                           ? 'bg-slate-100 text-slate-700'
-                          : 'bg-orange-100 text-orange-700'
+                          : 'bg-brand-blue-soft text-brand-blue'
                     }`}>
                       {status === 'received' ? 'Received' : status === 'partial' ? 'Partial' : 'Pending'}
                     </span>

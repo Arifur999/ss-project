@@ -415,7 +415,7 @@ export default function Marketing() {
     { title: 'SMS Balance', value: balance === null ? '...' : formatNum(balance), subtitle: 'Credits left in your wallet', icon: <Wallet size={22} />, tone: 'bg-slate-900 text-white' },
     { title: 'Total Contacts', value: contacts.length, subtitle: 'Customers, suppliers, employees, contacts', icon: <Users size={22} />, tone: 'bg-slate-100 text-slate-700' },
     { title: 'Selected Recipients', value: selectedContacts.length, subtitle: `${selectedWithPhone.length} with phone number`, icon: <ClipboardList size={22} />, tone: 'bg-green-50 text-brand-green' },
-    { title: 'SMS Sent Today', value: sentToday, subtitle: 'Saved campaign count', icon: <Send size={22} />, tone: 'bg-orange-50 text-orange-600' },
+    { title: 'SMS Sent Today', value: sentToday, subtitle: 'Saved campaign count', icon: <Send size={22} />, tone: 'bg-brand-blue-soft text-brand-blue' },
     { title: 'Campaigns This Month', value: campaignThisMonth, subtitle: 'SMS campaigns only', icon: <Megaphone size={22} />, tone: 'bg-slate-100 text-slate-700' },
     { title: 'Delivery Rate', value: `${deliveryRate.toFixed(1)}%`, subtitle: 'Phone-ready recipients', icon: <CheckCircle2 size={22} />, tone: 'bg-slate-100 text-slate-700' },
   ]

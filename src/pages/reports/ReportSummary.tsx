@@ -983,7 +983,7 @@ export default function ReportSummary() {
             </div>
 
             <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="bg-blue-800 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
+              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <table className="w-full table-fixed text-[10px]">
                   <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600">

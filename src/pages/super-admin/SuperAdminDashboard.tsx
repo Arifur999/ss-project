@@ -155,7 +155,7 @@ export default function SuperAdminDashboard() {
   const toneClass: Record<string, string> = {
     blue: 'bg-slate-100 text-slate-700',
     green: 'bg-green-100 text-green-700',
-    orange: 'bg-orange-100 text-orange-700',
+    orange: 'bg-brand-blue-soft text-brand-blue',
     red: 'bg-red-100 text-red-700',
   }
 
@@ -274,9 +274,9 @@ function ChartTooltip({ active, payload }: any) {
 
 function DatabaseSetupNotice() {
   return (
-    <section className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900 shadow-sm">
+    <section className="rounded-lg border border-brand-blue/30 bg-brand-blue-soft p-4 text-sm text-brand-blue shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-700">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-blue-soft text-brand-blue">
           <AlertTriangle size={18} />
         </div>
         <div>
@@ -285,7 +285,7 @@ function DatabaseSetupNotice() {
             Supabase database-e <span className="font-semibold">owner_subscriptions</span> table ekhono create hoyni.
             Owner approval system chalate migrations apply korte hobe.
           </p>
-          <p className="mt-2 text-xs text-orange-800">
+          <p className="mt-2 text-xs text-brand-blue">
             Apply in order: 20260609120000_owner_registration_trials.sql, 20260609123000_disable_owner_trial.sql,
             20260609124500_owner_approval_requests.sql, then 20260609130000_configure_super_admin_profile.sql.
           </p>

@@ -364,8 +364,8 @@ export default function PurchaseLedger() {
                 <td className="px-4 py-3">{formatDate(invoice.invoice_date)}</td>
                 <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatNum(invoice.quantity)}</td>
                 <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurr(invoice.total_dp_amount)}</td>
-                <td className="px-4 py-3 text-right font-semibold text-orange-600">{formatCurr(invoice.discount_amount)}</td>
-                <td className="px-4 py-3 text-right font-semibold text-orange-600">{formatCurr(invoice.special_discount_amount)}</td>
+                <td className="px-4 py-3 text-right font-semibold text-brand-blue">{formatCurr(invoice.discount_amount)}</td>
+                <td className="px-4 py-3 text-right font-semibold text-brand-blue">{formatCurr(invoice.special_discount_amount)}</td>
                 <td className="px-4 py-3 text-right font-bold text-slate-900">{formatCurr(invoice.grand_total)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">

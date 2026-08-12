@@ -349,7 +349,7 @@ export default function SmsPackages() {
                 )}
               </div>
             ) : (
-              <p className="rounded-lg bg-orange-50 px-3 py-2.5 text-sm text-orange-700">
+              <p className="rounded-lg bg-brand-blue-soft px-3 py-2.5 text-sm text-brand-blue">
                 {bn
                   ? 'পেমেন্ট নম্বর এখনো সেট করা হয়নি। সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।'
                   : 'No payment number has been set yet. Please contact the super admin.'}

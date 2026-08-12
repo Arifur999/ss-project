@@ -2415,7 +2415,7 @@ export default function Sales() {
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
                   <span className="text-slate-500">Total Discount</span>
-                  <span className="font-semibold text-amber-600">-{formatCurr(totalDiscount)}</span>
+                  <span className="font-semibold text-brand-blue">-{formatCurr(totalDiscount)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
                   <span className="text-slate-500">
@@ -2582,7 +2582,7 @@ export default function Sales() {
                   className={`min-w-[76px] rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                     deliveryFilter === option.key
                       ? option.key === 'pending'
-                        ? 'bg-orange-100 text-orange-700'
+                        ? 'bg-brand-blue-soft text-brand-blue'
                         : option.key === 'partial'
                           ? 'bg-slate-100 text-slate-700'
                           : option.key === 'delivered'
@@ -2650,7 +2650,7 @@ export default function Sales() {
                   const missingPurchaseAmount = saleHasMissingPurchaseAmount(s)
                   return (
                     <React.Fragment key={s.id}>
-                  <tr className={`table-row border-b border-slate-100 transition-colors ${missingPurchaseAmount ? 'bg-amber-50 hover:bg-amber-100/70' : 'hover:bg-slate-50/50'}`}>
+                  <tr className={`table-row border-b border-slate-100 transition-colors ${missingPurchaseAmount ? 'bg-brand-blue-soft hover:bg-brand-blue-soft/70' : 'hover:bg-slate-50/50'}`}>
                     <td className="py-2 px-1 text-center">
                       <button
                         onClick={() => setExpandedSaleId(expandedSaleId === s.id ? null : s.id)}
@@ -2668,7 +2668,7 @@ export default function Sales() {
                     </td>
                     <td className="py-2 px-2 text-slate-500 truncate" title={s.customer_phone || '-'}>{s.customer_phone || '-'}</td>
                     <td className="py-2 px-2 text-right font-medium text-slate-700">{formatCurr(grossTotal)}</td>
-                    <td className="py-2 px-2 text-right text-amber-600">{formatCurr(saleDiscount(s))}</td>
+                    <td className="py-2 px-2 text-right text-brand-blue">{formatCurr(saleDiscount(s))}</td>
                     <td className="py-2 px-2 text-right font-semibold text-brand-green">{formatCurr(subtotalAfterDiscount)}</td>
                     <td className="py-2 px-2 text-right font-medium text-slate-700">
                       {showLedgerFinancials ? (purchaseAmount > 0 ? formatCurr(purchaseAmount) : '-') : '****'}
@@ -2683,7 +2683,7 @@ export default function Sales() {
                       <span className={`text-xs px-2 py-1 rounded font-medium ${
                         status === 'delivered' ? 'bg-green-100 text-green-700' :
                         status === 'partial' ? 'bg-slate-100 text-slate-700' :
-                        'bg-orange-100 text-orange-700'
+                        'bg-brand-blue-soft text-brand-blue'
                       }`}>
                         {status === 'delivered' ? 'Delivered' : status === 'partial' ? 'Partial' : 'Pending'}
                       </span>
@@ -2719,7 +2719,7 @@ export default function Sales() {
                       {expandedSaleId === s.id && (
                         <tr>
                           <td colSpan={16} className="bg-white px-3 py-0">
-                            <div className="my-3 overflow-hidden border-2 border-blue-400 bg-white shadow-sm">
+                            <div className="my-3 overflow-hidden border-2 border-brand-blue bg-white shadow-sm">
                               <div className="flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
                                 <h4 className="flex items-center gap-2 text-xs font-bold uppercase text-slate-800">
                                   <Truck size={15} className="text-slate-700" /> ORDER ITEMS
@@ -2808,7 +2808,7 @@ export default function Sales() {
                                           </td>
                                           <td className="py-4 px-3 text-center">
                                             <span className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${
-                                              itemPending > 0 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                                              itemPending > 0 ? 'bg-brand-blue-soft text-brand-blue' : 'bg-green-100 text-green-700'
                                             }`}>
                                               {itemPending > 0 ? 'Pending' : 'Delivered'}
                                             </span>

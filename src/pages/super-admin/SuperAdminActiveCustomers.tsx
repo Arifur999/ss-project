@@ -174,7 +174,7 @@ export default function SuperAdminActiveCustomers() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-bold text-brand-green">{money(customer.last_paid_amount)}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-slate-600">{formatDate(customer.expiry_date)}</td>
-                    <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${days <= 2 ? 'text-brand-red' : days <= 7 ? 'text-orange-600' : 'text-slate-700'}`}>
+                    <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${days <= 2 ? 'text-brand-red' : days <= 7 ? 'text-brand-blue' : 'text-slate-700'}`}>
                       {days} day{days === 1 ? '' : 's'}
                     </td>
                     <td className="px-4 py-2.5">
@@ -202,7 +202,7 @@ export default function SuperAdminActiveCustomers() {
 }
 
 function StatCard({ icon, label, value, tone = 'default' }: { icon: React.ReactNode; label: string; value: string; tone?: 'default' | 'green' | 'orange' }) {
-  const valueColor = tone === 'green' ? 'text-brand-green' : tone === 'orange' ? 'text-orange-600' : 'text-slate-900'
+  const valueColor = tone === 'green' ? 'text-brand-green' : tone === 'orange' ? 'text-brand-blue' : 'text-slate-900'
   return (
     <div className="card flex items-center gap-4">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">{icon}</div>

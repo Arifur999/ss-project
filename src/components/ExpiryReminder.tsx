@@ -88,7 +88,7 @@ export default function ExpiryReminder() {
       <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
           <div className="flex items-start gap-3">
-            <span className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${info.daysLeft <= 2 ? 'bg-red-50 text-brand-red' : 'bg-orange-50 text-orange-600'}`}>
+            <span className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${info.daysLeft <= 2 ? 'bg-red-50 text-brand-red' : 'bg-brand-blue-soft text-brand-blue'}`}>
               <CalendarClock size={22} />
             </span>
             <div>

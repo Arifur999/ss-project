@@ -401,7 +401,7 @@ export default function ShareholderDashboard() {
                 <td className="px-4 py-2.5 text-right text-brand-green">{formatCurr(row.periodInvested)}</td>
                 <td className="px-4 py-2.5 text-right text-brand-red">{formatCurr(row.periodWithdrawn)}</td>
                 <td className={`px-4 py-2.5 text-right ${row.periodProfitShare >= 0 ? 'text-brand-green' : 'text-brand-red'}`}>{formatCurr(row.periodProfitShare)}</td>
-                <td className="px-4 py-2.5 text-right text-orange-600">{formatCurr(row.periodProfitWithdrawn)}</td>
+                <td className="px-4 py-2.5 text-right text-brand-blue">{formatCurr(row.periodProfitWithdrawn)}</td>
                 <td className={`px-4 py-2.5 text-right font-semibold ${row.currentRetainedProfit >= 0 ? 'text-slate-800' : 'text-brand-red'}`}>{formatCurr(row.currentRetainedProfit)}</td>
                 <td className="px-4 py-2.5 text-right font-bold">{formatCurr(row.netCapital)}</td>
                 <td className="px-4 py-2.5 text-right font-bold text-slate-700">{row.totalSharePct.toFixed(2)}%</td>

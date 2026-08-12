@@ -333,7 +333,7 @@ export default function SuperAdminOwners() {
                         <button onClick={() => activateOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-green-50 hover:text-brand-green" title="Approve">
                           <CheckCircle2 size={15} />
                         </button>
-                        <button onClick={() => expireOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-orange-50 hover:text-orange-600" title="Mark expired">
+                        <button onClick={() => expireOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-brand-blue-soft hover:text-brand-blue" title="Mark expired">
                           <TimerOff size={15} />
                         </button>
                         <button onClick={() => blockOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-brand-red" title="Block">
@@ -426,9 +426,9 @@ export default function SuperAdminOwners() {
 
 function DatabaseSetupNotice() {
   return (
-    <section className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+    <section className="mb-4 rounded-lg border border-brand-blue/30 bg-brand-blue-soft p-4 text-sm text-brand-blue">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-700">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-blue-soft text-brand-blue">
           <AlertTriangle size={18} />
         </div>
         <div>
@@ -436,7 +436,7 @@ function DatabaseSetupNotice() {
           <p className="mt-1">
             Supabase database-e <span className="font-semibold">owner_subscriptions</span> table missing. Migration apply korle pending registration request and approve/block live hobe.
           </p>
-          <p className="mt-2 text-xs text-orange-800">
+          <p className="mt-2 text-xs text-brand-blue">
             Apply in order: 20260609120000_owner_registration_trials.sql, 20260609123000_disable_owner_trial.sql,
             20260609124500_owner_approval_requests.sql, then 20260609130000_configure_super_admin_profile.sql.
           </p>

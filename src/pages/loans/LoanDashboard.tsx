@@ -159,7 +159,7 @@ export default function LoanDashboard() {
       green: 'bg-green-50 text-brand-green',
       red: 'bg-red-50 text-brand-red',
       blue: 'bg-slate-100 text-slate-700',
-      orange: 'bg-orange-50 text-orange-600',
+      orange: 'bg-brand-blue-soft text-brand-blue',
       purple: 'bg-slate-100 text-slate-700',
       default: 'bg-slate-100 text-slate-700',
     }

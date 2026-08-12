@@ -427,7 +427,7 @@ export default function Inventory() {
                   <td className="py-2 px-3 text-right text-slate-600">{row.opening_qty}</td>
                   <td className="py-2 px-3 text-right text-slate-700 font-medium">{row.order_qty}</td>
                   <td className="py-2 px-3 text-right text-brand-green font-medium">{row.received_qty}</td>
-                  <td className="py-2 px-3 text-right text-amber-600 font-medium">{row.upcoming_qty}</td>
+                  <td className="py-2 px-3 text-right text-brand-blue font-medium">{row.upcoming_qty}</td>
                   <td className="py-2 px-3 text-right text-red-500 font-medium">{row.sales_qty}</td>
                   <td className="py-2 px-3 text-right font-bold text-brand-green text-base">{row.available_qty}</td>
                   <td className="py-2 px-3">

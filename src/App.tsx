@@ -82,7 +82,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     pending: {
       title: 'Waiting for admin approval',
       message: 'Your registration request has been submitted. You can login, but app access will start after super admin approval.',
-      tone: 'bg-blue-50 text-blue-600',
+      tone: 'bg-brand-blue-soft text-brand-blue',
     },
     blocked: {
       title: 'Account blocked',

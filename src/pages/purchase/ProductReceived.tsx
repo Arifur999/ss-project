@@ -394,7 +394,7 @@ export default function ReceiveProduct() {
                 <td className="py-2.5 px-3 text-sm">{item.product_name}</td>
                 <td className="py-2.5 px-3 text-right font-semibold">{item.qty}</td>
                 <td className="py-2.5 px-3 text-right text-green-600 font-semibold">{item.received_qty}</td>
-                <td className="py-2.5 px-3 text-right font-semibold text-orange-600">{item.undelivered_qty}</td>
+                <td className="py-2.5 px-3 text-right font-semibold text-brand-blue">{item.undelivered_qty}</td>
                 <td className="py-2.5 px-3 text-right">
                   <span className={item.upcomingQty > 0 ? 'text-slate-700 font-semibold' : 'text-slate-400'}>
                     {item.upcomingQty}
@@ -402,7 +402,7 @@ export default function ReceiveProduct() {
                 </td>
                 <td className="py-2.5 px-3 text-center">
                   <span className={`text-xs px-2 py-1 rounded font-medium ${
-                    item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'bg-slate-100 text-slate-700' : 'bg-orange-100 text-orange-700') : 'bg-green-100 text-green-700'
+                    item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'bg-slate-100 text-slate-700' : 'bg-brand-blue-soft text-brand-blue') : 'bg-green-100 text-green-700'
                   }`}>
                     {item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'Partial' : 'Pending') : 'Received'}
                   </span>
@@ -497,7 +497,7 @@ export default function ReceiveProduct() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Pending Qty</p>
-                  <p className="font-medium text-orange-600">{selectedItem.undelivered_qty}</p>
+                  <p className="font-medium text-brand-blue">{selectedItem.undelivered_qty}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Unit Price</p>

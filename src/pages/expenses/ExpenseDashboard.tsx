@@ -139,7 +139,7 @@ export default function ExpenseDashboard() {
     { label: t('expenses_monthlyBudget'), value: formatCurr(totalBudget), tone: 'text-emerald-200' },
     { label: t('expenses_thisMonthTotal'), value: formatCurr(totalMonthExpense), tone: 'text-rose-200' },
     { label: 'Yearly Budget', value: formatCurr(totalYearBudget), tone: 'text-emerald-200' },
-    { label: t('expenses_thisYearTotal'), value: formatCurr(totalYearExpense), tone: 'text-amber-200' },
+    { label: t('expenses_thisYearTotal'), value: formatCurr(totalYearExpense), tone: 'text-brand-blue' },
     {
       label: t('expenses_budgetUsage'),
       value: `${Math.round(budgetUsage)}% / ${Math.round(yearBudgetUsage)}%`,
