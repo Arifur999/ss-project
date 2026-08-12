@@ -701,7 +701,7 @@ function StatCard({ label, icon, value, trend, inverted = false }: {
   return (
     <section className="card flex min-h-[108px] flex-col justify-between p-5">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
           {icon}
         </span>
         <span className="truncate text-sm text-neutral-700">{label}</span>

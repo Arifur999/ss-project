@@ -730,7 +730,7 @@ export default function PlaceOrder() {
                       <span className="text-brand-green">৳</span> Stock: <span className={stock > 0 ? 'text-navy-800' : 'text-brand-red'}>{stock}</span>
                     </p>
                   </div>
-                  <button onClick={() => addProductToOrder(product)} className="rounded-md bg-brand-green px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700">
+                  <button onClick={() => addProductToOrder(product)} className="btn-primary px-3 py-1.5 text-xs">
                     Add
                   </button>
                 </div>

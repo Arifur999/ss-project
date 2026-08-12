@@ -469,8 +469,8 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
               ))}
             </div>
             <div className="mb-4 flex flex-wrap gap-2 border-y border-slate-100 py-3">
-              <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions(allPermissions) }} className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-brand-green"><Check size={13} className="mr-1 inline" />Select All</button>
-              <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions([]) }} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-brand-red"><X size={13} className="mr-1 inline" />Unselect All</button>
+              <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions(allPermissions) }} className="btn-primary px-3 py-2 text-xs"><Check size={13} />Select All</button>
+              <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions([]) }} className="btn-secondary px-3 py-2 text-xs"><X size={13} />Unselect All</button>
             </div>
             <div className="grid max-h-[calc(100vh-420px)] min-h-[420px] grid-cols-1 gap-3 overflow-y-auto pr-1 lg:grid-cols-2 2xl:grid-cols-3">
               {permissionGroups.map(group => (

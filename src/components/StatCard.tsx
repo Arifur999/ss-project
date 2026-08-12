@@ -12,12 +12,14 @@ interface StatCardProps {
 
 // green/red stay as money semantics; blue/orange are re-pointed to neutral
 // slate so non-financial stat chips read monochrome with the reference.
+// The circle behind the icon is always white now, so this only tints the
+// glyph - a coloured fill would cover the white the reference relies on.
 const colorMap = {
-  green: 'bg-green-50 text-brand-green',
-  red: 'bg-red-50 text-brand-red',
-  blue: 'bg-slate-100 text-slate-700',
-  orange: 'bg-slate-100 text-slate-700',
-  default: 'bg-slate-100 text-slate-700',
+  green: 'text-brand-green',
+  red: 'text-brand-red',
+  blue: 'text-neutral-700',
+  orange: 'text-neutral-700',
+  default: 'text-neutral-700',
 }
 
 export default function StatCard({ title, value, icon, trend, color = 'default', subtitle }: StatCardProps) {
@@ -35,7 +37,7 @@ export default function StatCard({ title, value, icon, trend, color = 'default',
           )}
         </div>
         {icon && (
-          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', colorMap[color])}>
+          <div className={cn('w-10 h-10 rounded-full bg-white border border-surface-border flex items-center justify-center flex-shrink-0', colorMap[color])}>
             {icon}
           </div>
         )}

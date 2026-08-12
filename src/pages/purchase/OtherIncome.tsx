@@ -341,7 +341,7 @@ export default function OtherIncome() {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button onClick={() => setViewItem(item)} className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-slate-200" title="View"><Eye size={15} /></button>
-                      <button onClick={() => openEdit(item)} className="rounded-lg bg-green-50 p-1.5 text-brand-green hover:bg-green-100" title="Edit"><Pencil size={15} /></button>
+                      <button onClick={() => openEdit(item)} className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-navy-900" title="Edit"><Pencil size={15} /></button>
                       <button onClick={() => deleteItem(item)} className="rounded-lg bg-red-50 p-1.5 text-brand-red hover:bg-red-100" title="Delete"><Trash2 size={15} /></button>
                     </div>
                   </td>
