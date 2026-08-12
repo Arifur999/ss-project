@@ -60,7 +60,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [lang])
 
   const formatNum = useCallback((n: number): string => {
-    const str = n.toLocaleString('en-US')
+    // Same guard as formatCurr below: a missing count threw here and took the
+    // whole page down rather than showing a zero in one cell.
+    const safe = Number(n)
+    const str = (Number.isFinite(safe) ? safe : 0).toLocaleString('en-US')
     return lang === 'bn' ? toBnDigits(str) : str
   }, [lang])
 
