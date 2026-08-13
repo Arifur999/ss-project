@@ -685,5 +685,15 @@
   "settings_userManagement": "User Management",
   "settings_monthlyTargets": "Sales and profit targets by month",
   "dashboard_welcome": "Welcome Back",
-  "dashboard_welcomeSub": "Everything you need to manage your business."
+  "dashboard_welcomeSub": "Everything you need to manage your business.",
+  "settings_role": "Role",
+  "user_uploadPhoto": "Upload photo",
+  "user_changePhoto": "Change photo",
+  "user_uploadingPhoto": "Uploading...",
+  "user_photoHint": "JPG or PNG, up to 5MB",
+  "user_photoWait": "Please wait for the photo to finish uploading",
+  "user_photoOnlyImage": "Please choose an image file",
+  "user_photoTooLarge": "Image must be smaller than 5MB",
+  "user_photoFailed": "Could not upload the photo",
+  "user_selfRoleNotice": "This is your own account, so your role and status cannot be changed here - that would let you lock yourself out."
 }

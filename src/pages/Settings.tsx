@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FloppyDiskIcon as Save, PlusIcon as Plus, TrashIcon as Trash2, BuildingsIcon as Building2, UsersIcon as Users, CreditCardIcon as CreditCard, TargetIcon as Target, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
+import { FloppyDiskIcon as Save, PlusIcon as Plus, TrashIcon as Trash2, UsersIcon as Users, CreditCardIcon as CreditCard, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
 import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
+import EditUserModal from '../components/EditUserModal'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { todayISO } from '../lib/utils'
@@ -17,6 +18,7 @@ export default function Settings() {
   const [usersLoading, setUsersLoading] = useState(false)
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<any>(null)
+  const [editUser, setEditUser] = useState<any>(null)
   const { profile: currentProfile } = useAuth()
 
   useEffect(() => { loadUsers() }, [])
@@ -170,9 +172,18 @@ export default function Settings() {
                         )}
                       </td>
                       <td className="py-2.5 px-4 text-right">
-                        {!isSelf && (
-                          <button onClick={() => toggleUserActive(u.id, false)} className="text-slate-300 hover:text-brand-red transition-colors p-1 rounded-lg hover:bg-red-50" title="Deactivate"><Trash2 size={14} /></button>
-                        )}
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setEditUser(u)}
+                            className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-navy-900"
+                            title={t('common_edit')}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          {!isSelf && (
+                            <button onClick={() => toggleUserActive(u.id, false)} className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-red-50 hover:text-brand-red" title="Deactivate"><Trash2 size={14} /></button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -185,6 +196,10 @@ export default function Settings() {
           )}
         </div>
       </div>
+
+      {editUser && (
+        <EditUserModal user={editUser} onClose={() => { setEditUser(null); loadUsers() }} />
+      )}
 
       {showCreateUser && (
         <CreateUserModalV2 onClose={() => { setShowCreateUser(false); loadUsers() }} />

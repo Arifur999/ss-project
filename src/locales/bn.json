@@ -685,5 +685,15 @@
   "settings_userManagement": "ব্যবহারকারী ব্যবস্থাপনা",
   "settings_monthlyTargets": "মাস অনুযায়ী বিক্রয় ও মুনাফার লক্ষ্য",
   "dashboard_welcome": "স্বাগতম",
-  "dashboard_welcomeSub": "আপনার ব্যবসা পরিচালনার সবকিছু এক জায়গায়।"
+  "dashboard_welcomeSub": "আপনার ব্যবসা পরিচালনার সবকিছু এক জায়গায়।",
+  "settings_role": "ভূমিকা",
+  "user_uploadPhoto": "ছবি আপলোড",
+  "user_changePhoto": "ছবি পরিবর্তন",
+  "user_uploadingPhoto": "আপলোড হচ্ছে...",
+  "user_photoHint": "JPG বা PNG, সর্বোচ্চ ৫ এমবি",
+  "user_photoWait": "ছবি আপলোড শেষ হওয়া পর্যন্ত অপেক্ষা করুন",
+  "user_photoOnlyImage": "একটি ছবি ফাইল নির্বাচন করুন",
+  "user_photoTooLarge": "ছবির আকার ৫ এমবির কম হতে হবে",
+  "user_photoFailed": "ছবি আপলোড করা যায়নি",
+  "user_selfRoleNotice": "এটি আপনার নিজের অ্যাকাউন্ট, তাই এখান থেকে নিজের ভূমিকা বা স্ট্যাটাস বদলানো যাবে না - তাতে আপনি নিজেই ঢুকতে না পারার ঝুঁকি থাকে।"
 }

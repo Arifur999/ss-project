@@ -7,6 +7,10 @@ export const createTeamUser = (payload: { email: string; password: string; full_
   http.post<any>('/users/create', payload)
 export const updateTeamUser = (payload: { user_id: string; role?: string; full_name?: string; phone?: string; is_active?: boolean; password?: string; avatar_url?: string }) =>
   http.put<any>('/users/update', payload)
+// A person editing their own name, phone or photo. /users/update deliberately
+// refuses the caller's own row - that route is for managing staff.
+export const updateOwnProfile = (payload: { full_name?: string; phone?: string; avatar_url?: string }) =>
+  http.put<any>('/users/me', payload)
 export const deleteTeamUser = (userId: string) => http.delete<any>('/users/delete', { user_id: userId })
 
 // ---------- Subscription (owner) ----------

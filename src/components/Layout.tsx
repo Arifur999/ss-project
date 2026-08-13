@@ -156,7 +156,7 @@ export default function Layout() {
         { key: 'currentPlan', label: t('nav_plan', 'Plan'), icon: <CreditCard size={16} />, path: '/current-plan' },
       ],
     } as any)
-    businessNavGroups.push({ key: 'settings', label: t('settings_userManagement', 'User Management'), icon: <UserCog size={18} />, path: '/settings' } as any)
+    businessNavGroups.push({ key: 'settings', label: t('settings_userManagement', 'User Management'), icon: <UserCog size={18} />, path: '/user-management' } as any)
   }
 
   const navGroups = profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups

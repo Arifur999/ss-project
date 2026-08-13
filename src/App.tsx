@@ -234,7 +234,8 @@ function AppRoutes() {
         <Route path="/employees/list" element={<EmployeeList />} />
         <Route path="/employees/transactions" element={<EmployeeTransactions />} />
         <Route path="/employees/attendance" element={<EmployeeAttendance />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/user-management" element={<Settings />} />
+        <Route path="/settings" element={<Navigate to="/user-management" replace />} />
         <Route path="/transactions/shareholders" element={<ShareholderList />} />
         <Route path="/balance/wallet" element={<Wallet />} />
         <Route path="/purchase/suppliers-list" element={<SupplierList />} />
