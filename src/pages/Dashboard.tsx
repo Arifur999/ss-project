@@ -670,11 +670,18 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
       className="relative flex min-h-[248px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white"
       style={{
         backgroundColor: "#0F1117",
+        // The supplied texture on top, the gradient kept underneath it. The
+        // gradient is what the card falls back to if the image is slow or
+        // missing, so the type never lands on bare white; it also darkens the
+        // lower left, where the buttons sit.
         backgroundImage: [
-          "linear-gradient(118deg, rgba(255,255,255,0.16) 8%, rgba(255,255,255,0) 34%)",
-          "linear-gradient(122deg, rgba(255,255,255,0.10) 30%, rgba(255,255,255,0) 58%)",
+          "linear-gradient(200deg, rgba(15,17,23,0) 45%, rgba(15,17,23,0.75) 100%)",
+          "url(/card-texture.jpg)",
           "linear-gradient(135deg, #0F1117 0%, #1b1f28 55%, #2A2D34 100%)",
         ].join(", "),
+        backgroundSize: "cover, cover, cover",
+        backgroundPosition: "center, center, center",
+        backgroundRepeat: "no-repeat, no-repeat, no-repeat",
       }}
     >
       <div>
