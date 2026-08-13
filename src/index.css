@@ -123,7 +123,13 @@
      The element selector also outranks the text-slate-* some pages set on th,
      so the type is white everywhere without editing those pages. */
   .table-header th {
-    @apply whitespace-nowrap text-white;
+    /* The solid colour comes first and is the one thing that cannot fail to
+       paint. The gradient sits on top of it; if it is ever not applied - an
+       older stylesheet still cached, a browser that skips backgrounds on a
+       sticky element - the row is still the sidebar's near-black and the
+       white type is still readable. White on white is the one outcome this
+       rule must never allow. */
+    @apply whitespace-nowrap bg-navy-900 text-white;
     /* Vertical, so neighbouring cells join into one unbroken bar. A diagonal
        band like the button has would restart inside every cell and stripe the
        row; the lit-from-above quality carries over without that. */
