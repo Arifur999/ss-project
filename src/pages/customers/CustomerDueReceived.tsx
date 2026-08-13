@@ -815,8 +815,8 @@ export default function CustomerDueReceived() {
                         type="button"
                         onMouseDown={event => event.preventDefault()}
                         onClick={() => selectCustomer(customer)}
-                        className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-green-50 ${
-                          form.customer_id === customer.id ? 'bg-green-50 text-brand-green' : 'text-slate-700'
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-neutral-100 ${
+                          form.customer_id === customer.id ? 'bg-neutral-100 text-navy-900' : 'text-slate-700'
                         }`}
                       >
                         <span className="min-w-0">
@@ -894,8 +894,8 @@ export default function CustomerDueReceived() {
                           type="button"
                           onMouseDown={event => event.preventDefault()}
                           onClick={() => selectReceiver(employee)}
-                          className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-green-50 ${
-                            receiverName === employee.name ? 'bg-green-50 text-brand-green' : 'text-slate-700'
+                          className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-neutral-100 ${
+                            receiverName === employee.name ? 'bg-neutral-100 text-navy-900' : 'text-slate-700'
                           }`}
                         >
                           <span className="min-w-0">

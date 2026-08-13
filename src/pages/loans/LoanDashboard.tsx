@@ -156,7 +156,7 @@ export default function LoanDashboard() {
 
   function DashboardCard({ title, value, subtitle, icon, tone = 'default' }: { title: string; value: string; subtitle: string; icon: React.ReactNode; tone?: 'green' | 'red' | 'blue' | 'orange' | 'purple' | 'default' }) {
     const tones = {
-      green: 'bg-green-50 text-brand-green',
+      green: 'bg-neutral-100 text-navy-900',
       red: 'bg-red-50 text-brand-red',
       blue: 'bg-slate-100 text-slate-700',
       orange: 'bg-brand-blue-soft text-brand-blue',

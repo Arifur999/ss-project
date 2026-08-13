@@ -414,7 +414,7 @@ export default function Marketing() {
   const statCards = [
     { title: 'SMS Balance', value: balance === null ? '...' : formatNum(balance), subtitle: 'Credits left in your wallet', icon: <Wallet size={22} />, tone: 'bg-slate-900 text-white' },
     { title: 'Total Contacts', value: contacts.length, subtitle: 'Customers, suppliers, employees, contacts', icon: <Users size={22} />, tone: 'bg-slate-100 text-slate-700' },
-    { title: 'Selected Recipients', value: selectedContacts.length, subtitle: `${selectedWithPhone.length} with phone number`, icon: <ClipboardList size={22} />, tone: 'bg-green-50 text-brand-green' },
+    { title: 'Selected Recipients', value: selectedContacts.length, subtitle: `${selectedWithPhone.length} with phone number`, icon: <ClipboardList size={22} />, tone: 'bg-neutral-100 text-navy-900' },
     { title: 'SMS Sent Today', value: sentToday, subtitle: 'Saved campaign count', icon: <Send size={22} />, tone: 'bg-brand-blue-soft text-brand-blue' },
     { title: 'Campaigns This Month', value: campaignThisMonth, subtitle: 'SMS campaigns only', icon: <Megaphone size={22} />, tone: 'bg-slate-100 text-slate-700' },
     { title: 'Delivery Rate', value: `${deliveryRate.toFixed(1)}%`, subtitle: 'Phone-ready recipients', icon: <CheckCircle2 size={22} />, tone: 'bg-slate-100 text-slate-700' },
@@ -558,7 +558,7 @@ export default function Marketing() {
                     <p className="truncate text-sm font-semibold text-slate-800">{contact.name}</p>
                     <p className="truncate text-xs text-slate-500">{contact.phone || 'No phone number'}</p>
                   </div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold capitalize ${contact.phone ? 'bg-green-50 text-brand-green' : 'bg-red-50 text-brand-red'}`}>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold capitalize ${contact.phone ? 'bg-neutral-100 text-navy-900' : 'bg-red-50 text-brand-red'}`}>
                     {contact.type}
                   </span>
                   {/* Only hand-typed numbers can be deleted here; the rest are
@@ -695,7 +695,7 @@ export default function Marketing() {
                       <td className="px-4 py-3 text-right font-semibold text-brand-red">{formatNum(campaign.failed)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-brand-green">{rate.toFixed(1)}%</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${campaign.status === 'Completed' ? 'bg-green-50 text-brand-green' : 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${campaign.status === 'Completed' ? 'bg-neutral-100 text-navy-900' : 'bg-slate-100 text-slate-600'}`}>
                           {campaign.status === 'Completed' ? <CheckCircle2 size={13} /> : <CalendarClock size={13} />}
                           {campaign.status}
                         </span>

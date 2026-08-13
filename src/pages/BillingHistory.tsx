@@ -171,7 +171,7 @@ export default function BillingHistory() {
                 <tr key={row.id} className="table-row">
                   <td className="px-4 py-3 text-slate-600">{row.date ? formatDate(row.date) : '-'}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${row.kind === 'plan' ? 'bg-slate-900 text-white' : 'bg-green-50 text-brand-green'}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${row.kind === 'plan' ? 'bg-slate-900 text-white' : 'bg-neutral-100 text-navy-900'}`}>
                       {row.kind === 'plan' ? <CreditCard size={12} /> : <MessageSquareText size={12} />}
                       {row.kind === 'plan' ? (bn ? 'প্ল্যান' : 'Plan') : (bn ? 'এসএমএস' : 'SMS')}
                     </span>

@@ -2004,7 +2004,7 @@ export default function Sales() {
               </div>
               <button 
                 onClick={() => setShowQuickAddProduct(true)}
-                className="p-2 border border-green-200 bg-green-50 rounded-lg text-brand-green hover:bg-green-100 transition"
+                className="btn-secondary rounded-full p-2"
                 title="Add New Product"
                 aria-label="Add New Product"
               >
@@ -2086,7 +2086,7 @@ export default function Sales() {
                     </div>
                     <button
                       onClick={() => addProductToCart(p)}
-                      className="px-2.5 py-1.5 bg-brand-green hover:bg-green-700 text-white rounded-lg text-xs font-semibold transition"
+                      className="btn-primary px-3 py-1.5 text-xs"
                     >
                       Add
                     </button>
@@ -2168,7 +2168,7 @@ export default function Sales() {
                     <button
                       type="button"
                       onClick={openQuickAddCustomer}
-                      className="p-2 bg-green-50 text-brand-green border border-green-200 rounded-lg hover:bg-green-100 transition flex-shrink-0"
+                      className="btn-secondary flex-shrink-0 rounded-full p-2"
                       title="Quick Add Customer"
                     >
                       <Plus size={18} />
@@ -2486,7 +2486,7 @@ export default function Sales() {
                   <button
                     type="button"
                     onClick={() => setPaymentRows(current => [...current, emptyPaymentRow()])}
-                    className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 text-xs font-bold text-brand-green hover:bg-green-100"
+                    className="btn-secondary h-10 w-full justify-center text-xs"
                   >
                     <Plus size={15} /> Add Payment Method
                   </button>
@@ -2501,7 +2501,7 @@ export default function Sales() {
                     <span>Total Paid</span>
                     <span>{formatCurr(totalPaid)}</span>
                   </div>
-                  <div className={`flex justify-between rounded-lg px-3 py-2 text-sm font-bold ${due > 0 ? 'bg-red-50 text-brand-red' : 'bg-green-50 text-brand-green'}`}>
+                  <div className={`flex justify-between rounded-lg px-3 py-2 text-sm font-bold ${due > 0 ? 'bg-red-50 text-brand-red' : 'bg-neutral-100 text-navy-900'}`}>
                     <span>Due Amount</span>
                     <span>{formatCurr(due)}</span>
                   </div>
@@ -2510,7 +2510,7 @@ export default function Sales() {
                 <div className="pt-3">
                   <button
                     onClick={() => save(false)}
-                    className="btn-primary w-full justify-center py-2.5 font-bold flex items-center gap-1.5 bg-brand-green hover:bg-green-700 transition"
+                    className="btn-primary w-full justify-center py-2.5"
                   >
                     <Save size={16} /> Sale
                   </button>

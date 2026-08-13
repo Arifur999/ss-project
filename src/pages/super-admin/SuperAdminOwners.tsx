@@ -330,7 +330,7 @@ export default function SuperAdminOwners() {
                         <button onClick={() => openEdit(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="Edit">
                           <Edit size={15} />
                         </button>
-                        <button onClick={() => activateOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-green-50 hover:text-brand-green" title="Approve">
+                        <button onClick={() => activateOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-neutral-100 hover:text-navy-900" title="Approve">
                           <CheckCircle2 size={15} />
                         </button>
                         <button onClick={() => expireOwner(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-brand-blue-soft hover:text-brand-blue" title="Mark expired">

@@ -347,7 +347,7 @@ function OwnerTable({
                 {showActions && (
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => onApprove?.(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-green-50 hover:text-brand-green" title="Approve">
+                      <button onClick={() => onApprove?.(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-neutral-100 hover:text-navy-900" title="Approve">
                         <CheckCircle2 size={15} />
                       </button>
                       <button onClick={() => onBlock?.(owner)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-brand-red" title="Block">

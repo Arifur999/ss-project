@@ -156,7 +156,7 @@ export default function SuperAdminFreeTrial() {
                             onClick={() => unbanOwner(owner)}
                             disabled={busyId === owner.owner_id}
                             title="Unban"
-                            className="rounded-md border border-green-100 bg-green-50 p-1.5 text-brand-green hover:bg-green-100 disabled:opacity-50"
+                            className="rounded-md border border-green-100 bg-green-50 p-1.5 text-brand-green hover:bg-neutral-100 disabled:opacity-50"
                           >
                             <CheckCircle2 size={14} />
                           </button>

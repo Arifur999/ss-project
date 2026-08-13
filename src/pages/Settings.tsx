@@ -162,7 +162,7 @@ export default function Settings() {
                         ) : (
                           <button
                             onClick={() => toggleUserActive(u.id, !u.is_active)}
-                            className={`flex items-center gap-1 mx-auto text-xs px-2 py-1 rounded-lg transition-colors ${u.is_active ? 'bg-green-50 text-brand-green hover:bg-green-100' : 'bg-red-50 text-brand-red hover:bg-red-100'}`}
+                            className={`flex items-center gap-1 mx-auto text-xs px-2 py-1 rounded-lg transition-colors ${u.is_active ? 'bg-green-50 text-brand-green hover:bg-neutral-100' : 'bg-red-50 text-brand-red hover:bg-red-100'}`}
                           >
                             {u.is_active ? <ShieldCheck size={12} /> : <ShieldX size={12} />}
                             {u.is_active ? t('common_active') : t('common_inactive')}

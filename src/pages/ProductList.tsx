@@ -1523,7 +1523,7 @@ export default function ProductList() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => openTagPrint(product)}
-                        className="inline-flex items-center justify-center rounded-lg p-2 text-slate-500 transition hover:bg-green-50 hover:text-brand-green"
+                        className="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-navy-900"
                         title="Print Tag"
                         aria-label={`Print tag for ${product.product_code}`}
                       >

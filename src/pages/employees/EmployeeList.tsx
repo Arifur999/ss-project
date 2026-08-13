@@ -495,7 +495,7 @@ export default function EmployeeList() {
                           type="button"
                           onMouseDown={event => event.preventDefault()}
                           onClick={() => selectEmployee(employee)}
-                          className={`flex w-full flex-col px-3 py-2.5 text-left text-sm hover:bg-green-50 ${form.employee_id === employee.id ? 'bg-green-50 text-brand-green' : 'text-slate-700'}`}
+                          className={`flex w-full flex-col px-3 py-2.5 text-left text-sm hover:bg-neutral-100 ${form.employee_id === employee.id ? 'bg-neutral-100 text-navy-900' : 'text-slate-700'}`}
                         >
                           <span className="font-bold">{employee.name}</span>
                           <span className="text-xs text-slate-500">{employee.phone || 'No phone number'}</span>

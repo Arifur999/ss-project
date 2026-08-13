@@ -154,8 +154,8 @@ export default function LoanLedger() {
                     type="button"
                     onMouseDown={event => event.preventDefault()}
                     onClick={() => selectLender(option)}
-                    className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-green-50 ${
-                      selectedKey === option.key ? 'bg-green-50 text-brand-green' : 'text-slate-700'
+                    className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-neutral-100 ${
+                      selectedKey === option.key ? 'bg-neutral-100 text-navy-900' : 'text-slate-700'
                     }`}
                   >
                     <span className="min-w-0 truncate font-medium">{option.name}</span>
