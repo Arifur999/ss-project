@@ -23,8 +23,8 @@
   "nav_customerList": "Customer List",
   "nav_ledger": "Ledger",
   "nav_reports": "Reports",
-  "nav_monthly": "Monthly",
-  "nav_yearly": "Yearly",
+  "nav_monthly": "Monthly Report",
+  "nav_yearly": "Yearly Report",
   "nav_employees": "Employees",
   "nav_employeeList": "Employee List",
   "nav_employeeTransactions": "Salary / Bonus",
@@ -544,7 +544,6 @@
   "settings_tabPaymentMethods": "Payment Methods",
   "settings_tabBranches": "Branches",
   "settings_tabSuppliers": "Suppliers",
-  "settings_tabTargets": "Monthly Targets",
   "settings_tabUsers": "Users",
   "settings_businessSaved": "Change successful",
   "settings_businessName": "Business Name",
@@ -756,5 +755,6 @@
   "purchaseTarget_perMonth": "Per month",
   "purchaseTarget_pickCompany": "Select a company",
   "purchaseTarget_badRange": "The end month cannot come before the start month",
-  "common_action": "Action"
+  "common_action": "Action",
+  "nav_salesTarget": "Sales Target"
 }

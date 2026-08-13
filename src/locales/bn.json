@@ -23,8 +23,8 @@
   "nav_customerList": "গ্রাহক তালিকা",
   "nav_ledger": "খাতা",
   "nav_reports": "রিপোর্ট",
-  "nav_monthly": "মাসিক",
-  "nav_yearly": "বার্ষিক",
+  "nav_monthly": "মাসিক রিপোর্ট",
+  "nav_yearly": "বার্ষিক রিপোর্ট",
   "nav_employees": "কর্মচারী",
   "nav_employeeList": "কর্মচারী তালিকা",
   "nav_employeeTransactions": "বেতন / বোনাস",
@@ -544,7 +544,6 @@
   "settings_tabPaymentMethods": "পেমেন্ট পদ্ধতি",
   "settings_tabBranches": "শাখা",
   "settings_tabSuppliers": "সরবরাহকারী",
-  "settings_tabTargets": "লক্ষ্যমাত্রা",
   "settings_tabUsers": "ব্যবহারকারী",
   "settings_businessSaved": "পরিবর্তন সফল হয়েছে",
   "settings_businessName": "ব্যবসার নাম",
@@ -756,5 +755,6 @@
   "purchaseTarget_perMonth": "প্রতি মাসে",
   "purchaseTarget_pickCompany": "কোম্পানি বাছুন",
   "purchaseTarget_badRange": "শেষ মাস শুরুর মাসের আগে হতে পারে না",
-  "common_action": "অ্যাকশন"
+  "common_action": "অ্যাকশন",
+  "nav_salesTarget": "বিক্রয় টার্গেট"
 }

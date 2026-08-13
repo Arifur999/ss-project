@@ -74,7 +74,7 @@ const emptySummary: Summary = {
 
 export default function YearlyReport() {
   const { user } = useAuth()
-  const { formatCurr, formatNum, monthName, monthShort } = useLang()
+  const { t, formatCurr, formatNum, monthName, monthShort } = useLang()
   const [year, setYear] = useState(new Date().getFullYear())
   const [rows, setRows] = useState<MonthRow[]>([])
   const [companyWayRows, setCompanyWayRows] = useState<CompanyWayRow[]>([])
@@ -388,7 +388,7 @@ export default function YearlyReport() {
       <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Business Performance Dashboard</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('nav_yearly')}</h1>
             <p className="mt-1 text-sm text-slate-500">Purchase, Sales & Profit Overview</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

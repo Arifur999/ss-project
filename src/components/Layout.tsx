@@ -137,7 +137,7 @@ export default function Layout() {
         // labelled "Monthly" here.
         { key: 'reportSummary', label: t('nav_monthly'), icon: <FileBarChart size={16} />, path: '/reports' },
         { key: 'yearly', label: t('nav_yearly'), icon: <BarChart3 size={16} />, path: '/reports/yearly' },
-        { key: 'monthlyTarget', label: t('settings_tabTargets'), icon: <Target size={16} />, path: '/reports/monthly-target' },
+        { key: 'monthlyTarget', label: t('nav_salesTarget'), icon: <Target size={16} />, path: '/reports/monthly-target' },
         { key: 'purchaseTarget', label: t('nav_purchaseTarget'), icon: <Target size={16} />, path: '/reports/purchase-target' },
       ],
     },

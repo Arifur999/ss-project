@@ -161,7 +161,7 @@ function monthProgress(year: number, month: number, today: string) {
 
 export default function ReportSummary() {
   const { user } = useAuth()
-  const { formatCurr, formatNum, formatDateShort, monthName } = useLang()
+  const { t, formatCurr, formatNum, formatDateShort, monthName } = useLang()
   const currentDate = useMemo(() => new Date(), [])
   const initialMonthRange = useMemo(() => monthRange(currentDate.getFullYear(), currentDate.getMonth() + 1), [currentDate])
   const [filterMode, setFilterMode] = useState<FilterMode>('monthly')
@@ -887,7 +887,7 @@ export default function ReportSummary() {
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-6">
       <PageHeader
-        title="Report"
+        title={t('nav_monthly')}
         subtitle="Global sales, purchase and profit analytics"
         actions={(
           <div className="flex flex-wrap items-center justify-end gap-2">

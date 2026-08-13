@@ -54,7 +54,7 @@ export default function MonthlyTarget() {
 
   return (
     <div className="min-h-screen bg-white p-6">
-      <PageHeader title={t('settings_tabTargets')} subtitle={t('settings_monthlyTargets', 'Sales and profit targets by month')} />
+      <PageHeader title={t('nav_salesTarget')} subtitle={t('settings_monthlyTargets', 'Sales and profit targets by month')} />
 
       <div className="card p-0">
         <div className="flex items-center justify-between p-4 border-b border-slate-100">
