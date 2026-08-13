@@ -154,7 +154,7 @@ export default function Layout() {
 
   if (profile?.role === 'owner') {
     businessNavGroups.push({
-      key: 'package', label: t('nav_package', 'Package'), icon: <Package size={18} weight="duotone" />,
+      key: 'package', label: t('nav_package'), icon: <Package size={18} weight="duotone" />,
       children: [
         { key: 'billingHistory', label: t('nav_billingHistory', 'Billing History'), icon: <FileText size={16} />, path: '/package/billing-history' },
         { key: 'currentPlan', label: t('nav_plan', 'Plan'), icon: <CreditCard size={16} />, path: '/current-plan' },

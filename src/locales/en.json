@@ -698,5 +698,6 @@
   "user_selfRoleNotice": "This is your own account, so your role and status cannot be changed here - that would let you lock yourself out.",
   "nav_campaign": "Campaign",
   "nav_buySms": "Buy SMS",
-  "nav_admin": "Admin"
+  "nav_admin": "Admin",
+  "nav_package": "Billing & Plan"
 }
