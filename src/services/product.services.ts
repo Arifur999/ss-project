@@ -37,6 +37,26 @@ export const getAllProductsForExport = async (search?: string) => {
 export const getDeletedProducts = () => http.get<any[]>('/products?deleted=true')
 export const createProduct = (payload: any) => http.post<any>('/products', payload)
 export const bulkUpsertProducts = (products: any[]) => http.post<any[]>('/products/bulk-upsert', { products })
+export type PriceRow = {
+  product_code: string
+  cost_price?: number
+  selling_price?: number
+  dp_discount?: number
+  mrp_discount?: number
+}
+
+export type PriceUpdateResult = {
+  dry_run: boolean
+  matched: { product_code: string; name: string; before: Record<string, number>; after: Record<string, number> }[]
+  unchanged: string[]
+  notFound: string[]
+}
+
+// Price-only bulk update, matched on product code. Deliberately not
+// /products/bulk-upsert: that one creates a product when the code is unknown.
+export const bulkUpdateProductPrices = (prices: PriceRow[], dryRun: boolean) =>
+  http.post<PriceUpdateResult>('/products/bulk-update-prices', { prices, dry_run: dryRun })
+
 export const updateProduct = (id: string, payload: any) => http.patch<any>(`/products/${id}`, payload)
 export const deleteProduct = (id: string) => http.delete<any>(`/products/${id}`)
 

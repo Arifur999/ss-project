@@ -16,6 +16,7 @@ import TableSkeleton from '../components/TableSkeleton'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../components/ProgressDialog'
 import { todayISO } from '../lib/utils'
 import { NoValue } from '../components/CellValue'
+import { CODE_HEADER_KEYS, NAME_HEADER_KEYS, afterDiscount, chunkArray, downloadCsv, downloadXlsx, headerKey, normalizeLookup, parseCsvInteger, parseCsvNumber, readSpreadsheet, resolveDiscountColumns } from '../lib/spreadsheet'
 
 interface Product {
   id: string
@@ -75,15 +76,6 @@ const productListCacheKey = 'product_list_cache_v1'
 // position (see resolveDiscountColumns).
 const productCsvHeaders = ['Code *', 'Product Name *', 'Image Link', 'Supplier *', 'Category', 'DP', 'Discount', 'Actual DP', 'MRP', 'Discount', 'Actual MRP', 'Opening Qty', 'Size', 'Weight']
 
-// Price after a percentage discount, rounded to 2 decimals.
-function afterDiscount(price: number, discountPct: number) {
-  const net = Number(price || 0) * (1 - Number(discountPct || 0) / 100)
-  return Math.round(net * 100) / 100
-}
-
-const CODE_HEADER_KEYS = ['code', 'productcode', 'prodcode', 'sku', 'skunumber', 'itemcode']
-const NAME_HEADER_KEYS = ['productname', 'name', 'prodname', 'itemname', 'description']
-
 // Real price-list sheets often have a title/effective-date band above the real
 // column headers, so the header row isn't always row 0. Scan the first rows for
 // the one that has both a code-like and a name-like column. Returns its index,
@@ -97,55 +89,6 @@ function detectHeaderRow(rows: string[][]): number {
     if (hasCode && hasName) return i
   }
   return -1
-}
-
-// Read an uploaded spreadsheet (.xlsx/.xls via SheetJS, or .csv) into a plain
-// array-of-string-rows so the rest of the import logic is format-agnostic.
-// For multi-sheet workbooks, pick the first sheet that actually has a product
-// header row - product-ish sheet names (Furniture/Product/Price/...) are tried
-// first, so a leading "Top-Sheet"/cover tab is skipped automatically.
-async function readSpreadsheet(file: File): Promise<string[][]> {
-  const name = file.name.toLowerCase()
-  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
-    const XLSX = await import('xlsx')
-    const buffer = await file.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'array' })
-    const toRows = (sheetName: string): string[][] => {
-      const sheet = workbook.Sheets[sheetName]
-      if (!sheet) return []
-      return XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, blankrows: false, defval: '' })
-        .map(row => (row || []).map(cell => (cell == null ? '' : String(cell))))
-    }
-    const names = workbook.SheetNames
-    const preferred = names.filter(n => /furniture|product|price|item|list|stock/i.test(n))
-    const ordered = [...preferred, ...names.filter(n => !preferred.includes(n))]
-    for (const sheetName of ordered) {
-      const rows = toRows(sheetName)
-      if (detectHeaderRow(rows) >= 0) return rows
-    }
-    return names[0] ? toRows(names[0]) : []
-  }
-  const text = await file.text()
-  return parseCsv(text)
-}
-
-// The layout has two columns both titled "Discount" - the first belongs to DP,
-// the second to MRP. Explicit "DP Discount"/"MRP Discount" headers win; plain
-// "Discount" columns are then assigned in order (1st -> DP, 2nd -> MRP).
-function resolveDiscountColumns(headers: string[]) {
-  const discountCols = headers
-    .map((header, index) => ({ header, index }))
-    .filter(({ header }) => header.includes('discount'))
-
-  let dp = discountCols.find(({ header }) => header.includes('dp'))?.index ?? -1
-  let mrp = discountCols.find(({ header }) => header.includes('mrp'))?.index ?? -1
-  const generic = discountCols
-    .filter(({ header }) => !header.includes('dp') && !header.includes('mrp'))
-    .map(({ index }) => index)
-
-  if (dp < 0) dp = generic[0] ?? -1
-  if (mrp < 0) mrp = generic.filter(index => index !== dp)[0] ?? -1
-  return { dp, mrp }
 }
 
 // One source of truth for a blank product form, reused by every reset site
@@ -209,96 +152,9 @@ function readProductListCache() {
   }
 }
 
-function csvEscape(value: any) {
-  return `"${String(value ?? '').replace(/"/g, '""')}"`
-}
-
-function downloadCsv(filename: string, rows: any[][]) {
-  const csv = rows.map(row => row.map(csvEscape).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  window.URL.revokeObjectURL(url)
-}
-
-// Write a real .xlsx (SheetJS) so downloads open cleanly in Excel and match
-// the format users upload from. SheetJS is loaded on demand (it's ~440KB) so
-// it never weighs down the initial app load - only when actually used here.
-async function downloadXlsx(filename: string, headers: string[], rows: any[][]) {
-  const XLSX = await import('xlsx')
-  const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, sheet, 'Products')
-  XLSX.writeFile(workbook, filename)
-}
-
-function parseCsv(text: string) {
-  const rows: string[][] = []
-  let row: string[] = []
-  let cell = ''
-  let inQuotes = false
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i]
-    const next = text[i + 1]
-
-    if (char === '"' && inQuotes && next === '"') {
-      cell += '"'
-      i += 1
-    } else if (char === '"') {
-      inQuotes = !inQuotes
-    } else if (char === ',' && !inQuotes) {
-      row.push(cell)
-      cell = ''
-    } else if ((char === '\n' || char === '\r') && !inQuotes) {
-      if (char === '\r' && next === '\n') i += 1
-      row.push(cell)
-      if (row.some(value => value.trim() !== '')) rows.push(row)
-      row = []
-      cell = ''
-    } else {
-      cell += char
-    }
-  }
-
-  row.push(cell)
-  if (row.some(value => value.trim() !== '')) rows.push(row)
-  return rows
-}
-
-function headerKey(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-}
-
-function normalizeLookup(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
 function isDuplicateProductCodeError(error: any) {
   const message = String(error?.message || '')
   return error?.code === '23505' && message.includes('products_product_code_key')
-}
-
-function chunkArray<T>(items: T[], size: number) {
-  const chunks: T[][] = []
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-  return chunks
-}
-
-function parseCsvNumber(value: string) {
-  const normalized = value.replace(/,/g, '').replace(/[^\d.-]/g, '').trim()
-  const parsed = Number.parseFloat(normalized)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function parseCsvInteger(value: string) {
-  const parsed = Number.parseInt(String(parseCsvNumber(value)), 10)
-  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function isUuid(value: string) {
@@ -1111,7 +967,7 @@ export default function ProductList() {
 
     try {
       {
-        const allRows = await readSpreadsheet(file)
+        const allRows = await readSpreadsheet(file, detectHeaderRow)
         setProgress(current => ({ ...current, step: 'Checking the rows' }))
         // Find the real header row (a price list may have title/date rows above
         // it, and multi-sheet workbooks were already narrowed to the right tab).

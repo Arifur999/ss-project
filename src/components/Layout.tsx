@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { GaugeIcon as Gauge, BankIcon as Bank, HandshakeIcon as Handshake, HandCoinsIcon as HandCoins,
   ReceiptIcon as Receipt, ArmchairIcon as Armchair, WarehouseIcon as Warehouse, ShoppingBagIcon as ShoppingBag,
   UsersThreeIcon as UsersThree, ChartLineUpIcon as ChartLineUp, RecycleIcon as Recycle,
-  IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck } from '@phosphor-icons/react'
+  IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck, TagIcon as Tag } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { whatsAppLink } from '../lib/support'
@@ -91,7 +91,13 @@ export default function Layout() {
         { key: 'expTx', label: t('nav_transactionsList'), icon: <FileText size={16} />, path: '/expenses/transactions' },
       ],
     },
-    { key: 'productList', label: t('nav_productList'), icon: <Armchair size={18} weight="duotone" />, path: '/products' },
+    {
+      key: 'productList', label: t('nav_productList'), icon: <Armchair size={18} weight="duotone" />,
+      children: [
+        { key: 'productAll', label: t('nav_productList'), icon: <Armchair size={16} />, path: '/products' },
+        { key: 'updatePrice', label: t('nav_updatePrice'), icon: <Tag size={16} />, path: '/products/update-price' },
+      ],
+    },
     {
       key: 'purchase', label: 'Supplier', icon: <Truck size={18} weight="duotone" />,
       children: [

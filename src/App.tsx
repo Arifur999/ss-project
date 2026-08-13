@@ -31,6 +31,7 @@ const ShareholderDashboard = lazyWithReload(() => import('./pages/transactions/S
 const ExpenseDashboard = lazyWithReload(() => import('./pages/expenses/ExpenseDashboard'))
 const ExpenseTransactions = lazyWithReload(() => import('./pages/expenses/ExpenseTransactions'))
 const ProductList = lazyWithReload(() => import('./pages/ProductList'))
+const UpdatePrice = lazyWithReload(() => import('./pages/products/UpdatePrice'))
 const PurchaseOrders = lazyWithReload(() => import('./pages/purchase/PurchaseOrders'))
 const ProductReceived = lazyWithReload(() => import('./pages/purchase/ProductReceived'))
 const SupplierPayments = lazyWithReload(() => import('./pages/purchase/SupplierPayments'))
@@ -210,6 +211,7 @@ function AppRoutes() {
         <Route path="/expenses" element={<ExpenseDashboard />} />
         <Route path="/expenses/transactions" element={<ExpenseTransactions />} />
         <Route path="/products" element={<ProductList />} />
+        <Route path="/products/update-price" element={<UpdatePrice />} />
         <Route path="/purchase/orders" element={<PurchaseOrders />} />
         <Route path="/purchase/ledger" element={<PurchaseLedger />} />
         <Route path="/purchase/product-received" element={<ProductReceived />} />
