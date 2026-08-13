@@ -9,6 +9,7 @@ import EditUserModal from '../components/EditUserModal'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { todayISO } from '../lib/utils'
+import { NoValue } from '../components/CellValue'
 
 
 
@@ -140,12 +141,12 @@ export default function Settings() {
                               {(u.full_name || u.email || '?')[0].toUpperCase()}
                             </div>
                           )}
-                          <span className="font-medium">{u.full_name || '—'}</span>
+                          <span className="font-medium">{u.full_name || <NoValue />}</span>
                           {isSelf && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{t('settings_youLabel')}</span>}
                         </div>
                       </td>
                       <td className="py-2.5 px-4 text-slate-500 text-xs">{u.email}</td>
-                      <td className="py-2.5 px-4 text-slate-500">{u.phone || '—'}</td>
+                      <td className="py-2.5 px-4 text-slate-500">{u.phone || <NoValue />}</td>
                       <td className="py-2.5 px-4">
                         {isSelf ? (
                           <span className="badge-green">{ROLE_LABELS[u.role]}</span>

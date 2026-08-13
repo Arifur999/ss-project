@@ -7,6 +7,7 @@ import { formatDate } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue } from '../../components/CellValue'
 
 type PurchaseHistoryRow = {
   id: string
@@ -250,7 +251,7 @@ export default function PurchaseHistory() {
                       {formatDate(row.date)}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-mono text-xs text-slate-500">{row.product_code || '-'}</td>
+                  <td className="py-3 px-4 font-mono text-xs text-slate-500">{row.product_code || <NoValue />}</td>
                   <td className="py-3 px-4 font-semibold text-slate-800">{row.product_name}</td>
                   <td className="py-3 px-4 text-right text-slate-600">{formatCurr(row.dp_price)}</td>
                   <td className="py-3 px-4 text-right text-slate-600">{formatNum(row.discount_pct)}%</td>

@@ -10,6 +10,7 @@ import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue } from '../../components/CellValue'
 
 export default function EmployeeAttendance() {
   const { t } = useLang()
@@ -473,8 +474,8 @@ export default function EmployeeAttendance() {
                   <td className="py-2.5 px-4 font-medium text-slate-500">{index + 1}</td>
                   <td className="py-2.5 px-4 text-slate-500">{formatDate(att.date)}</td>
                   <td className="py-2.5 px-4 font-medium">{emp?.name || att.employee_id}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp?.phone || '-'}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp?.address || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp?.phone || <NoValue />}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp?.address || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-center">
                     <span className={`text-xs font-semibold px-2 py-1 rounded ${att.present ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {att.present ? t('employee_present') : t('employee_absent')}
@@ -483,7 +484,7 @@ export default function EmployeeAttendance() {
                   <td className="py-2.5 px-4 text-slate-500">{formatTime(display.start_time)}</td>
                   <td className="py-2.5 px-4 text-slate-500">{formatTime(display.end_time)}</td>
                   <td className="py-2.5 px-4 font-semibold text-slate-700">{display.total_hours_label}</td>
-                  <td className="py-2.5 px-4 text-slate-400 text-xs">{display.notes || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-400 text-xs">{display.notes || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right">
                     <div className="flex gap-1 justify-end">
                       <button onClick={() => editAttendance(att)} className="text-slate-500 hover:text-slate-700"><Edit2 size={14} /></button>

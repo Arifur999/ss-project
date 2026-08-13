@@ -12,6 +12,7 @@ import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { createPurchase as createPurchaseRequest, deletePurchaseReceive, receivePurchaseItem, updatePurchaseReceive } from '../../services/purchase.services'
 import { createOpeningStockBatch, createReceiveStockBatch } from '../../lib/fifoInventory'
+import { NoValue } from '../../components/CellValue'
 
 type OrderStatus = 'pending' | 'partial' | 'received'
 
@@ -1166,7 +1167,7 @@ export default function PlaceOrder() {
                                     }) : (
                                       <tr className="border-t border-slate-200">
                                         <td className="py-2 px-2">{idx + 1}</td>
-                                        <td className="py-2 px-2 text-slate-400">-</td>
+                                        <td className="py-2 px-2 text-slate-400"><NoValue /></td>
                                         <td className="py-2 px-2 text-right text-slate-400">0</td>
                                         <td className="py-2 px-2 text-right text-slate-400">0</td>
                                         <td className="py-2 px-2 text-right">{item.qty}</td>
@@ -1262,7 +1263,7 @@ export default function PlaceOrder() {
                           ))}
                         </datalist>
                       </td>
-                      <td className="py-1.5 px-2 font-medium text-slate-700">{item.product_name || '—'}</td>
+                      <td className="py-1.5 px-2 font-medium text-slate-700">{item.product_name || <NoValue />}</td>
                       <td className="py-1.5 px-2"><input type="number" min="0" className="input py-1 text-xs text-right w-24" value={item.dp_price || ''} onChange={e => updateItem(idx, 'dp_price', Number(e.target.value))} /></td>
                       <td className="py-1.5 px-2"><input type="number" min="0" max="100" className="input py-1 text-xs text-right w-16" value={item.discount_pct || ''} onChange={e => updateItem(idx, 'discount_pct', Number(e.target.value))} /></td>
                       <td className="py-1.5 px-2 text-right font-medium">{formatCurr(item.actual_dp)}</td>

@@ -13,6 +13,7 @@ import { addRecycleItem } from '../../lib/recycleBin'
 import { formatDate, todayISO, toISODate } from '../../lib/utils'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue } from '../../components/CellValue'
 
 type PaymentType = 'Salary' | 'Bonus'
 type SalaryPaymentValidationErrors = Partial<Record<
@@ -48,7 +49,7 @@ function periodDays(txn: any) {
   const to = new Date(txn.period_to)
   if (isNaN(from.getTime()) || isNaN(to.getTime())) return '-'
   const days = Math.floor((to.getTime() - from.getTime()) / 86400000) + 1
-  return days > 0 ? String(days) : '-'
+  return days > 0 ? String(days) : '0'
 }
 
 function salaryExpenseMarker(transactionId: string) {
@@ -546,13 +547,13 @@ export default function EmployeeTransactions() {
               return (
                 <tr key={txn.id} className="table-row">
                   <td className="py-2.5 px-4 font-medium text-slate-500">{index + 1}</td>
-                  <td className="py-2.5 px-4 text-slate-600">{formatDate(txn.date) || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-600">{formatDate(txn.date) || <NoValue />}</td>
                   <td className="py-2.5 px-4 font-medium">{emp?.name || txn.employee_name || txn.employee_id}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp?.phone || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp?.phone || <NoValue />}</td>
                   <td className="py-2.5 px-4"><span className={paymentType === 'Bonus' ? 'badge-blue' : 'badge-green'}>{paymentType}</span></td>
                   <td className="py-2.5 px-4 text-right text-brand-green font-medium">{formatCurr(txn.amount)}</td>
                   <td className="py-2.5 px-4 text-right text-brand-blue font-medium">{formatCurr(txn.bonus)}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{txn.account_name || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{txn.account_name || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right text-slate-600">{periodDays(txn)}</td>
                   <td className="py-2.5 px-4 text-slate-400 text-xs">{txn.notes}</td>
                   <td className="py-2.5 px-4 text-right">

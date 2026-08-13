@@ -15,6 +15,7 @@ import { usePagedList } from '../lib/usePagedList'
 import TableSkeleton from '../components/TableSkeleton'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../components/ProgressDialog'
 import { todayISO } from '../lib/utils'
+import { NoValue } from '../components/CellValue'
 
 interface Product {
   id: string
@@ -1470,7 +1471,7 @@ export default function ProductList() {
             </thead>
             <tbody>
               {filteredProducts.map((product, index) => {
-                const supplier = (product as any).suppliers?.company_name || (product as any).suppliers?.name || '-'
+                const supplier = (product as any).suppliers?.company_name || (product as any).suppliers?.name || ''
                 return (
                   <tr key={product.id} className="border-b border-slate-200 hover:bg-neutral-100 transition">
                     <td className="px-6 py-4 text-sm text-slate-600">
@@ -1485,7 +1486,7 @@ export default function ProductList() {
                     <td className="px-6 py-4 text-sm text-slate-600">{index + 1}</td>
                     <td className="px-6 py-4 text-sm font-mono text-slate-700 font-medium">{product.product_code}</td>
                     <td className="px-6 py-4 text-sm text-slate-700 font-medium">{product.name}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{product.category || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{product.category || <NoValue />}</td>
                     <td className="px-6 py-4 text-sm text-center">
                       {product.image_url ? (
                         <img
@@ -1503,10 +1504,10 @@ export default function ProductList() {
                           onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
                         />
                       ) : (
-                        <span className="text-slate-400 text-xs">-</span>
+                        <NoValue />
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{supplier}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{supplier || <NoValue />}</td>
                     <td className="px-6 py-4 text-sm text-right text-slate-700">{openingQtyForProduct(product)}</td>
                     <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">
                       {formatCurr(product.cost_price || 0)}

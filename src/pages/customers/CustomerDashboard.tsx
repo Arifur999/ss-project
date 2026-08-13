@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 import { buildDueSms, segmentsFor } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
 import { confirmAction } from '../../components/ConfirmDialog'
+import { NoValue } from '../../components/CellValue'
 
 type CustomerSort = 'due_desc' | 'due_asc' | 'purchase_desc' | 'collections_desc' | 'name_asc'
 
@@ -248,7 +249,7 @@ export default function CustomerDashboard() {
                   <p className="font-medium">{c.name}</p>
                   <p className="text-xs text-slate-400">{c.phone}</p>
                 </td>
-                <td className="py-2.5 px-4 text-slate-500 max-w-64 truncate" title={c.address || ''}>{c.address || '-'}</td>
+                <td className="py-2.5 px-4 text-slate-500 max-w-64 truncate" title={c.address || ''}>{c.address || <NoValue />}</td>
                 <td className="py-2.5 px-4 text-right tabular-nums whitespace-nowrap">{formatCurr(c.openingDue)}</td>
                 <td className="py-2.5 px-4 text-right tabular-nums font-medium whitespace-nowrap">{formatCurr(c.totalPurchase)}</td>
                 <td className="py-2.5 px-4 text-right tabular-nums text-brand-blue whitespace-nowrap">{formatCurr(c.totalDiscount)}</td>

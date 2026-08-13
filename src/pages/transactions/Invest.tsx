@@ -13,6 +13,7 @@ import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
 import { printTable } from '../../lib/printTable'
+import { ZeroAmount } from '../../components/CellValue'
 
 export default function InvestWithdraw() {
   const { t, formatCurr } = useLang()
@@ -117,8 +118,8 @@ export default function InvestWithdraw() {
       ],
       rows: filtered.map((r, i) => [
         i + 1, formatDate(r.date), r.shareholder_name || '-',
-        r.invest_amount > 0 ? formatCurr(r.invest_amount) : '-',
-        r.withdraw_amount > 0 ? formatCurr(r.withdraw_amount) : '-',
+        formatCurr(r.invest_amount > 0 ? r.invest_amount : 0),
+        formatCurr(r.withdraw_amount > 0 ? r.withdraw_amount : 0),
         r.account_name || '-', r.notes || '',
       ]),
       totalRow: ['', 'Total', '', formatCurr(totalInvest), formatCurr(totalWithdraw), '', ''],
@@ -159,8 +160,8 @@ export default function InvestWithdraw() {
                 <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                 <td className="py-2.5 px-4">{formatDate(r.date)}</td>
                 <td className="py-2.5 px-4 font-medium">{r.shareholder_name}</td>
-                <td className="py-2.5 px-4 text-right text-brand-green font-medium">{r.invest_amount > 0 ? formatCurr(r.invest_amount) : '—'}</td>
-                <td className="py-2.5 px-4 text-right text-brand-red font-medium">{r.withdraw_amount > 0 ? formatCurr(r.withdraw_amount) : '—'}</td>
+                <td className="py-2.5 px-4 text-right text-brand-green font-medium">{r.invest_amount > 0 ? formatCurr(r.invest_amount) : <ZeroAmount />}</td>
+                <td className="py-2.5 px-4 text-right text-brand-red font-medium">{r.withdraw_amount > 0 ? formatCurr(r.withdraw_amount) : <ZeroAmount />}</td>
                 <td className="py-2.5 px-4 text-slate-500">{r.account_name}</td>
                 <td className="py-2.5 px-4 text-slate-400">{r.notes}</td>
                 <td className="py-2.5 px-4 text-right">

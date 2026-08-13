@@ -7,6 +7,7 @@ import { useLang } from '../../context/LanguageContext'
 import { lenderKey, lenderKeyFromLoan, loanBalanceColor, loanBalanceLabel, loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import TableSkeleton from '../../components/TableSkeleton'
+import { NoValue, ZeroAmount } from '../../components/CellValue'
 
 export default function LoanLedger() {
   const { formatCurr } = useLang()
@@ -206,14 +207,14 @@ export default function LoanLedger() {
                   <tr key={entry.id} className="table-row">
                     <td className="py-2.5 px-4">{formatDate(entry.date)}</td>
                     <td className="py-2.5 px-4"><span className="badge-blue">{transactionLabel(entry.amounts.type)}</span></td>
-                    <td className="py-2.5 px-4 text-right text-brand-green">{entry.amounts.received ? formatCurr(entry.amounts.received) : '-'}</td>
-                    <td className="py-2.5 px-4 text-right text-brand-red">{entry.amounts.paid ? formatCurr(entry.amounts.paid) : '-'}</td>
-                    <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.interest ? formatCurr(entry.amounts.interest) : '-'}</td>
+                    <td className="py-2.5 px-4 text-right text-brand-green">{entry.amounts.received ? formatCurr(entry.amounts.received) : <ZeroAmount />}</td>
+                    <td className="py-2.5 px-4 text-right text-brand-red">{entry.amounts.paid ? formatCurr(entry.amounts.paid) : <ZeroAmount />}</td>
+                    <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.interest ? formatCurr(entry.amounts.interest) : <ZeroAmount />}</td>
                     <td className={`py-2.5 px-4 text-right font-semibold ${loanBalanceColor(entry.running_balance)}`}>
                       {formatCurr(entry.running_balance)}
                       <div className="text-xs">({loanBalanceLabel(entry.running_balance)})</div>
                     </td>
-                    <td className="py-2.5 px-4 text-slate-500">{entry.notes || '-'}</td>
+                    <td className="py-2.5 px-4 text-slate-500">{entry.notes || <NoValue />}</td>
                   </tr>
                 ))}
                 {loading && <TableSkeleton rows={6} cols={7} />}

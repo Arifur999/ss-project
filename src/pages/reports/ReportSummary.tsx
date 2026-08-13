@@ -9,6 +9,7 @@ import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import toast from 'react-hot-toast'
+import { NoValue } from '../../components/CellValue'
 
 type BreakdownRow = {
   name: string
@@ -692,7 +693,7 @@ export default function ReportSummary() {
           <div className="flex items-center justify-between gap-8 text-[11px]">
             <span className="font-medium text-slate-500">Next day target</span>
             <span className="font-semibold text-slate-900">
-              {row.nextTarget === null ? '—' : formatCurr(row.nextTarget)}
+              {row.nextTarget === null ? <NoValue /> : formatCurr(row.nextTarget)}
             </span>
           </div>
         </div>
@@ -878,7 +879,7 @@ export default function ReportSummary() {
   }
   const otherIncomeTotalRow: BreakdownRow = {
     name: 'Total Items',
-    type: '-',
+    type: '',
     amount: data.totalOtherIncome,
     percent: data.totalOtherIncome > 0 ? 100 : 0,
   }
@@ -1099,7 +1100,7 @@ export default function ReportSummary() {
                   minWidth="640px"
                   columns={[
                     { label: 'Supplier / Source', render: row => clippedName(row) },
-                    { label: 'Type', align: 'right', render: row => row.type || '-' },
+                    { label: 'Type', align: 'right', render: row => row.type || <NoValue /> },
                     { label: 'Amount', align: 'right', render: row => formatCurr(row.amount) },
                     { label: 'Breakdown %', align: 'right', render: row => breakdownText(amount(row.percent)) },
                   ]}
@@ -1108,7 +1109,7 @@ export default function ReportSummary() {
             </div>
 
             <div className="text-right text-xs text-slate-400">
-              Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+              Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : <NoValue />}
             </div>
           </main>
         </div>

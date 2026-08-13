@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import { useLang } from '../../context/LanguageContext'
+import { NoValue } from '../../components/CellValue'
 
 export default function SupplierDashboard() {
   const { t, formatCurr } = useLang()
@@ -115,7 +116,7 @@ export default function SupplierDashboard() {
               <tr key={sup.id} className="table-row">
                 <td className="py-2.5 px-4 font-medium">{index + 1}</td>
                 <td className="py-2.5 px-4 font-medium">{sup.company_name || sup.name}</td>
-                <td className="py-2.5 px-4 text-slate-500">{sup.phone || '-'}</td>
+                <td className="py-2.5 px-4 text-slate-500">{sup.phone || <NoValue />}</td>
                 <td className={`py-2.5 px-4 text-right font-semibold ${signedColor(sup.openingBalance)}`}>{formatCurr(sup.openingBalance)}</td>
                 <td className="py-2.5 px-4 text-right">{formatCurr(sup.orderAmount)}</td>
                 <td className="py-2.5 px-4 text-right text-brand-red">{sup.specialDiscount ? `-${formatCurr(sup.specialDiscount)}` : formatCurr(0)}</td>

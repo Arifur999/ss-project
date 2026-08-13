@@ -16,6 +16,7 @@ import {
   type SmsPackage,
   type SmsPurchase,
 } from '../services/sms.services'
+import { NoValue } from '../components/CellValue'
 
 // Buying credits is the same two-step manual flow as a subscription plan:
 // send the money over bKash, then hand in the transaction id for the super
@@ -161,7 +162,7 @@ export default function SmsPackages() {
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           title={bn ? 'এসএমএস ব্যালেন্স' : 'SMS balance'}
-          value={balance === null ? '—' : formatNum(balance)}
+          value={balance === null ? <NoValue /> : formatNum(balance)}
           subtitle={bn ? 'বাকি ক্রেডিট' : 'Credits remaining'}
           icon={<Wallet size={20} />}
           color="green"
@@ -281,11 +282,11 @@ export default function SmsPackages() {
               )}
               {!loading && purchases.map(row => (
                 <tr key={row.id} className="table-row">
-                  <td className="px-4 py-3 text-slate-600">{row.date || row.created_at ? formatDate(row.date || row.created_at) : '-'}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-800">{row.package_name || '-'}</td>
+                  <td className="px-4 py-3 text-slate-600">{row.date || row.created_at ? formatDate(row.date || row.created_at) : <NoValue />}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{row.package_name || <NoValue />}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-slate-700">{formatNum(Number(row.sms_count || 0))}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{row.invoice_no || '-'}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{row.trx_id || '-'}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{row.invoice_no || <NoValue />}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{row.trx_id || <NoValue />}</td>
                   <td className="px-4 py-3"><span className={badgeFor(row.status)}>{row.status}</span></td>
                   <td className="px-4 py-3 text-right font-bold tabular-nums text-slate-800">{formatCurr(Number(row.amount || 0))}</td>
                 </tr>

@@ -18,6 +18,7 @@ import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleIt
 import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
 import { sendSms } from '../services/sms.services'
 import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
+import { NoValue, ZeroAmount } from '../components/CellValue'
 
 const smsInvoiceKey = 'sales_sms_invoice_v1'
 
@@ -2661,24 +2662,24 @@ export default function Sales() {
                       </button>
                     </td>
                     <td className="py-2 px-1 text-slate-400">{index + 1}</td>
-                    <td className="py-2 px-2 font-mono truncate" title={safeText(s.invoice_no) || '-'}>{safeText(s.invoice_no) || '-'}</td>
+                    <td className="py-2 px-2 font-mono truncate" title={safeText(s.invoice_no) || '-'}>{safeText(s.invoice_no) || <NoValue />}</td>
                     <td className="py-2 px-2">{formatDate(s.date)}</td>
                     <td className="py-2 px-2 font-medium text-slate-700 truncate" title={safeText(s.customer_name) || '-'}>
                       {safeText(s.customer_name) || '-'}
                     </td>
-                    <td className="py-2 px-2 text-slate-500 truncate" title={s.customer_phone || '-'}>{s.customer_phone || '-'}</td>
+                    <td className="py-2 px-2 text-slate-500 truncate" title={s.customer_phone || '-'}>{s.customer_phone || <NoValue />}</td>
                     <td className="py-2 px-2 text-right font-medium text-slate-700">{formatCurr(grossTotal)}</td>
                     <td className="py-2 px-2 text-right text-brand-blue">{formatCurr(saleDiscount(s))}</td>
                     <td className="py-2 px-2 text-right font-semibold text-brand-green">{formatCurr(subtotalAfterDiscount)}</td>
                     <td className="py-2 px-2 text-right font-medium text-slate-700">
-                      {showLedgerFinancials ? (purchaseAmount > 0 ? formatCurr(purchaseAmount) : '-') : '****'}
+                      {showLedgerFinancials ? (purchaseAmount > 0 ? formatCurr(purchaseAmount) : <ZeroAmount />) : '****'}
                     </td>
                     <td className={`py-2 px-2 text-right font-bold ${profit === null ? 'text-slate-400' : profit >= 0 ? 'text-green-600' : 'text-brand-red'}`}>
                       {showLedgerFinancials ? (profit === null ? '-' : formatCurr(profit)) : '****'}
                     </td>
                     <td className="py-2 px-2 text-right text-brand-green font-medium">{formatCurr(Number(s.paid_amount || 0))}</td>
                     <td className="py-2 px-2 text-slate-500 truncate" title={saleAccountDisplay(s)}>{saleAccountDisplay(s)}</td>
-                    <td className="py-2 px-2 text-right text-brand-red font-semibold">{s.due_amount > 0 ? formatCurr(s.due_amount) : '-'}</td>
+                    <td className="py-2 px-2 text-right text-brand-red font-semibold">{s.due_amount > 0 ? formatCurr(s.due_amount) : <ZeroAmount />}</td>
                     <td className="py-2 px-2 text-center">
                       <span className={`text-xs px-2 py-1 rounded font-medium ${
                         status === 'delivered' ? 'bg-green-100 text-green-700' :
@@ -2820,10 +2821,10 @@ export default function Sales() {
                                                 {formatDate(latestDeliveryDate)}
                                               </span>
                                             ) : (
-                                              <span className="text-slate-400">-</span>
+                                              <NoValue />
                                             )}
                                           </td>
-                                          <td className="py-4 px-3 text-center text-slate-400">-</td>
+                                          <td className="py-4 px-3 text-center text-slate-400"><NoValue /></td>
                                           <td className="py-4 px-4 text-center">
                                             {itemPending > 0 ? (
                                               <button
@@ -2875,8 +2876,8 @@ export default function Sales() {
                                         <td className="py-3 px-4">{formatDate(delivery.delivery_date)}</td>
                                         <td className="py-3 px-4 font-medium text-slate-700">{delivery.product_name}</td>
                                         <td className="py-3 px-4 text-right font-bold text-green-600">{delivery.delivered_qty}</td>
-                                        <td className="py-3 px-4">{delivery.delivered_by || '-'}</td>
-                                        <td className="py-3 px-4 text-slate-500">{delivery.notes || '-'}</td>
+                                        <td className="py-3 px-4">{delivery.delivered_by || <NoValue />}</td>
+                                        <td className="py-3 px-4 text-slate-500">{delivery.notes || <NoValue />}</td>
                                       </tr>
                                     ))}
                                     {saleDeliveryRows(s).length === 0 && (
@@ -3324,7 +3325,7 @@ export default function Sales() {
                           <td className="border border-slate-600 py-1 px-1 text-right align-top">{formatCurr(unitMrp)}</td>
                           <td className="border border-slate-600 py-1 px-1 text-center align-top">{formatNum(qty)}</td>
                           <td className="border border-slate-600 py-1 px-1 text-right align-top">{formatCurr(totalValue)}</td>
-                          <td className="border border-slate-600 py-1 px-1 text-right align-top">{discountTotal > 0 ? formatCurr(discountTotal) : '-'}</td>
+                          <td className="border border-slate-600 py-1 px-1 text-right align-top">{formatCurr(discountTotal > 0 ? discountTotal : 0)}</td>
                           <td className="border border-slate-600 py-1 px-2 text-right align-top font-semibold">{formatCurr(subtotal)}</td>
                         </tr>
                       )
@@ -3333,7 +3334,7 @@ export default function Sales() {
                       <td className="border border-slate-600 py-1 px-2 text-center" colSpan={3}>{invoiceLabels.total}</td>
                       <td className="border border-slate-600 py-1 px-1 text-center">{formatNum(invoiceTotalQty(selectedSale))}</td>
                       <td className="border border-slate-600 py-1 px-1 text-right">{formatCurr(invoiceItemSubtotal(selectedSale))}</td>
-                      <td className="border border-slate-600 py-1 px-1 text-right">{saleDiscount(selectedSale) > 0 ? formatCurr(saleDiscount(selectedSale)) : '-'}</td>
+                      <td className="border border-slate-600 py-1 px-1 text-right">{formatCurr(saleDiscount(selectedSale) > 0 ? saleDiscount(selectedSale) : 0)}</td>
                       <td className="border border-slate-600 py-1 px-2 text-right">{formatCurr(Number(selectedSale.net_amount || 0))}</td>
                     </tr>
                   </tbody>

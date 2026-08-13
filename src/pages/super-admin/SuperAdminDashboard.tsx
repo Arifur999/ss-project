@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import { LiveOwner, OwnerStatus, daysLeft, formatDate, loadOwners } from './superAdminLive'
 import { updateOwnerSubscription } from '../../services/admin.services'
 import { getPlatformSummary } from '../../services/platformFinance.services'
+import { NoValue } from '../../components/CellValue'
 
 const money = (value: number) => `Tk ${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
 
@@ -138,14 +139,14 @@ export default function SuperAdminDashboard() {
     { title: 'Expired Owners', value: String(summary.expired), hint: `${summary.expiringSoon} expiring soon`, icon: <CreditCard size={18} />, tone: 'orange' },
     {
       title: 'Profit',
-      value: finance ? money(finance.profit) : '—',
+      value: finance ? money(finance.profit) : <NoValue />,
       hint: 'All income minus all expenses',
       icon: <TrendingUp size={18} />,
       tone: finance && finance.profit < 0 ? 'red' : 'green',
     },
     {
       title: 'Available',
-      value: finance ? money(finance.available) : '—',
+      value: finance ? money(finance.available) : <NoValue />,
       hint: 'Profit minus what you have withdrawn',
       icon: <Wallet size={18} />,
       tone: finance && finance.available < 0 ? 'red' : 'blue',

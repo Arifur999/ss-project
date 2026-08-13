@@ -6,6 +6,7 @@ import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'
 import { useLang } from '../../context/LanguageContext'
 import { formatDate } from '../../lib/utils'
+import { NoValue } from '../../components/CellValue'
 
 export default function EmployeeDashboard() {
   const { t, formatCurr } = useLang()
@@ -101,16 +102,16 @@ export default function EmployeeDashboard() {
                 <tr key={emp.id} className={emp.is_active ? 'table-row' : 'table-row bg-red-50/40'}>
                   <td className="py-2.5 px-4 font-medium text-slate-500">{index + 1}</td>
                   <td className="py-2.5 px-4 font-medium">{emp.name}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp.phone || '—'}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp.address || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp.phone || <NoValue />}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp.address || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right text-brand-green font-medium">{formatCurr(empSalary.salary)}</td>
                   <td className="py-2.5 px-4 text-right text-brand-blue font-medium">{formatCurr(empSalary.bonus)}</td>
                   <td className="py-2.5 px-4 text-right font-semibold">{formatCurr(subtotal)}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp.join_date ? formatDate(emp.join_date) : '—'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp.join_date ? formatDate(emp.join_date) : <NoValue />}</td>
                   <td className="py-2.5 px-4" style={{ color: emp.resign_date ? '#dc2626' : '#64748b' }}>
-                    {emp.resign_date ? formatDate(emp.resign_date) : '—'}
+                    {emp.resign_date ? formatDate(emp.resign_date) : <NoValue />}
                   </td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp.notes || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{emp.notes || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right text-slate-600">{calculateWorkingDays(emp)}</td>
                 </tr>
               )

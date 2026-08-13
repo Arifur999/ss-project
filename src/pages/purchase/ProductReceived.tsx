@@ -13,6 +13,7 @@ import { createReceiveStockBatch } from '../../lib/fifoInventory'
 import { deletePurchaseItem, deletePurchaseReceive, receivePurchaseItem, setPurchaseItemReceivedQty } from '../../services/purchase.services'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue } from '../../components/CellValue'
 
 interface PendingProduct {
   id: string
@@ -407,9 +408,9 @@ export default function ReceiveProduct() {
                     {item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'Partial' : 'Pending') : 'Received'}
                   </span>
                 </td>
-                <td className="py-2.5 px-3">{item.receive_date ? formatDate(item.receive_date) : '-'}</td>
-                <td className="py-2.5 px-3">{item.receiver_name || '-'}</td>
-                <td className="py-2.5 px-3 max-w-[220px] truncate" title={item.receive_note || ''}>{item.receive_note || '-'}</td>
+                <td className="py-2.5 px-3">{item.receive_date ? formatDate(item.receive_date) : <NoValue />}</td>
+                <td className="py-2.5 px-3">{item.receiver_name || <NoValue />}</td>
+                <td className="py-2.5 px-3 max-w-[220px] truncate" title={item.receive_note || ''}>{item.receive_note || <NoValue />}</td>
                 <td className="py-2.5 px-3 text-center text-slate-600">{item.durationLabel}</td>
                 <td className="sticky right-0 bg-white px-3 py-2.5 text-right">
                   <div className="flex min-w-[126px] items-center justify-end gap-1">

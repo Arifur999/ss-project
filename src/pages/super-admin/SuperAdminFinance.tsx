@@ -24,6 +24,7 @@ import {
   type PlatformFinanceSummary,
   type PlatformWithdrawal,
 } from '../../services/platformFinance.services'
+import { NoValue } from '../../components/CellValue'
 
 const EMPTY_SUMMARY: PlatformFinanceSummary = {
   subscription_monthly: 0,
@@ -316,9 +317,9 @@ export default function SuperAdminFinance() {
                 ) : expenses.map(item => (
                   <tr key={item.id} className="border-b border-slate-50">
                     <td className="py-2 pr-3 whitespace-nowrap">{formatDate(item.date)}</td>
-                    <td className="py-2 pr-3">{item.category || '-'}</td>
+                    <td className="py-2 pr-3">{item.category || <NoValue />}</td>
                     <td className="py-2 pr-3 text-right font-medium text-brand-red whitespace-nowrap">{money(item.amount)}</td>
-                    <td className="py-2 pr-3 text-slate-500">{item.notes || '-'}</td>
+                    <td className="py-2 pr-3 text-slate-500">{item.notes || <NoValue />}</td>
                     <td className="py-2 text-right print:hidden">
                       <button onClick={() => openExpense(item)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="Edit"><Pencil size={15} /></button>
                       <button onClick={() => removeExpense(item)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-brand-red" title="Delete"><Trash2 size={15} /></button>
@@ -354,9 +355,9 @@ export default function SuperAdminFinance() {
                 ) : withdrawals.map(item => (
                   <tr key={item.id} className="border-b border-slate-50">
                     <td className="py-2 pr-3 whitespace-nowrap">{formatDate(item.date)}</td>
-                    <td className="py-2 pr-3">{item.taken_by || '-'}</td>
+                    <td className="py-2 pr-3">{item.taken_by || <NoValue />}</td>
                     <td className="py-2 pr-3 text-right font-medium whitespace-nowrap">{money(item.amount)}</td>
-                    <td className="py-2 pr-3 text-slate-500">{item.notes || '-'}</td>
+                    <td className="py-2 pr-3 text-slate-500">{item.notes || <NoValue />}</td>
                     <td className="py-2 text-right print:hidden">
                       <button onClick={() => openWithdrawal(item)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="Edit"><Pencil size={15} /></button>
                       <button onClick={() => removeWithdrawal(item)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-brand-red" title="Delete"><Trash2 size={15} /></button>

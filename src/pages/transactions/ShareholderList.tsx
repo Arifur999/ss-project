@@ -7,6 +7,7 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { useLang } from '../../context/LanguageContext'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
+import { NoValue } from '../../components/CellValue'
 
 // Moved out of Settings: a shareholder list belongs beside the investments and
 // withdrawals it explains, not behind a settings tab.
@@ -115,8 +116,8 @@ export default function ShareholderList() {
                   <tr key={sh.id} className="table-row">
                     <td className="py-2 px-3 text-slate-500">{index + 1}</td>
                     <td className="py-2 px-3 font-medium">{sh.name}</td>
-                    <td className="py-2 px-3 text-slate-500">{sh.phone || '-'}</td>
-                    <td className="py-2 px-3 text-slate-500">{sh.address || '-'}</td>
+                    <td className="py-2 px-3 text-slate-500">{sh.phone || <NoValue />}</td>
+                    <td className="py-2 px-3 text-slate-500">{sh.address || <NoValue />}</td>
                     <td className="py-2 px-3 text-right text-slate-500">{formatCurr(openingAmount)}</td>
                     <td className="py-2 px-3 text-right">
                       <div className="flex gap-1 justify-end">

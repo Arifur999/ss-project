@@ -14,6 +14,7 @@ import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredA
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue, ZeroAmount } from '../../components/CellValue'
 
 type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id', string>>
 
@@ -259,8 +260,8 @@ export default function LoanTransactions() {
           <td>${escapeHtml(loanDisplayName(record))}</td>
           <td class="${isPayment ? 'payment' : 'receive'}">${isPayment ? 'Payment' : 'Receive'}</td>
           <td>${escapeHtml(record.account_name || '-')}</td>
-          <td class="amount receive">${amounts.received ? formatPrintAmount(amounts.received) : '-'}</td>
-          <td class="amount payment">${amounts.paid ? formatPrintAmount(amounts.paid) : '-'}</td>
+          <td class="amount receive">${formatPrintAmount(amounts.received || 0)}</td>
+          <td class="amount payment">${formatPrintAmount(amounts.paid || 0)}</td>
           <td>${escapeHtml(record.notes || '-')}</td>
         </tr>
       `
@@ -410,10 +411,10 @@ export default function LoanTransactions() {
                   <td className="py-2.5 px-4">{formatDate(record.date)}</td>
                   <td className="py-2.5 px-4 font-medium">{loanDisplayName(record)}</td>
                   <td className={`py-2.5 px-4 font-medium ${isPayment ? 'text-red-600' : 'text-green-600'}`}>{typeText}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{record.account_name || '-'}</td>
-                  <td className="py-2.5 px-4 text-right text-brand-green">{amounts.received ? formatCurr(amounts.received) : '-'}</td>
-                  <td className="py-2.5 px-4 text-right text-brand-red">{amounts.paid ? formatCurr(amounts.paid) : '-'}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{record.notes || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{record.account_name || <NoValue />}</td>
+                  <td className="py-2.5 px-4 text-right text-brand-green">{amounts.received ? formatCurr(amounts.received) : <ZeroAmount />}</td>
+                  <td className="py-2.5 px-4 text-right text-brand-red">{amounts.paid ? formatCurr(amounts.paid) : <ZeroAmount />}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{record.notes || <NoValue />}</td>
                   <td className="py-2.5 px-4">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => editRecord(record)} className="text-slate-400 hover:text-slate-700"><Pencil size={15} /></button>

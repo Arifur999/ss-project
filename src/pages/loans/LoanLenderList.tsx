@@ -10,6 +10,7 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { deleteStoredLoanLender, isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders, saveStoredLoanLender } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
+import { NoValue } from '../../components/CellValue'
 
 type LenderValidationErrors = Partial<Record<'name' | 'lender_type' | 'phone', string>>
 
@@ -363,7 +364,7 @@ export default function LoanLenderList() {
                     </div>
                   </td>
                   <td className="py-2.5 px-4">{lenderTypeLabel(lender.lender_type)}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{lender.phone || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{lender.phone || <NoValue />}</td>
                   <td className={`py-2.5 px-4 text-right font-semibold ${Number(lender.opening_balance || 0) < 0 ? 'text-brand-red' : 'text-brand-green'}`}>
                     {formatCurr(Number(lender.opening_balance || 0))}
                   </td>

@@ -16,6 +16,7 @@ import {
   type SmsPackage,
   type SmsPurchase,
 } from '../../services/sms.services'
+import { NoValue } from '../../components/CellValue'
 
 const badgeClass: Record<string, string> = {
   paid: 'badge-green',
@@ -140,7 +141,7 @@ export default function SuperAdminSms() {
       />
 
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Gateway balance" value={balance?.balance != null ? String(balance.balance) : '—'} icon={<Wallet size={20} />} color="blue" />
+        <StatCard title="Gateway balance" value={balance?.balance != null ? String(balance.balance) : <NoValue />} icon={<Wallet size={20} />} color="blue" />
         <StatCard title="Pending purchases" value={String(pendingCount)} icon={<RefreshCcw size={20} />} color="orange" />
         <StatCard title="Credits sold" value={String(soldCredits)} icon={<MessageSquareText size={20} />} color="green" />
         <StatCard title="SMS revenue" value={formatBDT(revenue)} icon={<Package size={20} />} color="green" />
@@ -218,11 +219,11 @@ export default function SuperAdminSms() {
               {!loading && purchases.map(p => (
                 <tr key={p.id} className="table-row">
                   <td className="px-4 py-3 font-medium text-slate-800">{p.invoice_no || p.id}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.owner_name || p.owner_email || '-'}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.package_name || '-'}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.owner_name || p.owner_email || <NoValue />}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.package_name || <NoValue />}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{p.sms_count.toLocaleString('en-US')}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.sender_number || '-'}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{p.trx_id || '-'}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.sender_number || <NoValue />}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{p.trx_id || <NoValue />}</td>
                   <td className="px-4 py-3"><span className={badgeClass[p.status] || 'badge-orange'}>{p.status}</span></td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatBDT(Number(p.amount))}</td>
                   <td className="px-4 py-3 text-right">
@@ -232,7 +233,7 @@ export default function SuperAdminSms() {
                         <button className="btn-primary !px-2 !py-1 text-xs" disabled={updatingId === p.id} onClick={() => markPurchase(p.id, 'paid')}>Approve</button>
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-400">-</span>
+                      <NoValue />
                     )}
                   </td>
                 </tr>

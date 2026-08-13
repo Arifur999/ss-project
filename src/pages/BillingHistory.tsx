@@ -8,6 +8,7 @@ import { formatDate } from '../lib/utils'
 import { useLang } from '../context/LanguageContext'
 import { getMySubscriptionPayments } from '../services/admin.services'
 import { getMySmsPurchases, getSmsWallet } from '../services/sms.services'
+import { NoValue } from '../components/CellValue'
 
 type Kind = 'plan' | 'sms'
 
@@ -125,7 +126,7 @@ export default function BillingHistory() {
         />
         <StatCard
           title={bn ? 'এসএমএস ব্যালেন্স' : 'SMS balance'}
-          value={smsBalance === null ? '—' : formatNum(smsBalance)}
+          value={smsBalance === null ? <NoValue /> : formatNum(smsBalance)}
           icon={<Wallet size={20} />}
           color="green"
         />
@@ -169,7 +170,7 @@ export default function BillingHistory() {
               )}
               {!loading && displayed.map(row => (
                 <tr key={row.id} className="table-row">
-                  <td className="px-4 py-3 text-slate-600">{row.date ? formatDate(row.date) : '-'}</td>
+                  <td className="px-4 py-3 text-slate-600">{row.date ? formatDate(row.date) : <NoValue />}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${row.kind === 'plan' ? 'bg-slate-900 text-white' : 'bg-neutral-100 text-navy-900'}`}>
                       {row.kind === 'plan' ? <CreditCard size={12} /> : <MessageSquareText size={12} />}

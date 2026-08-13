@@ -11,6 +11,7 @@ import { formatDate, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
+import { NoValue } from '../../components/CellValue'
 
 type IncomeType = 'supplier' | 'other'
 type DateFilter = 'all' | 'thisMonth' | 'custom'
@@ -337,7 +338,7 @@ export default function OtherIncome() {
                   <td className="px-4 py-3 font-semibold text-slate-700">{item.income_type === 'supplier' ? item.supplier_name : item.source_name}</td>
                   <td className="px-4 py-3 text-right font-bold text-brand-green">{formatCurr(Number(item.amount || 0))}</td>
                   <td className="px-4 py-3 text-slate-500">{item.account_name}</td>
-                  <td className="px-4 py-3 text-slate-400">{item.notes || '-'}</td>
+                  <td className="px-4 py-3 text-slate-400">{item.notes || <NoValue />}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button onClick={() => setViewItem(item)} className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-slate-200" title="View"><Eye size={15} /></button>

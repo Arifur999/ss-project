@@ -13,6 +13,7 @@ import TableSkeleton from '../../components/TableSkeleton'
 import { getCustomersPage } from '../../services/admin.services'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../../components/ProgressDialog'
 import { insertInChunks, CsvImportError, partialImportMessage } from '../../lib/csvImport'
+import { NoValue } from '../../components/CellValue'
 
 type CustomerValidationErrors = Partial<Record<'name' | 'phone', string>>
 
@@ -363,8 +364,8 @@ export default function CustomerList() {
               <tr key={c.id} className="table-row">
                 <td className="py-2.5 px-4 text-slate-500 text-sm font-medium">{idx + 1}</td>
                 <td className="py-2.5 px-4 font-medium">{c.name}</td>
-                <td className="py-2.5 px-4 text-slate-500">{c.phone || '—'}</td>
-                <td className="py-2.5 px-4 text-slate-500">{c.address || '—'}</td>
+                <td className="py-2.5 px-4 text-slate-500">{c.phone || <NoValue />}</td>
+                <td className="py-2.5 px-4 text-slate-500">{c.address || <NoValue />}</td>
                 <td className="py-2.5 px-4 text-right font-medium">
                   <span className={c.opening_due > 0 ? 'text-brand-red' : 'text-slate-500'}>{formatCurr(c.opening_due || 0)}</span>
                 </td>

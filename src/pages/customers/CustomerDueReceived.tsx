@@ -16,6 +16,7 @@ import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue, ZeroAmount } from '../../components/CellValue'
 
 const smsReceiptKey = 'due_received_sms_v1'
 
@@ -615,22 +616,22 @@ export default function CustomerDueReceived() {
                     <p className="font-medium text-slate-800">{payment.customer_name}</p>
                     {payment.invoice_no && <p className="text-xs text-slate-400">{payment.invoice_no}</p>}
                   </td>
-                  <td className="py-2.5 px-4 text-slate-500">{payment.customer_phone || '-'}</td>
-                  <td className="py-2.5 px-4">{payment.payment_methods[0]?.account_name || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{payment.customer_phone || <NoValue />}</td>
+                  <td className="py-2.5 px-4">{payment.payment_methods[0]?.account_name || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
-                    {payment.payment_methods[0]?.amount ? formatCurr(payment.payment_methods[0].amount) : '-'}
+                    {payment.payment_methods[0]?.amount ? formatCurr(payment.payment_methods[0].amount) : <ZeroAmount />}
                   </td>
-                  <td className="py-2.5 px-4">{payment.payment_methods[1]?.account_name || '-'}</td>
+                  <td className="py-2.5 px-4">{payment.payment_methods[1]?.account_name || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
-                    {payment.payment_methods[1]?.amount ? formatCurr(payment.payment_methods[1].amount) : '-'}
+                    {payment.payment_methods[1]?.amount ? formatCurr(payment.payment_methods[1].amount) : <ZeroAmount />}
                   </td>
                   <td className="py-2.5 px-4 text-right font-semibold text-brand-green whitespace-nowrap">{formatCurr(payment.total_received)}</td>
                   <td className="py-2.5 px-4 text-right font-semibold text-brand-red whitespace-nowrap">
-                    {payment.discount ? formatCurr(payment.discount) : '-'}
+                    {payment.discount ? formatCurr(payment.discount) : <ZeroAmount />}
                   </td>
-                  <td className="py-2.5 px-4 text-slate-600">{payment.discount_category || '-'}</td>
-                  <td className="py-2.5 px-4 text-slate-600">{payment.payment_receiver || '-'}</td>
-                  <td className="py-2.5 px-4 text-slate-500">{payment.display_notes || '-'}</td>
+                  <td className="py-2.5 px-4 text-slate-600">{payment.discount_category || <NoValue />}</td>
+                  <td className="py-2.5 px-4 text-slate-600">{payment.payment_receiver || <NoValue />}</td>
+                  <td className="py-2.5 px-4 text-slate-500">{payment.display_notes || <NoValue />}</td>
                   <td className="py-2.5 px-4">
                     <div className="flex items-center justify-center gap-2">
                       <button

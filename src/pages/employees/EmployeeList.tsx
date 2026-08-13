@@ -10,6 +10,7 @@ import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 import { formatDate, todayISO } from '../../lib/utils'
 import TableSkeleton from '../../components/TableSkeleton'
+import { NoValue } from '../../components/CellValue'
 
 type EmployeeActionType = 'Join' | 'Resign'
 type EmployeeValidationErrors = Partial<Record<'action_type' | 'employee_id' | 'name' | 'phone' | 'address' | 'join_date' | 'resign_date', string>>
@@ -361,11 +362,11 @@ export default function EmployeeList() {
               <tr key={emp.id} className={emp.is_active ? 'table-row' : 'table-row opacity-60'}>
                 <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                 <td className="py-2.5 px-4 font-medium">{emp.name}</td>
-                <td className="py-2.5 px-4 text-slate-500">{emp.phone || '—'}</td>
-                <td className="py-2.5 px-4 text-slate-500">{emp.address || '—'}</td>
-                <td className="py-2.5 px-4 text-slate-500">{emp.join_date ? formatDate(emp.join_date) : '—'}</td>
+                <td className="py-2.5 px-4 text-slate-500">{emp.phone || <NoValue />}</td>
+                <td className="py-2.5 px-4 text-slate-500">{emp.address || <NoValue />}</td>
+                <td className="py-2.5 px-4 text-slate-500">{emp.join_date ? formatDate(emp.join_date) : <NoValue />}</td>
                 <td className="py-2.5 px-4" style={{ color: emp.resign_date ? '#dc2626' : '#64748b' }}>
-                  {emp.resign_date ? formatDate(emp.resign_date) : '—'}
+                  {emp.resign_date ? formatDate(emp.resign_date) : <NoValue />}
                 </td>
                 <td className="py-2.5 px-4 text-center">
                   <span className={`text-xs font-semibold px-2 py-1 rounded ${emp.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

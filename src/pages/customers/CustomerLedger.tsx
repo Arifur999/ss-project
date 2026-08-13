@@ -13,6 +13,7 @@ import {
   subscribeCustomerDashboardDataset,
   type CustomerDashboardRow,
 } from './customerDashboardData'
+import { ZeroAmount } from '../../components/CellValue'
 
 type CustomerOption = {
   id: string
@@ -177,9 +178,9 @@ function makeCustomerLedgerPdf(customer: CustomerProfile, summary: LedgerSummary
     content += pdfText(entry.entry_type === 'sale' ? 'Sale' : entry.entry_type === 'payment' ? 'Payment' : entry.entry_type, cols[2], y, 7.5, { max: 12 })
     content += pdfText(entry.reference || '-', cols[3], y, 7.5, { max: 24 })
     content += pdfText(formatTk(entry.previous_due), cols[4], y, 7.5, { align: 'right' })
-    content += pdfText(entry.purchase ? formatTk(entry.purchase) : '-', cols[5], y, 7.5, { align: 'right' })
-    content += pdfText(entry.discount ? formatTk(entry.discount) : '-', cols[6], y, 7.5, { align: 'right' })
-    content += pdfText(entry.payment ? formatTk(entry.payment) : '-', cols[7], y, 7.5, { align: 'right' })
+    content += pdfText(formatTk(entry.purchase || 0), cols[5], y, 7.5, { align: 'right' })
+    content += pdfText(formatTk(entry.discount || 0), cols[6], y, 7.5, { align: 'right' })
+    content += pdfText(formatTk(entry.payment || 0), cols[7], y, 7.5, { align: 'right' })
     content += pdfText(formatTk(entry.current_due), cols[8], y, 7.5, { bold: true, align: 'right' })
     y -= 20
   })
@@ -603,9 +604,9 @@ export default function CustomerLedger() {
                       <span>{entry.description}</span>
                     </td>
                     <td>{formatCurr(entry.previous_due)}</td>
-                    <td>{entry.purchase ? formatCurr(entry.purchase) : '-'}</td>
-                    <td>{entry.discount ? formatCurr(entry.discount) : '-'}</td>
-                    <td>{entry.payment ? formatCurr(entry.payment) : '-'}</td>
+                    <td>{entry.purchase ? formatCurr(entry.purchase) : <ZeroAmount />}</td>
+                    <td>{entry.discount ? formatCurr(entry.discount) : <ZeroAmount />}</td>
+                    <td>{entry.payment ? formatCurr(entry.payment) : <ZeroAmount />}</td>
                     <td>{formatCurr(entry.current_due)}</td>
                   </tr>
                 ))}
@@ -685,9 +686,9 @@ export default function CustomerLedger() {
                         <p className="mt-1 text-xs text-slate-400">{entry.description}</p>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-slate-700">{formatCurr(entry.previous_due)}</td>
-                      <td className="px-4 py-3 text-right font-bold text-brand-green">{entry.purchase ? formatCurr(entry.purchase) : '-'}</td>
-                      <td className="px-4 py-3 text-right font-bold text-brand-red">{entry.discount ? formatCurr(entry.discount) : '-'}</td>
-                      <td className="px-4 py-3 text-right font-bold text-brand-green">{entry.payment ? formatCurr(entry.payment) : '-'}</td>
+                      <td className="px-4 py-3 text-right font-bold text-brand-green">{entry.purchase ? formatCurr(entry.purchase) : <ZeroAmount />}</td>
+                      <td className="px-4 py-3 text-right font-bold text-brand-red">{entry.discount ? formatCurr(entry.discount) : <ZeroAmount />}</td>
+                      <td className="px-4 py-3 text-right font-bold text-brand-green">{entry.payment ? formatCurr(entry.payment) : <ZeroAmount />}</td>
                       <td className={`px-4 py-3 text-right text-base font-extrabold ${entry.current_due > 0 ? 'text-brand-red' : 'text-brand-green'}`}>
                         {formatCurr(entry.current_due)}
                       </td>

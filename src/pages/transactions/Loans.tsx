@@ -7,6 +7,7 @@ import Modal from '../../components/Modal'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
+import { ZeroAmount } from '../../components/CellValue'
 
 export default function Loans() {
   const { t, formatCurr } = useLang()
@@ -101,8 +102,8 @@ export default function Loans() {
                 <td className="py-2.5 px-4">{formatDate(r.date)}</td>
                 <td className="py-2.5 px-4 font-medium">{r.lender_name}</td>
                 <td className="py-2.5 px-4"><span className="badge-blue capitalize">{r.loan_type === 'personal' ? t('loans_typePersonal') : t('loans_typeBank')}</span></td>
-                <td className="py-2.5 px-4 text-right text-brand-green">{r.received_amount > 0 ? formatCurr(r.received_amount) : '—'}</td>
-                <td className="py-2.5 px-4 text-right text-brand-red">{r.payment_amount > 0 ? formatCurr(r.payment_amount) : '—'}</td>
+                <td className="py-2.5 px-4 text-right text-brand-green">{r.received_amount > 0 ? formatCurr(r.received_amount) : <ZeroAmount />}</td>
+                <td className="py-2.5 px-4 text-right text-brand-red">{r.payment_amount > 0 ? formatCurr(r.payment_amount) : <ZeroAmount />}</td>
                 <td className="py-2.5 px-4 text-slate-500">{r.account_name}</td>
               </tr>
             ))}

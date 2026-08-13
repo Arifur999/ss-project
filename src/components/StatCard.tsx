@@ -3,7 +3,9 @@ import { cn } from '../lib/utils'
 
 interface StatCardProps {
   title: string
-  value: string
+  // A node, not a string: a card whose figure has not arrived shows the
+  // "no value" marker in place of the number.
+  value: React.ReactNode
   icon?: React.ReactNode
   trend?: number
   color?: 'green' | 'red' | 'blue' | 'orange' | 'default'

@@ -9,6 +9,7 @@ import TableSkeleton from '../components/TableSkeleton'
 import PageHeader from '../components/PageHeader'
 import { useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'
+import { NoValue } from '../components/CellValue'
 
 type InventoryRow = {
   id: string; product_id: string; available_qty: number; upcoming_qty: number; dp_price: number | null
@@ -403,7 +404,7 @@ export default function Inventory() {
               return (
                 <tr key={row.id} className="table-row">
                   <td className="py-2 px-3 text-slate-500">{index + 1}</td>
-                  <td className="py-2 px-3 font-mono text-xs text-slate-500">{row.products?.product_code || '—'}</td>
+                  <td className="py-2 px-3 font-mono text-xs text-slate-500">{row.products?.product_code || <NoValue />}</td>
                   <td className="py-2 px-3 font-medium">{row.products?.name}</td>
                   <td className="py-2 px-3 text-center">
                     {row.products?.image_url ? (
@@ -423,7 +424,7 @@ export default function Inventory() {
                       <div className="w-8 h-8 bg-slate-100 rounded-md flex items-center justify-center mx-auto"><Image size={12} className="text-slate-400" /></div>
                     )}
                   </td>
-                  <td className="py-2 px-3 text-slate-500 text-xs">{row.products?.suppliers?.company_name || row.products?.suppliers?.name || '—'}</td>
+                  <td className="py-2 px-3 text-slate-500 text-xs">{row.products?.suppliers?.company_name || row.products?.suppliers?.name || <NoValue />}</td>
                   <td className="py-2 px-3 text-right text-slate-600">{row.opening_qty}</td>
                   <td className="py-2 px-3 text-right text-slate-700 font-medium">{row.order_qty}</td>
                   <td className="py-2 px-3 text-right text-brand-green font-medium">{row.received_qty}</td>

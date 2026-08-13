@@ -7,6 +7,7 @@ import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import { toISODate } from '../../lib/utils'
+import { NoValue } from '../../components/CellValue'
 
 const shareholderOpeningAmountFallbackKey = 'shareholder_opening_amount_fallback_v1'
 type FilterMode = 'thisMonth' | 'year' | 'custom'
@@ -395,8 +396,8 @@ export default function ShareholderDashboard() {
               <tr key={row.id} className="table-row">
                 <td className="px-4 py-2.5 text-slate-500">{index + 1}</td>
                 <td className="px-4 py-2.5 font-medium">{row.name}</td>
-                <td className="px-4 py-2.5 text-slate-500">{row.phone || '-'}</td>
-                <td className="px-4 py-2.5 text-slate-500">{row.address || '-'}</td>
+                <td className="px-4 py-2.5 text-slate-500">{row.phone || <NoValue />}</td>
+                <td className="px-4 py-2.5 text-slate-500">{row.address || <NoValue />}</td>
                 <td className="px-4 py-2.5 text-right">{formatCurr(row.opening)}</td>
                 <td className="px-4 py-2.5 text-right text-brand-green">{formatCurr(row.periodInvested)}</td>
                 <td className="px-4 py-2.5 text-right text-brand-red">{formatCurr(row.periodWithdrawn)}</td>

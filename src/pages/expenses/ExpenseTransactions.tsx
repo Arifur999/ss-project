@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { NoValue } from '../../components/CellValue'
 
 export default function ExpenseTransactions() {
   const { t, formatCurr } = useLang()
@@ -185,10 +186,10 @@ export default function ExpenseTransactions() {
               <tr key={`print-${expense.id}`}>
                 <td>{index + 1}</td>
                 <td>{formatDate(expense.date)}</td>
-                <td>{expense.category_name || '-'}</td>
+                <td>{expense.category_name || <NoValue />}</td>
                 <td>{formatCurr(expense.amount)}</td>
-                <td>{expense.account_name || '-'}</td>
-                <td>{expense.notes || '-'}</td>
+                <td>{expense.account_name || <NoValue />}</td>
+                <td>{expense.notes || <NoValue />}</td>
               </tr>
             ))}
             {filtered.length === 0 && (

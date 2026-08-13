@@ -699,5 +699,6 @@
   "nav_campaign": "ক্যাম্পেইন",
   "nav_buySms": "এসএমএস কিনুন",
   "nav_admin": "অ্যাডমিন",
-  "nav_package": "বিলিং ও প্ল্যান"
+  "nav_package": "বিলিং ও প্ল্যান",
+  "common_noValue": "কোনো তথ্য নেই"
 }

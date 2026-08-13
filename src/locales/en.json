@@ -699,5 +699,6 @@
   "nav_campaign": "Campaign",
   "nav_buySms": "Buy SMS",
   "nav_admin": "Admin",
-  "nav_package": "Billing & Plan"
+  "nav_package": "Billing & Plan",
+  "common_noValue": "No value"
 }
