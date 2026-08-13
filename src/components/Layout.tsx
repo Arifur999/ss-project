@@ -134,8 +134,13 @@ export default function Layout() {
         { key: 'monthlyTarget', label: t('settings_tabTargets'), icon: <Target size={16} />, path: '/reports/monthly-target' },
       ],
     },
-    { key: 'marketing', label: t('nav_marketing'), icon: <Megaphone size={18} weight="duotone" />, path: '/marketing' },
-    { key: 'recycleBin', label: t('nav_recycleBin'), icon: <Recycle size={18} weight="duotone" />, path: '/recycle-bin' },
+    {
+      key: 'marketing', label: t('nav_marketing'), icon: <Megaphone size={18} weight="duotone" />,
+      children: [
+        { key: 'campaign', label: t('nav_campaign'), icon: <Megaphone size={16} />, path: '/marketing' },
+        { key: 'buySms', label: t('nav_buySms'), icon: <MessageSquareText size={16} />, path: '/marketing/buy-sms' },
+      ],
+    },
     {
       key: 'employees', label: t('nav_employees'), icon: <IdentificationBadge size={18} weight="duotone" />,
       children: [
@@ -151,13 +156,21 @@ export default function Layout() {
     businessNavGroups.push({
       key: 'package', label: t('nav_package', 'Package'), icon: <Package size={18} weight="duotone" />,
       children: [
-        { key: 'smsPackages', label: t('nav_sms', 'SMS'), icon: <MessageSquareText size={16} />, path: '/package/sms' },
         { key: 'billingHistory', label: t('nav_billingHistory', 'Billing History'), icon: <FileText size={16} />, path: '/package/billing-history' },
         { key: 'currentPlan', label: t('nav_plan', 'Plan'), icon: <CreditCard size={16} />, path: '/current-plan' },
       ],
     } as any)
-    businessNavGroups.push({ key: 'settings', label: t('settings_userManagement', 'User Management'), icon: <UserCog size={18} />, path: '/user-management' } as any)
   }
+
+  const adminChildren: any[] = []
+  if (profile?.role === 'owner') {
+    adminChildren.push({ key: 'settings', label: t('settings_userManagement'), icon: <UserCog size={16} />, path: '/user-management' })
+  }
+  adminChildren.push({ key: 'recycleBin', label: t('nav_recycleBin'), icon: <Recycle size={16} />, path: '/recycle-bin' })
+  businessNavGroups.push({
+    key: 'admin', label: t('nav_admin'), icon: <UserCog size={18} weight="duotone" />,
+    children: adminChildren,
+  } as any)
 
   const navGroups = profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups
 

@@ -242,7 +242,8 @@ function AppRoutes() {
         <Route path="/reports/monthly-target" element={<MonthlyTarget />} />
         <Route path="/current-plan" element={<CurrentPlan />} />
         <Route path="/package/billing-history" element={<BillingHistory />} />
-        <Route path="/package/sms" element={<SmsPackages />} />
+        <Route path="/marketing/buy-sms" element={<SmsPackages />} />
+        <Route path="/package/sms" element={<Navigate to="/marketing/buy-sms" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
