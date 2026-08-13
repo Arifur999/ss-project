@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "axios": "^1.14.0",
     "clsx": "^2.1.0",
     "date-fns": "^3.3.1",

@@ -13,6 +13,7 @@ import { useLang } from '../context/LanguageContext'
 import { whatsAppLink } from '../lib/support'
 import NotificationBell from './NotificationBell'
 import ProfileMenu from './ProfileMenu'
+import ErrorBoundary from './ErrorBoundary'
 import ExpiryReminder from './ExpiryReminder'
 import toast from 'react-hot-toast'
 
@@ -279,7 +280,9 @@ export default function Layout() {
         </div>
 
         <main ref={mainRef} className="flex-1 overflow-auto">
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 
