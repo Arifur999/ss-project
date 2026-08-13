@@ -39,7 +39,7 @@
 @layer components {
   /* White-sidebar theme (was dark navy). Active item = solid black pill. */
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all duration-200 text-white/60 hover:bg-white/10 hover:text-white;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all duration-200 text-white/85 hover:bg-white/10 hover:text-white;
   }
   .sidebar-link.active {
     @apply bg-white text-navy-900;

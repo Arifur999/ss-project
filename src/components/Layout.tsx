@@ -185,7 +185,7 @@ export default function Layout() {
         <div key={item.key}>
           <button
             onClick={() => toggleGroup(item.key)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all text-white/60 hover:bg-white/10 hover:text-white"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all text-white/85 hover:bg-white/10 hover:text-white"
           >
             {item.icon}
             {!collapsed && (
@@ -196,7 +196,7 @@ export default function Layout() {
             )}
           </button>
           {isExpanded && !collapsed && (
-            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/15 pl-3">
               {item.children.map((child: any) => renderItem(child, depth + 1))}
             </div>
           )}
@@ -231,7 +231,7 @@ export default function Layout() {
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-white/50 hover:text-white transition-colors p-1"
+            className="text-white/70 hover:text-white transition-colors p-1"
           >
             {collapsed ? <Menu size={18} /> : <X size={18} />}
           </button>
