@@ -59,6 +59,31 @@ api.interceptors.response.use(
   }
 )
 
+/**
+ * An API failure that still knows what the server said.
+ *
+ * `unwrap` used to throw a plain Error carrying only a message, which loses
+ * the one thing some callers have to know: whether the server actually
+ * answered. "401, your session is over" and "I could not reach the server"
+ * are opposite situations and were indistinguishable - so a restart or a
+ * dropped connection read as being signed out.
+ */
+export class ApiError extends Error {
+  /** undefined when the request never got an answer at all. */
+  status?: number
+
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+/** True only when the server itself refused the request. */
+export function isUnauthorized(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401
+}
+
 // Normalizes any thrown error to a readable message (backend envelope aware).
 export function apiErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (axios.isAxiosError(error)) {
@@ -76,7 +101,10 @@ async function unwrap<T>(promise: Promise<{ data: ApiEnvelope<T> }>): Promise<T>
     const response = await promise
     return response.data.data
   } catch (error) {
-    throw new Error(apiErrorMessage(error))
+    throw new ApiError(
+      apiErrorMessage(error),
+      axios.isAxiosError(error) ? error.response?.status : undefined,
+    )
   }
 }
 

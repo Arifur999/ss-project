@@ -8,6 +8,7 @@ import {
   touchActivityRequest,
   verifyOtpRequest,
 } from '../services/auth.services'
+import { isUnauthorized } from '../lib/httpClient'
 
 export type UserRole = 'super_admin' | 'owner' | 'manager' | 'sales_staff' | 'accountant'
 export type SubscriptionStatus = 'pending' | 'trial' | 'active' | 'expired' | 'blocked' | 'suspended'
@@ -115,17 +116,64 @@ function effectiveSubscriptionStatus(subscription: OwnerSubscription | null): Ef
   return subscription.status
 }
 
+/**
+ * A note that someone was signed in, kept across reloads.
+ *
+ * The session itself is an httpOnly cookie, which this code cannot read - so
+ * on a fresh page load the app has no idea who you are until /auth/me answers.
+ * When that call cannot reach the server (a deploy restarting the API, a bad
+ * connection) the app has nothing to show but the login form, and it looks
+ * exactly like being signed out.
+ *
+ * This is not a credential and grants nothing: every request is still
+ * authorised by the cookie, server-side. It only lets the app say "one moment"
+ * instead of "sign in", and it is thrown away the moment the server actually
+ * says the session is over.
+ */
+const SESSION_HINT_KEY = 'auth_session_hint'
+
+function readSessionHint() {
+  try {
+    const raw = localStorage.getItem(SESSION_HINT_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function writeSessionHint(value: unknown) {
+  try {
+    localStorage.setItem(SESSION_HINT_KEY, JSON.stringify(value))
+  } catch {
+    // A full quota must never stop someone signing in.
+  }
+}
+
+function clearSessionHint() {
+  try {
+    localStorage.removeItem(SESSION_HINT_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [subscription, setSubscription] = useState<OwnerSubscription | null>(null)
+  // Seeded from the last known session so a reload paints the app straight
+  // away; /auth/me then confirms or corrects it within the second.
+  const hint = readSessionHint()
+  const [user, setUser] = useState<AuthUser | null>(hint?.user ?? null)
+  const [profile, setProfile] = useState<Profile | null>(hint?.profile ?? null)
+  const [subscription, setSubscription] = useState<OwnerSubscription | null>(hint?.subscription ?? null)
   const [loading, setLoading] = useState(true)
   const lastActivityTouch = useRef(0)
   const profileRef = useRef<Profile | null>(null)
+  // Cleared on unmount and whenever a load succeeds, so retries cannot stack.
+  const retryTimer = useRef<number | undefined>(undefined)
   profileRef.current = profile
 
   useEffect(() => {
     loadAccount()
+    return () => window.clearTimeout(retryTimer.current)
   }, [])
 
   // An owner's subscription can expire while the app is open - re-check near expiry.
@@ -142,17 +190,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.role, subscription?.id, subscription?.plan_status, subscription?.expiry_date])
 
-  async function loadAccount() {
+  /**
+   * Loads who is signed in.
+   *
+   * Only a 401 clears the session. Any other failure means we could not ask -
+   * the API container restarting during a deploy, a dropped connection, a
+   * timeout - and clearing on those was signing people out mid-work and
+   * losing whatever they had half-typed. The server is the only thing that
+   * gets to end a session; everything else is retried.
+   *
+   * By the time a 401 reaches here the interceptor has already tried a silent
+   * refresh and that failed too, so it really is over.
+   */
+  async function loadAccount(attempt = 0) {
     try {
       const account = await getMeRequest()
       setUser(account.user)
       setProfile(account.profile)
       setSubscription(account.subscription)
-    } catch {
-      setUser(null)
-      setProfile(null)
-      setSubscription(null)
-    } finally {
+      writeSessionHint(account)
+      window.clearTimeout(retryTimer.current)
+      setLoading(false)
+    } catch (error) {
+      if (isUnauthorized(error)) {
+        clearSessionHint()
+        setUser(null)
+        setProfile(null)
+        setSubscription(null)
+        setLoading(false)
+        return
+      }
+
+      // Unreachable, not unauthorized. Keep whoever is signed in on screen and
+      // try again - a deploy takes a few seconds, so back off up to a minute.
+      if (attempt < 6) {
+        const delay = Math.min(2000 * 2 ** attempt, 60_000)
+        retryTimer.current = window.setTimeout(() => loadAccount(attempt + 1), delay)
+      }
+      // Never leaves the app stuck on a loading screen, even while retrying.
       setLoading(false)
     }
   }
@@ -171,6 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(result.user)
       setProfile(result.profile)
       setSubscription(result.subscription)
+      writeSessionHint(result)
       return { error: null }
     } catch (error) {
       return { error: error instanceof Error ? error : new Error('Login failed') }
@@ -209,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(account.user)
       setProfile(account.profile)
       setSubscription(account.subscription)
+      writeSessionHint(account)
       return { error: null }
     } catch (error) {
       return { error: error instanceof Error ? error : new Error('Verification failed') }
@@ -227,6 +304,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
+    // Cleared first: whatever the network does next, this browser must stop
+    // believing anyone is signed in.
+    clearSessionHint()
     setUser(null)
     setProfile(null)
     setSubscription(null)
