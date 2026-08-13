@@ -7,7 +7,14 @@
 // This is display-acceleration only - never a source of truth. Values are
 // briefly stale until the background refetch completes.
 
-const PREFIX = 'page_cache_v1:'
+// The version is part of the key on purpose. A cached object is only ever
+// valid for the code that wrote it, so when a page changes the shape of what
+// it stores, this number goes up and every older entry stops being read
+// instead of being handed to code that expects new fields. Getting this wrong
+// crashed the dashboard for everyone who had used it before the change:
+// monthlyCashflow did not exist in the stored object, and .map on undefined
+// throws before anything renders.
+const PREFIX = 'page_cache_v2:'
 
 export function readPageCache<T>(key: string): T | null {
   try {

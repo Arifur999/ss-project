@@ -192,8 +192,10 @@ export default function Dashboard() {
   const navigate = useNavigate()
   // Paint the last-known dashboard for the default range instantly; only show
   // the spinner when there's nothing cached yet. loadDashboard() refetches.
-  const initialCached = readPageCache<DashboardData>(dashboardCacheKey('thisMonth', '', ''))
-  const [data, setData] = useState<DashboardData>(initialCached || emptyDashboardData)
+  const initialCached = readPageCache<Partial<DashboardData>>(dashboardCacheKey('thisMonth', '', ''))
+  const [data, setData] = useState<DashboardData>(
+    initialCached ? { ...emptyDashboardData, ...initialCached } : emptyDashboardData
+  )
   const [loading, setLoading] = useState(!initialCached)
   const [rangeType, setRangeType] = useState<RangeType>('thisMonth')
   const [customStart, setCustomStart] = useState('')
@@ -203,15 +205,15 @@ export default function Dashboard() {
   // renames every axis and picker immediately - and the cached data stays
   // language-agnostic instead of freezing whichever language loaded it.
   const salesSeries = useMemo(
-    () => data.monthlySales.map(row => ({ ...row, month: monthShort(row.monthIndex) })),
+    () => (data.monthlySales || []).map(row => ({ ...row, month: monthShort(row.monthIndex) })),
     [data.monthlySales, monthShort]
   )
   const cashflowSeries = useMemo(
-    () => data.monthlyCashflow.map(row => ({ ...row, month: monthShort(row.monthIndex) })),
+    () => (data.monthlyCashflow || []).map(row => ({ ...row, month: monthShort(row.monthIndex) })),
     [data.monthlyCashflow, monthShort]
   )
   const breakdownMonths = useMemo(
-    () => data.monthlyBreakdown.map(row => ({ ...row, label: `${monthShort(row.monthIndex)} ${row.year}` })),
+    () => (data.monthlyBreakdown || []).map(row => ({ ...row, label: `${monthShort(row.monthIndex)} ${row.year}` })),
     [data.monthlyBreakdown, monthShort]
   )
 
@@ -225,9 +227,9 @@ export default function Dashboard() {
     // Show cached data for this exact range immediately (no spinner); only
     // spin when this range has never been loaded on this device.
     const cacheKey = dashboardCacheKey(rangeType, customStart, customEnd)
-    const cached = readPageCache<DashboardData>(cacheKey)
+    const cached = readPageCache<Partial<DashboardData>>(cacheKey)
     if (cached) {
-      setData(cached)
+      setData({ ...emptyDashboardData, ...cached })
       setLoading(false)
     } else {
       setLoading(true)
