@@ -152,7 +152,6 @@ export default function Register() {
       subtitle={copy.subtitle}
       lang={lang}
       setLang={setLang}
-      wide
     >
       {/* Step 2 of registration: the account exists, now confirm the
           emailed 6-digit code. Verifying also logs the new owner in,

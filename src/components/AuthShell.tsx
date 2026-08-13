@@ -11,12 +11,6 @@ interface AuthShellProps {
   subtitle: string
   lang: Lang
   setLang: (lang: Lang) => void
-  /**
-   * Gives the form panel more room. Registration asks for six fields, four of
-   * them paired two to a row, which the default width squeezes badly; sign-in
-   * and forgot-password are a couple of stacked fields and read better narrow.
-   */
-  wide?: boolean
   children: React.ReactNode
 }
 
@@ -27,18 +21,11 @@ interface AuthShellProps {
  * The image is loaded as a CSS background from /public, so if the file is not
  * present yet the panel simply falls back to the dark base colour + overlay.
  */
-export default function AuthShell({ image, imageAlt, brandName, heading, subtitle, lang, setLang, wide = false, children }: AuthShellProps) {
-  // Widening the form takes three things together: a bigger card, a larger
-  // share of it for the form column, and a higher cap on the form itself.
-  // Raising only the last one does nothing, because the column it sits in is
-  // still half of max-w-6xl minus the padding.
-  const cardWidth = wide ? 'max-w-7xl' : 'max-w-6xl'
-  const columns = wide ? 'lg:grid-cols-[0.85fr_1.15fr]' : 'lg:grid-cols-2'
-  const formWidth = wide ? 'max-w-xl' : 'max-w-sm'
+export default function AuthShell({ image, imageAlt, brandName, heading, subtitle, lang, setLang, children }: AuthShellProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#eef0f6] p-3 sm:p-6">
-      <div className={`grid w-full ${cardWidth} overflow-hidden rounded-3xl bg-white shadow-[0_24px_70px_-20px_rgba(15,23,42,0.30)] lg:min-h-[660px] ${columns}`}>
+      <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-[0_24px_70px_-20px_rgba(15,23,42,0.30)] lg:min-h-[660px] lg:grid-cols-2">
         {/* Left: brand image + overlay copy (desktop only) */}
         <div className="relative hidden bg-slate-900 lg:block">
           <div
@@ -58,7 +45,10 @@ export default function AuthShell({ image, imageAlt, brandName, heading, subtitl
         </div>
 
         {/* Right: form panel */}
-        <div className="relative flex flex-col justify-center px-6 py-12 sm:px-10 lg:px-14">
+        {/* Side padding trimmed (was sm:px-10 lg:px-14) so the form itself can
+            take that width instead. The panel, the card and the split are
+            unchanged - only the gap between the panel edge and the fields. */}
+        <div className="relative flex flex-col justify-center px-6 py-12 sm:px-8 lg:px-9">
           <div className="absolute right-5 top-5 flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
             <Globe size={13} className="ml-1.5 text-slate-400" />
             <button
@@ -74,7 +64,8 @@ export default function AuthShell({ image, imageAlt, brandName, heading, subtitl
               বাংলা
             </button>
           </div>
-          <div className={`mx-auto w-full ${formWidth}`}>
+          {/* max-w-md instead of max-w-sm: the width the padding gave up. */}
+          <div className="mx-auto w-full max-w-md">
             {children}
           </div>
         </div>
