@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, MessageSquareText, Package, Pencil, Plus, RefreshCcw, Trash2, Wallet, X } from 'lucide-react'
+import { CheckCircleIcon as CheckCircle2, ChatTextIcon as MessageSquareText, PackageIcon as Package, PencilSimpleIcon as Pencil, PlusIcon as Plus, ArrowsClockwiseIcon as RefreshCcw, TrashIcon as Trash2, WalletIcon as Wallet, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'

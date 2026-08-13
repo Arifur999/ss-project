@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
+import { LockIcon as Lock, EnvelopeSimpleIcon as Mail, EyeIcon as Eye, EyeSlashIcon as EyeOff } from '@phosphor-icons/react'
 import { SUBSCRIPTION_EXPIRED_LOGIN_MESSAGE, useAuth } from '../context/AuthContext'
 import { Lang, useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'

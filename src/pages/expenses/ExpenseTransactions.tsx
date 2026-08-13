@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import TableScroller from '../../components/TableScroller'
-import { Pencil, Plus, Printer, Save, Search, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon as Pencil, PlusIcon as Plus, PrinterIcon as Printer, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'

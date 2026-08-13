@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, MapPin, Phone, Send, Store, User } from 'lucide-react'
+import { CheckCircleIcon as CheckCircle2, EyeIcon as Eye, EyeSlashIcon as EyeOff, LockIcon as Lock, EnvelopeSimpleIcon as Mail, MapPinIcon as MapPin, PhoneIcon as Phone, PaperPlaneTiltIcon as Send, StorefrontIcon as Store, UserIcon as User } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { Lang, useLang } from '../context/LanguageContext'

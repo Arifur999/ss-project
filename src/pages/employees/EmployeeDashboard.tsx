@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Users, UserCheck, UserX, Gift, Wallet } from 'lucide-react'
+import { UsersIcon as Users, UserCheckIcon as UserCheck, UserMinusIcon as UserX, GiftIcon as Gift, WalletIcon as Wallet } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'

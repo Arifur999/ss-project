@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mail, RefreshCw, Search, Send, TrendingDown, UserX, X } from 'lucide-react'
+import { EnvelopeSimpleIcon as Mail, ArrowsClockwiseIcon as RefreshCw, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrendDownIcon as TrendingDown, UserMinusIcon as UserX, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'

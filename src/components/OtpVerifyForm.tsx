@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { MailCheck, RotateCcw } from 'lucide-react'
+import { EnvelopeSimpleOpenIcon as MailCheck, ArrowCounterClockwiseIcon as RotateCcw } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'

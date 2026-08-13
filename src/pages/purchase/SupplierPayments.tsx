@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Edit2, Plus, Printer, Save, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon as Edit2, PlusIcon as Plus, PrinterIcon as Printer, FloppyDiskIcon as Save, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'

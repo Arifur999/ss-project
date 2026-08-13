@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { BarChart3, CreditCard, Download, TrendingUp } from 'lucide-react'
+import { ChartBarIcon as BarChart3, CreditCardIcon as CreditCard, DownloadSimpleIcon as Download, TrendUpIcon as TrendingUp } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'

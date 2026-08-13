@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Activity, ShieldCheck } from 'lucide-react'
+import { PulseIcon as Activity, ShieldCheckIcon as ShieldCheck } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import { getAdminActivities } from '../../services/admin.services'

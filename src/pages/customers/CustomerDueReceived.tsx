@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Filter, Plus, Printer, FileText, Pencil, Trash2, Search, X } from 'lucide-react'
+import { FunnelIcon as Filter, PlusIcon as Plus, PrinterIcon as Printer, FileTextIcon as FileText, PencilSimpleIcon as Pencil, TrashIcon as Trash2, MagnifyingGlassIcon as Search, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'

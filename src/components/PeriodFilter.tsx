@@ -1,5 +1,5 @@
 import React from 'react'
-import { Printer } from 'lucide-react'
+import { PrinterIcon as Printer } from '@phosphor-icons/react'
 import type { Period } from '../lib/periodFilter'
 
 // Reusable toolbar: All / This Month / This Year / Custom (date-to-date) plus an

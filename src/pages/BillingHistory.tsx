@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CreditCard, MessageSquareText, Package, RefreshCcw, Wallet } from 'lucide-react'
+import { CreditCardIcon as CreditCard, ChatTextIcon as MessageSquareText, PackageIcon as Package, ArrowsClockwiseIcon as RefreshCcw, WalletIcon as Wallet } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import TableScroller from '../components/TableScroller'

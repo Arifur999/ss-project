@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Megaphone, RefreshCcw, Send, Trash2, Users } from 'lucide-react'
+import { MegaphoneIcon as Megaphone, ArrowsClockwiseIcon as RefreshCcw, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import { confirmAction } from '../../components/ConfirmDialog'

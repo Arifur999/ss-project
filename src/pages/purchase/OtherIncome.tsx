@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Eye, FileText, Pencil, Plus, RefreshCw, Save, Search, Trash2, Users, WalletCards } from 'lucide-react'
+import { CalendarDotsIcon as CalendarDays, EyeIcon as Eye, FileTextIcon as FileText, PencilSimpleIcon as Pencil, PlusIcon as Plus, ArrowsClockwiseIcon as RefreshCw, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'

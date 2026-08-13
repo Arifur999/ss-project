@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Calendar, FileText, Package, Search, Truck } from 'lucide-react'
+import { CalendarBlankIcon as Calendar, FileTextIcon as FileText, PackageIcon as Package, MagnifyingGlassIcon as Search, TruckIcon as Truck } from '@phosphor-icons/react'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import { supabase } from '../../lib/supabase'

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Truck, Edit2, Trash2, Search } from 'lucide-react'
+import { TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'

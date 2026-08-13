@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Download, Plus, Save, Search, Trash2, Pencil, Upload } from 'lucide-react'
+import { DownloadSimpleIcon as Download, PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, TrashIcon as Trash2, PencilSimpleIcon as Pencil, UploadSimpleIcon as Upload } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'

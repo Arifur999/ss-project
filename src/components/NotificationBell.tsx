@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Bell, Megaphone, X } from 'lucide-react'
+import { BellIcon as Bell, MegaphoneIcon as Megaphone, XIcon as X } from '@phosphor-icons/react'
 import { getMyNotifications, markNotificationsRead, type UserNotification } from '../services/notification.services'
 import { formatDate } from '../lib/utils'
 

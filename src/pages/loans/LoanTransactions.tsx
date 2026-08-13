@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Plus, Printer, Save, Pencil, Trash2, X } from 'lucide-react'
+import { PlusIcon as Plus, PrinterIcon as Printer, FloppyDiskIcon as Save, PencilSimpleIcon as Pencil, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'

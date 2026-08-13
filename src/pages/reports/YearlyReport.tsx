@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CalendarDays, CheckCircle2, ClipboardList, CreditCard, Package, RefreshCw, Target, TrendingUp, WalletCards } from 'lucide-react'
+import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CreditCardIcon as CreditCard, PackageIcon as Package, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { isMissingTableError } from '../../lib/supabaseErrors'

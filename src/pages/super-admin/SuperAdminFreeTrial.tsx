@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Ban, CheckCircle2, RefreshCw, Search, TimerReset } from 'lucide-react'
+import { ProhibitIcon as Ban, CheckCircleIcon as CheckCircle2, ArrowsClockwiseIcon as RefreshCw, MagnifyingGlassIcon as Search, ClockCounterClockwiseIcon as TimerReset } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'

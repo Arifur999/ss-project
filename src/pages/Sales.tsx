@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { Plus, Save, Search, Printer, Pencil, Trash2, Image, Barcode, Filter, Truck, ChevronDown, ChevronUp, Calendar, Clipboard, Eye, EyeOff, Tag } from 'lucide-react'
+import { PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PrinterIcon as Printer, PencilSimpleIcon as Pencil, TrashIcon as Trash2, ImageIcon as Image, BarcodeIcon as Barcode, FunnelIcon as Filter, TruckIcon as Truck, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CalendarBlankIcon as Calendar, ClipboardIcon as Clipboard, EyeIcon as Eye, EyeSlashIcon as EyeOff, TagIcon as Tag } from '@phosphor-icons/react'
 import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateInvoiceNo, todayISO } from '../lib/utils'

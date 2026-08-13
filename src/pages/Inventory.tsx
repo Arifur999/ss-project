@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Download, Image, Printer, X } from 'lucide-react'
+import { MagnifyingGlassIcon as Search, DownloadSimpleIcon as Download, ImageIcon as Image, PrinterIcon as Printer, XIcon as X } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { printTable } from '../lib/printTable'
 import TableScroller from '../components/TableScroller'

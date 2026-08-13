@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Calendar, ClipboardList, Target, TrendingUp, WalletCards } from 'lucide-react'
+import { CalendarBlankIcon as Calendar, ClipboardTextIcon as ClipboardList, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'

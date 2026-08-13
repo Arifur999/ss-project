@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Banknote, MessageSquareText, Pencil, Plus, Receipt, Save, Trash2, TrendingUp, Wallet } from 'lucide-react'
+import { MoneyIcon as Banknote, ChatTextIcon as MessageSquareText, PencilSimpleIcon as Pencil, PlusIcon as Plus, ReceiptIcon as Receipt, FloppyDiskIcon as Save, TrashIcon as Trash2, TrendUpIcon as TrendingUp, WalletIcon as Wallet } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'

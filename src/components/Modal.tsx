@@ -1,5 +1,5 @@
 import React from 'react'
-import { X } from 'lucide-react'
+import { XIcon as X } from '@phosphor-icons/react'
 
 interface ModalProps {
   isOpen: boolean

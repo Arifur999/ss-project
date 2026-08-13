@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react'
+import { EyeIcon as Eye, EyeSlashIcon as EyeOff, LockIcon as Lock, EnvelopeSimpleIcon as Mail, ShieldCheckIcon as ShieldCheck } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { Lang, useLang } from '../context/LanguageContext'
 import { useBusinessBrandName } from '../lib/businessBrand'

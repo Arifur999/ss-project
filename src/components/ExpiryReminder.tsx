@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, X } from 'lucide-react'
+import { CalendarCheckIcon as CalendarClock, XIcon as X } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 

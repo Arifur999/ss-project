@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, ChevronDown, Search, X } from 'lucide-react'
+import { BookOpenIcon as BookOpen, CaretDownIcon as ChevronDown, MagnifyingGlassIcon as Search, XIcon as X } from '@phosphor-icons/react'
 import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'

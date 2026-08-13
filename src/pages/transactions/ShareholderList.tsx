@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon as Pencil, PlusIcon as Plus, FloppyDiskIcon as Save, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'

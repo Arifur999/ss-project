@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Ban, CalendarClock, RefreshCw, Search, TimerReset, Users, Wallet } from 'lucide-react'
+import { ProhibitIcon as Ban, CalendarCheckIcon as CalendarClock, ArrowsClockwiseIcon as RefreshCw, MagnifyingGlassIcon as Search, ClockCounterClockwiseIcon as TimerReset, UsersIcon as Users, WalletIcon as Wallet } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'

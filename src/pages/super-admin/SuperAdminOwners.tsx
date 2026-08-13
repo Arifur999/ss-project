@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Ban, CheckCircle2, Edit, Eye, RefreshCw, Search, TimerOff } from 'lucide-react'
+import { WarningIcon as AlertTriangle, ProhibitIcon as Ban, CheckCircleIcon as CheckCircle2, PencilSimpleIcon as Edit, EyeIcon as Eye, ArrowsClockwiseIcon as RefreshCw, MagnifyingGlassIcon as Search, TimerIcon as TimerOff } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 import PageHeader from '../../components/PageHeader'

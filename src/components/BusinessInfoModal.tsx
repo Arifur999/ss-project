@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Camera, Save, Pencil } from 'lucide-react'
+import { CameraIcon as Camera, FloppyDiskIcon as Save, PencilSimpleIcon as Pencil } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import Modal from './Modal'

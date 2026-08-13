@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, CalendarDays, Download, Loader2, MessageSquareText, Plus, Scale, Search, Send, Upload, Users, X } from 'lucide-react'
+import { PulseIcon as Activity, CalendarDotsIcon as CalendarDays, DownloadSimpleIcon as Download, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquareText, PlusIcon as Plus, ScalesIcon as Scale, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, UploadSimpleIcon as Upload, UsersIcon as Users, XIcon as X } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'

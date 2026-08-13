@@ -1,21 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import {
-  CalendarClock,
-  CheckCircle2,
-  ClipboardList,
-  Filter,
-  Loader2,
-  Megaphone,
-  MessageSquareText,
-  Save,
-  Search,
-  Send,
-  Trash2,
-  Users,
-  Wallet,
-  X,
-  XCircle,
-} from 'lucide-react'
+import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, FunnelIcon as Filter, CircleNotchIcon as Loader2, MegaphoneIcon as Megaphone, ChatTextIcon as MessageSquareText, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as Wallet, XIcon as X, XCircleIcon as XCircle } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'

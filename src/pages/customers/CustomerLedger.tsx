@@ -1,21 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  AlertCircle,
-  ChevronDown,
-  CreditCard,
-  FileText,
-  Loader2,
-  MapPin,
-  Phone,
-  Printer,
-  Search,
-  Tag,
-  TrendingUp,
-  User,
-  Users,
-  Wallet,
-  X,
-} from 'lucide-react'
+import { WarningCircleIcon as AlertCircle, CaretDownIcon as ChevronDown, CreditCardIcon as CreditCard, FileTextIcon as FileText, CircleNotchIcon as Loader2, MapPinIcon as MapPin, PhoneIcon as Phone, PrinterIcon as Printer, MagnifyingGlassIcon as Search, TagIcon as Tag, TrendUpIcon as TrendingUp, UserIcon as User, UsersIcon as Users, WalletIcon as Wallet, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'

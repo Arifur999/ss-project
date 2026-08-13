@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Plus, Save, ChevronDown, ChevronUp, Truck, Edit2, Trash2, Search, SlidersHorizontal, Info, Package, ShoppingCart } from 'lucide-react'
+import { PlusIcon as Plus, FloppyDiskIcon as Save, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, InfoIcon as Info, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, generateSINo, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'

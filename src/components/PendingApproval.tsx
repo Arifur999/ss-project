@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Phone, ShieldCheck, Timer } from 'lucide-react'
+import { PhoneIcon as Phone, ShieldCheckIcon as ShieldCheck, TimerIcon as Timer } from '@phosphor-icons/react'
 import type { Lang } from '../context/LanguageContext'
 import { supportNumberOrFallback, whatsAppLink } from '../lib/support'
 

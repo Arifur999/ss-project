@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { ChevronDown, Edit2, Plus, Search, Trash2, X } from 'lucide-react'
+import { CaretDownIcon as ChevronDown, PencilSimpleIcon as Edit2, PlusIcon as Plus, MagnifyingGlassIcon as Search, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'

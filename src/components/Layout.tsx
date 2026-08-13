@@ -1,13 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard, Settings, Wallet, TrendingUp, ArrowLeftRight,
-  CreditCard, Package, ShoppingCart, Boxes, Users, BarChart3,
-  Calendar, LogOut, ChevronDown, ChevronRight, Menu, X,
-  FileText, Building2, Globe, Briefcase, Plus,
-  BookOpen, Trash2, ShieldCheck, Bell, Activity, Megaphone, FileBarChart, Sparkles,
-  UserCheck, UserX, MessageSquareText, Target, UserCog, Truck
-} from 'lucide-react'
+import { SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { whatsAppLink } from '../lib/support'

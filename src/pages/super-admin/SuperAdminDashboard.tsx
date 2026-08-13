@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import PolarAreaChart from '../../components/PolarAreaChart'
-import { AlertTriangle, Ban, CheckCircle2, CreditCard, RefreshCw, ShieldCheck, TimerOff, TrendingUp, Users, Wallet } from 'lucide-react'
+import { WarningIcon as AlertTriangle, ProhibitIcon as Ban, CheckCircleIcon as CheckCircle2, CreditCardIcon as CreditCard, ArrowsClockwiseIcon as RefreshCw, ShieldCheckIcon as ShieldCheck, TimerIcon as TimerOff, TrendUpIcon as TrendingUp, UsersIcon as Users, WalletIcon as Wallet } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { LiveOwner, OwnerStatus, daysLeft, formatDate, loadOwners } from './superAdminLive'

@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  ArrowUpRight,
-  BarChart3,
-  CalendarDays,
-  ClipboardList,
-  ShoppingCart,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react'
+import { ArrowUpRightIcon as ArrowUpRight, ChartBarIcon as BarChart3, CalendarDotsIcon as CalendarDays, ClipboardTextIcon as ClipboardList, ShoppingCartSimpleIcon as ShoppingCart, TrendUpIcon as TrendingUp, WalletIcon as Wallet } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'

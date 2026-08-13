@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Building2, ChevronDown, Mail, Phone, Settings as SettingsIcon } from 'lucide-react'
+import { BuildingsIcon as Building2, CaretDownIcon as ChevronDown, EnvelopeSimpleIcon as Mail, PhoneIcon as Phone, GearSixIcon as SettingsIcon } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useBusinessBrand } from '../lib/businessBrand'

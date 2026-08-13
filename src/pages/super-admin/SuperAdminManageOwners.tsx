@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Eye, Lock, RefreshCw, Search, Trash2, X } from 'lucide-react'
+import { WarningIcon as AlertTriangle, EyeIcon as Eye, LockIcon as Lock, ArrowsClockwiseIcon as RefreshCw, MagnifyingGlassIcon as Search, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'

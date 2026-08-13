@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, Copy, Crown, Globe, Phone, Send, ShieldCheck, Smartphone, Sparkles, Timer, Users } from 'lucide-react'
+import { CheckCircleIcon as CheckCircle2, CopyIcon as Copy, CrownIcon as Crown, GlobeIcon as Globe, PhoneIcon as Phone, PaperPlaneTiltIcon as Send, ShieldCheckIcon as ShieldCheck, DeviceMobileIcon as Smartphone, SparkleIcon as Sparkles, TimerIcon as Timer, UsersIcon as Users } from '@phosphor-icons/react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { choosePlan as choosePlanRequest, getPaymentInfo, submitManualPayment } from '../services/admin.services'

@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Search, X } from 'lucide-react'
+import { CaretDownIcon as ChevronDown, MagnifyingGlassIcon as Search, XIcon as X } from '@phosphor-icons/react'
 
 export type SelectOption = { value: string; label: string }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, RotateCcw, Trash2 } from 'lucide-react'
+import { ArrowsClockwiseIcon as RefreshCw, ArrowCounterClockwiseIcon as RotateCcw, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { confirmAction } from '../components/ConfirmDialog'

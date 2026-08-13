@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Check, Copy, MessageSquareText, RefreshCcw, Send, ShieldCheck, Smartphone, Wallet } from 'lucide-react'
+import { CheckIcon as Check, CopyIcon as Copy, ChatTextIcon as MessageSquareText, ArrowsClockwiseIcon as RefreshCcw, PaperPlaneTiltIcon as Send, ShieldCheckIcon as ShieldCheck, DeviceMobileIcon as Smartphone, WalletIcon as Wallet } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import StatCard from '../components/StatCard'

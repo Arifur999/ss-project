@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
-import { Pencil, Printer, Search, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon as Pencil, PrinterIcon as Printer, MagnifyingGlassIcon as Search, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'

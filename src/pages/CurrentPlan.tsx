@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle2, Crown, Sparkles, Timer } from 'lucide-react'
+import { CheckCircleIcon as CheckCircle2, CrownIcon as Crown, SparkleIcon as Sparkles, TimerIcon as Timer } from '@phosphor-icons/react'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'

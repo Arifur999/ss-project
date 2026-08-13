@@ -1,16 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import {
-  CalendarDays,
-  CheckCircle2,
-  ClipboardList,
-  CreditCard,
-  FileBarChart,
-  Package,
-  RefreshCw,
-  Target,
-  TrendingUp,
-  WalletCards,
-} from 'lucide-react'
+import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CreditCardIcon as CreditCard, FileTextIcon as FileBarChart, PackageIcon as Package, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'

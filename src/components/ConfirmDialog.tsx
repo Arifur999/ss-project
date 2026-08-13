@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { WarningIcon as AlertTriangle } from '@phosphor-icons/react'
 
 type ConfirmOptions = {
   title?: string

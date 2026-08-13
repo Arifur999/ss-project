@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, QrCode, RotateCcw, Save, Send, UploadCloud, Wallet } from 'lucide-react'
+import { EnvelopeSimpleIcon as Mail, QrCodeIcon as QrCode, ArrowCounterClockwiseIcon as RotateCcw, FloppyDiskIcon as Save, PaperPlaneTiltIcon as Send, CloudArrowUpIcon as UploadCloud, WalletIcon as Wallet } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import { getPlatformSettings, resetReminderTemplate, savePlatformSettings, sendTestReminder } from '../../services/admin.services'

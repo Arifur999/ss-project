@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { CheckCircleIcon as CheckCircle2, CircleNotchIcon as Loader2 } from '@phosphor-icons/react'
 
 // Progress dialog for anything that takes long enough to look like a hang:
 // importing a spreadsheet, deleting a batch of rows, and so on.

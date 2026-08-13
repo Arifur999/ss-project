@@ -1,5 +1,5 @@
 import React from 'react'
-import { Globe } from 'lucide-react'
+import { GlobeIcon as Globe } from '@phosphor-icons/react'
 import { Lang } from '../context/LanguageContext'
 
 interface AuthShellProps {

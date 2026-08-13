@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Save, Plus, Trash2, Building2, Users, CreditCard, Target, Truck, UserCog, Eye, EyeOff, ShieldCheck, ShieldX, Pencil, Camera, Crown, Briefcase, Package, Calculator, ShoppingCart, UserRoundPlus, BarChart3, Cog, Check, X, CalendarDays } from 'lucide-react'
+import { FloppyDiskIcon as Save, PlusIcon as Plus, TrashIcon as Trash2, BuildingsIcon as Building2, UsersIcon as Users, CreditCardIcon as CreditCard, TargetIcon as Target, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
 import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'

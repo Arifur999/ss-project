@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Edit2, Trash2, Plus, Search, Printer, Upload, Download, FileSpreadsheet, X } from 'lucide-react'
+import { PencilSimpleIcon as Edit2, TrashIcon as Trash2, PlusIcon as Plus, MagnifyingGlassIcon as Search, PrinterIcon as Printer, UploadSimpleIcon as Upload, DownloadSimpleIcon as Download, FileXlsIcon as FileSpreadsheet, XIcon as X } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import TableScroller from '../components/TableScroller'
