@@ -112,23 +112,28 @@
     @apply block text-xs font-medium text-neutral-700 mb-1;
   }
   /* The same face as the primary button: lit from the upper left with a pale
-     band across it. The header is the one row that repeats on every page, so
-     it is what ties the tables to the buttons. */
+     band across it. The header row repeats on every page, so it is what ties
+     the tables to the buttons. */
   .table-header {
-    @apply sticky top-0 z-10 text-xs font-semibold uppercase tracking-wide text-white;
-    background-image:
-      linear-gradient(112deg, rgba(255, 255, 255, 0.10) 10%, rgba(255, 255, 255, 0) 42%),
-      linear-gradient(165deg, #33333a 0%, #17171c 46%, #0b0b0e 100%);
+    @apply sticky top-0 z-10 text-xs font-semibold uppercase tracking-wide;
   }
-  /* Headings stay on one line. A wrapped heading pushed every row down and
-     made two-word columns read as two columns; the table gets wider instead
-     and the wrapper scrolls sideways, which the tables already do. */
+  /* The paint goes on the cells, not on <thead>. A sticky thead does not draw
+     its own background in most browsers - the row simply stayed white - and a
+     cell that carries its own colour would cover it anyway.
+     The element selector also outranks the text-slate-* some pages set on th,
+     so the type is white everywhere without editing those pages. */
   .table-header th {
-    @apply whitespace-nowrap;
+    @apply whitespace-nowrap text-white;
+    /* Vertical, so neighbouring cells join into one unbroken bar. A diagonal
+       band like the button has would restart inside every cell and stripe the
+       row; the lit-from-above quality carries over without that. */
+    background-image: linear-gradient(180deg, #33333a 0%, #17171c 55%, #0b0b0e 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
   }
-  /* Anything clickable in the header sits on near-black now, so it inverts. */
-  .table-header button,
-  .table-header a {
+  /* Anything inside the header now sits on near-black, so it inverts. */
+  .table-header th button,
+  .table-header th a,
+  .table-header th svg {
     @apply text-white/80 hover:text-white;
   }
   table thead {
