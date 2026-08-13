@@ -256,7 +256,9 @@ export default function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden rounded-2xl bg-white">
-        <div className="h-12 bg-white border-b border-neutral-200 flex items-center justify-end gap-3 px-5 flex-shrink-0 rounded-t-2xl">
+        {/* The bar was 48px tall, which left the bell and the avatar pressed
+            against the top edge of the sheet. */}
+        <div className="flex h-16 flex-shrink-0 items-center justify-end gap-3 rounded-t-2xl border-b border-neutral-200 bg-white px-6">
           <NotificationBell />
           <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-0.5">
             <Globe size={13} className="text-neutral-500 ml-1.5" />
