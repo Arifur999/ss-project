@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowUpRightIcon as ArrowUpRight, ChartBarIcon as BarChart3, CalendarDotsIcon as CalendarDays, ClipboardTextIcon as ClipboardList, ShoppingCartSimpleIcon as ShoppingCart, TrendUpIcon as TrendingUp, WalletIcon as Wallet } from '@phosphor-icons/react'
+import { TruckIcon as Truck, ShoppingBagIcon as ShoppingBag, ChartLineUpIcon as ChartLineUp, ReceiptIcon as Receipt, VaultIcon as Vault, HandCoinsIcon as HandCoins, ArrowUpRightIcon as ArrowUpRight, ChartBarIcon as BarChart3, CalendarDotsIcon as CalendarDays, ClipboardTextIcon as ClipboardList, ShoppingCartSimpleIcon as ShoppingCart, TrendUpIcon as TrendingUp, WalletIcon as Wallet } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
@@ -524,10 +524,10 @@ export default function Dashboard() {
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="Total Purchase" icon={<ShoppingCart size={16} />} value={formatCurr(data.totalPurchases)} trend={pctChange(data.totalPurchases, data.previous.totalPurchases)} inverted />
-          <StatCard label="Total Sales" icon={<TrendingUp size={16} />} value={formatCurr(data.totalSales)} trend={pctChange(data.totalSales, data.previous.totalSales)} />
-          <StatCard label="Total Profit" icon={<BarChart3 size={16} />} value={formatCurr(data.totalProfit)} trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
-          <StatCard label="Total Expenses" icon={<ClipboardList size={16} />} value={formatCurr(data.totalExpenses)} trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
+          <StatCard label="Total Purchase" icon={<Truck size={17} weight="duotone" />} value={formatCurr(data.totalPurchases)} trend={pctChange(data.totalPurchases, data.previous.totalPurchases)} inverted />
+          <StatCard label="Total Sales" icon={<ShoppingBag size={17} weight="duotone" />} value={formatCurr(data.totalSales)} trend={pctChange(data.totalSales, data.previous.totalSales)} />
+          <StatCard label="Total Profit" icon={<ChartLineUp size={17} weight="duotone" />} value={formatCurr(data.totalProfit)} trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
+          <StatCard label="Total Expenses" icon={<Receipt size={17} weight="duotone" />} value={formatCurr(data.totalExpenses)} trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
         </div>
 
         <section className="card border-navy-900 bg-navy-900 p-5">
@@ -675,14 +675,14 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
           onClick={onWithdraw}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-white/90"
         >
-          <ArrowUpRight size={16} /> Withdraw
+          <HandCoins size={17} weight="duotone" /> Withdraw
         </button>
         <button
           type="button"
           onClick={onSavings}
           className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
         >
-          <Wallet size={16} /> Savings
+          <Vault size={17} weight="duotone" /> Savings
         </button>
       </div>
     </section>

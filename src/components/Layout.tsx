@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck } from '@phosphor-icons/react'
+import { GaugeIcon as Gauge, BankIcon as Bank, HandshakeIcon as Handshake, HandCoinsIcon as HandCoins,
+  ReceiptIcon as Receipt, ArmchairIcon as Armchair, WarehouseIcon as Warehouse, ShoppingBagIcon as ShoppingBag,
+  UsersThreeIcon as UsersThree, ChartLineUpIcon as ChartLineUp, RecycleIcon as Recycle,
+  IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { whatsAppLink } from '../lib/support'
@@ -54,9 +57,9 @@ export default function Layout() {
   ]
 
   const businessNavGroups = [
-    { key: 'dashboard', label: t('nav_dashboard'), icon: <LayoutDashboard size={18} />, path: '/' },
+    { key: 'dashboard', label: t('nav_dashboard'), icon: <Gauge size={18} weight="duotone" />, path: '/' },
     {
-      key: 'balance', label: t('nav_balance'), icon: <Wallet size={18} />,
+      key: 'balance', label: t('nav_balance'), icon: <Bank size={18} weight="duotone" />,
       children: [
         { key: 'balanceOverview', label: t('nav_overview'), icon: <Wallet size={16} />, path: '/balance' },
         { key: 'balanceTransfer', label: t('nav_adjustments'), icon: <ArrowLeftRight size={16} />, path: '/balance/transfer' },
@@ -64,7 +67,7 @@ export default function Layout() {
       ],
     },
     {
-      key: 'transactions', label: t('nav_transactions'), icon: <ArrowLeftRight size={18} />,
+      key: 'transactions', label: t('nav_transactions'), icon: <Handshake size={18} weight="duotone" />,
       children: [
         { key: 'shareholderDashboard', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/transactions/dashboard' },
         { key: 'invest', label: t('nav_investWithdraw'), icon: <Wallet size={16} />, path: '/transactions/invest' },
@@ -73,7 +76,7 @@ export default function Layout() {
       ],
     },
     {
-      key: 'loanManagement', label: t('nav_loanManagement'), icon: <CreditCard size={18} />,
+      key: 'loanManagement', label: t('nav_loanManagement'), icon: <HandCoins size={18} weight="duotone" />,
       children: [
         { key: 'loanLenders', label: t('nav_bankPersonList'), icon: <Building2 size={16} />, path: '/loan-management/lenders' },
         { key: 'loanTransactions', label: t('nav_transaction'), icon: <FileText size={16} />, path: '/loan-management/transactions' },
@@ -82,15 +85,15 @@ export default function Layout() {
       ],
     },
     {
-      key: 'expenses', label: t('nav_expenses'), icon: <FileText size={18} />,
+      key: 'expenses', label: t('nav_expenses'), icon: <Receipt size={18} weight="duotone" />,
       children: [
         { key: 'expOverview', label: t('nav_overview'), icon: <BarChart3 size={16} />, path: '/expenses' },
         { key: 'expTx', label: t('nav_transactionsList'), icon: <FileText size={16} />, path: '/expenses/transactions' },
       ],
     },
-    { key: 'productList', label: t('nav_productList'), icon: <Package size={18} />, path: '/products' },
+    { key: 'productList', label: t('nav_productList'), icon: <Armchair size={18} weight="duotone" />, path: '/products' },
     {
-      key: 'purchase', label: 'Supplier', icon: <ShoppingCart size={18} />,
+      key: 'purchase', label: 'Supplier', icon: <Truck size={18} weight="duotone" />,
       children: [
         { key: 'purchOrders', label: t('nav_purchaseOrders'), icon: <ShoppingCart size={16} />, path: '/purchase/orders' },
         { key: 'purchaseLedger', label: t('nav_purchaseLedger', 'Purchase Ledger'), icon: <FileText size={16} />, path: '/purchase/ledger' },
@@ -102,9 +105,9 @@ export default function Layout() {
         { key: 'supplierList', label: t('settings_supplierList', 'Suppliers list'), icon: <Truck size={16} />, path: '/purchase/suppliers-list' },
       ],
     },
-    { key: 'inventory', label: t('nav_inventory'), icon: <Boxes size={18} />, path: '/inventory' },
+    { key: 'inventory', label: t('nav_inventory'), icon: <Warehouse size={18} weight="duotone" />, path: '/inventory' },
     {
-      key: 'sales', label: t('nav_sales'), icon: <TrendingUp size={18} />,
+      key: 'sales', label: t('nav_sales'), icon: <ShoppingBag size={18} weight="duotone" />,
       children: [
         { key: 'salesNew', label: t('sales_newEntry'), icon: <Plus size={16} />, path: '/sales' },
         { key: 'salesLedger', label: t('sales_ledger', 'Sales Ledger'), icon: <FileText size={16} />, path: '/sales/ledger' },
@@ -112,7 +115,7 @@ export default function Layout() {
       ],
     },
     {
-      key: 'customers', label: t('nav_customers'), icon: <Users size={18} />,
+      key: 'customers', label: t('nav_customers'), icon: <UsersThree size={18} weight="duotone" />,
       children: [
         { key: 'custList', label: t('nav_customerList'), icon: <Users size={16} />, path: '/customers' },
         { key: 'custDueReceived', label: t('customers_dueReceived', 'Due received'), icon: <FileText size={16} />, path: '/customers/due-received' },
@@ -121,7 +124,7 @@ export default function Layout() {
       ],
     },
     {
-      key: 'reports', label: t('nav_reports'), icon: <BarChart3 size={18} />,
+      key: 'reports', label: t('nav_reports'), icon: <ChartLineUp size={18} weight="duotone" />,
       children: [
         // The old MonthlyReport (/reports/monthly) page still exists and works
         // by URL - only hidden from the sidebar. The Report summary page is now
@@ -131,10 +134,10 @@ export default function Layout() {
         { key: 'monthlyTarget', label: t('settings_tabTargets'), icon: <Target size={16} />, path: '/reports/monthly-target' },
       ],
     },
-    { key: 'marketing', label: t('nav_marketing'), icon: <Megaphone size={18} />, path: '/marketing' },
-    { key: 'recycleBin', label: t('nav_recycleBin'), icon: <Trash2 size={18} />, path: '/recycle-bin' },
+    { key: 'marketing', label: t('nav_marketing'), icon: <Megaphone size={18} weight="duotone" />, path: '/marketing' },
+    { key: 'recycleBin', label: t('nav_recycleBin'), icon: <Recycle size={18} weight="duotone" />, path: '/recycle-bin' },
     {
-      key: 'employees', label: t('nav_employees'), icon: <Briefcase size={18} />,
+      key: 'employees', label: t('nav_employees'), icon: <IdentificationBadge size={18} weight="duotone" />,
       children: [
         { key: 'empDash', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/employees' },
         { key: 'empList', label: t('nav_employeeList'), icon: <Users size={16} />, path: '/employees/list' },
@@ -146,7 +149,7 @@ export default function Layout() {
 
   if (profile?.role === 'owner') {
     businessNavGroups.push({
-      key: 'package', label: t('nav_package', 'Package'), icon: <CreditCard size={18} />,
+      key: 'package', label: t('nav_package', 'Package'), icon: <Package size={18} weight="duotone" />,
       children: [
         { key: 'smsPackages', label: t('nav_sms', 'SMS'), icon: <MessageSquareText size={16} />, path: '/package/sms' },
         { key: 'billingHistory', label: t('nav_billingHistory', 'Billing History'), icon: <FileText size={16} />, path: '/package/billing-history' },
