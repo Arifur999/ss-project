@@ -547,6 +547,10 @@ export default function Dashboard() {
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} width={38} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
               <Tooltip
+
+                offset={28}
+
+                allowEscapeViewBox={{ x: true, y: true }}
                 cursor={{ stroke: "#ffffff33" }}
                 contentStyle={{ background: "#0F1117", border: "1px solid #ffffff1a", borderRadius: 12, fontSize: 12, color: "#fff" }}
                 formatter={(value: any) => formatCurr(Number(value))}
@@ -579,6 +583,10 @@ export default function Dashboard() {
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
               <Tooltip
+
+                offset={28}
+
+                allowEscapeViewBox={{ x: true, y: true }}
                 cursor={{ fill: "#F3F4F6" }}
                 contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }}
                 formatter={(value: any) => formatCurr(Number(value))}
@@ -789,17 +797,29 @@ function MonthlySpendings({ months, formatCurr }: {
       ) : (
         <>
           <div className="relative">
-            <ResponsiveContainer width="100%" height={170}>
+            <ResponsiveContainer width="100%" height={210}>
               <PieChart>
-                <Pie data={slices} dataKey="amount" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none">
+                <Pie data={slices} dataKey="amount" nameKey="name" innerRadius={66} outerRadius={98} paddingAngle={2} stroke="none">
                   {slices.map((slice, index) => <Cell key={slice.name} fill={donutFills[index % donutFills.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }} formatter={(value: any) => formatCurr(Number(value))} />
+                <Tooltip offset={28} allowEscapeViewBox={{ x: true, y: true }} contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }} formatter={(value: any) => formatCurr(Number(value))} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-lg font-bold tabular-nums text-navy-900">{formatCurr(total)}</p>
-              <p className="text-[11px] text-neutral-500">Total {side}</p>
+              {/* Kept inside the ring rather than cut off: the hole is 132px
+                  across, and a long amount steps down a size instead of being
+                  truncated - a clipped figure reads as a smaller number, which
+                  is worse than a smaller typeface. */}
+              {(() => {
+                const text = formatCurr(total)
+                const size = text.length > 12 ? "text-xs" : text.length > 9 ? "text-sm" : "text-base"
+                return (
+                  <p className={`max-w-[124px] text-center font-semibold leading-tight tabular-nums text-navy-900 ${size}`}>
+                    {text}
+                  </p>
+                )
+              })()}
+              <p className="mt-0.5 text-[10px] text-neutral-500">Total {side}</p>
             </div>
           </div>
           <ul className="mt-3 space-y-1.5">
