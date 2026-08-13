@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircleIcon as CheckCircle2, EyeIcon as Eye, EyeSlashIcon as EyeOff, LockIcon as Lock, EnvelopeSimpleIcon as Mail, MapPinIcon as MapPin, PhoneIcon as Phone, PaperPlaneTiltIcon as Send, StorefrontIcon as Store, UserIcon as User } from '@phosphor-icons/react'
+import { EyeIcon as Eye, EyeSlashIcon as EyeOff, LockIcon as Lock, EnvelopeSimpleIcon as Mail, MapPinIcon as MapPin, PhoneIcon as Phone, PaperPlaneTiltIcon as Send, StorefrontIcon as Store, UserIcon as User } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { Lang, useLang } from '../context/LanguageContext'
@@ -31,7 +31,6 @@ const registerCopy = {
     address: 'Address *',
     password: 'Password *',
     confirmPassword: 'Confirm Password *',
-    bannerText: 'Your request will go to the super admin for approval.',
     submitBtn: 'Submit Registration Request',
     footerLink: 'Already have an account? Sign in',
   },
@@ -45,7 +44,6 @@ const registerCopy = {
     address: 'ঠিকানা *',
     password: 'পাসওয়ার্ড *',
     confirmPassword: 'পাসওয়ার্ড নিশ্চিত করুন *',
-    bannerText: 'আপনার অনুরোধটি অনুমোদনের জন্য সুপার অ্যাডমিনের কাছে যাবে।',
     submitBtn: 'রেজিস্ট্রেশন রিকোয়েস্ট সাবমিট করুন',
     footerLink: 'ইতিমধ্যে অ্যাকাউন্ট আছে? লগ ইন করুন',
   },
@@ -53,19 +51,19 @@ const registerCopy = {
 
 const registerPlaceholders = {
   en: {
-    fullName: 'Enter your full name',
-    businessName: 'Enter your business name',
-    phone: 'Enter your phone number',
-    email: 'Enter your email address',
+    fullName: 'Full name',
+    businessName: 'Business name',
+    phone: 'Phone number',
+    email: 'Email address',
     address: 'Enter your business address',
     password: 'Enter your password',
     confirmPassword: 'Confirm your password',
   },
   bn: {
-    fullName: 'আপনার পূর্ণ নাম লিখুন',
-    businessName: 'আপনার ব্যবসার নাম লিখুন',
-    phone: 'আপনার ফোন নম্বর লিখুন',
-    email: 'আপনার ইমেইল ঠিকানা লিখুন',
+    fullName: 'পূর্ণ নাম',
+    businessName: 'ব্যবসার নাম',
+    phone: 'ফোন নম্বর',
+    email: 'ইমেইল ঠিকানা',
     address: 'আপনার ব্যবসার ঠিকানা লিখুন',
     password: 'আপনার পাসওয়ার্ড লিখুন',
     confirmPassword: 'আপনার পাসওয়ার্ড নিশ্চিত করুন',
@@ -172,11 +170,15 @@ export default function Register() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-2">
-            <Field label={regT('fullName')} placeholder={placeholderT('fullName')} icon={<User size={16} />} value={form.fullName} onChange={value => updateField('fullName', value)} required />
-            <Field label={regT('businessName')} placeholder={placeholderT('businessName')} icon={<Store size={16} />} value={form.businessName} onChange={value => updateField('businessName', value)} required />
-            <Field label={regT('phone')} placeholder={placeholderT('phone')} icon={<Phone size={16} />} value={form.phone} onChange={value => updateField('phone', value)} required />
-            <Field label={regT('email')} placeholder={placeholderT('email')} type="email" icon={<Mail size={16} />} value={form.email} onChange={value => updateField('email', value)} required />
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={regT('fullName')} placeholder={placeholderT('fullName')} icon={<User size={16} />} value={form.fullName} onChange={value => updateField('fullName', value)} required />
+              <Field label={regT('businessName')} placeholder={placeholderT('businessName')} icon={<Store size={16} />} value={form.businessName} onChange={value => updateField('businessName', value)} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={regT('phone')} placeholder={placeholderT('phone')} icon={<Phone size={16} />} value={form.phone} onChange={value => updateField('phone', value)} required />
+              <Field label={regT('email')} placeholder={placeholderT('email')} type="email" icon={<Mail size={16} />} value={form.email} onChange={value => updateField('email', value)} required />
+            </div>
             <TextAreaField label={regT('address')} placeholder={placeholderT('address')} icon={<MapPin size={16} />} value={form.address} onChange={value => updateField('address', value)} required />
             <PasswordField
               label={regT('password')}
@@ -195,15 +197,10 @@ export default function Register() {
               onChange={value => updateField('confirmPassword', value)}
             />
 
-            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
-              <CheckCircle2 className="flex-shrink-0 fill-brand-green text-white" size={20} />
-              <span>{regT('bannerText')}</span>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition-colors hover:bg-black disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition-colors hover:bg-black disabled:opacity-50"
             >
               {!loading && <Send size={18} className="fill-white/20" />}
               {loading ? t('common_pleaseWait') : regT('submitBtn')}
@@ -238,7 +235,7 @@ function Field({ label, placeholder, value, onChange, icon, type = 'text', requi
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-xs text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
+          className="h-12 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
           required={required}
         />
       </div>
@@ -257,7 +254,7 @@ function TextAreaField({ label, placeholder, value, onChange, icon, required = f
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className="min-h-[64px] w-full resize-y rounded-md border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-xs text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
+          className="min-h-[72px] w-full resize-y rounded-md border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
           required={required}
         />
       </div>
@@ -276,7 +273,7 @@ function PasswordField({ label, placeholder, value, onChange, showPassword, setS
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-10 pr-10 text-xs text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
+          className="h-12 w-full rounded-md border border-slate-300 bg-white pl-10 pr-10 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-900/15"
           required
         />
         <button

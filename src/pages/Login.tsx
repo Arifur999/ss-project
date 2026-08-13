@@ -110,7 +110,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="input pl-9"
+                  className="input input-auth pl-9"
                   placeholder={t('login_emailPlaceholder')}
                   required
                 />
@@ -130,7 +130,7 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="input pl-9 pr-9"
+                  className="input input-auth pl-9 pr-9"
                   placeholder={t('login_passwordPlaceholder')}
                   required
                 />
