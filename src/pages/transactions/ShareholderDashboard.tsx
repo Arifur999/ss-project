@@ -265,11 +265,11 @@ export default function ShareholderDashboard() {
             key={option.key}
             type="button"
             onClick={() => setFilterMode(option.key as FilterMode)}
-            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+            className={
               filterMode === option.key
-                ? 'bg-brand-green text-white shadow-sm'
-                : 'text-slate-600 hover:bg-neutral-100 hover:text-slate-900'
-            }`}
+                ? 'btn-primary !px-3 !py-1.5 !text-sm'
+                : 'rounded-full px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-neutral-100 hover:text-slate-900'
+            }
           >
             {option.label}
           </button>
@@ -318,7 +318,7 @@ export default function ShareholderDashboard() {
                   onMouseDown={event => event.preventDefault()}
                   onClick={() => commitYear(year)}
                   className={`block w-full px-3 py-1.5 text-left text-sm font-medium hover:bg-neutral-100 ${
-                    year === selectedYear ? 'bg-brand-green text-white hover:bg-brand-green' : 'text-slate-700'
+                    year === selectedYear ? 'bg-navy-900 text-white hover:bg-navy-900' : 'text-slate-700'
                   }`}
                 >
                   {year}

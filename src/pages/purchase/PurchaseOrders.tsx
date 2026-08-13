@@ -1138,7 +1138,7 @@ export default function PlaceOrder() {
                                             {rIdx === 0 && undeliveredQty > 0 && (
                                               <button
                                                 onClick={() => { setReceiveItem({ ...item, purchase_id: po.id, si_no: po.si_no }); setShowReceiveModal(true) }}
-                                                className="text-xs bg-brand-green text-white px-2 py-0.5 rounded flex items-center gap-1"
+                                                className="btn-primary !px-2 !py-0.5 !text-xs"
                                               >
                                                 <Truck size={10} /> Receive
                                               </button>
@@ -1176,7 +1176,7 @@ export default function PlaceOrder() {
                                         <td className="py-2 px-2 flex items-center gap-1">
                                           <button
                                             onClick={() => { setReceiveItem({ ...item, purchase_id: po.id, si_no: po.si_no }); setShowReceiveModal(true) }}
-                                            className="text-xs bg-brand-green text-white px-2 py-0.5 rounded flex items-center gap-1"
+                                            className="btn-primary !px-2 !py-0.5 !text-xs"
                                           >
                                             <Truck size={10} /> Receive
                                           </button>
