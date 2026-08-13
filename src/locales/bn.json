@@ -700,5 +700,8 @@
   "nav_buySms": "এসএমএস কিনুন",
   "nav_admin": "অ্যাডমিন",
   "nav_package": "বিলিং ও প্ল্যান",
-  "common_noValue": "কোনো তথ্য নেই"
+  "common_noValue": "কোনো তথ্য নেই",
+  "common_update": "আপডেট",
+  "sales_editInvoice": "ইনভয়েস সম্পাদনা",
+  "sales_editInvoiceSub": "এই ইনভয়েসটি বদলে আপডেট করুন"
 }

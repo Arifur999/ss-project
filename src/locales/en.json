@@ -700,5 +700,8 @@
   "nav_buySms": "Buy SMS",
   "nav_admin": "Admin",
   "nav_package": "Billing & Plan",
-  "common_noValue": "No value"
+  "common_noValue": "No value",
+  "common_update": "Update",
+  "sales_editInvoice": "Edit Invoice",
+  "sales_editInvoiceSub": "Change this invoice and update it"
 }

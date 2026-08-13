@@ -289,7 +289,7 @@ export default function Layout() {
         </div>
 
         <main ref={mainRef} className="flex-1 overflow-auto">
-          <ErrorBoundary key={location.pathname}>
+          <ErrorBoundary resetKey={location.pathname}>
             <Outlet />
           </ErrorBoundary>
         </main>

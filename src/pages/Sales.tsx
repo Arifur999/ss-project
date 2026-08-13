@@ -1960,8 +1960,8 @@ export default function Sales() {
   return (
     <div className={viewMode === 'create' ? 'p-6 space-y-6 bg-white min-h-screen' : 'flex h-full min-h-0 flex-col overflow-hidden bg-white p-6'}>
       <PageHeader
-        title={viewMode === 'create' ? 'New Sale / Create Invoice' : t('sales_ledger', 'Sales Ledger')}
-        subtitle={viewMode === 'create' ? 'Manage and generate retail invoices' : 'Invoice ledger and profit management'}
+        title={viewMode === 'create' ? (editingSale ? t('sales_editInvoice') : 'New Sale / Create Invoice') : t('sales_ledger', 'Sales Ledger')}
+        subtitle={viewMode === 'create' ? (editingSale ? t('sales_editInvoiceSub') : 'Manage and generate retail invoices') : 'Invoice ledger and profit management'}
         actions={
           viewMode === 'create' ? (
             <button
@@ -2513,7 +2513,7 @@ export default function Sales() {
                     onClick={() => save(false)}
                     className="btn-primary w-full justify-center py-2.5"
                   >
-                    <Save size={16} /> Sale
+                    <Save size={16} /> {editingSale ? t('common_update') : 'Sale'}
                   </button>
                 </div>
               </div>

@@ -12,8 +12,15 @@ import { ArrowClockwise, Warning } from '@phosphor-icons/react'
  *
  * The sidebar and header live outside this boundary, so a broken page leaves
  * the rest of the app usable.
+ *
+ * `resetKey` is the current path. Navigating clears a caught error so the next
+ * page gets a chance to draw. It is deliberately a prop rather than a `key` on
+ * the element: a changing key remounts the children, and two routes can share
+ * one component - Sales Ledger and New Sale are both <Sales /> - so remounting
+ * threw away the invoice the ledger's edit button had just loaded into the
+ * form, and the owner landed on a blank new sale.
  */
-type Props = { children: React.ReactNode }
+type Props = { children: React.ReactNode; resetKey?: string }
 type State = { error: Error | null }
 
 export default class ErrorBoundary extends React.Component<Props, State> {
@@ -26,6 +33,12 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Kept in the console so the message is recoverable from a support call.
     console.error('Page crashed:', error, info.componentStack)
+  }
+
+  componentDidUpdate(previous: Props) {
+    if (this.state.error && previous.resetKey !== this.props.resetKey) {
+      this.setState({ error: null })
+    }
   }
 
   render() {
