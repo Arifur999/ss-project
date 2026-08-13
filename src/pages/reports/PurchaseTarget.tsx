@@ -8,6 +8,7 @@ import TableScroller from '../../components/TableScroller'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
+import { monthKey, targetCompletion } from '../../lib/purchaseRollingTarget'
 
 /**
  * How much to buy from one supplier over a stretch of months.
@@ -34,6 +35,9 @@ export default function PurchaseTarget() {
   const { profile } = useAuth()
   const [targets, setTargets] = useState<any[]>([])
   const [suppliers, setSuppliers] = useState<any[]>([])
+  // Bought per supplier per month, so a target can say how far it got. Kept
+  // separate from the targets because one supplier can have several.
+  const [boughtBySupplier, setBoughtBySupplier] = useState<Record<string, Record<string, number>>>({})
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<any>(null)
@@ -43,13 +47,28 @@ export default function PurchaseTarget() {
   async function load() {
     setLoading(true)
     try {
-      const [targetRes, supplierRes] = await Promise.all([
+      const [targetRes, supplierRes, purchaseRes] = await Promise.all([
         supabase.from('purchase_targets').select('*'),
         supabase.from('suppliers').select('id, name, company_name').eq('is_active', true).order('company_name'),
+        // Not date filtered: a target can run over any months, including ones
+        // long past, and the completion figure has to cover all of them.
+        supabase.from('purchases').select('date, supplier_id, total_amount, net_amount, purchase_items(total_amount)'),
       ])
       if (targetRes.error) throw targetRes.error
       setTargets(targetRes.data || [])
       setSuppliers(supplierRes.data || [])
+
+      const bought: Record<string, Record<string, number>> = {}
+      ;(purchaseRes.error ? [] : purchaseRes.data || []).forEach((purchase: any) => {
+        if (!purchase.supplier_id || !purchase.date) return
+        const when = new Date(`${String(purchase.date).slice(0, 10)}T12:00:00`)
+        const key = monthKey(when.getFullYear(), when.getMonth() + 1)
+        const items = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + Number(item.total_amount || 0), 0)
+        const value = items || Number(purchase.total_amount || purchase.net_amount || 0)
+        const perSupplier = bought[purchase.supplier_id] || (bought[purchase.supplier_id] = {})
+        perSupplier[key] = (perSupplier[key] || 0) + value
+      })
+      setBoughtBySupplier(bought)
     } catch (error: any) {
       toast.error(error.message || t('common_error'))
     } finally {
@@ -95,18 +114,20 @@ export default function PurchaseTarget() {
                 <th className="px-4 py-2.5 text-right">{t('purchaseTarget_total')}</th>
                 <th className="px-4 py-2.5 text-right">{t('purchaseTarget_months')}</th>
                 <th className="px-4 py-2.5 text-right">{t('purchaseTarget_perMonth')}</th>
+                <th className="px-4 py-2.5 text-right">{t('purchaseTarget_complete')}</th>
                 <th className="px-4 py-2.5 text-right">{t('common_action')}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">{t('common_loading')}</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-400">{t('common_loading')}</td></tr>
               )}
               {!loading && targets.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">{t('common_noData')}</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-400">{t('common_noData')}</td></tr>
               )}
               {!loading && targets.map((target, index) => {
                 const months = monthsInRange(target)
+                const done = targetCompletion(target, boughtBySupplier[target.supplier_id] || {})
                 return (
                   <tr key={target.id} className="table-row">
                     <td className="px-4 py-2.5 text-slate-500">{index + 1}</td>
@@ -117,6 +138,25 @@ export default function PurchaseTarget() {
                     <td className="px-4 py-2.5 text-right tabular-nums text-slate-600">{formatNum(months)}</td>
                     <td className="px-4 py-2.5 text-right font-medium tabular-nums text-brand-green">
                       {formatCurr(perMonthAmount(target.total_amount, months))}
+                    </td>
+                    {/* The figure that still means something once the period is
+                        over and the month-by-month rolling has nothing left to
+                        say - how much of the target was actually bought. */}
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-neutral-200">
+                          <div
+                            className={`h-full rounded-full ${done.percent >= 100 ? 'bg-brand-green' : done.finished ? 'bg-brand-red' : 'bg-brand-blue'}`}
+                            style={{ width: `${Math.min(100, done.percent)}%` }}
+                          />
+                        </div>
+                        <span
+                          className={`w-14 text-right font-semibold tabular-nums ${done.percent >= 100 ? 'text-brand-green' : done.finished ? 'text-brand-red' : 'text-navy-900'}`}
+                          title={`${formatCurr(done.achieved)} / ${formatCurr(target.total_amount)}${done.finished ? ` · ${t('purchaseTarget_ended')}` : ''}`}
+                        >
+                          {formatNum(Math.round(done.percent))}%
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1">

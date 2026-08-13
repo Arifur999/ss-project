@@ -726,10 +726,11 @@ export default function ReportSummary() {
     }
   }
 
-  const companyWayTotals = useMemo(() => data.companyWayRows.reduce((totals, row) => ({
-    purchase: totals.purchase + row.purchase,
-    sales: totals.sales + row.sales,
-  }), { purchase: 0, sales: 0 }), [data.companyWayRows])
+  const monthlyPurchaseTotals = useMemo(() => (data.monthlyPurchaseRows || []).reduce((totals, row) => ({
+    target: totals.target + row.target,
+    achieved: totals.achieved + row.achieved,
+    extra: totals.extra + row.extra,
+  }), { target: 0, achieved: 0, extra: 0 }), [data.monthlyPurchaseRows])
 
   const salesAchievedPct = pct(data.totalSales, data.salesTarget)
   const achievedProfit = data.grossProfit + data.purchaseIncentive + data.totalOtherIncome
@@ -1058,22 +1059,24 @@ export default function ReportSummary() {
 
             <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Monthly Purchase</div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <table className="w-full table-fixed text-[10px]">
+              {/* Scrolls sideways rather than squeezing. Four money columns in
+                  a panel this narrow were wrapping mid-figure - a target of
+                  "Tk 28,571.43" is unreadable broken across two lines, and the
+                  Extra column was falling off the edge entirely. */}
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[420px] text-[10px]">
                   <thead className="sticky top-0 z-10 bg-white text-slate-600">
                     <tr>
-                      <th className="w-[34%] px-2 py-2 text-left font-bold">Company</th>
-                      <th className="w-[22%] px-1.5 py-2 text-right font-bold">Target</th>
-                      <th className="w-[22%] px-1.5 py-2 text-right font-bold">Achieved</th>
-                      {/* Only shown once something has actually gone over, so
-                          the panel is not carrying an empty column all month. */}
-                      <th className="w-[22%] px-1.5 py-2 text-right font-bold">Extra</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-left font-bold">Company</th>
+                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Target</th>
+                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Achieved</th>
+                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Extra</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(data.monthlyPurchaseRows || []).map(row => (
                       <tr key={row.company} className="border-t border-slate-100">
-                        <td className="truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
+                        <td className="max-w-[140px] truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
                         <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.target)}</td>
                         <td className={`whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums ${row.achieved >= row.target ? 'text-brand-green' : 'text-slate-700'}`}>{formatCurr(row.achieved)}</td>
                         <td
@@ -1090,12 +1093,18 @@ export default function ReportSummary() {
                       </tr>
                     )}
                   </tbody>
+                  {/* Inside the table rather than a grid underneath it: the
+                      old footer carried its own hardcoded column widths and
+                      went on totalling the columns this panel used to have. */}
+                  <tfoot className="sticky bottom-0 bg-slate-800 text-[10px] font-bold text-white">
+                    <tr>
+                      <td className="whitespace-nowrap px-2 py-2">Total</td>
+                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(monthlyPurchaseTotals.target)}</td>
+                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(monthlyPurchaseTotals.achieved)}</td>
+                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(monthlyPurchaseTotals.extra)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
-              </div>
-              <div className="grid grid-cols-[42%_29%_29%] bg-slate-800 text-[10px] font-bold text-white">
-                <div className="px-2 py-2">Total</div>
-                <div className="px-1.5 py-2 text-right tabular-nums">{formatCurr(companyWayTotals.purchase)}</div>
-                <div className="px-1.5 py-2 text-right tabular-nums">{formatCurr(companyWayTotals.sales)}</div>
               </div>
             </section>
           </aside>

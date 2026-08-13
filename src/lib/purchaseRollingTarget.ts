@@ -80,6 +80,56 @@ function round(value: number): number {
   return Number(value.toFixed(2))
 }
 
+export interface TargetCompletion {
+  /** Everything bought from this supplier inside the target's own months. */
+  achieved: number
+  /** How much of the total is still to buy, never below zero. */
+  remaining: number
+  /** Achieved as a percentage of the total. Can exceed 100. */
+  percent: number
+  /** True once the last month of the range has passed. */
+  finished: boolean
+}
+
+/**
+ * How far a whole target got - the figure that still means something after the
+ * period has ended and the month-by-month rolling has nothing left to say.
+ *
+ * Purchases outside the target's own months are not counted: a target for
+ * Jan-Jun is not helped by something bought in August.
+ */
+export function targetCompletion(
+  target: PurchaseTargetRange,
+  purchasesByMonth: Record<string, number>,
+  today: Date = new Date(),
+): TargetCompletion {
+  const start = monthIndex(target.start_year, target.start_month)
+  const end = monthIndex(target.end_year, target.end_month)
+  const total = money(target.total_amount)
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return { achieved: 0, remaining: round(total), percent: 0, finished: false }
+  }
+
+  let achieved = 0
+  for (let cursor = start; cursor <= end; cursor += 1) {
+    const cursorYear = Math.floor((cursor - 1) / 12)
+    const cursorMonth = cursor - cursorYear * 12
+    achieved += money(purchasesByMonth[monthKey(cursorYear, cursorMonth)])
+  }
+
+  const nowIndex = monthIndex(today.getFullYear(), today.getMonth() + 1)
+
+  return {
+    achieved: round(achieved),
+    remaining: round(Math.max(0, total - achieved)),
+    // A target of zero cannot be a percentage of anything - reporting 0%
+    // rather than dividing by it keeps the column readable.
+    percent: total > 0 ? round((achieved / total) * 100) : 0,
+    finished: nowIndex > end,
+  }
+}
+
 /**
  * Where one supplier stands in one month of its purchase target.
  *

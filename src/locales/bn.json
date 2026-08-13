@@ -756,5 +756,7 @@
   "purchaseTarget_pickCompany": "কোম্পানি বাছুন",
   "purchaseTarget_badRange": "শেষ মাস শুরুর মাসের আগে হতে পারে না",
   "common_action": "অ্যাকশন",
-  "nav_salesTarget": "বিক্রয় টার্গেট"
+  "nav_salesTarget": "বিক্রয় টার্গেট",
+  "purchaseTarget_complete": "% সম্পন্ন",
+  "purchaseTarget_ended": "সময় শেষ"
 }

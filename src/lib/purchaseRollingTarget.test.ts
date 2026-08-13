@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { monthKey, purchaseProgressForMonth } from './purchaseRollingTarget'
+import { monthKey, purchaseProgressForMonth, targetCompletion } from './purchaseRollingTarget'
 
 // Jan to Jun 2026, Tk 3,000,000 - six months, so Tk 500,000 a month to start.
 const TARGET = {
@@ -104,6 +104,58 @@ describe('purchaseProgressForMonth', () => {
     const result = purchaseProgressForMonth(TARGET, { '2026-01': NaN as never }, 2026, 1)
     expect(result.achieved).toBe(0)
     expect(result.target).toBe(500_000)
+  })
+})
+
+describe('targetCompletion', () => {
+  // A fixed "today" so "has the period ended" does not depend on the day the
+  // test happens to run.
+  const during = new Date('2026-03-15T12:00:00')
+  const after = new Date('2026-09-15T12:00:00')
+
+  it('adds up everything bought inside the range', () => {
+    const result = targetCompletion(TARGET, { '2026-01': 500_000, '2026-02': 700_000 }, during)
+    expect(result.achieved).toBe(1_200_000)
+    expect(result.remaining).toBe(1_800_000)
+    expect(result.percent).toBe(40)
+  })
+
+  it('ignores buying that happened outside the target period', () => {
+    // August is past the Jan-Jun range - it belongs to no target here.
+    const result = targetCompletion(TARGET, { '2026-01': 500_000, '2026-08': 900_000 }, after)
+    expect(result.achieved).toBe(500_000)
+    expect(result.percent).toBe(16.67)
+  })
+
+  it('says a target is finished only once its last month has passed', () => {
+    expect(targetCompletion(TARGET, {}, during).finished).toBe(false)
+    // June is the last month; still inside it in June.
+    expect(targetCompletion(TARGET, {}, new Date('2026-06-30T12:00:00')).finished).toBe(false)
+    expect(targetCompletion(TARGET, {}, new Date('2026-07-01T12:00:00')).finished).toBe(true)
+  })
+
+  it('reports a finished target that fell short, which is the point of it', () => {
+    const result = targetCompletion(TARGET, { '2026-01': 400_000, '2026-02': 400_000, '2026-03': 400_000 }, after)
+    expect(result.finished).toBe(true)
+    expect(result.percent).toBe(40)
+    expect(result.remaining).toBe(1_800_000)
+  })
+
+  it('goes past 100 when more was bought than the target asked for', () => {
+    const result = targetCompletion(TARGET, { '2026-01': 4_500_000 }, after)
+    expect(result.percent).toBe(150)
+    // Nothing is still owed, and that does not become a negative.
+    expect(result.remaining).toBe(0)
+  })
+
+  it('does not divide by a zero target', () => {
+    const zero = { ...TARGET, total_amount: 0 }
+    expect(targetCompletion(zero, { '2026-01': 100 }, during).percent).toBe(0)
+  })
+
+  it('treats a backwards range as nothing achieved rather than looping', () => {
+    const backwards = { start_year: 2026, start_month: 6, end_year: 2026, end_month: 1, total_amount: 3_000_000 }
+    expect(targetCompletion(backwards, { '2026-03': 500_000 }, during).achieved).toBe(0)
   })
 })
 
