@@ -732,5 +732,14 @@
   "price_colProduct": "পণ্য",
   "price_before": "এখন",
   "price_after": "নতুন",
-  "price_rollbackNote": "পুরোনো দামগুলো ফাইলে নেমে গেছে। ফেরাতে চাইলে সেটাই এখানে আপলোড করুন।"
+  "price_rollbackNote": "পুরোনো দামগুলো ফাইলে নেমে গেছে। ফেরাতে চাইলে সেটাই এখানে আপলোড করুন।",
+  "price_historyTitle": "আপডেটের ইতিহাস",
+  "price_historyEmpty": "এখনো কোনো দাম আপডেট হয়নি। ফাইল বেছে শুরু করুন।",
+  "price_colDate": "তারিখ",
+  "price_colFile": "ফাইল",
+  "price_colItems": "যতটি পণ্য বদলেছে",
+  "price_colStatus": "অবস্থা",
+  "price_statusCompleted": "সম্পন্ন",
+  "price_statusPartial": "আংশিক সংরক্ষিত",
+  "price_modalTitle": "দামের ফাইল আপলোড"
 }

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   FileXlsIcon as FileSpreadsheet,
   UploadSimpleIcon as Upload,
@@ -8,6 +8,8 @@ import {
 } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
+import Modal from '../../components/Modal'
+import { NoValue } from '../../components/CellValue'
 import TableScroller from '../../components/TableScroller'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../../components/ProgressDialog'
 import { useLang } from '../../context/LanguageContext'
@@ -20,7 +22,7 @@ import {
   readSpreadsheet,
   resolveDiscountColumns,
 } from '../../lib/spreadsheet'
-import { bulkUpdateProductPrices, type PriceRow, type PriceUpdateResult } from '../../services/product.services'
+import { bulkUpdateProductPrices, getPriceUpdates, recordPriceUpdate, type PriceRow, type PriceUpdateBatch, type PriceUpdateResult } from '../../services/product.services'
 
 // The columns the sample carries, and the ones a rollback file is written back
 // in - the same shape, so undoing a mistake is just uploading what came out.
@@ -57,13 +59,31 @@ const money = (value: number | undefined) =>
   value === undefined ? '' : Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })
 
 export default function UpdatePrice() {
-  const { t } = useLang()
+  const { t, formatDateShort, formatNum } = useLang()
   const [progress, setProgress] = useState<ProgressState>(idleProgress)
   const [preview, setPreview] = useState<PriceUpdateResult | null>(null)
   const [pendingRows, setPendingRows] = useState<PriceRow[]>([])
   const [fileName, setFileName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [history, setHistory] = useState<PriceUpdateBatch[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { loadHistory() }, [])
+
+  async function loadHistory() {
+    setHistoryLoading(true)
+    try {
+      setHistory(await getPriceUpdates() || [])
+    } catch {
+      // The history is a record of what happened, not part of doing it - a
+      // failure here must not stop the owner uploading a file.
+      setHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
 
   async function downloadSample() {
     try {
@@ -82,6 +102,7 @@ export default function UpdatePrice() {
     event.target.value = ''
     if (!file) return
 
+    setUploadOpen(false)
     setPreview(null)
     setPendingRows([])
     setProgress(startProgress(t('price_title'), file.name, t('price_reading')))
@@ -190,6 +211,21 @@ export default function UpdatePrice() {
       setProgress(current => ({ ...current, done: true }))
       await new Promise(resolve => setTimeout(resolve, 700))
 
+      // One row for the whole run. Filed after the batches, so the count is
+      // what the server actually reported rather than what was hoped for.
+      try {
+        await recordPriceUpdate({
+          file_name: fileName,
+          updated_count: updated,
+          skipped_count: preview.notFound.length,
+          unchanged_count: preview.unchanged.length,
+          status: updated === toSave.length ? 'completed' : 'partial',
+        })
+        await loadHistory()
+      } catch {
+        // The prices are saved either way; only the history line is missing.
+      }
+
       toast.success(
         `${updated} ${t('price_willChange').toLowerCase()} · ` +
         `${preview.notFound.length} ${t('price_notFound').toLowerCase()} · ` +
@@ -198,6 +234,9 @@ export default function UpdatePrice() {
       toast(t('price_rollbackNote'), { icon: '↩️', duration: 6000 })
       setPreview(null)
       setPendingRows([])
+      // A long preview leaves the page scrolled down, and the history it
+      // should now be showing is back at the top.
+      document.querySelector('main')?.scrollTo({ top: 0 })
     } catch (error: any) {
       console.error('Price update failed', error)
       toast.error(error.message || 'Could not save the prices')
@@ -222,7 +261,7 @@ export default function UpdatePrice() {
             <button onClick={downloadSample} className="btn-secondary flex items-center gap-2 bg-white">
               <FileSpreadsheet size={16} /> {t('price_sample')}
             </button>
-            <button onClick={() => fileRef.current?.click()} className="btn-primary flex items-center gap-2">
+            <button onClick={() => setUploadOpen(true)} className="btn-primary flex items-center gap-2">
               <Upload size={16} /> {t('price_upload')}
             </button>
           </div>
@@ -230,17 +269,40 @@ export default function UpdatePrice() {
       />
 
       {!preview && (
-        <div className="card max-w-3xl p-6">
-          <h2 className="text-sm font-bold text-navy-900">{t('price_howTitle')}</h2>
-          <ul className="mt-3 space-y-2 text-sm text-neutral-600">
-            {['price_how1', 'price_how2', 'price_how3', 'price_how4'].map(key => (
-              <li key={key} className="flex gap-2">
-                <CheckCircle size={16} weight="duotone" className="mt-0.5 shrink-0 text-brand-green" />
-                <span>{t(key)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <TableScroller>
+          <table className="w-full min-w-[720px] text-sm">
+            <thead className="table-header">
+              <tr>
+                <th className="px-4 py-2.5 text-left">#</th>
+                <th className="px-4 py-2.5 text-left">{t('price_colDate')}</th>
+                <th className="px-4 py-2.5 text-left">{t('price_colFile')}</th>
+                <th className="px-4 py-2.5 text-right">{t('price_colItems')}</th>
+                <th className="px-4 py-2.5 text-left">{t('price_colStatus')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyLoading && (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-neutral-500">{t('common_loading')}</td></tr>
+              )}
+              {!historyLoading && history.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-neutral-500">{t('price_historyEmpty')}</td></tr>
+              )}
+              {!historyLoading && history.map((run, index) => (
+                <tr key={run.id} className="table-row">
+                  <td className="px-4 py-2.5 text-neutral-500">{index + 1}</td>
+                  <td className="px-4 py-2.5">{formatDateShort(run.created_at)}</td>
+                  <td className="px-4 py-2.5 text-neutral-600">{run.file_name || <NoValue />}</td>
+                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-navy-900">{formatNum(run.updated_count)}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={run.status === 'partial' ? 'badge-orange' : 'badge-green'}>
+                      {t(run.status === 'partial' ? 'price_statusPartial' : 'price_statusCompleted')}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableScroller>
       )}
 
       {preview && (
@@ -322,6 +384,31 @@ export default function UpdatePrice() {
           </div>
         </div>
       )}
+
+      <Modal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} title={t('price_modalTitle')} size="md">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-bold text-navy-900">{t('price_howTitle')}</h3>
+            <ul className="mt-3 space-y-2 text-sm text-neutral-600">
+              {['price_how1', 'price_how2', 'price_how3', 'price_how4'].map(key => (
+                <li key={key} className="flex gap-2">
+                  <CheckCircle size={16} weight="duotone" className="mt-0.5 shrink-0 text-brand-green" />
+                  <span>{t(key)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex gap-2 border-t border-surface-border pt-4">
+            <button onClick={downloadSample} className="btn-secondary flex-1 justify-center">
+              <FileSpreadsheet size={16} /> {t('price_sample')}
+            </button>
+            <button onClick={() => fileRef.current?.click()} className="btn-primary flex-1 justify-center">
+              <Upload size={16} /> {t('price_upload')}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <ProgressDialog state={progress} />
     </div>

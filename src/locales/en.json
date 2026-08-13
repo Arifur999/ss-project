@@ -732,5 +732,14 @@
   "price_colProduct": "Product",
   "price_before": "Now",
   "price_after": "New",
-  "price_rollbackNote": "The old prices were downloaded as a file. Upload it here to undo."
+  "price_rollbackNote": "The old prices were downloaded as a file. Upload it here to undo.",
+  "price_historyTitle": "Update history",
+  "price_historyEmpty": "No price updates yet. Choose a file to make one.",
+  "price_colDate": "Date",
+  "price_colFile": "File",
+  "price_colItems": "Items updated",
+  "price_colStatus": "Status",
+  "price_statusCompleted": "Completed",
+  "price_statusPartial": "Partly saved",
+  "price_modalTitle": "Upload a price file"
 }

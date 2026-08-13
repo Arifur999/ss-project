@@ -52,6 +52,27 @@ export type PriceUpdateResult = {
   notFound: string[]
 }
 
+export type PriceUpdateBatch = {
+  id: string
+  file_name: string
+  updated_count: number
+  skipped_count: number
+  unchanged_count: number
+  status: string
+  created_at: string
+}
+
+export const getPriceUpdates = () => http.get<PriceUpdateBatch[]>('/products/price-updates')
+
+// Filed once per finished run, not per batch of 100.
+export const recordPriceUpdate = (payload: {
+  file_name?: string
+  updated_count: number
+  skipped_count?: number
+  unchanged_count?: number
+  status?: 'completed' | 'partial'
+}) => http.post<PriceUpdateBatch>('/products/price-updates', payload)
+
 // Price-only bulk update, matched on product code. Deliberately not
 // /products/bulk-upsert: that one creates a product when the code is unknown.
 export const bulkUpdateProductPrices = (prices: PriceRow[], dryRun: boolean) =>

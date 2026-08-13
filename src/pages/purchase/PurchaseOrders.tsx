@@ -79,7 +79,7 @@ function readProductListCache() {
         cost_price: Number(row.cost_price || 0),
         selling_price: Number(row.selling_price || 0),
         image_url: row.image_url || null,
-        discount: Number(row.discount || 0),
+        discount: Number(row.dp_discount ?? row.discount ?? 0),
         opening_qty: Number(row.opening_qty || 0),
       }))
       .filter((row: any) => row.id && row.product_code && row.name)
@@ -169,7 +169,7 @@ export default function PlaceOrder() {
     const [poRes, supRes, proRes, accRes, invRes, balancePoRes, payRes] = await Promise.all([
       supabase.from('purchases').select('*, purchase_items(*, purchase_receives(*))').in('shipping_status', ['pending', 'partial']).order('date', { ascending: false }),
       supabase.from('suppliers').select('id, name, company_name, phone, opening_due, due_type').eq('is_active', true),
-      supabase.from('products').select('id, product_code, name, cost_price, selling_price, image_url, discount').eq('is_active', true),
+      supabase.from('products').select('id, product_code, name, cost_price, selling_price, image_url, discount, dp_discount').eq('is_active', true),
       supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
       supabase.from('inventory').select('product_id, available_qty'),
       supabase.from('purchases').select('supplier_id, purchase_items(*, purchase_receives(received_qty))'),
@@ -317,7 +317,7 @@ export default function PlaceOrder() {
         newItems[idx].product_id = p.id
         newItems[idx].product_name = p.name
         newItems[idx].dp_price = Number(p.cost_price || 0)
-        newItems[idx].discount_pct = Number(p.discount || 0)
+        newItems[idx].discount_pct = Number(p.dp_discount ?? p.discount ?? 0)
       }
     }
 
@@ -365,7 +365,7 @@ export default function PlaceOrder() {
 
   function addProductToOrder(product: any) {
     const dp = Number(product.cost_price || 0)
-    const discount = Number(product.discount || 0)
+    const discount = Number(product.dp_discount ?? product.discount ?? 0)
     const actual = dp * (1 - discount / 100)
     const nextItem: PurchaseItem = applySpPercent({
       product_id: product.id,
