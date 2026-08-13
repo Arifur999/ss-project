@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { TruckIcon as Truck, ShoppingBagIcon as ShoppingBag, ChartLineUpIcon as ChartLineUp, ReceiptIcon as Receipt, VaultIcon as Vault, HandCoinsIcon as HandCoins, ArrowUpRightIcon as ArrowUpRight, ChartBarIcon as BarChart3, CalendarDotsIcon as CalendarDays, ClipboardTextIcon as ClipboardList, ShoppingCartSimpleIcon as ShoppingCart, TrendUpIcon as TrendingUp, WalletIcon as Wallet } from '@phosphor-icons/react'
+import {
+  TruckIcon as Truck,
+  CashRegisterIcon as CashRegister,
+  CoinsIcon as Coins,
+  CreditCardIcon as CreditCard,
+  VaultIcon as Vault,
+  HandCoinsIcon as HandCoins,
+  CalendarDotsIcon as CalendarDays,
+} from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
@@ -525,9 +533,9 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-2 gap-4">
           <StatCard label="Total Purchase" icon={<Truck size={17} weight="duotone" />} value={formatCurr(data.totalPurchases)} trend={pctChange(data.totalPurchases, data.previous.totalPurchases)} inverted />
-          <StatCard label="Total Sales" icon={<ShoppingBag size={17} weight="duotone" />} value={formatCurr(data.totalSales)} trend={pctChange(data.totalSales, data.previous.totalSales)} />
-          <StatCard label="Total Profit" icon={<ChartLineUp size={17} weight="duotone" />} value={formatCurr(data.totalProfit)} trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
-          <StatCard label="Total Expenses" icon={<Receipt size={17} weight="duotone" />} value={formatCurr(data.totalExpenses)} trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
+          <StatCard label="Total Sales" icon={<CashRegister size={17} weight="duotone" />} value={formatCurr(data.totalSales)} trend={pctChange(data.totalSales, data.previous.totalSales)} />
+          <StatCard label="Total Profit" icon={<Coins size={17} weight="duotone" />} value={formatCurr(data.totalProfit)} trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
+          <StatCard label="Total Expenses" icon={<CreditCard size={17} weight="duotone" />} value={formatCurr(data.totalExpenses)} trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
         </div>
 
         <section className="card border-navy-900 bg-navy-900 p-5">
