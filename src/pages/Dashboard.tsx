@@ -620,20 +620,20 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead className="table-header">
                 <tr>
-                  <th className="py-2 text-left">Customer</th>
-                  <th className="py-2 text-right">Sales</th>
-                  <th className="py-2 text-right">Due</th>
+                  <th className="px-3 py-2.5 text-left">Customer</th>
+                  <th className="px-3 py-2.5 text-right">Sales</th>
+                  <th className="px-3 py-2.5 text-right">Due</th>
                 </tr>
               </thead>
               <tbody>
                 {data.topCustomers.length === 0 && (
-                  <tr><td colSpan={3} className="py-10 text-center text-neutral-500">No customers yet</td></tr>
+                  <tr><td colSpan={3} className="px-3 py-10 text-center text-neutral-500">No customers yet</td></tr>
                 )}
                 {data.topCustomers.map((customer, index) => (
                   <tr key={`${customer.name}-${index}`} className="border-t border-neutral-200">
-                    <td className="py-2.5 font-medium text-navy-900">{customer.name}</td>
-                    <td className="py-2.5 text-right tabular-nums text-neutral-700">{formatCurr(customer.totalSales)}</td>
-                    <td className={`py-2.5 text-right tabular-nums font-semibold ${customer.dueAmount > 0 ? "text-brand-red" : "text-neutral-500"}`}>{formatCurr(customer.dueAmount)}</td>
+                    <td className="px-3 py-2.5 font-medium text-navy-900">{customer.name}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-neutral-700">{formatCurr(customer.totalSales)}</td>
+                    <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${customer.dueAmount > 0 ? "text-brand-red" : "text-neutral-500"}`}>{formatCurr(customer.dueAmount)}</td>
                   </tr>
                 ))}
               </tbody>
