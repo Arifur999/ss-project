@@ -5,6 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
+import { monthKey, purchaseProgressForMonth, type MonthProgress } from '../../lib/purchaseRollingTarget'
 import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
@@ -48,7 +49,17 @@ type ReportData = {
   supplierPaymentBreakdown: BreakdownRow[]
   otherIncomeBreakdown: BreakdownRow[]
   companyWayRows: CompanyWayRow[]
+  monthlyPurchaseRows: MonthlyPurchaseRow[]
+  monthlyPurchaseMonth: string
   dailyPerformance: DailyPerformanceRow[]
+}
+
+type MonthlyPurchaseRow = {
+  company: string
+  target: number
+  achieved: number
+  extra: number
+  nextMonthTarget: number
 }
 
 type CompanyWayRow = {
@@ -101,6 +112,8 @@ const emptyReport: ReportData = {
   supplierPaymentBreakdown: [],
   otherIncomeBreakdown: [],
   companyWayRows: [],
+  monthlyPurchaseRows: [],
+  monthlyPurchaseMonth: '',
   dailyPerformance: [],
 }
 
@@ -260,7 +273,7 @@ export default function ReportSummary() {
           .gte('year', Number(range.start.slice(0, 4)))
           .lte('year', Number(range.end.slice(0, 4)))
 
-      const [salesRes, purchasesRes, expensesRes, supplierPaymentsRes, targetsRes, withdrawRes, otherIncomeRes, productsRes] = await Promise.all([
+      const [salesRes, purchasesRes, expensesRes, supplierPaymentsRes, targetsRes, withdrawRes, otherIncomeRes, productsRes, purchaseTargetsRes, allPurchasesRes] = await Promise.all([
         withDateRange(
           supabase
             .from('sales')
@@ -310,6 +323,13 @@ export default function ReportSummary() {
         supabase
           .from('products')
           .select('id, product_code, suppliers(name, company_name)'),
+        // Buying targets per supplier. Not date filtered: which of them covers
+        // the reported month is decided below, from their own ranges.
+        supabase.from('purchase_targets').select('*'),
+        // Purchases with no date filter, because a rolling target reads every
+        // month from its start - what was bought in March changes what April
+        // is asked for, and April is what this panel shows.
+        supabase.from('purchases').select('date, supplier_id, total_amount, net_amount, purchase_items(total_amount)'),
       ])
 
       if (salesRes.error) throw salesRes.error
@@ -482,6 +502,68 @@ export default function ReportSummary() {
       const companyWayRows = Object.values(companyMap)
         .sort((a, b) => (b.purchase + b.sales) - (a.purchase + a.sales))
 
+      /*
+       * Monthly Purchase: how each company stands against its buying target
+       * for the month this report is about.
+       *
+       * The month is the one the range ends in - the page is month-shaped
+       * ("August 2026" in the overview), and a range that stops mid-month is
+       * still reporting on that month.
+       */
+      const reportMonthDate = new Date(`${range.end}T12:00:00`)
+      const reportYear = reportMonthDate.getFullYear()
+      const reportMonth = reportMonthDate.getMonth() + 1
+
+      const purchaseTargets = purchaseTargetsRes.error ? [] : (purchaseTargetsRes.data || [])
+      const allPurchases = allPurchasesRes.error ? [] : (allPurchasesRes.data || [])
+
+      // Bought per supplier per month, over all time - the rolling figure for
+      // this month is built from every month before it.
+      const boughtBySupplier: Record<string, Record<string, number>> = {}
+      allPurchases.forEach((purchase: any) => {
+        const supplierId = purchase.supplier_id
+        if (!supplierId || !purchase.date) return
+        const when = new Date(`${String(purchase.date).slice(0, 10)}T12:00:00`)
+        const key = monthKey(when.getFullYear(), when.getMonth() + 1)
+        const itemTotal = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + amount(item.total_amount), 0)
+        const value = itemTotal || amount(purchase.total_amount || purchase.net_amount)
+        const perSupplier = boughtBySupplier[supplierId] || (boughtBySupplier[supplierId] = {})
+        perSupplier[key] = (perSupplier[key] || 0) + value
+      })
+
+      const supplierNameById = new Map<string, string>()
+      purchaseTargets.forEach((target: any) => {
+        const supplier = Array.isArray(target.supplier) ? target.supplier[0] : target.supplier
+        if (target.supplier_id) supplierNameById.set(target.supplier_id, companyName(supplier?.company_name || supplier?.name))
+      })
+
+      const monthlyPurchaseRows: MonthlyPurchaseRow[] = purchaseTargets
+        .map((target: any): MonthlyPurchaseRow | null => {
+          const progress: MonthProgress = purchaseProgressForMonth(
+            {
+              start_year: Number(target.start_year),
+              start_month: Number(target.start_month),
+              end_year: Number(target.end_year),
+              end_month: Number(target.end_month),
+              total_amount: amount(target.total_amount),
+            },
+            boughtBySupplier[target.supplier_id] || {},
+            reportYear,
+            reportMonth,
+          )
+          // A target that does not cover this month has nothing to say about it.
+          if (!progress.inRange) return null
+          return {
+            company: supplierNameById.get(target.supplier_id) || companyName(''),
+            target: progress.target,
+            achieved: progress.achieved,
+            extra: progress.extra,
+            nextMonthTarget: progress.nextMonthTarget,
+          }
+        })
+        .filter((row): row is MonthlyPurchaseRow => row !== null)
+        .sort((a, b) => b.target - a.target)
+
       const profitWithdraw = withdrawals.reduce((sum: number, withdrawal: any) => sum + amount(withdrawal.amount), 0)
       const profitLoss = grossProfit + purchaseIncentive + totalOtherIncome - totalExpenses
 
@@ -632,6 +714,8 @@ export default function ReportSummary() {
         supplierPaymentBreakdown,
         otherIncomeBreakdown,
         companyWayRows,
+        monthlyPurchaseRows,
+        monthlyPurchaseMonth: `${reportYear}-${String(reportMonth).padStart(2, '0')}`,
         dailyPerformance,
       })
       setLastUpdated(new Date())
@@ -973,27 +1057,36 @@ export default function ReportSummary() {
             </div>
 
             <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
+              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Monthly Purchase</div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <table className="w-full table-fixed text-[10px]">
                   <thead className="sticky top-0 z-10 bg-white text-slate-600">
                     <tr>
-                      <th className="w-[42%] px-2 py-2 text-left font-bold">Company</th>
-                      <th className="w-[29%] px-1.5 py-2 text-right font-bold">Purchase</th>
-                      <th className="w-[29%] px-1.5 py-2 text-right font-bold">Sales</th>
+                      <th className="w-[34%] px-2 py-2 text-left font-bold">Company</th>
+                      <th className="w-[22%] px-1.5 py-2 text-right font-bold">Target</th>
+                      <th className="w-[22%] px-1.5 py-2 text-right font-bold">Achieved</th>
+                      {/* Only shown once something has actually gone over, so
+                          the panel is not carrying an empty column all month. */}
+                      <th className="w-[22%] px-1.5 py-2 text-right font-bold">Extra</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.companyWayRows.map(row => (
+                    {(data.monthlyPurchaseRows || []).map(row => (
                       <tr key={row.company} className="border-t border-slate-100">
                         <td className="truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
-                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.purchase)}</td>
-                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(row.sales)}</td>
+                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.target)}</td>
+                        <td className={`whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums ${row.achieved >= row.target ? 'text-brand-green' : 'text-slate-700'}`}>{formatCurr(row.achieved)}</td>
+                        <td
+                          className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-brand-green"
+                          title={row.extra > 0 ? `Next month drops to ${formatCurr(row.nextMonthTarget)}` : undefined}
+                        >
+                          {row.extra > 0 ? formatCurr(row.extra) : <span className="text-slate-300">-</span>}
+                        </td>
                       </tr>
                     ))}
-                    {data.companyWayRows.length === 0 && (
+                    {(data.monthlyPurchaseRows || []).length === 0 && (
                       <tr>
-                        <td colSpan={3} className="px-2 py-8 text-center text-xs font-medium text-slate-400">No company data</td>
+                        <td colSpan={4} className="px-2 py-8 text-center text-xs font-medium text-slate-400">No purchase target for this month</td>
                       </tr>
                     )}
                   </tbody>
