@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CreditCardIcon as CreditCard, PackageIcon as Package, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
+import { monthKey, targetCompletion } from '../../lib/purchaseRollingTarget'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { isMissingTableError } from '../../lib/supabaseErrors'
@@ -48,6 +49,13 @@ type Summary = {
   purchaseQty: number
 }
 
+type PurchaseTargetRow = {
+  company: string
+  target: number
+  achieved: number
+  remaining: number
+}
+
 type CompanyWayRow = {
   company: string
   purchase: number
@@ -78,6 +86,7 @@ export default function YearlyReport() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [rows, setRows] = useState<MonthRow[]>([])
   const [companyWayRows, setCompanyWayRows] = useState<CompanyWayRow[]>([])
+  const [purchaseTargetRows, setPurchaseTargetRows] = useState<PurchaseTargetRow[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
@@ -242,7 +251,48 @@ export default function YearlyReport() {
         })
       })
 
+      /*
+       * Purchase targets, whole rather than month by month: the yearly page is
+       * the long view, so it shows the target in full, everything bought
+       * against it, and what is still to buy.
+       *
+       * Only targets that touch the year on screen, and their figures cover
+       * the target's own months - a target running Nov to Feb is one target,
+       * not two halves, and splitting it at the year end would report a
+       * shortfall that is not real.
+       */
+      const [targetRes, allPurchaseRes] = await Promise.all([
+        supabase.from('purchase_targets').select('*'),
+        supabase.from('purchases').select('date, supplier_id, total_amount, net_amount, purchase_items(total_amount)'),
+      ])
+
+      const boughtBySupplier: Record<string, Record<string, number>> = {}
+      ;(allPurchaseRes.error ? [] : allPurchaseRes.data || []).forEach((purchase: any) => {
+        if (!purchase.supplier_id || !purchase.date) return
+        const when = new Date(`${String(purchase.date).slice(0, 10)}T12:00:00`)
+        const key = monthKey(when.getFullYear(), when.getMonth() + 1)
+        const items = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + Number(item.total_amount || 0), 0)
+        const value = items || Number(purchase.total_amount || purchase.net_amount || 0)
+        const perSupplier = boughtBySupplier[purchase.supplier_id] || (boughtBySupplier[purchase.supplier_id] = {})
+        perSupplier[key] = (perSupplier[key] || 0) + value
+      })
+
+      const targetRows: PurchaseTargetRow[] = (targetRes.error ? [] : targetRes.data || [])
+        .filter((target: any) => Number(target.start_year) <= year && Number(target.end_year) >= year)
+        .map((target: any) => {
+          const supplier = Array.isArray(target.supplier) ? target.supplier[0] : target.supplier
+          const done = targetCompletion(target, boughtBySupplier[target.supplier_id] || {})
+          return {
+            company: companyName(supplier?.company_name || supplier?.name),
+            target: Number(target.total_amount || 0),
+            achieved: done.achieved,
+            remaining: done.remaining,
+          }
+        })
+        .sort((a, b) => b.target - a.target)
+
       setRows(nextRows)
+      setPurchaseTargetRows(targetRows)
       setCompanyWayRows(Object.values(companyMap).sort((a, b) => (b.purchase + b.sales) - (a.purchase + a.sales)))
       setLastUpdated(new Date())
     } catch (err: any) {
@@ -292,10 +342,11 @@ export default function YearlyReport() {
     ...row,
     purchaseTrend: row.purchaseOrderValue,
   }))
-  const companyWayTotals = useMemo(() => companyWayRows.reduce((totals, row) => ({
-    purchase: totals.purchase + row.purchase,
-    sales: totals.sales + row.sales,
-  }), { purchase: 0, sales: 0 }), [companyWayRows])
+  const purchaseTargetTotals = useMemo(() => purchaseTargetRows.reduce((totals, row) => ({
+    target: totals.target + row.target,
+    achieved: totals.achieved + row.achieved,
+    remaining: totals.remaining + row.remaining,
+  }), { target: 0, achieved: 0, remaining: 0 }), [purchaseTargetRows])
 
   function StatCard({
     title,
@@ -449,36 +500,45 @@ export default function YearlyReport() {
             </div>
 
             <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Company ways Report</div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <table className="w-full table-fixed text-[10px]">
+              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Purchase Target</div>
+              {/* Scrolls sideways rather than squeezing three money columns
+                  into this narrow panel and wrapping them mid-figure. */}
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[380px] text-[10px]">
                   <thead className="sticky top-0 z-10 bg-white text-slate-600">
                     <tr>
-                      <th className="w-[42%] px-2 py-2 text-left font-bold">Company</th>
-                      <th className="w-[29%] px-1.5 py-2 text-right font-bold">Purchase</th>
-                      <th className="w-[29%] px-1.5 py-2 text-right font-bold">Sales</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-left font-bold">Company</th>
+                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Target</th>
+                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Achieved</th>
+                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Remaining</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {companyWayRows.map(row => (
+                    {purchaseTargetRows.map(row => (
                       <tr key={row.company} className="border-t border-slate-100">
-                        <td className="truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
-                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.purchase)}</td>
-                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(row.sales)}</td>
+                        <td className="max-w-[140px] truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
+                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.target)}</td>
+                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(row.achieved)}</td>
+                        {/* Nothing left to buy is the good outcome, so a zero
+                            here reads green rather than as an alarm. */}
+                        <td className={`whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums ${row.remaining > 0 ? 'text-brand-red' : 'text-brand-green'}`}>{formatCurr(row.remaining)}</td>
                       </tr>
                     ))}
-                    {companyWayRows.length === 0 && (
+                    {purchaseTargetRows.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="px-2 py-8 text-center text-xs font-medium text-slate-400">No company data</td>
+                        <td colSpan={4} className="px-2 py-8 text-center text-xs font-medium text-slate-400">No purchase target for this year</td>
                       </tr>
                     )}
                   </tbody>
+                  <tfoot className="sticky bottom-0 bg-slate-800 text-[10px] font-bold text-white">
+                    <tr>
+                      <td className="whitespace-nowrap px-2 py-2">Total</td>
+                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(purchaseTargetTotals.target)}</td>
+                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(purchaseTargetTotals.achieved)}</td>
+                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(purchaseTargetTotals.remaining)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
-              </div>
-              <div className="grid grid-cols-[42%_29%_29%] bg-slate-800 text-[10px] font-bold text-white">
-                <div className="px-2 py-2">Total</div>
-                <div className="px-1.5 py-2 text-right tabular-nums">{formatCurr(companyWayTotals.purchase)}</div>
-                <div className="px-1.5 py-2 text-right tabular-nums">{formatCurr(companyWayTotals.sales)}</div>
               </div>
             </section>
           </aside>
