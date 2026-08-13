@@ -741,5 +741,20 @@
   "price_colStatus": "অবস্থা",
   "price_statusCompleted": "সম্পন্ন",
   "price_statusPartial": "আংশিক সংরক্ষিত",
-  "price_modalTitle": "দামের ফাইল আপলোড"
+  "price_modalTitle": "দামের ফাইল আপলোড",
+  "nav_targetReport": "টার্গেট ও রিপোর্ট",
+  "nav_purchaseTarget": "ক্রয় টার্গেট",
+  "purchaseTarget_subtitle": "কোন কোম্পানি থেকে কত টাকার, কত সময়ে কিনবেন",
+  "purchaseTarget_listTitle": "ক্রয় টার্গেট",
+  "purchaseTarget_add": "ক্রয় টার্গেট যোগ করুন",
+  "purchaseTarget_edit": "ক্রয় টার্গেট সম্পাদনা",
+  "purchaseTarget_company": "কোম্পানি",
+  "purchaseTarget_start": "শুরুর মাস",
+  "purchaseTarget_end": "শেষ মাস",
+  "purchaseTarget_total": "মোট টাকা",
+  "purchaseTarget_months": "মাস",
+  "purchaseTarget_perMonth": "প্রতি মাসে",
+  "purchaseTarget_pickCompany": "কোম্পানি বাছুন",
+  "purchaseTarget_badRange": "শেষ মাস শুরুর মাসের আগে হতে পারে না",
+  "common_action": "অ্যাকশন"
 }

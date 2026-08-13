@@ -55,6 +55,7 @@ const ShareholderList = lazyWithReload(() => import('./pages/transactions/Shareh
 const Wallet = lazyWithReload(() => import('./pages/balance/Wallet'))
 const SupplierList = lazyWithReload(() => import('./pages/purchase/SupplierList'))
 const MonthlyTarget = lazyWithReload(() => import('./pages/reports/MonthlyTarget'))
+const PurchaseTarget = lazyWithReload(() => import('./pages/reports/PurchaseTarget'))
 const CurrentPlan = lazyWithReload(() => import('./pages/CurrentPlan'))
 const BillingHistory = lazyWithReload(() => import('./pages/BillingHistory'))
 const SmsPackages = lazyWithReload(() => import('./pages/SmsPackages'))
@@ -242,6 +243,7 @@ function AppRoutes() {
         <Route path="/balance/wallet" element={<Wallet />} />
         <Route path="/purchase/suppliers-list" element={<SupplierList />} />
         <Route path="/reports/monthly-target" element={<MonthlyTarget />} />
+        <Route path="/reports/purchase-target" element={<PurchaseTarget />} />
         <Route path="/current-plan" element={<CurrentPlan />} />
         <Route path="/package/billing-history" element={<BillingHistory />} />
         <Route path="/marketing/buy-sms" element={<SmsPackages />} />

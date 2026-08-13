@@ -130,7 +130,7 @@ export default function Layout() {
       ],
     },
     {
-      key: 'reports', label: t('nav_reports'), icon: <ChartLineUp size={18} weight="duotone" />,
+      key: 'reports', label: t('nav_targetReport'), icon: <ChartLineUp size={18} weight="duotone" />,
       children: [
         // The old MonthlyReport (/reports/monthly) page still exists and works
         // by URL - only hidden from the sidebar. The Report summary page is now
@@ -138,6 +138,7 @@ export default function Layout() {
         { key: 'reportSummary', label: t('nav_monthly'), icon: <FileBarChart size={16} />, path: '/reports' },
         { key: 'yearly', label: t('nav_yearly'), icon: <BarChart3 size={16} />, path: '/reports/yearly' },
         { key: 'monthlyTarget', label: t('settings_tabTargets'), icon: <Target size={16} />, path: '/reports/monthly-target' },
+        { key: 'purchaseTarget', label: t('nav_purchaseTarget'), icon: <Target size={16} />, path: '/reports/purchase-target' },
       ],
     },
     {
