@@ -687,7 +687,7 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
       <div>
         <p className="text-sm font-medium text-white/70">{label}</p>
         {/* A loss reads red here too, the same rule the reports follow. */}
-        <p className={`mt-4 text-[42px] font-medium tracking-tight tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>
+        <p className={`mt-4 text-[42px] font-normal tracking-tight tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>
           {value}
         </p>
         <div className="mt-2 h-4"><TrendLine trend={trend} /></div>
@@ -722,7 +722,7 @@ function StatCard({ label, icon, value, trend, inverted = false }: {
   return (
     <section className="card flex min-h-[124px] flex-col justify-between p-5">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
           {icon}
         </span>
         <span className="truncate text-sm text-neutral-700">{label}</span>
