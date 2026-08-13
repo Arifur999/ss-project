@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import TableScroller from '../components/TableScroller'
@@ -119,6 +119,15 @@ export default function Balance() {
     setLoading(false)
   }
 
+  // Closed accounts sink to the bottom: they are history, and with thirteen
+  // accounts they were pushing the live ones out of the first screen. Within
+  // each group the API sort_order is kept, so the working accounts stay in
+  // the order the owner arranged them.
+  const displayedAccounts = useMemo(
+    () => [...accounts].sort((a, b) => Number(a.is_active === false) - Number(b.is_active === false)),
+    [accounts],
+  )
+
   const totalBalance = accounts.reduce((s, a) => s + a.current_balance, 0)
   const inactiveAmount = accounts.filter(a => !a.is_active).reduce((s, a) => s + a.current_balance, 0)
   const availableBalance = accounts.filter(a => a.is_active).reduce((s, a) => s + a.current_balance, 0)
@@ -184,7 +193,7 @@ export default function Balance() {
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((acc, index) => (
+                {displayedAccounts.map((acc, index) => (
                   <tr key={acc.id} className={`table-row ${!acc.is_active ? 'bg-red-50/70 text-red-900 hover:bg-red-50' : ''}`}>
                     <td className={`sticky left-0 z-20 w-12 py-2.5 px-3 font-medium text-slate-500 shadow-[1px_0_0_#e2e8f0] ${!acc.is_active ? 'bg-red-50' : 'bg-white'}`}>{index + 1}</td>
                     <td className={`sticky left-12 z-20 py-2.5 px-4 font-medium text-slate-800 shadow-[1px_0_0_#e2e8f0] ${!acc.is_active ? 'bg-red-50' : 'bg-white'}`}>

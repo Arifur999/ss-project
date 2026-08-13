@@ -232,8 +232,8 @@ export default function LoanDashboard() {
 
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[900px] text-sm">
-            <thead className="sticky top-0 z-10 bg-white">
-              <tr className="bg-white text-xs uppercase tracking-wide text-slate-700">
+            <thead className="table-header">
+              <tr>
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-left">Bank / Person</th>
                 <th className="px-4 py-3 text-right">Opening Balance</th>
