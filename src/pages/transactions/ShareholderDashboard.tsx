@@ -231,8 +231,6 @@ export default function ShareholderDashboard() {
       return {
         id: shareholder.id,
         name: shareholder.name,
-        phone: shareholder.phone || '',
-        address: shareholder.address || '',
         opening,
         periodInvested,
         periodWithdrawn,
@@ -379,8 +377,6 @@ export default function ShareholderDashboard() {
             <tr>
               <th className="px-4 py-2 text-left">#</th>
               <th className="px-4 py-2 text-left">Name</th>
-              <th className="px-4 py-2 text-left">Phone</th>
-              <th className="px-4 py-2 text-left">Address</th>
               <th className="px-4 py-2 text-right">Opening Amount</th>
               <th className="px-4 py-2 text-right">Investment ({period.label})</th>
               <th className="px-4 py-2 text-right">Withdraw ({period.label})</th>
@@ -396,8 +392,6 @@ export default function ShareholderDashboard() {
               <tr key={row.id} className="table-row">
                 <td className="px-4 py-2.5 text-slate-500">{index + 1}</td>
                 <td className="px-4 py-2.5 font-medium">{row.name}</td>
-                <td className="px-4 py-2.5 text-slate-500">{row.phone || <NoValue />}</td>
-                <td className="px-4 py-2.5 text-slate-500">{row.address || <NoValue />}</td>
                 <td className="px-4 py-2.5 text-right">{formatCurr(row.opening)}</td>
                 <td className="px-4 py-2.5 text-right text-brand-green">{formatCurr(row.periodInvested)}</td>
                 <td className="px-4 py-2.5 text-right text-brand-red">{formatCurr(row.periodWithdrawn)}</td>
@@ -408,7 +402,7 @@ export default function ShareholderDashboard() {
                 <td className="px-4 py-2.5 text-right font-bold text-slate-700">{row.totalSharePct.toFixed(2)}%</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={12} className="py-8 text-center text-slate-400">No shareholders found</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={10} className="py-8 text-center text-slate-400">No shareholders found</td></tr>}
           </tbody>
         </table>
       </div>
