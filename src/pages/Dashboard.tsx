@@ -490,8 +490,9 @@ export default function Dashboard() {
     <div className="min-h-full p-6">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-navy-900">
-            {t('dashboard_welcome', 'Welcome Back')}, {ownerName}
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-navy-900">
+            {t('dashboard_welcome', 'Welcome Back')}, {ownerName}{' '}
+            <span role="img" aria-label="wave">👋</span>
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
             {t('dashboard_welcomeSub', 'Everything you need to manage your business.')}
@@ -810,7 +811,12 @@ function MonthlySpendings({ months, formatCurr }: {
                 <Pie data={slices} dataKey="amount" nameKey="name" innerRadius={66} outerRadius={98} paddingAngle={2} stroke="none">
                   {slices.map((slice, index) => <Cell key={slice.name} fill={donutFills[index % donutFills.length]} />)}
                 </Pie>
-                <Tooltip offset={28} allowEscapeViewBox={{ x: true, y: true }} contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }} formatter={(value: any) => formatCurr(Number(value))} />
+                <Tooltip
+                  position={{ x: 0, y: 0 }}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                  contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }}
+                  formatter={(value: any) => formatCurr(Number(value))}
+                />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
