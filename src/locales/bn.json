@@ -758,5 +758,15 @@
   "common_action": "অ্যাকশন",
   "nav_salesTarget": "বিক্রয় টার্গেট",
   "purchaseTarget_complete": "% সম্পন্ন",
-  "purchaseTarget_ended": "সময় শেষ"
+  "purchaseTarget_ended": "সময় শেষ",
+  "balance_tabGlance": "এক নজরে",
+  "balance_tabOwnerFunds": "মালিকের তহবিল",
+  "balance_tabLoans": "ঋণ",
+  "balance_tabSalesBuying": "বিক্রয় ও ক্রয়",
+  "balance_tabOthers": "অন্যান্য",
+  "balance_totalIn": "মোট জমা",
+  "balance_totalOut": "মোট খরচ",
+  "balance_net": "নিট",
+  "balance_netLoan": "নিট ঋণ",
+  "balance_netTrade": "নিট ব্যবসা"
 }

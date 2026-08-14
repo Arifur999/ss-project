@@ -758,5 +758,15 @@
   "common_action": "Action",
   "nav_salesTarget": "Sales Target",
   "purchaseTarget_complete": "% Complete",
-  "purchaseTarget_ended": "Period ended"
+  "purchaseTarget_ended": "Period ended",
+  "balance_tabGlance": "At a Glance",
+  "balance_tabOwnerFunds": "Owner Funds",
+  "balance_tabLoans": "Loans",
+  "balance_tabSalesBuying": "Sales & Buying",
+  "balance_tabOthers": "Others",
+  "balance_totalIn": "Total In",
+  "balance_totalOut": "Total Out",
+  "balance_net": "Net",
+  "balance_netLoan": "Net Loan",
+  "balance_netTrade": "Net Trade"
 }

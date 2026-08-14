@@ -6,6 +6,7 @@ import { useLang } from '../context/LanguageContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
 import { amountClass } from '../lib/utils'
 import { ZeroAmount } from '../components/CellValue'
+import { BALANCE_TABS, accountTotals, type BalanceColumn } from '../lib/balanceTabs'
 
 const BALANCE_CACHE_KEY = 'balance-accounts'
 
@@ -32,6 +33,30 @@ function fallbackSalePayments() {
   return Object.values(map).flatMap((value: any) => Array.isArray(value) ? value : value ? [value] : [])
 }
 
+/**
+ * The mark beside a figure: an arrow saying which way the money went, or - on
+ * the figure that closes a tab - a dot coloured by whether it is in the black.
+ *
+ * A zero carries no arrow. "Nothing moved" is not a direction, and an arrow on
+ * every empty cell is noise across a table where most cells are empty.
+ */
+function FlowMark({ column, value, onDark = false }: { column: BalanceColumn; value: number; onDark?: boolean }) {
+  if (column.closing) {
+    return (
+      <span
+        aria-hidden="true"
+        className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${value < 0 ? 'bg-brand-red' : onDark ? 'bg-emerald-400' : 'bg-brand-green'}`}
+      />
+    )
+  }
+  if (column.flow === 'none' || !value) return null
+  return (
+    <span aria-hidden="true" className={`shrink-0 text-[9px] leading-none ${onDark ? 'text-white/60' : 'text-slate-400'}`}>
+      {column.flow === 'in' ? '↑' : '↓'}
+    </span>
+  )
+}
+
 export default function Balance() {
   const { t, formatCurr } = useLang()
   // Paint last-known accounts instantly; only show the spinner on a true cold
@@ -39,6 +64,9 @@ export default function Balance() {
   const cachedAccounts = readPageCache<AccountRow[]>(BALANCE_CACHE_KEY)
   const [accounts, setAccounts] = useState<AccountRow[]>(cachedAccounts || [])
   const [loading, setLoading] = useState(!cachedAccounts)
+  // Opens on At a Glance every visit - the page is for answering "where do we
+  // stand", and the other tabs are for when that raises a question.
+  const [tab, setTab] = useState(BALANCE_TABS[0].key)
 
   useEffect(() => {
     loadBalance()
@@ -132,22 +160,14 @@ export default function Balance() {
   const inactiveAmount = accounts.filter(a => !a.is_active).reduce((s, a) => s + a.current_balance, 0)
   const availableBalance = accounts.filter(a => a.is_active).reduce((s, a) => s + a.current_balance, 0)
 
-  const columns = [
-    { key: 'opening_balance', labelKey: 'balance_openingBalance', color: '' },
-    { key: 'total_invest', labelKey: 'balance_investment', color: 'text-brand-green' },
-    { key: 'invest_withdraw', labelKey: 'balance_withdrawal', color: 'text-brand-red' },
-    { key: 'profit_withdraw', labelKey: 'balance_profitWithdrawal', color: 'text-brand-red' },
-    { key: 'loan_received', labelKey: 'balance_loanReceived', color: 'text-brand-green' },
-    { key: 'loan_payment', labelKey: 'balance_loanPaid', color: 'text-brand-red' },
-    { key: 'supplier_payment', labelKey: 'balance_supplierPayment', color: 'text-brand-red' },
-    { key: 'cash_sales', labelKey: 'balance_cashSales', color: 'text-brand-green' },
-    { key: 'customer_due_received', labelKey: 'balance_customerCollection', color: 'text-brand-green' },
-    { key: 'other_income', labelKey: 'balance_otherIncome', color: 'text-brand-green' },
-    { key: 'expense_pay', labelKey: 'balance_expensePaid', color: 'text-brand-red' },
-    { key: 'transfer_in', labelKey: 'balance_transferIn', color: 'text-brand-green' },
-    { key: 'transfer_out', labelKey: 'balance_transferOut', color: 'text-brand-red' },
-    { key: 'current_balance', labelKey: 'balance_currentBalance', color: 'font-bold text-slate-800' },
-  ]
+  // Each row carries its own derived figures, so a cell only ever reads a key.
+  const tabRows = useMemo(
+    () => displayedAccounts.map(account => ({ ...account, ...accountTotals(account) })),
+    [displayedAccounts],
+  )
+
+  const activeTab = BALANCE_TABS.find(item => item.key === tab) || BALANCE_TABS[0]
+  const columns = activeTab.columns
 
   return (
     <div className="p-6">
@@ -173,30 +193,51 @@ export default function Balance() {
       </div>
 
       <div className="card p-0">
-        <div className="p-4 border-b border-slate-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
           <h3 className="font-semibold text-slate-800">{t('balance_accountDetails')}</h3>
+          <div className="flex flex-wrap items-center gap-1">
+            {BALANCE_TABS.map(item => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setTab(item.key)}
+                aria-pressed={item.key === tab}
+                className={
+                  item.key === tab
+                    ? 'btn-primary !px-3 !py-1.5 !text-xs'
+                    : 'rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-neutral-100 hover:text-slate-900'
+                }
+              >
+                {t(item.labelKey)}
+              </button>
+            ))}
+          </div>
         </div>
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="animate-spin w-6 h-6 border-4 border-brand-green border-t-transparent rounded-full" />
           </div>
         ) : (
+          // Four to six columns fit, so the first two no longer need to stick
+          // - the shadow of a frozen column against a table that does not
+          // scroll is just an artefact. TableScroller still catches a narrow
+          // window.
           <TableScroller className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="table-header sticky top-0">
                 <tr>
-                  <th className="sticky left-0 z-30 w-12 bg-white py-3 px-3 text-left shadow-[1px_0_0_#e2e8f0]">#</th>
-                  <th className="sticky left-12 z-30 min-w-[220px] bg-white py-3 px-4 text-left shadow-[1px_0_0_#e2e8f0]">{t('common_account')}</th>
+                  <th className="w-12 py-3 px-3 text-left">#</th>
+                  <th className="min-w-[200px] py-3 px-4 text-left">{t('common_account')}</th>
                   {columns.map(col => (
-                    <th key={col.key} className="text-right py-3 px-3 min-w-[100px] whitespace-nowrap">{t(col.labelKey)}</th>
+                    <th key={col.key} className="text-right py-3 px-3 min-w-[110px] whitespace-nowrap">{t(col.labelKey)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {displayedAccounts.map((acc, index) => (
+                {tabRows.map((acc, index) => (
                   <tr key={acc.id} className={`table-row ${!acc.is_active ? 'bg-red-50/70 text-red-900 hover:bg-red-50' : ''}`}>
-                    <td className={`sticky left-0 z-20 w-12 py-2.5 px-3 font-medium text-slate-500 shadow-[1px_0_0_#e2e8f0] ${!acc.is_active ? 'bg-red-50' : 'bg-white'}`}>{index + 1}</td>
-                    <td className={`sticky left-12 z-20 py-2.5 px-4 font-medium text-slate-800 shadow-[1px_0_0_#e2e8f0] ${!acc.is_active ? 'bg-red-50' : 'bg-white'}`}>
+                    <td className="w-12 py-2.5 px-3 font-medium text-slate-500">{index + 1}</td>
+                    <td className="py-2.5 px-4 font-medium text-slate-800">
                       <div className="flex max-w-[260px] items-center gap-2 whitespace-nowrap" title={acc.name}>
                         <span className="truncate">{acc.name}</span>
                         {!acc.is_active && <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">{t('common_inactive')}</span>}
@@ -205,23 +246,29 @@ export default function Balance() {
                     {columns.map(col => {
                       const val = (acc as any)[col.key] || 0
                       return (
-                        <td key={col.key} className={`py-2.5 px-3 text-right ${amountClass(val, col.color)} ${col.key === 'current_balance' ? 'bg-white' : ''}`}>
-                          {val === 0 ? <ZeroAmount /> : formatCurr(val)}
+                        <td key={col.key} className={`py-2.5 px-3 text-right ${amountClass(val, col.color)}`}>
+                          <span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">
+                            {val === 0 ? <ZeroAmount /> : formatCurr(val)}
+                            <FlowMark column={col} value={val} />
+                          </span>
                         </td>
                       )
                     })}
                   </tr>
                 ))}
                 <tr className="bg-slate-900 text-white">
-                  <td className="sticky left-0 z-20 w-12 bg-slate-900 py-2.5 px-3 font-semibold shadow-[1px_0_0_rgba(255,255,255,0.18)]"></td>
-                  <td className="sticky left-12 z-20 bg-slate-900 py-2.5 px-4 font-semibold shadow-[1px_0_0_rgba(255,255,255,0.18)]">{t('common_total')}</td>
+                  <td className="w-12 py-2.5 px-3 font-semibold"></td>
+                  <td className="py-2.5 px-4 font-semibold">{t('common_total')}</td>
                   {columns.map(col => {
-                    const total = accounts.reduce((s, a) => s + ((a as any)[col.key] || 0), 0)
+                    const total = tabRows.reduce((s, a) => s + ((a as any)[col.key] || 0), 0)
                     return (
                       // A lighter red than text-brand-red: this row sits on
                       // slate-900, where the darker one is hard to pick out.
                       <td key={col.key} className={`py-2.5 px-3 text-right font-semibold ${total < 0 ? 'text-red-400' : ''}`}>
-                        {total === 0 ? <ZeroAmount /> : formatCurr(total)}
+                        <span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">
+                          {total === 0 ? <ZeroAmount /> : formatCurr(total)}
+                          <FlowMark column={col} value={total} onDark />
+                        </span>
                       </td>
                     )
                   })}
