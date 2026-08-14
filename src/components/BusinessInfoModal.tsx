@@ -74,6 +74,10 @@ export default function BusinessInfoModal({ onClose }: { onClose: () => void }) 
     rememberBusinessBrand(payload)
     setBusinessEditable(false)
     toast.success(t('settings_businessSaved'))
+    // Saved is the end of what this dialog is for, so it closes. Leaving it
+    // open on the now read-only form gave no sign the work was finished and
+    // invited a second press of a button that had already done its job.
+    onClose()
   }
 
   function clearBusinessError(field: keyof BusinessValidationErrors) {
