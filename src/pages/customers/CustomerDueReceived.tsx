@@ -17,6 +17,7 @@ import { sendSms } from '../../services/sms.services'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
+import SearchableSelect from '../../components/SearchableSelect'
 
 const smsReceiptKey = 'due_received_sms_v1'
 
@@ -934,18 +935,16 @@ export default function CustomerDueReceived() {
                   </div>
                   <label>
                     <span className="label mb-0.5">Account <span className="text-brand-red">*</span></span>
-                    <select
-                      className={inputClass(!!errors.paymentRows?.[row.id]?.account_id, 'h-10 rounded-lg py-1 text-xs')}
+                    {/* Typing filters the list. With thirteen accounts, a plain
+                        dropdown meant scrolling to find the one you already
+                        knew the name of. */}
+                    <SearchableSelect
                       value={row.account_id}
-                      onChange={e => updatePaymentRow(row.id, 'account_id', e.target.value)}
-                      aria-invalid={!!errors.paymentRows?.[row.id]?.account_id}
-                      required
-                    >
-                      <option value="">Select Account</option>
-                      {accounts.map(account => (
-                        <option key={account.id} value={account.id}>{account.name}</option>
-                      ))}
-                    </select>
+                      onChange={accountId => updatePaymentRow(row.id, 'account_id', accountId)}
+                      options={accounts.map(account => ({ value: account.id, label: account.name }))}
+                      placeholder="Select Account"
+                      className={inputClass(!!errors.paymentRows?.[row.id]?.account_id, 'h-10 rounded-lg py-1 text-xs')}
+                    />
                     {errors.paymentRows?.[row.id]?.account_id && <span className="mt-1 block text-xs font-medium text-red-600">{errors.paymentRows?.[row.id]?.account_id}</span>}
                   </label>
                   <label>

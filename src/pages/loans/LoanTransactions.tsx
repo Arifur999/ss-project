@@ -54,7 +54,7 @@ export default function LoanTransactions() {
   const [toDate, setToDate] = useState('')
   const [filterLenderName, setFilterLenderName] = useState('')
   const [errors, setErrors] = useState<LoanTransactionValidationErrors>({})
-  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: 'receive', amount: 0, account_id: '', notes: '' })
+  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', amount: 0, account_id: '', notes: '' })
 
   useEffect(() => {
     loadAll().finally(() => setLoading(false))
@@ -96,7 +96,7 @@ export default function LoanTransactions() {
     setEditingId(null)
     setShowModal(false)
     setErrors({})
-    setForm({ date: todayISO(), lender_id: '', transaction_type: 'receive', amount: 0, account_id: '', notes: '' })
+    setForm({ date: todayISO(), lender_id: '', transaction_type: '', amount: 0, account_id: '', notes: '' })
   }
 
   function editRecord(record: any) {
@@ -454,6 +454,7 @@ export default function LoanTransactions() {
                 setForm({ ...form, transaction_type: e.target.value })
               }}
             >
+              <option value="">Select Type</option>
               <option value="receive">Receive</option>
               <option value="payment">Payment</option>
             </select>

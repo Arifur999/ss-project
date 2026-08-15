@@ -19,6 +19,8 @@ import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest
 import { sendSms } from '../services/sms.services'
 import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
 import { NoValue, ZeroAmount } from '../components/CellValue'
+import { DUPLICATE_PHONE_MESSAGE, INVALID_PHONE_MESSAGE, isValidBdPhone } from '../lib/phone'
+import { phoneBelongsToAnotherCustomer } from '../lib/customerPhone'
 
 const smsInvoiceKey = 'sales_sms_invoice_v1'
 
@@ -57,9 +59,6 @@ type QuickCustomerValidationErrors = Partial<Record<'name' | 'phone', string>>
 type LedgerDateFilter = 'all' | 'today' | 'yesterday' | 'month' | 'year' | 'custom'
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required!'
-const INVALID_PHONE_MESSAGE = 'Enter a valid 11-digit number (e.g. 01XXXXXXXXX)'
-// Bangladeshi mobile: 11 digits, starts with 01. Spaces/dashes are ignored.
-const isValidBdPhone = (phone: string) => /^01[0-9]{9}$/.test(String(phone || '').replace(/[\s-]/g, ''))
 const productListCacheKey = 'product_list_cache_v1'
 
 function readProductListCache() {
@@ -655,6 +654,10 @@ export default function Sales() {
     if (!payload.name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!payload.phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
     else if (!isValidBdPhone(payload.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
+
+    if (!nextErrors.phone && await phoneBelongsToAnotherCustomer(payload.phone)) {
+      nextErrors.phone = DUPLICATE_PHONE_MESSAGE
+    }
 
     setQuickCustomerErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -2415,7 +2418,16 @@ export default function Sales() {
                   <span className="font-semibold text-slate-800">{formatCurr(subtotal)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
-                  <span className="text-slate-500">Total Discount</span>
+                  <span className="text-slate-500">
+                    Total Discount
+                    {/* What the discount works out to as a share of the bill -
+                        Tk 1,200 means nothing without knowing it came off
+                        Tk 19,200. Hidden when there is nothing to take a
+                        percentage of. */}
+                    {subtotal > 0 && totalDiscount > 0 && (
+                      <span className="ml-1 text-brand-blue">({((totalDiscount / subtotal) * 100).toFixed(2)}%)</span>
+                    )}
+                  </span>
                   <span className="font-semibold text-brand-blue">-{formatCurr(totalDiscount)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
@@ -2669,7 +2681,9 @@ export default function Sales() {
                     </td>
                     <td className="py-2 px-2 text-slate-500 truncate" title={s.customer_phone || '-'}>{s.customer_phone || <NoValue />}</td>
                     <td className="py-2 px-2 text-right font-medium text-slate-700">{formatCurr(grossTotal)}</td>
-                    <td className="py-2 px-2 text-right text-brand-blue">{formatCurr(saleDiscount(s))}</td>
+                    {/* Red: a discount is money given away, the same as any
+                        other outflow on this page. */}
+                    <td className="py-2 px-2 text-right text-brand-red">{formatCurr(saleDiscount(s))}</td>
                     <td className="py-2 px-2 text-right font-semibold text-brand-green">{formatCurr(subtotalAfterDiscount)}</td>
                     <td className="py-2 px-2 text-right font-medium text-slate-700">
                       {showLedgerFinancials ? (purchaseAmount > 0 ? formatCurr(purchaseAmount) : <ZeroAmount />) : '****'}

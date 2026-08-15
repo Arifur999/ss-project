@@ -7,7 +7,8 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
-import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
+import { isValidBdPhone, INVALID_PHONE_MESSAGE, DUPLICATE_PHONE_MESSAGE } from '../../lib/phone'
+import { phoneBelongsToAnotherCustomer } from '../../lib/customerPhone'
 import { usePagedList } from '../../lib/usePagedList'
 import TableSkeleton from '../../components/TableSkeleton'
 import { getCustomersPage } from '../../services/admin.services'
@@ -136,6 +137,12 @@ export default function CustomerList() {
     if (!payload.name) nextErrors.name = REQUIRED_FIELD_MESSAGE
     if (!payload.phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
     else if ((!editItem || payload.phone !== String(editItem.phone || '').trim()) && !isValidBdPhone(payload.phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
+
+    // Asked only once the number itself is valid, so a typo does not cost a
+    // round trip. The customer being edited may keep their own number.
+    if (!nextErrors.phone && await phoneBelongsToAnotherCustomer(payload.phone, editItem?.id)) {
+      nextErrors.phone = DUPLICATE_PHONE_MESSAGE
+    }
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return

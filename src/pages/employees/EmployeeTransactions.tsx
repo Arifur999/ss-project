@@ -582,7 +582,19 @@ export default function EmployeeTransactions() {
         </TableScroller>
       </div>
 
-      <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('employee_editTransaction') : 'Create Salary & Bonus Payment'} size="lg">
+      {/* On the page rather than in a popup: this form is long enough that a
+          dialog covered the transaction list behind it, which is what the
+          amounts are being entered against. */}
+      {showModal && (
+      <div className="card mt-6 p-5">
+        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="font-semibold text-slate-800">
+            {editingId ? t('employee_editTransaction') : 'Create Salary & Bonus Payment'}
+          </h3>
+          <button type="button" onClick={resetForm} aria-label={t('common_cancel')} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-neutral-100 hover:text-slate-900">
+            <X size={16} />
+          </button>
+        </div>
         <div className="space-y-4">
           <div>
             <label className="label" htmlFor="employee-transactions-f1">{requiredLabel(t('common_date'))}</label>
@@ -671,9 +683,15 @@ export default function EmployeeTransactions() {
             {fieldError('category_id')}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* One heading over the pair: the two dates are the salary period,
+              and reading them as "Month & Year" is how the owner thinks of it.
+              The fields themselves are unchanged, so what gets saved is
+              exactly what was saved before. */}
+          <div>
+            <span className="label">{requiredLabel('Month & Year')}</span>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="label" htmlFor="employee-transactions-f4">{requiredLabel('From Date')}</label>
+              <label className="label sr-only" htmlFor="employee-transactions-f4">{requiredLabel('From Date')}</label>
               <input id="employee-transactions-f4"
                 type="date"
                 className={inputClass('period_from', 'h-11')}
@@ -687,7 +705,7 @@ export default function EmployeeTransactions() {
               {fieldError('period_from')}
             </div>
             <div>
-              <label className="label" htmlFor="employee-transactions-f5">{requiredLabel('To Date')}</label>
+              <label className="label sr-only" htmlFor="employee-transactions-f5">{requiredLabel('To Date')}</label>
               <input id="employee-transactions-f5"
                 type="date"
                 className={inputClass('period_to', 'h-11')}
@@ -699,6 +717,7 @@ export default function EmployeeTransactions() {
                 required
               />
               {fieldError('period_to')}
+            </div>
             </div>
           </div>
 
@@ -749,7 +768,8 @@ export default function EmployeeTransactions() {
             </button>
           </div>
         </div>
-      </Modal>
+      </div>
+      )}
     </div>
   )
 }
