@@ -254,14 +254,14 @@ export default function PurchaseHistory() {
                   <td className="py-3 px-4 font-mono text-xs text-slate-500">{row.product_code || <NoValue />}</td>
                   <td className="py-3 px-4 font-semibold text-slate-800">{row.product_name}</td>
                   <td className="py-3 px-4 text-right text-slate-600">{formatCurr(row.dp_price)}</td>
-                  <td className="py-3 px-4 text-right text-slate-600">{formatNum(row.discount_pct)}%</td>
+                  <td className="py-3 px-4 text-right text-brand-red">{formatNum(row.discount_pct)}%</td>
                   <td className="py-3 px-4 text-right text-slate-600">{formatCurr(row.actual_dp)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-slate-700">{formatNum(row.qty)}</td>
                   <td className="py-3 px-4 text-right font-bold text-slate-800">{formatCurr(row.total_amount)}</td>
-                  <td className="py-3 px-4 text-right text-brand-blue">{formatCurr(row.discount_amount)}</td>
+                  <td className="py-3 px-4 text-right text-brand-red">{formatCurr(row.discount_amount)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-green">{formatCurr(row.deposit_amount)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-green">{formatNum(row.received_qty)}</td>
-                  <td className="py-3 px-4 text-right font-semibold text-brand-red">{formatNum(pendingQty)}</td>
+                  <td className="py-3 px-4 text-right font-semibold text-brand-orange">{formatNum(pendingQty)}</td>
                   <td className="py-3 px-4 text-center">
                     <span className={`rounded px-2 py-1 text-xs font-semibold ${
                       status === 'received'

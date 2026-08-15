@@ -2425,10 +2425,10 @@ export default function Sales() {
                         Tk 19,200. Hidden when there is nothing to take a
                         percentage of. */}
                     {subtotal > 0 && totalDiscount > 0 && (
-                      <span className="ml-1 text-brand-blue">({((totalDiscount / subtotal) * 100).toFixed(2)}%)</span>
+                      <span className="ml-1 text-brand-red">({((totalDiscount / subtotal) * 100).toFixed(2)}%)</span>
                     )}
                   </span>
-                  <span className="font-semibold text-brand-blue">-{formatCurr(totalDiscount)}</span>
+                  <span className="font-semibold text-brand-red">-{formatCurr(totalDiscount)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
                   <span className="text-slate-500">
@@ -2791,7 +2791,7 @@ export default function Sales() {
                                             </div>
                                           </td>
                                           <td className="py-4 px-3 text-right font-semibold text-slate-700">{formatCurr(Number(item.selling_price || 0))}</td>
-                                          <td className="py-4 px-3 text-right font-semibold text-slate-600">{formatCurr(itemDiscountTotal(item))}</td>
+                                          <td className="py-4 px-3 text-right font-semibold text-brand-red">{formatCurr(itemDiscountTotal(item))}</td>
                                           <td className="py-4 px-3 text-center font-semibold text-slate-500">{formatNum(Number(item.qty || 0))}</td>
                                           <td className="py-4 px-3 text-right font-bold text-slate-800">{formatCurr(Number(item.total_amount || 0))}</td>
                                           <td className="py-4 px-3 text-right">
@@ -2823,7 +2823,7 @@ export default function Sales() {
                                           </td>
                                           <td className="py-4 px-3 text-center">
                                             <span className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${
-                                              itemPending > 0 ? 'bg-brand-blue-soft text-brand-blue' : 'bg-green-100 text-green-700'
+                                              itemPending > 0 ? 'bg-brand-orange-soft text-brand-orange' : 'bg-green-100 text-green-700'
                                             }`}>
                                               {itemPending > 0 ? 'Pending' : 'Delivered'}
                                             </span>

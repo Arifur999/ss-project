@@ -897,7 +897,7 @@ export default function PlaceOrder() {
             <section className="card p-5">
               <div className="space-y-4 border-b border-slate-100 pb-4 text-sm">
                 <div className="flex justify-between"><span className="text-navy-800">Subtotal</span><span className="font-semibold text-navy-800">{formatCurr(grossSubtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-navy-800">Discount</span><span className="font-semibold text-brand-blue">-{formatCurr(discountAmount)}</span></div>
+                <div className="flex justify-between"><span className="text-navy-800">Discount</span><span className="font-semibold text-brand-red">-{formatCurr(discountAmount)}</span></div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-navy-800">SP %</span>
                   <div className="flex items-center gap-2">
@@ -975,7 +975,7 @@ export default function PlaceOrder() {
                   <td className="py-2 px-2 text-right">{formatCurr(product.discount_amount)}</td>
                   <td className="py-2 px-2 text-right">{formatCurr(product.deposit_amount)}</td>
                   <td className="py-2 px-2 text-center text-green-600 font-semibold">{product.received_qty}</td>
-                  <td className="py-2 px-2 text-center font-semibold" style={{color: product.pending_qty > 0 ? '#f97316' : '#10b981'}}>
+                  <td className={`py-2 px-2 text-center font-semibold ${product.pending_qty > 0 ? 'text-brand-orange' : 'text-brand-green'}`}>
                     {product.pending_qty}
                   </td>
                   <td className="py-2 px-2 text-center">

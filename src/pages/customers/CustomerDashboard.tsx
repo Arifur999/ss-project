@@ -252,9 +252,9 @@ export default function CustomerDashboard() {
                 <td className="py-2.5 px-4 text-slate-500 max-w-64 truncate" title={c.address || ''}>{c.address || <NoValue />}</td>
                 <td className="py-2.5 px-4 text-right tabular-nums whitespace-nowrap">{formatCurr(c.openingDue)}</td>
                 <td className="py-2.5 px-4 text-right tabular-nums font-medium whitespace-nowrap">{formatCurr(c.totalPurchase)}</td>
-                <td className="py-2.5 px-4 text-right tabular-nums text-brand-blue whitespace-nowrap">{formatCurr(c.totalDiscount)}</td>
+                <td className="py-2.5 px-4 text-right tabular-nums text-brand-red whitespace-nowrap">{formatCurr(c.totalDiscount)}</td>
                 <td className="py-2.5 px-4 text-right tabular-nums text-brand-green whitespace-nowrap">{formatCurr(c.collectionsAmount)}</td>
-                <td className="py-2.5 px-4 text-right tabular-nums text-brand-blue whitespace-nowrap">{formatCurr(c.extraDiscount)}</td>
+                <td className="py-2.5 px-4 text-right tabular-nums text-brand-red whitespace-nowrap">{formatCurr(c.extraDiscount)}</td>
                 <td className="py-2.5 px-4 text-right">
                   <span className={`tabular-nums whitespace-nowrap ${c.currentDue > 0 ? 'text-brand-red font-semibold' : 'text-brand-green'}`}>
                     {formatCurr(c.currentDue)}
