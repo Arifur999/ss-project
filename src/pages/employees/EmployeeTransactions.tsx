@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { CaretDownIcon as ChevronDown, DownloadSimpleIcon as Download, PencilSimpleIcon as Edit2, PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react'
+import { CaretDownIcon as ChevronDown, PrinterIcon as Printer, PencilSimpleIcon as Edit2, PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
@@ -519,7 +519,7 @@ export default function EmployeeTransactions() {
             <input type="date" className="input h-10" value={fromDate} onChange={e => setFromDate(e.target.value)} />
             <input type="date" className="input h-10" value={toDate} onChange={e => setToDate(e.target.value)} />
             <button type="button" onClick={downloadTransactionsPdf} className="btn-secondary h-10 justify-center">
-              <Download size={15} /> PDF
+              <Printer size={15} /> PDF
             </button>
           </div>
         </div>
