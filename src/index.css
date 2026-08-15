@@ -218,8 +218,10 @@
   .badge-red {
     @apply bg-brand-red-soft text-brand-red text-xs font-medium px-2 py-0.5 rounded-full;
   }
+  /* "Waiting on something" - pending receive, partial delivery, unpaid.
+     Every such badge in the app comes through here. */
   .badge-orange {
-    @apply bg-brand-blue-soft text-brand-blue text-xs font-medium px-2 py-0.5 rounded-full;
+    @apply bg-brand-orange-soft text-brand-orange text-xs font-medium px-2 py-0.5 rounded-full;
   }
   .badge-blue {
     @apply bg-brand-blue-soft text-brand-blue text-xs font-medium px-2 py-0.5 rounded-full;

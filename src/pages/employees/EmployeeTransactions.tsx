@@ -3,6 +3,7 @@ import { CaretDownIcon as ChevronDown, DownloadSimpleIcon as Download, PencilSim
 import { supabase } from '../../lib/supabase'
 import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
+import Modal from '../../components/Modal'
 import SearchableSelect from '../../components/SearchableSelect'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
@@ -70,19 +71,6 @@ export default function EmployeeTransactions() {
   const [categories, setCategories] = useState<any[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
-  // The form opens below the transaction list, which on a long list is off the
-  // bottom of the screen - pressing Add Transaction looked like nothing had
-  // happened. Bring it into view instead.
-  const formRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!showModal) return
-    // After the render that puts the form on the page, not during it.
-    const timer = window.setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-    return () => window.clearTimeout(timer)
-  }, [showModal])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [employeeSearch, setEmployeeSearch] = useState('')
   const [showEmployeeOptions, setShowEmployeeOptions] = useState(false)
@@ -597,16 +585,7 @@ export default function EmployeeTransactions() {
       {/* On the page rather than in a popup: this form is long enough that a
           dialog covered the transaction list behind it, which is what the
           amounts are being entered against. */}
-      {showModal && (
-      <div ref={formRef} className="card mt-6 p-5">
-        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 className="font-semibold text-slate-800">
-            {editingId ? t('employee_editTransaction') : 'Create Salary & Bonus Payment'}
-          </h3>
-          <button type="button" onClick={resetForm} aria-label={t('common_cancel')} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-neutral-100 hover:text-slate-900">
-            <X size={16} />
-          </button>
-        </div>
+      <Modal isOpen={showModal} onClose={resetForm} title={editingId ? t('employee_editTransaction') : 'Create Salary & Bonus Payment'} size="lg">
         <div className="space-y-4">
           <div>
             <label className="label" htmlFor="employee-transactions-f1">{requiredLabel(t('common_date'))}</label>
@@ -780,8 +759,7 @@ export default function EmployeeTransactions() {
             </button>
           </div>
         </div>
-      </div>
-      )}
+      </Modal>
     </div>
   )
 }

@@ -47,10 +47,11 @@ export default {
           100: '#F3F4F6',
           50: '#F5F6F8',
         },
-        // Financial semantics: money in / money out / awaiting. `orange` keeps
-        // its name so the 21 badge-orange call sites need no edit, but it now
-        // resolves to the system's Info blue - the palette has no orange, and
-        // "pending" is information rather than a warning.
+        // Financial semantics: money in / money out / still waiting. `orange`
+        // is the awaiting colour and every badge-orange call site draws from
+        // it, so pending reads the same wherever it appears. It was pointed at
+        // Info blue for a while; amber is what the owner wants and is what the
+        // name says.
         brand: {
           green: '#22C55E',
           'green-light': '#4ADE80',
@@ -59,7 +60,8 @@ export default {
           'red-soft': '#FEF2F2',
           blue: '#3B82F6',
           'blue-soft': '#EFF6FF',
-          orange: '#3B82F6',
+          orange: '#D97706',
+          'orange-soft': '#FEF3C7',
         }
       },
       fontFamily: {

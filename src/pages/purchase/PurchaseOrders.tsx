@@ -24,7 +24,7 @@ type OrderStatus = 'pending' | 'partial' | 'received'
 // That is recorded on the Product Received page, and the status then follows
 // from the quantities actually received.
 const ORDER_STATUS_META: Record<OrderStatus, { label: string; hex: string; textClass: string; dot: string }> = {
-  pending: { label: 'Pending Receive', hex: '#d97706', textClass: 'text-brand-blue', dot: '●' },
+  pending: { label: 'Pending Receive', hex: '#d97706', textClass: 'text-brand-orange', dot: '●' },
   partial: { label: 'Partially Received', hex: '#475569', textClass: 'text-slate-600', dot: '●' },
   received: { label: 'Received', hex: '#1D9E75', textClass: 'text-brand-green', dot: '●' },
 }
@@ -649,7 +649,7 @@ export default function PlaceOrder() {
         subtitle="Create and manage purchase orders for your products"
         actions={
           <div className="flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-navy-800 shadow-sm">
-            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-brand-blue" /> Pending Receive</span>
+            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-brand-orange" /> Pending Receive</span>
             <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-slate-500" /> Partially Received</span>
             <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-brand-green" /> Received</span>
             <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-600" /> Cancelled</span>
@@ -848,7 +848,7 @@ export default function PlaceOrder() {
                         <td className="px-3 py-3 text-right font-bold text-navy-800">{formatCurr(item.total_amount)}</td>
                         <td className="px-3 py-3"><input type="number" readOnly tabIndex={-1} title="Set by the SP % field in the order summary" className="input h-10 w-24 cursor-not-allowed bg-white text-right text-xs text-slate-600" value={item.sp_amount || ''} /></td>
                         <td className="px-3 py-3 text-right"><input type="number" min="0" className="input h-10 w-28 text-right text-xs font-bold text-navy-800" value={item.deposit_amount || ''} onChange={e => updateItem(idx, 'deposit_amount', Number(e.target.value))} /></td>
-                        <td className="px-3 py-3 text-center"><span className="rounded-md bg-brand-blue-soft px-2 py-1 text-[11px] font-bold text-brand-blue">●Pending</span></td>
+                        <td className="px-3 py-3 text-center"><span className="rounded-md bg-brand-orange-soft px-2 py-1 text-[11px] font-bold text-brand-orange">●Pending</span></td>
                         <td className="px-3 py-3 text-center">
                           <button onClick={() => removeItem(idx)} className="rounded-md border border-red-100 bg-red-50 p-2 text-brand-red hover:bg-red-100" title="Remove">
                             <Trash2 size={14} />
@@ -982,7 +982,7 @@ export default function PlaceOrder() {
                     <span className={`text-xs px-2 py-1 rounded font-medium ${
                       product.pending_qty === 0 ? 'bg-green-100 text-green-700' :
                       product.pending_qty > 0 && product.shipping_status === 'partial' ? 'bg-slate-100 text-slate-700' :
-                      'bg-brand-blue-soft text-brand-blue'
+                      'bg-brand-orange-soft text-brand-orange'
                     }`}>
                       {product.pending_qty === 0 ? 'Received' : product.pending_qty > 0 && product.shipping_status === 'partial' ? 'Partial' : 'Pending'}
                     </span>
@@ -1028,7 +1028,7 @@ export default function PlaceOrder() {
                       <span className={`text-xs px-2 py-1 rounded font-medium ${
                         po.shipping_status === 'received' ? 'bg-green-100 text-green-700' :
                         po.shipping_status === 'partial' ? 'bg-slate-100 text-slate-700' :
-                        'bg-brand-blue-soft text-brand-blue'
+                        'bg-brand-orange-soft text-brand-orange'
                       }`}>
                         {po.shipping_status?.charAt(0).toUpperCase() + po.shipping_status?.slice(1)}
                       </span>
