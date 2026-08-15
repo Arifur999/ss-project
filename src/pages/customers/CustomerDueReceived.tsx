@@ -938,12 +938,16 @@ export default function CustomerDueReceived() {
                     {/* Typing filters the list. With thirteen accounts, a plain
                         dropdown meant scrolling to find the one you already
                         knew the name of. */}
+                    {/* className lands on this component's wrapper, and the
+                        control inside already carries .input - passing the
+                        input styling here drew a second box around the first.
+                        Only the error ring goes on the wrapper. */}
                     <SearchableSelect
                       value={row.account_id}
                       onChange={accountId => updatePaymentRow(row.id, 'account_id', accountId)}
                       options={accounts.map(account => ({ value: account.id, label: account.name }))}
                       placeholder="Select Account"
-                      className={inputClass(!!errors.paymentRows?.[row.id]?.account_id, 'h-10 rounded-lg py-1 text-xs')}
+                      className={errors.paymentRows?.[row.id]?.account_id ? 'rounded-xl ring-2 ring-red-500' : ''}
                     />
                     {errors.paymentRows?.[row.id]?.account_id && <span className="mt-1 block text-xs font-medium text-red-600">{errors.paymentRows?.[row.id]?.account_id}</span>}
                   </label>
