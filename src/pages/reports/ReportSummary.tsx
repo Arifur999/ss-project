@@ -107,6 +107,17 @@ const REPORT_TABS: { key: ReportTabKey; label: string }[] = [
   { key: 'otherIncome', label: 'Other Income' },
 ]
 
+/**
+ * The green the charts draw with.
+ *
+ * Deliberately not `brand-green` (#22C55E). That one is a badge colour - it is
+ * meant to catch the eye in a 20px pill, and at the size of a donut ring or a
+ * column of bars the same value shouts. This is the same hue taken darker and
+ * less saturated, so it sits beside the near-black bars rather than in front
+ * of them. Only the charts use it; the badges keep theirs.
+ */
+const CHART_GREEN = '#0E9F6E'
+
 const emptyReport: ReportData = {
   salesTarget: 0,
   profitTarget: 0,
@@ -768,7 +779,7 @@ export default function ReportSummary() {
       remaining,
       percent,
       slices: [
-        { name: 'Achieved', value: Math.min(achieved, target), fill: '#22C55E' },
+        { name: 'Achieved', value: Math.min(achieved, target), fill: CHART_GREEN },
         { name: 'Remaining', value: remaining, fill: '#E5E7EB' },
       ].filter(slice => slice.value > 0),
     }
@@ -899,10 +910,18 @@ export default function ReportSummary() {
         )}
         <div className="overflow-x-auto">
           <table className="w-full text-xs" style={{ minWidth }}>
-            <thead className="bg-white text-slate-600">
-              <tr className="border-b border-slate-100">
+            {/* The site's own near-black header row. Every other table on the
+                site uses `.table-header`; these five were the ones still on a
+                white header, which is why the report read as a different
+                product from the page it sits on. */}
+            <thead className="table-header">
+              {/* A notch smaller than the shared header size and without its
+                  extra letter-spacing: uppercase labels are wider than the
+                  sentence case they replaced, and six of them pushed
+                  Breakdown % off the edge of the panel. */}
+              <tr>
                 {columns.map(column => (
-                  <th key={column.label} className={`px-3 py-2 font-bold ${column.align === 'right' ? 'text-right' : 'text-left'}`}>
+                  <th key={column.label} className={`px-2.5 py-2.5 text-[11px] tracking-normal ${column.align === 'right' ? 'text-right' : 'text-left'}`}>
                     {column.label}
                   </th>
                 ))}
@@ -913,7 +932,7 @@ export default function ReportSummary() {
                 {columns.map(column => (
                   <td
                     key={column.label}
-                    className={`px-3 py-2 ${column.align === 'right' ? 'text-right tabular-nums' : ''}`}
+                    className={`px-2.5 py-2 ${column.align === 'right' ? 'text-right tabular-nums' : ''}`}
                   >
                     {column.render(totalRow)}
                   </td>
@@ -926,7 +945,7 @@ export default function ReportSummary() {
               ) : rows.map((row, rowIndex) => (
                 <tr key={`${row.name}-${rowIndex}`} className="hover:bg-neutral-100">
                   {columns.map(column => (
-                    <td key={column.label} className={`px-3 py-2 ${column.align === 'right' ? 'text-right font-medium tabular-nums text-slate-800' : 'font-medium text-slate-800'}`}>
+                    <td key={column.label} className={`px-2.5 py-2 ${column.align === 'right' ? 'text-right font-medium tabular-nums text-slate-800' : 'font-medium text-slate-800'}`}>
                       {column.render(row)}
                     </td>
                   ))}
@@ -1037,11 +1056,24 @@ export default function ReportSummary() {
         <div className="space-y-5">
           {/* ── SECTION 01 — MONTHLY OVERVIEW ───────────────────────────── */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-            {/* The month, and nothing else. The figures that used to be listed
-                under it are on the cards beside it or in the reports below. */}
-            <div className="flex min-h-[124px] flex-col justify-center rounded-2xl bg-navy-900 p-5">
-              <p className="text-3xl font-medium leading-tight tracking-tight text-white">{range.label}</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Monthly Overview</p>
+            {/* The month over the two headline percentages. bg-shell is the
+                sidebar's own colour, so the darkest thing on the page is the
+                same dark everywhere. */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-1 flex-col justify-center rounded-2xl bg-shell px-5 py-6">
+                <p className="text-3xl font-bold leading-tight tracking-tight text-white">{range.label}</p>
+                <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Monthly Overview</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-surface-border bg-brand-green-soft px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-brand-green">Sales</p>
+                  <p className="mt-1 text-lg font-medium tabular-nums leading-none text-navy-900">{percentText(salesAchievedPct)}</p>
+                </div>
+                <div className="rounded-2xl border border-surface-border bg-surface px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Profit</p>
+                  <p className="mt-1 text-lg font-medium tabular-nums leading-none text-navy-900">{percentText(profitAchievedPct)}</p>
+                </div>
+              </div>
             </div>
 
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -1093,9 +1125,9 @@ export default function ReportSummary() {
             <div className="bg-slate-800 px-4 py-3 text-center">
               <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">Performance Overview</h2>
             </div>
-            <div className="overflow-x-auto px-3 py-5 sm:px-5">
+            <div className="overflow-x-auto px-2 py-6 sm:px-4">
               <div style={{ minWidth: chartInnerWidth }}>
-                <ResponsiveContainer width="100%" height={380}>
+                <ResponsiveContainer width="100%" height={430}>
                   <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
@@ -1106,7 +1138,7 @@ export default function ReportSummary() {
                         pre-palette greens and reds. */}
                     <Bar dataKey="target" name="Target" fill="#D1D5DB" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="sales" name="Sales" fill="#0F1117" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="profit" name="Profit" fill="#22C55E" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="profit" name="Profit" fill={CHART_GREEN} radius={[3, 3, 0, 0]} />
                     <Bar dataKey="expense" name="Expense" fill="#EF4444" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1115,7 +1147,10 @@ export default function ReportSummary() {
           </section>
 
           {/* ── SECTION 03 — MONTHLY PURCHASES & REPORTS ────────────────── */}
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+          {/* 370px, not more: every pixel this column takes comes out of the
+              report table beside it, and past this the table's last column
+              stops fitting. */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="bg-slate-800 px-4 py-3 text-center">
                 <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Monthly Purchases Target</h2>
@@ -1123,15 +1158,20 @@ export default function ReportSummary() {
 
               {purchaseAchievement.target > 0 ? (
                 <>
-                  <div className="relative px-4 pt-4">
-                    <ResponsiveContainer width="100%" height={190}>
+                  <div className="relative px-4 pt-5">
+                    <ResponsiveContainer width="100%" height={225}>
                       <PieChart>
                         <Pie
                           data={purchaseAchievement.slices}
                           dataKey="value"
                           nameKey="name"
-                          innerRadius={62}
-                          outerRadius={86}
+                          // A thin ring, not a filled wheel. The 24px band was
+                          // heavy enough that the caption underneath the figure
+                          // ran into it; at 13px the hole is wide enough to
+                          // hold both, and the percentage is what carries the
+                          // card anyway.
+                          innerRadius={81}
+                          outerRadius={94}
                           startAngle={90}
                           endAngle={-270}
                           paddingAngle={purchaseAchievement.remaining > 0 ? 2 : 0}
@@ -1142,9 +1182,9 @@ export default function ReportSummary() {
                       </PieChart>
                     </ResponsiveContainer>
                     {/* The one figure this card exists to show. */}
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-4">
-                      <p className="text-3xl font-black leading-none text-navy-900">{Math.round(purchaseAchievement.percent)}%</p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Purchase Achievement</p>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-5">
+                      <p className="text-4xl font-black leading-none tracking-tight text-navy-900">{Math.round(purchaseAchievement.percent)}%</p>
+                      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Purchase Achievement</p>
                     </div>
                   </div>
 
@@ -1213,7 +1253,7 @@ export default function ReportSummary() {
                   <ReportBreakdownTable
                     rows={data.salesBreakdown}
                     totalRow={salesTotalRow}
-                    minWidth="900px"
+                    minWidth="820px"
                     columns={[
                       { label: 'Product Name', render: row => clippedName(row) },
                       { label: 'Sales QTY', align: 'right', render: row => formatNum(amount(row.qty)) },
@@ -1228,7 +1268,7 @@ export default function ReportSummary() {
                   <ReportBreakdownTable
                     rows={data.purchaseBreakdown}
                     totalRow={purchaseTotalRow}
-                    minWidth="900px"
+                    minWidth="820px"
                     columns={[
                       { label: 'Product Name', render: row => clippedName(row) },
                       { label: 'Purchase QTY', align: 'right', render: row => formatNum(amount(row.qty)) },
