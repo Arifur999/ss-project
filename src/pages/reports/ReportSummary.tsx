@@ -823,7 +823,7 @@ export default function ReportSummary() {
             </div>
           ))}
         </div>
-        <div className="mt-2 space-y-1 border-t border-slate-100 pt-2">
+        <div className="mt-2 space-y-1 border-t border-slate-200 pt-2">
           <div className="flex items-center justify-between gap-8 text-[11px]">
             <span className="font-medium text-slate-500">Remaining target</span>
             <span className="font-semibold text-slate-900">{formatCurr(row.remainingTarget)}</span>
@@ -902,7 +902,7 @@ export default function ReportSummary() {
     minWidth?: string
   }) {
     return (
-      <section className={title ? 'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm' : 'overflow-hidden'}>
+      <section className={title ? 'overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm' : 'overflow-hidden'}>
         {title && (
           <div className="bg-slate-800 px-4 py-3 text-center">
             <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">{title}</h2>
@@ -927,7 +927,7 @@ export default function ReportSummary() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200">
               <tr className="bg-white font-black text-slate-900">
                 {columns.map(column => (
                   <td
@@ -943,7 +943,7 @@ export default function ReportSummary() {
                   <td className="px-3 py-8 text-center text-sm text-slate-400" colSpan={columns.length}>No data</td>
                 </tr>
               ) : rows.map((row, rowIndex) => (
-                <tr key={`${row.name}-${rowIndex}`} className="hover:bg-neutral-100">
+                <tr key={`${row.name}-${rowIndex}`} className="hover:bg-white/70">
                   {columns.map(column => (
                     <td key={column.label} className={`px-2.5 py-2 ${column.align === 'right' ? 'text-right font-medium tabular-nums text-slate-800' : 'font-medium text-slate-800'}`}>
                       {column.render(row)}
@@ -1056,21 +1056,22 @@ export default function ReportSummary() {
         <div className="space-y-5">
           {/* ── SECTION 01 — MONTHLY OVERVIEW ───────────────────────────── */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-            {/* The month over the two headline percentages. bg-shell is the
-                sidebar's own colour, so the darkest thing on the page is the
-                same dark everywhere. */}
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-1 flex-col justify-center rounded-2xl bg-shell px-5 py-6">
+            {/* One card carrying all three: the month, then the two headline
+                percentages. The card itself is the surface colour, so the
+                three sit on it as their own blocks - the month in the
+                sidebar's black, and a colour each for sales and profit. */}
+            <div className="flex flex-col gap-3 rounded-2xl bg-surface p-3">
+              <div className="flex flex-1 flex-col justify-center rounded-xl bg-shell px-5 py-6">
                 <p className="text-3xl font-bold leading-tight tracking-tight text-white">{range.label}</p>
                 <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Monthly Overview</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-surface-border bg-brand-green-soft px-4 py-3">
+                <div className="rounded-xl bg-brand-green-soft px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-brand-green">Sales</p>
                   <p className="mt-1 text-lg font-medium tabular-nums leading-none text-navy-900">{percentText(salesAchievedPct)}</p>
                 </div>
-                <div className="rounded-2xl border border-surface-border bg-surface px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Profit</p>
+                <div className="rounded-xl bg-brand-blue-soft px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-brand-blue">Profit</p>
                   <p className="mt-1 text-lg font-medium tabular-nums leading-none text-navy-900">{percentText(profitAchievedPct)}</p>
                 </div>
               </div>
@@ -1121,7 +1122,7 @@ export default function ReportSummary() {
           {/* ── SECTION 02 — PERFORMANCE OVERVIEW ───────────────────────── */}
           {/* Outside the two-column grid above, so the chart gets the whole
               content width instead of what is left beside a 300px column. */}
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
             <div className="bg-slate-800 px-4 py-3 text-center">
               <h2 className="text-sm font-black uppercase tracking-[0.28em] text-white">Performance Overview</h2>
             </div>
@@ -1129,7 +1130,7 @@ export default function ReportSummary() {
               <div style={{ minWidth: chartInnerWidth }}>
                 <ResponsiveContainer width="100%" height={430}>
                   <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
                     <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
                     <Tooltip content={<PerformanceTooltip />} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
@@ -1151,7 +1152,7 @@ export default function ReportSummary() {
               report table beside it, and past this the table's last column
               stops fitting. */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
               <div className="bg-slate-800 px-4 py-3 text-center">
                 <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Monthly Purchases Target</h2>
               </div>
@@ -1205,13 +1206,13 @@ export default function ReportSummary() {
 
                   {/* Which company is behind, under the figure that says whether
                       anyone is. */}
-                  <div className="max-h-[170px] overflow-y-auto border-t border-slate-100">
+                  <div className="max-h-[170px] overflow-y-auto border-t border-slate-200">
                     {(data.monthlyPurchaseRows || []).map(row => {
                       const rowPct = row.target > 0 ? Math.round((row.achieved / row.target) * 100) : 0
                       return (
                         <div
                           key={row.company}
-                          className="flex items-center justify-between gap-2 px-4 py-2 text-[11px] hover:bg-neutral-100"
+                          className="flex items-center justify-between gap-2 px-4 py-2 text-[11px] hover:bg-white/70"
                           // The company's own target is what the percentage is
                           // of, and there is no room for it on the row - so it
                           // stays reachable here rather than being dropped.
@@ -1230,8 +1231,8 @@ export default function ReportSummary() {
               )}
             </div>
 
-            <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 p-3">
+            <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+              <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 p-3">
                 {REPORT_TABS.map(tab => (
                   <button
                     key={tab.key}
@@ -1241,7 +1242,7 @@ export default function ReportSummary() {
                     className={
                       tab.key === reportTab
                         ? 'btn-primary !px-3 !py-1.5 !text-xs'
-                        : 'rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-neutral-100 hover:text-slate-900'
+                        : 'rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-white/70 hover:text-slate-900'
                     }
                   >
                     {tab.label}

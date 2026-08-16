@@ -33,9 +33,15 @@ export default {
         // Card surface and its border, from the owner's reference. The page
         // behind them is plain white, so the cards are what separates content
         // from background rather than a tinted page doing it.
+        //
+        // #F7F7F9 was so close to white that a card only showed where its
+        // border fell, which defeated the arrangement. #EEF0F6 is the owner's
+        // value and is far enough off white to read as a surface of its own.
+        // The border follows the fill: at #F4F4F4 it was lighter than the card
+        // it edges, which drew a pale halo round every card instead of an edge.
         surface: {
-          DEFAULT: '#F7F7F9',
-          border: '#F4F4F4',
+          DEFAULT: '#EEF0F6',
+          border: '#E2E6EF',
         },
         // The system's greys under their own names, for new work.
         neutral: {

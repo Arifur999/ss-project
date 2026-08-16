@@ -10,7 +10,9 @@
   }
   body {
     font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
-    background-color: #eef0f6;
+    /* White. #EEF0F6 is now what a card is painted with, and the page behind
+       the cards has to be the lighter of the two for them to read at all. */
+    background-color: #ffffff;
     color: #0f172a;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
