@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CreditCardIcon as CreditCard, FileTextIcon as FileBarChart, PackageIcon as Package, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
+import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
@@ -828,81 +828,46 @@ export default function ReportSummary() {
     )
   }
 
-  function ProgressCard({
-    title,
+  /**
+   * The report's KPI card, built to the same shape as the Dashboard's
+   * (`Dashboard.tsx` StatCard): a white circular icon tile beside the label,
+   * the figure below it. Same card, so the two pages read as one product.
+   *
+   * `progress` adds the bar the two target cards need; the others leave it off.
+   */
+  function KpiCard({
+    label,
+    icon,
     value,
-    target,
+    note,
     progress,
-    tone,
+    valueClassName = 'text-navy-900',
   }: {
-    title: string
-    value: number
-    target: number
-    progress: number
-    tone: 'blue' | 'green'
-  }) {
-    const bar = tone === 'blue' ? 'bg-slate-900' : 'bg-brand-green'
-
-    return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurr(value)}</p>
-          <p className="mt-1 text-xs font-medium text-slate-500">
-            {percentText(progress)} of {formatCurr(target)}
-          </p>
-        </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
-        </div>
-      </div>
-    )
-  }
-
-  function MetricCard({
-    title,
-    value,
-    subtitle,
-    valueClassName,
-  }: {
-    title: string
+    label: string
+    icon: React.ReactNode
     value: string
-    subtitle?: string
+    note?: string
+    progress?: number
     valueClassName?: string
   }) {
-    // Money that has gone the wrong way should read that way without anyone
-    // having to check the sign. An explicit valueClassName still wins, so a
-    // card that wants its own colour keeps it.
-    const isNegative = value.includes("-")
-    const toneClass = valueClassName || (isNegative ? "text-brand-red" : "text-slate-900")
-
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className={`mt-1 text-xl font-bold leading-tight tabular-nums ${toneClass}`}>{value}</p>
-          {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
+      <section className="flex min-h-[124px] flex-col justify-between rounded-2xl border border-surface-border bg-surface p-5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
+            {icon}
+          </span>
+          <span className="truncate text-sm text-neutral-700" title={label}>{label}</span>
         </div>
-      </div>
-    )
-  }
-
-  function OverviewLine({ icon, label, value, tone = 'slate' }: { icon: React.ReactNode; label: string; value: string; tone?: 'green' | 'red' | 'blue' | 'slate' }) {
-    const toneClass = {
-      green: 'text-brand-green',
-      red: 'text-brand-red',
-      blue: 'text-slate-700',
-      slate: 'text-slate-700',
-    }[tone]
-
-    return (
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-b-0">
-        <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-600">
-          <span className={`flex-shrink-0 ${toneClass}`}>{icon}</span>
-          <span className="truncate">{label}</span>
+        <p className={`mt-4 text-2xl font-medium leading-none tracking-tight tabular-nums ${valueClassName}`}>{value}</p>
+        <div className="mt-2 space-y-1.5">
+          {note && <p className="truncate text-[11px] text-neutral-500" title={note}>{note}</p>}
+          {progress !== undefined && (
+            <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200">
+              <div className="h-full rounded-full bg-navy-900" style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+            </div>
+          )}
         </div>
-        <span className={`text-right text-xs font-bold tabular-nums ${toneClass}`}>{value}</span>
-      </div>
+      </section>
     )
   }
 
@@ -1072,50 +1037,52 @@ export default function ReportSummary() {
         <div className="space-y-5">
           {/* ── SECTION 01 — MONTHLY OVERVIEW ───────────────────────────── */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="rounded-lg bg-slate-900 p-4">
-                <p className="text-3xl font-black leading-tight text-white">{range.label}</p>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Monthly Overview</p>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-lg border border-green-100 bg-green-50 p-2">
-                  <p className="text-[10px] font-semibold uppercase text-green-700">Sales</p>
-                  <p className="text-sm font-bold text-green-800">{percentText(salesAchievedPct)}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
-                  <p className="text-[10px] font-semibold uppercase text-slate-600">Profit</p>
-                  <p className="text-sm font-bold text-slate-800">{percentText(profitAchievedPct)}</p>
-                </div>
-              </div>
-              {/* Only what the KPI cards beside this do not already say. Sales
-                  Target, Profit Target, Incentive, Other Income, Expenses and
-                  Profit / Loss each have a card of their own now, and reading
-                  the same figure twice is what made this column feel long. */}
-              <div className="mt-3">
-                <OverviewLine icon={<CalendarDays size={14} />} label="Start Date" value={formatDateShort(range.start)} />
-                <OverviewLine icon={<CalendarDays size={14} />} label="End Date" value={formatDateShort(range.end)} />
-                <OverviewLine icon={<Package size={14} />} label="Total Purchase" value={formatCurr(data.purchaseValue)} />
-                <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales" value={formatCurr(data.totalSales)} />
-                <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales Profit" value={formatCurr(data.grossProfit)} tone="green" />
-                <OverviewLine icon={<CreditCard size={14} />} label="Profit Withdraw" value={formatCurr(data.profitWithdraw)} tone="red" />
-                <OverviewLine icon={<WalletCards size={14} />} label="Available Profit" value={formatCurr(data.availableProfit)} tone={data.availableProfit >= 0 ? 'green' : 'red'} />
-              </div>
+            {/* The month, and nothing else. The figures that used to be listed
+                under it are on the cards beside it or in the reports below. */}
+            <div className="flex min-h-[124px] flex-col justify-center rounded-2xl bg-navy-900 p-5">
+              <p className="text-3xl font-medium leading-tight tracking-tight text-white">{range.label}</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Monthly Overview</p>
             </div>
 
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <ProgressCard title="Sales Target Achievement" value={data.totalSales} target={data.salesTarget} progress={salesAchievedPct} tone="blue" />
-              <ProgressCard title="Profit Target Achievement" value={achievedProfit} target={data.profitTarget} progress={profitAchievedPct} tone="green" />
+              <KpiCard
+                label="Sales Target Achievement"
+                icon={<Target size={17} weight="duotone" />}
+                value={formatCurr(data.totalSales)}
+                note={`${percentText(salesAchievedPct)} of ${formatCurr(data.salesTarget)}`}
+                progress={salesAchievedPct}
+              />
+              <KpiCard
+                label="Profit Target Achievement"
+                icon={<TrendingUp size={17} weight="duotone" />}
+                value={formatCurr(achievedProfit)}
+                note={`${percentText(profitAchievedPct)} of ${formatCurr(data.profitTarget)}`}
+                progress={profitAchievedPct}
+              />
               {/* Two cards merged. Both are money the business earned outside a
                   sale, so the total is the useful figure - the split stays
                   underneath rather than costing a card of its own. */}
-              <MetricCard
-                title="Incentive Profit + Other Income"
+              <KpiCard
+                label="Incentive + Other Income"
+                icon={<WalletCards size={17} weight="duotone" />}
                 value={formatCurr(data.purchaseIncentive + data.totalOtherIncome)}
-                subtitle={`Incentive ${formatCurr(data.purchaseIncentive)} · Other ${formatCurr(data.totalOtherIncome)}`}
+                note={`Incentive ${formatCurr(data.purchaseIncentive)} · Other ${formatCurr(data.totalOtherIncome)}`}
                 valueClassName="text-brand-green"
               />
-              <MetricCard title="Total Expenses" value={formatCurr(data.totalExpenses)} subtitle={`${percentText(pct(data.totalExpenses, data.totalSales))} of sales`} valueClassName="text-brand-red" />
-              <MetricCard title="Profit / Loss" value={formatCurr(data.profitLoss)} subtitle={`${profitMargin.toFixed(2)}% margin`} />
+              <KpiCard
+                label="Total Expenses"
+                icon={<ClipboardList size={17} weight="duotone" />}
+                value={formatCurr(data.totalExpenses)}
+                note={`${percentText(pct(data.totalExpenses, data.totalSales))} of sales`}
+                valueClassName="text-brand-red"
+              />
+              <KpiCard
+                label="Profit / Loss"
+                icon={<CheckCircle2 size={17} weight="duotone" />}
+                value={formatCurr(data.profitLoss)}
+                note={`${profitMargin.toFixed(2)}% margin`}
+                valueClassName={data.profitLoss >= 0 ? 'text-navy-900' : 'text-brand-red'}
+              />
             </div>
           </section>
 
