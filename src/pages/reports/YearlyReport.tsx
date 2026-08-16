@@ -534,10 +534,10 @@ export default function YearlyReport() {
               eleven columns are on screen - Profit Withdraw and Available
               Profit were the two that fell off the end. */}
           <section>
+            {/* No title bar over this one. The table's own header row is
+                already the site's near-black, and a second dark band directly
+                above it only repeated what the columns say. */}
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
-              <div className="bg-slate-800 px-4 py-3 text-center">
-                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Yearly Business Performance & Profit Overview ({year})</h2>
-              </div>
               <TableScroller className="overflow-x-auto">
                 <table className="w-full min-w-[1120px] text-[11px]">
                   <thead className="table-header">
