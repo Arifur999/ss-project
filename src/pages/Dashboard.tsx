@@ -771,10 +771,12 @@ function MonthlySpendings({ months, formatCurr }: {
   const rows = side === "income" ? active.income : active.expenses
   const total = side === "income" ? active.incomeTotal : active.expenseTotal
 
-  // Past the fifth entry everything is one "Other" slice, or the legend runs
-  // longer than the chart explaining it.
-  const top = rows.slice(0, 5)
-  const rest = rows.slice(5).reduce((sum, row) => sum + row.amount, 0)
+  // The two biggest by name, and everything else as one "Other" slice. The
+  // ring and the list underneath are the same six colours, so they have to
+  // hold the same entries - a ring with more slices than the list explaining
+  // it is a key that does not key anything.
+  const top = rows.slice(0, 2)
+  const rest = rows.slice(2).reduce((sum, row) => sum + row.amount, 0)
   const slices = rest > 0 ? [...top, { name: "Other", amount: rest }] : top
 
   return (

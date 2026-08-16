@@ -1070,7 +1070,8 @@ export default function ReportSummary() {
             />
 
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
-              <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 p-3">
+              {/* Tabs on the right of the row. */}
+              <div className="flex flex-wrap items-center justify-end gap-1 border-b border-slate-200 p-3">
                 {REPORT_TABS.map(tab => (
                   <button
                     key={tab.key}
