@@ -385,13 +385,17 @@ export default function YearlyReport() {
               <CalendarDays size={16} className="text-slate-400" />
               {startLabel} - {endLabel}
             </div>
-            <button onClick={loadData} className="btn-secondary h-10">
-              <RefreshCw size={16} />
-              Refresh
-            </button>
-            <span className="text-xs font-medium text-slate-500">
-              {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : <NoValue />}
-            </span>
+            {/* The time sits under the button rather than beside it - on the
+                row it read as another control. */}
+            <div className="flex flex-col items-center">
+              <button onClick={loadData} className="btn-secondary h-10">
+                <RefreshCw size={16} />
+                Refresh
+              </button>
+              <span className="mt-1 text-[11px] font-medium text-slate-500">
+                {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : <NoValue />}
+              </span>
+            </div>
           </div>
         )}
       />
@@ -464,10 +468,21 @@ export default function YearlyReport() {
             </div>
           </section>
 
-          {/* ── SECTION 02 — THE TWO CHARTS, HALF THE WIDTH EACH ────────── */}
-          {/* lg, not 2xl: at 2xl these only sat side by side above 1536px, so
-              on most screens one chart was a full-width band above the other. */}
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* ── SECTION 02 — THE PURCHASE RING AND THE TWO CHARTS ───────── */}
+          {/* The ring on the side, then the two charts at half the row each.
+              The ring shares this row rather than the table's because the
+              table needs 1131px for its eleven columns and there is no width
+              at which both it and a 370px card fit - beside the ring, the last
+              two columns were only reachable by scrolling sideways. */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_repeat(2,minmax(0,1fr))]">
+            <PurchaseTargetDonut
+              title="Yearly Purchases Target"
+              target={purchaseTargetTotals.target}
+              achieved={purchaseTargetTotals.achieved}
+              rows={purchaseTargetRows}
+              emptyNote="No purchase target for this year"
+            />
+
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
               <div className="bg-slate-800 px-4 py-3 text-center">
                 <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Monthly Profit / Loss Trend</h2>
@@ -513,18 +528,12 @@ export default function YearlyReport() {
             </div>
           </section>
 
-          {/* ── SECTION 03 — PURCHASE TARGET & THE YEAR'S TABLE ─────────── */}
+          {/* ── SECTION 03 — THE YEAR'S TABLE, FULL WIDTH ───────────────── */}
           {/* No tabs here: the Monthly report has five reports to choose
-              between, this page has one table. */}
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
-            <PurchaseTargetDonut
-              title="Yearly Purchases Target"
-              target={purchaseTargetTotals.target}
-              achieved={purchaseTargetTotals.achieved}
-              rows={purchaseTargetRows}
-              emptyNote="No purchase target for this year"
-            />
-
+              between, this page has one table. It gets the whole width so all
+              eleven columns are on screen - Profit Withdraw and Available
+              Profit were the two that fell off the end. */}
+          <section>
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
               <div className="bg-slate-800 px-4 py-3 text-center">
                 <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Yearly Business Performance & Profit Overview ({year})</h2>
