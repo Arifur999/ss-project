@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CreditCardIcon as CreditCard, PackageIcon as Package, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
+import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import { monthKey, targetCompletion } from '../../lib/purchaseRollingTarget'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
@@ -10,6 +10,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
+import PageHeader from '../../components/PageHeader'
+import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
 
 type MonthRow = {
   month: string
@@ -348,76 +350,6 @@ export default function YearlyReport() {
     remaining: totals.remaining + row.remaining,
   }), { target: 0, achieved: 0, remaining: 0 }), [purchaseTargetRows])
 
-  function StatCard({
-    title,
-    value,
-    subtitle,
-    progress,
-    tone = 'slate',
-    valueTone,
-  }: {
-    title: string
-    value: string
-    subtitle: string
-    progress?: number
-    tone?: 'green' | 'red' | 'blue' | 'orange' | 'purple' | 'slate'
-    // Colours the figure itself. Left off, the figure stays near-black - only
-    // the cards where the direction of the money matters at a glance ask for
-    // it, so the row does not turn into a rainbow.
-    valueTone?: 'green' | 'red'
-  }) {
-    const barClass = {
-      green: 'bg-brand-green',
-      red: 'bg-brand-red',
-      blue: 'bg-slate-700',
-      orange: 'bg-brand-orange',
-      purple: 'bg-slate-500',
-      slate: 'bg-slate-500',
-    }[tone]
-
-    return (
-      <div className="min-h-[148px] rounded-xl border border-slate-200 bg-white p-4 shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_28px_0_rgba(0,0,0,0.08)]">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase leading-snug tracking-wide text-slate-500">{title}</p>
-          {/* A negative figure reads red on its own, so a loss never has to be
-              spotted by its minus sign. An explicit valueTone still wins. */}
-          <p className={`mt-2 text-2xl font-black leading-tight tabular-nums break-words ${
-            valueTone === 'green' ? 'text-brand-green'
-              : valueTone === 'red' || value.includes('-') ? 'text-brand-red'
-              : 'text-slate-950'
-          }`}>{value}</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
-        </div>
-        {progress !== undefined && (
-          <div className="mt-4">
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className={`h-full rounded-full ${barClass}`} style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  function OverviewLine({ icon, label, value, tone = 'slate' }: { icon: React.ReactNode; label: string; value: string; tone?: 'green' | 'red' | 'blue' | 'slate' }) {
-    const toneClass = {
-      green: 'text-brand-green',
-      red: 'text-brand-red',
-      blue: 'text-slate-700',
-      slate: 'text-slate-700',
-    }[tone]
-
-    return (
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-b-0">
-        <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-600">
-          <span className={`flex-shrink-0 ${toneClass}`}>{icon}</span>
-          <span className="truncate">{label}</span>
-        </div>
-        <span className={`text-right text-xs font-bold tabular-nums ${toneClass}`}>{value}</span>
-      </div>
-    )
-  }
-
   function TableValue({ value, money = true, strong = false, tone }: { value: number; money?: boolean; strong?: boolean; tone?: 'green' | 'red' | 'blue' }) {
     const textTone = tone === 'green' ? 'text-brand-green' : tone === 'red' ? 'text-brand-red' : tone === 'blue' ? 'text-slate-700' : 'text-slate-700'
     return (
@@ -436,225 +368,221 @@ export default function YearlyReport() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-6">
-      <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{t('nav_yearly')}</h1>
-            <p className="mt-1 text-sm text-slate-500">Purchase, Sales & Profit Overview</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <label className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-              <span className="block text-[10px] font-semibold uppercase text-slate-500">Year</span>
-              <select className="mt-1 w-full bg-transparent text-sm font-bold text-slate-800 outline-none" value={year} onChange={e => setYear(Number(e.target.value))}>
+      <PageHeader
+        title={t('nav_yearly')}
+        subtitle="Purchase, Sales & Profit Overview"
+        actions={(
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+              <span className="text-[11px] font-bold uppercase text-slate-500">Year</span>
+              <select className="min-w-[90px] bg-transparent outline-none" value={year} onChange={e => setYear(Number(e.target.value))}>
                 {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map(item => (
                   <option key={item} value={item}>{item}</option>
                 ))}
               </select>
             </label>
-            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-              <span className="block text-[10px] font-semibold uppercase text-slate-500">Date Range</span>
-              <div className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-800"><CalendarDays size={14} /> {startLabel} - {endLabel}</div>
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+              <CalendarDays size={16} className="text-slate-400" />
+              {startLabel} - {endLabel}
             </div>
-            <button onClick={loadData} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200">
-              <span className="flex items-center gap-2"><RefreshCw size={16} /> Refresh</span>
-              <span className="text-xs font-medium text-slate-500">{lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : <NoValue />}</span>
+            <button onClick={loadData} className="btn-secondary h-10">
+              <RefreshCw size={16} />
+              Refresh
             </button>
+            <span className="text-xs font-medium text-slate-500">
+              {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : <NoValue />}
+            </span>
           </div>
-        </div>
-      </div>
+        )}
+      />
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-4 xl:self-start">
-            <div className="rounded-lg bg-slate-900 p-4">
-              <p className="text-3xl font-black text-white">{year}</p>
-              <p className="text-xs font-bold uppercase text-slate-400">Overview</p>
+        <div className="space-y-5">
+          {!hasYearData && (
+            <div className="rounded-lg border border-brand-blue/30 bg-brand-blue-soft px-4 py-3 text-sm font-medium text-brand-blue">
+              No yearly activity found for {year}. Targets can still appear if they were set in Settings.
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-green-100 bg-green-50 p-2">
-                <p className="text-[10px] font-semibold uppercase text-green-700">Sales</p>
-                <p className="text-sm font-bold text-green-800">{salesAchievedPct.toFixed(1)}%</p>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
-                <p className="text-[10px] font-semibold uppercase text-slate-600">Profit</p>
-                <p className="text-sm font-bold text-slate-800">{profitAchievedPct.toFixed(1)}%</p>
-              </div>
+          )}
+
+          {/* ── SECTION 01 — YEARLY OVERVIEW ────────────────────────────── */}
+          {/* Same shape as the Monthly report: the period in one card, and the
+              five figures that answer "how did it go" beside it. The twelve
+              overview rows this page used to carry are gone - every one of
+              them is either on a card here, in the Total row of the table
+              below, or in the date range in the header. */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+            <PeriodCard
+              label={String(year)}
+              caption="Yearly Overview"
+              salesPct={`${salesAchievedPct.toFixed(1)}%`}
+              profitPct={`${profitAchievedPct.toFixed(1)}%`}
+            />
+
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <KpiCard
+                label="Sales Target Achievement"
+                icon={<Target size={17} weight="duotone" />}
+                value={formatCurr(summary.actualSales)}
+                note={`${salesAchievedPct.toFixed(1)}% of ${formatCurr(summary.salesGoal)}`}
+                progress={salesAchievedPct}
+              />
+              <KpiCard
+                label="Profit Target Achievement"
+                icon={<TrendingUp size={17} weight="duotone" />}
+                value={formatCurr(profitAchieved)}
+                note={`${profitAchievedPct.toFixed(1)}% of ${formatCurr(summary.profitGoal)}`}
+                progress={profitAchievedPct}
+              />
+              {/* The two earnings that are neither sales nor a target, added
+                  up. The parts stay readable underneath so nothing is lost by
+                  showing them as one figure. */}
+              <KpiCard
+                label="Incentive + Other Income"
+                icon={<WalletCards size={17} weight="duotone" />}
+                value={formatCurr(summary.purchaseIncentive + summary.totalOtherIncome)}
+                note={`Incentive ${formatCurr(summary.purchaseIncentive)} · Other ${formatCurr(summary.totalOtherIncome)}`}
+                valueClassName="text-brand-green"
+              />
+              <KpiCard
+                label="Total Expenses"
+                icon={<ClipboardList size={17} weight="duotone" />}
+                value={formatCurr(summary.totalExpenses)}
+                note={`${pct(summary.totalExpenses, summary.actualSales).toFixed(2)}% of sales`}
+                valueClassName="text-brand-red"
+              />
+              <KpiCard
+                label="Profit / Loss"
+                icon={<CheckCircle2 size={17} weight="duotone" />}
+                value={formatCurr(summary.profitLoss)}
+                note={`${summary.profitMargin.toFixed(2)}% net profit margin`}
+                valueClassName={summary.profitLoss >= 0 ? 'text-navy-900' : 'text-brand-red'}
+              />
             </div>
-            <div className="mt-3">
-              <OverviewLine icon={<CalendarDays size={14} />} label="Start Date" value={startLabel} />
-              <OverviewLine icon={<Target size={14} />} label="Sales Target" value={formatCurr(summary.salesGoal)} />
-              <OverviewLine icon={<Target size={14} />} label="Profit Target" value={formatCurr(summary.profitGoal)} />
-              <OverviewLine icon={<Package size={14} />} label="Total Purchase" value={formatCurr(summary.totalPurchases)} />
-              <OverviewLine icon={<WalletCards size={14} />} label="Incentive Profit" value={formatCurr(summary.purchaseIncentive)} tone="green" />
-              <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales" value={formatCurr(summary.actualSales)} />
-              <OverviewLine icon={<TrendingUp size={14} />} label="Actual Sales Profit" value={formatCurr(summary.totalProfit)} tone="green" />
-              <OverviewLine icon={<WalletCards size={14} />} label="Other Income" value={formatCurr(summary.totalOtherIncome)} tone="green" />
-              <OverviewLine icon={<ClipboardList size={14} />} label="Expenses" value={formatCurr(summary.totalExpenses)} tone="red" />
-              <OverviewLine icon={<CheckCircle2 size={14} />} label="Profit / Loss" value={formatCurr(summary.profitLoss)} tone={summary.profitLoss >= 0 ? 'green' : 'red'} />
-              <OverviewLine icon={<CreditCard size={14} />} label="Profit Withdraw" value={formatCurr(summary.profitWithdraw)} tone="red" />
-              <OverviewLine icon={<WalletCards size={14} />} label="Available Profit" value={formatCurr(summary.availableProfit)} tone={summary.availableProfit >= 0 ? 'green' : 'red'} />
-            </div>
+          </section>
 
-            <section className="mt-4 flex h-[260px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="bg-navy-900 px-3 py-2 text-center text-xs font-bold text-white">Purchase Target</div>
-              {/* Scrolls sideways rather than squeezing three money columns
-                  into this narrow panel and wrapping them mid-figure. */}
-              <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[380px] text-[10px]">
-                  <thead className="sticky top-0 z-10 bg-white text-slate-600">
-                    <tr>
-                      <th className="whitespace-nowrap px-2 py-2 text-left font-bold">Company</th>
-                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Target</th>
-                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Achieved</th>
-                      <th className="whitespace-nowrap px-1.5 py-2 text-right font-bold">Remaining</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchaseTargetRows.map(row => (
-                      <tr key={row.company} className="border-t border-slate-100">
-                        <td className="max-w-[140px] truncate px-2 py-1.5 font-medium text-slate-700" title={row.company}>{row.company}</td>
-                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-700">{formatCurr(row.target)}</td>
-                        <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(row.achieved)}</td>
-                        {/* Nothing left to buy is the good outcome, so a zero
-                            here reads green rather than as an alarm. */}
-                        <td className={`whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums ${row.remaining > 0 ? 'text-brand-red' : 'text-brand-green'}`}>{formatCurr(row.remaining)}</td>
-                      </tr>
-                    ))}
-                    {purchaseTargetRows.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="px-2 py-8 text-center text-xs font-medium text-slate-400">No purchase target for this year</td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot className="sticky bottom-0 bg-slate-800 text-[10px] font-bold text-white">
-                    <tr>
-                      <td className="whitespace-nowrap px-2 py-2">Total</td>
-                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(purchaseTargetTotals.target)}</td>
-                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(purchaseTargetTotals.achieved)}</td>
-                      <td className="whitespace-nowrap px-1.5 py-2 text-right tabular-nums">{formatCurr(purchaseTargetTotals.remaining)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+          {/* ── SECTION 02 — THE TWO CHARTS, HALF THE WIDTH EACH ────────── */}
+          {/* lg, not 2xl: at 2xl these only sat side by side above 1536px, so
+              on most screens one chart was a full-width band above the other. */}
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+              <div className="bg-slate-800 px-4 py-3 text-center">
+                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Monthly Profit / Loss Trend</h2>
               </div>
-            </section>
-          </aside>
-
-          <main className="min-w-0 space-y-4">
-            {!hasYearData && (
-              <div className="rounded-lg border border-brand-blue/30 bg-brand-blue-soft px-4 py-3 text-sm font-medium text-brand-blue">
-                No yearly activity found for {year}. Targets can still appear if they were set in Settings.
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-              <StatCard title="Sales Target And Achievements" value={formatCurr(summary.actualSales)} subtitle={`${salesAchievedPct.toFixed(1)}% of ${formatCurr(summary.salesGoal)}`} tone="blue" progress={salesAchievedPct} />
-              <StatCard title="Profit Targets And Achievements" value={formatCurr(profitAchieved)} subtitle={`${profitAchievedPct.toFixed(1)}% of ${formatCurr(summary.profitGoal)}`} tone="green" progress={profitAchievedPct} />
-              <StatCard title="Incentive Profit" value={formatCurr(summary.purchaseIncentive)} subtitle="Purchase incentive revenue" tone="green" valueTone="green" />
-              <StatCard title="Other Income" value={formatCurr(summary.totalOtherIncome)} subtitle="Miscellaneous income records" tone="blue" />
-              <StatCard title="Total Expenses" value={formatCurr(summary.totalExpenses)} subtitle={`${pct(summary.totalExpenses, summary.actualSales).toFixed(2)}% of sales`} tone="red" valueTone="red" />
-              <StatCard title="Profit / Loss" value={formatCurr(summary.profitLoss)} subtitle={`${summary.profitMargin.toFixed(2)}% net profit margin`} tone={summary.profitLoss >= 0 ? 'green' : 'red'} />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-800">Monthly Profit / Loss Trend ({year})</h2>
-                    <p className="mt-0.5 text-xs text-slate-500">Best {bestMonth ? monthShort(bestMonth.monthIndex) : '-'}: {formatCurr(bestMonth?.profitLoss || 0)}</p>
-                  </div>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartRows}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+              <p className="px-4 pt-3 text-center text-xs text-slate-500">
+                Best {bestMonth ? monthShort(bestMonth.monthIndex) : '-'}: {formatCurr(bestMonth?.profitLoss || 0)}
+              </p>
+              <div className="px-2 py-4 sm:px-4">
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={chartRows} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
                     <Tooltip formatter={(value: number) => formatCurr(value)} contentStyle={tooltipStyle} />
-                    <Legend />
-                    <Line type="monotone" dataKey="profitLoss" name="Profit / Loss" stroke="#1D9E75" strokeWidth={3} dot={false} />
+                    <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingTop: 12 }} iconType="circle" iconSize={9} />
+                    <Line type="monotone" dataKey="profitLoss" name="Profit / Loss" stroke={CHART_GREEN} strokeWidth={3} dot={false} />
                     <Line type="monotone" dataKey="profitGoal" name="Profit Goal" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
-              </section>
+              </div>
+            </div>
 
-              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-3">
-                  <h2 className="text-sm font-bold text-slate-800">Monthly Sales vs Goal ({year})</h2>
-                  <p className="mt-0.5 text-xs text-slate-500">Achieved {formatCurr(summary.actualSales)} of {formatCurr(summary.salesGoal)}</p>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={chartRows}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+            <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+              <div className="bg-slate-800 px-4 py-3 text-center">
+                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Monthly Sales vs Goal</h2>
+              </div>
+              <p className="px-4 pt-3 text-center text-xs text-slate-500">
+                Achieved {formatCurr(summary.actualSales)} of {formatCurr(summary.salesGoal)}
+              </p>
+              <div className="px-2 py-4 sm:px-4">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={chartRows} margin={{ top: 8, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
                     <Tooltip formatter={(value: number) => formatCurr(value)} contentStyle={tooltipStyle} />
-                    <Legend />
-                    <Bar dataKey="actualSales" name="Sales Amount" fill="#0b0b0f" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="salesGoal" name="Sales Goal" fill="#94a3b8" radius={[3, 3, 0, 0]} />
+                    <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingTop: 12 }} iconType="circle" iconSize={9} />
+                    <Bar dataKey="actualSales" name="Sales Amount" fill="#0F1117" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="salesGoal" name="Sales Goal" fill={CHART_MUTED} radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-              </section>
+              </div>
             </div>
+          </section>
 
-            <div className="grid grid-cols-1 gap-4">
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                <div className="bg-slate-800 px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white">Yearly Business Performance & Profit Overview ({year})</div>
-                <TableScroller className="overflow-x-auto">
-                  <table className="w-full min-w-[1120px] text-[11px]">
-                    <thead className="bg-white text-slate-600">
-                      <tr>
-                        <th className="sticky left-0 z-10 bg-white px-2 py-2 text-left">Month</th>
-                        <th className="px-2 py-2 text-right">Sales Target</th>
-                        <th className="px-2 py-2 text-right">Actual Sales</th>
-                        <th className="px-2 py-2 text-right">Profit Target</th>
-                        <th className="px-2 py-2 text-right">Sales Profit</th>
-                        <th className="px-2 py-2 text-right">Others Income</th>
-                        <th className="px-2 py-2 text-right">Total Profit</th>
-                        <th className="px-2 py-2 text-right">Total Expense</th>
-                        <th className="px-2 py-2 text-right">Profit and Loss</th>
-                        <th className="px-2 py-2 text-right">Profit Withdraw</th>
-                        <th className="px-2 py-2 text-right">Available Profit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map(row => (
-                        <tr key={row.monthIndex} className="border-t border-slate-100 hover:bg-neutral-100">
-                          <td className="sticky left-0 bg-white px-2 py-2 font-medium text-slate-700">{monthName(row.monthIndex)}</td>
-                          <TableValue value={row.salesGoal} />
-                          <TableValue value={row.actualSales} tone="green" />
-                          <TableValue value={row.profitGoal} />
-                          <TableValue value={row.totalProfit} tone="green" />
-                          <TableValue value={row.otherIncome} tone="green" />
-                          <TableValue value={row.totalProfit + row.otherIncome} tone="green" strong />
-                          <TableValue value={row.expenses} tone="red" />
-                          <TableValue value={row.profitLoss} tone={row.profitLoss >= 0 ? 'green' : 'red'} />
-                          <TableValue value={row.profitWithdraw} tone="red" />
-                          <TableValue value={row.availableProfit} tone={row.availableProfit >= 0 ? 'green' : 'red'} strong />
-                        </tr>
-                      ))}
-                      <tr className="bg-navy-900 text-white">
-                        <td className="sticky left-0 bg-navy-900 px-2 py-2 font-bold">Total</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.salesGoal)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.actualSales)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.profitGoal)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.totalProfit)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.totalOtherIncome)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.totalProfit + summary.totalOtherIncome)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.totalExpenses)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.profitLoss)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.profitWithdraw)}</td>
-                        <td className="px-2 py-2 text-right font-bold">{formatCurr(summary.availableProfit)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </TableScroller>
-              </section>
+          {/* ── SECTION 03 — PURCHASE TARGET & THE YEAR'S TABLE ─────────── */}
+          {/* No tabs here: the Monthly report has five reports to choose
+              between, this page has one table. */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
+            <PurchaseTargetDonut
+              title="Yearly Purchases Target"
+              target={purchaseTargetTotals.target}
+              achieved={purchaseTargetTotals.achieved}
+              rows={purchaseTargetRows}
+              emptyNote="No purchase target for this year"
+            />
 
+            <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+              <div className="bg-slate-800 px-4 py-3 text-center">
+                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Yearly Business Performance & Profit Overview ({year})</h2>
+              </div>
+              <TableScroller className="overflow-x-auto">
+                <table className="w-full min-w-[1120px] text-[11px]">
+                  <thead className="table-header">
+                    <tr>
+                      <th className="sticky left-0 z-10 px-2 py-2.5 text-left text-[11px] tracking-normal">Month</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Sales Target</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Actual Sales</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Profit Target</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Sales Profit</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Others Income</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Total Profit</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Total Expense</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Profit and Loss</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Profit Withdraw</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Available Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* The year's own totals, on the first row where the Monthly
+                        report puts them, rather than at the foot of twelve
+                        months. */}
+                    <tr className="bg-white font-black text-slate-900">
+                      <td className="sticky left-0 bg-white px-2 py-2">Total</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.salesGoal)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.actualSales)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitGoal)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalProfit)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalOtherIncome)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalProfit + summary.totalOtherIncome)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalExpenses)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitLoss)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitWithdraw)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.availableProfit)}</td>
+                    </tr>
+                    {rows.map(row => (
+                      <tr key={row.monthIndex} className="border-t border-slate-200 hover:bg-white/70">
+                        <td className="sticky left-0 bg-surface px-2 py-2 font-medium text-slate-700">{monthName(row.monthIndex)}</td>
+                        <TableValue value={row.salesGoal} />
+                        <TableValue value={row.actualSales} tone="green" />
+                        <TableValue value={row.profitGoal} />
+                        <TableValue value={row.totalProfit} tone="green" />
+                        <TableValue value={row.otherIncome} tone="green" />
+                        <TableValue value={row.totalProfit + row.otherIncome} tone="green" strong />
+                        <TableValue value={row.expenses} tone="red" />
+                        <TableValue value={row.profitLoss} tone={row.profitLoss >= 0 ? 'green' : 'red'} />
+                        <TableValue value={row.profitWithdraw} tone="red" />
+                        <TableValue value={row.availableProfit} tone={row.availableProfit >= 0 ? 'green' : 'red'} strong />
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableScroller>
             </div>
-          </main>
+          </section>
         </div>
       )}
     </div>

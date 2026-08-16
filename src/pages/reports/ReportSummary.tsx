@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
+import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
 
 type BreakdownRow = {
   name: string
@@ -106,17 +107,6 @@ const REPORT_TABS: { key: ReportTabKey; label: string }[] = [
   { key: 'supplier', label: 'Supplier Payment' },
   { key: 'otherIncome', label: 'Other Income' },
 ]
-
-/**
- * The green the charts draw with.
- *
- * Deliberately not `brand-green` (#22C55E). That one is a badge colour - it is
- * meant to catch the eye in a 20px pill, and at the size of a donut ring or a
- * column of bars the same value shouts. This is the same hue taken darker and
- * less saturated, so it sits beside the near-black bars rather than in front
- * of them. Only the charts use it; the badges keep theirs.
- */
-const CHART_GREEN = '#0E9F6E'
 
 const emptyReport: ReportData = {
   salesTarget: 0,
@@ -761,30 +751,6 @@ export default function ReportSummary() {
     extra: totals.extra + row.extra,
   }), { target: 0, achieved: 0, extra: 0 }), [data.monthlyPurchaseRows])
 
-  /**
-   * The one figure the purchase card exists to show, plus the two slices that
-   * draw it.
-   *
-   * The ring is capped at the target so a month that bought more than asked
-   * still reads as a full circle rather than wrapping round - the percentage
-   * beneath it is what carries "and then some".
-   */
-  const purchaseAchievement = useMemo(() => {
-    const { target, achieved } = monthlyPurchaseTotals
-    const remaining = Math.max(0, target - achieved)
-    const percent = target > 0 ? (achieved / target) * 100 : 0
-    return {
-      target,
-      achieved,
-      remaining,
-      percent,
-      slices: [
-        { name: 'Achieved', value: Math.min(achieved, target), fill: CHART_GREEN },
-        { name: 'Remaining', value: remaining, fill: '#E5E7EB' },
-      ].filter(slice => slice.value > 0),
-    }
-  }, [monthlyPurchaseTotals])
-
   const salesAchievedPct = pct(data.totalSales, data.salesTarget)
   const achievedProfit = data.grossProfit + data.purchaseIncentive + data.totalOtherIncome
   const profitAchievedPct = pct(achievedProfit, data.profitTarget)
@@ -836,49 +802,6 @@ export default function ReportSummary() {
           </div>
         </div>
       </div>
-    )
-  }
-
-  /**
-   * The report's KPI card, built to the same shape as the Dashboard's
-   * (`Dashboard.tsx` StatCard): a white circular icon tile beside the label,
-   * the figure below it. Same card, so the two pages read as one product.
-   *
-   * `progress` adds the bar the two target cards need; the others leave it off.
-   */
-  function KpiCard({
-    label,
-    icon,
-    value,
-    note,
-    progress,
-    valueClassName = 'text-navy-900',
-  }: {
-    label: string
-    icon: React.ReactNode
-    value: string
-    note?: string
-    progress?: number
-    valueClassName?: string
-  }) {
-    return (
-      <section className="flex min-h-[124px] flex-col justify-between rounded-2xl border border-surface-border bg-surface p-5">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
-            {icon}
-          </span>
-          <span className="truncate text-sm text-neutral-700" title={label}>{label}</span>
-        </div>
-        <p className={`mt-4 text-2xl font-medium leading-none tracking-tight tabular-nums ${valueClassName}`}>{value}</p>
-        <div className="mt-2 space-y-1.5">
-          {note && <p className="truncate text-[11px] text-neutral-500" title={note}>{note}</p>}
-          {progress !== undefined && (
-            <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200">
-              <div className="h-full rounded-full bg-navy-900" style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
-            </div>
-          )}
-        </div>
-      </section>
     )
   }
 
@@ -1056,26 +979,12 @@ export default function ReportSummary() {
         <div className="space-y-5">
           {/* ── SECTION 01 — MONTHLY OVERVIEW ───────────────────────────── */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-            {/* One card carrying all three: the month, then the two headline
-                percentages. The card itself is the surface colour, so the
-                three sit on it as their own blocks - the month in the
-                sidebar's black, and a colour each for sales and profit. */}
-            <div className="flex flex-col gap-3 rounded-2xl bg-surface p-3">
-              <div className="flex flex-1 flex-col justify-center rounded-xl bg-shell px-5 py-6">
-                <p className="text-3xl font-bold leading-tight tracking-tight text-white">{range.label}</p>
-                <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Monthly Overview</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-brand-green-soft px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-brand-green">Sales</p>
-                  <p className="mt-1 text-lg font-medium tabular-nums leading-none text-navy-900">{percentText(salesAchievedPct)}</p>
-                </div>
-                <div className="rounded-xl bg-brand-blue-soft px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-brand-blue">Profit</p>
-                  <p className="mt-1 text-lg font-medium tabular-nums leading-none text-navy-900">{percentText(profitAchievedPct)}</p>
-                </div>
-              </div>
-            </div>
+            <PeriodCard
+              label={range.label}
+              caption="Monthly Overview"
+              salesPct={percentText(salesAchievedPct)}
+              profitPct={percentText(profitAchievedPct)}
+            />
 
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <KpiCard
@@ -1137,7 +1046,7 @@ export default function ReportSummary() {
                     <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingTop: 12 }} iconType="circle" iconSize={9} />
                     {/* Palette colours - profit and expense were still on the
                         pre-palette greens and reds. */}
-                    <Bar dataKey="target" name="Target" fill="#D1D5DB" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="target" name="Target" fill={CHART_MUTED} radius={[3, 3, 0, 0]} />
                     <Bar dataKey="sales" name="Sales" fill="#0F1117" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="profit" name="Profit" fill={CHART_GREEN} radius={[3, 3, 0, 0]} />
                     <Bar dataKey="expense" name="Expense" fill="#EF4444" radius={[3, 3, 0, 0]} />
@@ -1152,84 +1061,13 @@ export default function ReportSummary() {
               report table beside it, and past this the table's last column
               stops fitting. */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
-            <div className="overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
-              <div className="bg-slate-800 px-4 py-3 text-center">
-                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Monthly Purchases Target</h2>
-              </div>
-
-              {purchaseAchievement.target > 0 ? (
-                <>
-                  <div className="relative px-4 pt-5">
-                    <ResponsiveContainer width="100%" height={225}>
-                      <PieChart>
-                        <Pie
-                          data={purchaseAchievement.slices}
-                          dataKey="value"
-                          nameKey="name"
-                          // A thin ring, not a filled wheel. The 24px band was
-                          // heavy enough that the caption underneath the figure
-                          // ran into it; at 13px the hole is wide enough to
-                          // hold both, and the percentage is what carries the
-                          // card anyway.
-                          innerRadius={81}
-                          outerRadius={94}
-                          startAngle={90}
-                          endAngle={-270}
-                          paddingAngle={purchaseAchievement.remaining > 0 ? 2 : 0}
-                          stroke="none"
-                        >
-                          {purchaseAchievement.slices.map(slice => <Cell key={slice.name} fill={slice.fill} />)}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    {/* The one figure this card exists to show. */}
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-5">
-                      <p className="text-4xl font-black leading-none tracking-tight text-navy-900">{Math.round(purchaseAchievement.percent)}%</p>
-                      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Purchase Achievement</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 px-4 py-3 text-center">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Target</p>
-                      <p className="text-xs font-bold tabular-nums text-slate-800">{formatCurr(purchaseAchievement.target)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Actual</p>
-                      <p className="text-xs font-bold tabular-nums text-brand-green">{formatCurr(purchaseAchievement.achieved)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Remaining</p>
-                      <p className={`text-xs font-bold tabular-nums ${purchaseAchievement.remaining > 0 ? 'text-brand-orange' : 'text-brand-green'}`}>{formatCurr(purchaseAchievement.remaining)}</p>
-                    </div>
-                  </div>
-
-                  {/* Which company is behind, under the figure that says whether
-                      anyone is. */}
-                  <div className="max-h-[170px] overflow-y-auto border-t border-slate-200">
-                    {(data.monthlyPurchaseRows || []).map(row => {
-                      const rowPct = row.target > 0 ? Math.round((row.achieved / row.target) * 100) : 0
-                      return (
-                        <div
-                          key={row.company}
-                          className="flex items-center justify-between gap-2 px-4 py-2 text-[11px] hover:bg-white/70"
-                          // The company's own target is what the percentage is
-                          // of, and there is no room for it on the row - so it
-                          // stays reachable here rather than being dropped.
-                          title={`${row.company} · target ${formatCurr(row.target)}`}
-                        >
-                          <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{row.company}</span>
-                          <span className="shrink-0 tabular-nums text-slate-500">{formatCurr(row.achieved)}</span>
-                          <span className={`w-9 shrink-0 text-right font-bold tabular-nums ${rowPct >= 100 ? 'text-brand-green' : 'text-slate-500'}`}>{rowPct}%</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </>
-              ) : (
-                <p className="px-4 py-14 text-center text-xs font-medium text-slate-400">No purchase target for this month</p>
-              )}
-            </div>
+            <PurchaseTargetDonut
+              title="Monthly Purchases Target"
+              target={monthlyPurchaseTotals.target}
+              achieved={monthlyPurchaseTotals.achieved}
+              rows={data.monthlyPurchaseRows || []}
+              emptyNote="No purchase target for this month"
+            />
 
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
               <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 p-3">
