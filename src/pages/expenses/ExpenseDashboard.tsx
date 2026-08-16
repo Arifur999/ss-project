@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { PlusIcon as Plus, FloppyDiskIcon as Save, PencilSimpleIcon as Pencil, TrashIcon as Trash2 } from '@phosphor-icons/react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { PlusIcon as Plus, FloppyDiskIcon as Save, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CalendarDotsIcon as CalendarDays, ClipboardTextIcon as ClipboardList, TargetIcon as Target, WalletIcon as WalletCards } from '@phosphor-icons/react'
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
@@ -7,6 +8,7 @@ import toast from 'react-hot-toast'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { confirmAction } from '../../components/ConfirmDialog'
+import { KpiCard } from '../../components/ReportCards'
 
 const PRESET_COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#6b7280', '#14b8a6', '#f97316', '#06b6d4']
 const LINKED_EXPENSE_CATEGORY_DELETE_MESSAGE = 'Cannot Delete Category: This expense category contains existing transaction history. You must delete all linked transactions first before removing the category!'
@@ -135,36 +137,202 @@ export default function ExpenseDashboard() {
     return totalDiff || String(a.name || '').localeCompare(String(b.name || ''))
   })
   const summaryCards = [
-    { label: 'Total Expenses', value: formatCurr(totalExpenses), tone: 'text-white' },
-    { label: t('expenses_monthlyBudget'), value: formatCurr(totalBudget), tone: 'text-emerald-200' },
-    { label: t('expenses_thisMonthTotal'), value: formatCurr(totalMonthExpense), tone: 'text-rose-200' },
-    { label: 'Yearly Budget', value: formatCurr(totalYearBudget), tone: 'text-emerald-200' },
-    { label: t('expenses_thisYearTotal'), value: formatCurr(totalYearExpense), tone: 'text-brand-blue' },
+    {
+      label: 'Total Expenses',
+      value: formatCurr(totalExpenses),
+      icon: <ClipboardList size={17} weight="duotone" />,
+      note: `Across ${categories.length} ${categories.length === 1 ? 'category' : 'categories'}`,
+      tone: 'text-navy-900',
+    },
+    {
+      label: t('expenses_monthlyBudget'),
+      value: formatCurr(totalBudget),
+      icon: <WalletCards size={17} weight="duotone" />,
+      note: "This month's allowance",
+      tone: 'text-brand-green',
+    },
+    {
+      label: t('expenses_thisMonthTotal'),
+      value: formatCurr(totalMonthExpense),
+      icon: <CalendarDays size={17} weight="duotone" />,
+      note: totalBudget > 0 ? `${Math.round(budgetUsage)}% of the monthly budget` : 'No monthly budget set',
+      progress: totalBudget > 0 ? budgetUsage : undefined,
+      tone: 'text-brand-red',
+    },
+    {
+      label: 'Yearly Budget',
+      value: formatCurr(totalYearBudget),
+      icon: <WalletCards size={17} weight="duotone" />,
+      note: 'Twelve monthly budgets',
+      tone: 'text-brand-green',
+    },
+    {
+      label: t('expenses_thisYearTotal'),
+      value: formatCurr(totalYearExpense),
+      icon: <CalendarDays size={17} weight="duotone" />,
+      note: totalYearBudget > 0 ? `${Math.round(yearBudgetUsage)}% of the yearly budget` : 'No yearly budget set',
+      progress: totalYearBudget > 0 ? yearBudgetUsage : undefined,
+      tone: 'text-brand-blue',
+    },
     {
       label: t('expenses_budgetUsage'),
       value: `${Math.round(budgetUsage)}% / ${Math.round(yearBudgetUsage)}%`,
-      tone: budgetUsage > 100 || yearBudgetUsage > 100 ? 'text-rose-200' : 'text-emerald-200',
+      icon: <Target size={17} weight="duotone" />,
+      note: 'Month / year',
+      tone: budgetUsage > 100 || yearBudgetUsage > 100 ? 'text-brand-red' : 'text-brand-green',
     },
   ]
 
+  /**
+   * Every category's share of what has been spent, largest first.
+   *
+   * Built from `categories`, so a category created today is in the chart the
+   * moment its first expense lands - there is no separate list to keep in
+   * step. Categories with nothing spent are left out: a 0% slice cannot be
+   * drawn, and they are all still listed in the boxes below.
+   */
+  const expenseShare = useMemo(() => {
+    const rows = categories
+      .map(category => ({
+        id: category.id,
+        name: category.name,
+        color: category.color,
+        value: allTimeTotals[category.id] || 0,
+      }))
+      .filter(row => row.value > 0)
+      .sort((a, b) => b.value - a.value)
+    const total = rows.reduce((sum, row) => sum + row.value, 0)
+    return {
+      total,
+      rows: rows.map(row => ({ ...row, share: total > 0 ? (row.value / total) * 100 : 0 })),
+    }
+  }, [categories, allTimeTotals])
+
+  /**
+   * The percentage on the slice itself. Anything under 5% is left off - the
+   * labels start colliding below that, and every category is spelled out with
+   * its own percentage in the list beside the ring anyway.
+   */
+  function ShareLabel({ cx, cy, midAngle, outerRadius, percent }: any) {
+    if (percent * 100 < 5) return null
+    const radian = Math.PI / 180
+    const distance = outerRadius + 16
+    const x = cx + distance * Math.cos(-midAngle * radian)
+    const y = cy + distance * Math.sin(-midAngle * radian)
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#374151"
+        fontSize={11}
+        fontWeight={700}
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+      >
+        {Math.round(percent * 100)}%
+      </text>
+    )
+  }
+
+  // The taka figure, which the chart deliberately does not show until asked.
+  function ShareTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
+    if (!active || !payload?.length) return null
+    const row = payload[0]?.payload
+    if (!row) return null
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: row.color }} />
+          <span className="text-xs font-bold text-slate-900">{row.name}</span>
+        </div>
+        <p className="mt-1 text-sm font-black tabular-nums text-slate-900">{formatCurr(row.value)}</p>
+        <p className="text-[11px] text-slate-500">{row.share.toFixed(1)}% of all expenses</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden p-6">
+    <div className="p-4 lg:p-6">
       <PageHeader
         title={t('expenses_dashTitle')}
         subtitle={t('expenses_dashSubtitle')}
         actions={<button onClick={() => openModal()} className="btn-primary"><Plus size={16} /> {t('expenses_newCategory')}</button>}
       />
 
-      <div className="mb-6 grid flex-shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* The same card the reports and the dashboard use, so its padding and
+          spacing come from one place rather than being set again here. */}
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {summaryCards.map(card => (
-          <div key={card.label} className="rounded-lg bg-[#1D3557] p-5 shadow-sm border border-[#27486f]">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-300">{card.label}</p>
-            <p className={`text-2xl font-bold mt-2 ${card.tone}`}>{card.value}</p>
-          </div>
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            icon={card.icon}
+            value={card.value}
+            note={card.note}
+            progress={card.progress}
+            valueClassName={card.tone}
+          />
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto pr-1 pb-1 lg:grid-cols-2 2xl:grid-cols-3">
+      {/* Where the money went, as one ring: the percentage on the chart, the
+          taka on hover. */}
+      <section className="mb-5 overflow-hidden rounded-2xl border border-surface-border bg-surface">
+        <div className="bg-slate-800 px-4 py-3 text-center">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Expenses By Category</h2>
+        </div>
+
+        {expenseShare.rows.length === 0 ? (
+          <p className="px-4 py-16 text-center text-xs font-medium text-slate-400">
+            Nothing spent yet. Every category you create appears here as soon as it has an expense against it.
+          </p>
+        ) : (
+          <div className="flex flex-col items-center gap-6 p-5 lg:flex-row lg:items-center">
+            <div className="relative w-full max-w-[380px] shrink-0 lg:w-[380px]">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={expenseShare.rows}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={70}
+                    outerRadius={100}
+                    startAngle={90}
+                    endAngle={-270}
+                    paddingAngle={expenseShare.rows.length > 1 ? 2 : 0}
+                    stroke="none"
+                    labelLine={false}
+                    label={ShareLabel}
+                    isAnimationActive={false}
+                  >
+                    {expenseShare.rows.map(row => <Cell key={row.id} fill={row.color} />)}
+                  </Pie>
+                  <Tooltip content={<ShareTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* What the percentages are percentages of. */}
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <p className="text-2xl font-black leading-none tracking-tight tabular-nums text-navy-900">{formatCurr(expenseShare.total)}</p>
+                <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Expenses</p>
+              </div>
+            </div>
+
+            {/* Every category by name, including the slices too thin to label. */}
+            <div className="min-w-0 flex-1 divide-y divide-slate-200">
+              {expenseShare.rows.map(row => (
+                <div key={row.id} className="flex items-center gap-3 py-2.5">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700" title={row.name}>{row.name}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(row.value)}</span>
+                  <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-navy-900">{row.share.toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {sortedCategories.map(cat => {
           const totalSpent = allTimeTotals[cat.id] || 0
           const monthSpent = thisMonthTotals[cat.id] || 0
