@@ -11,6 +11,16 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { KpiCard } from '../../components/ReportCards'
 
 const PRESET_COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#6b7280', '#14b8a6', '#f97316', '#06b6d4']
+/**
+ * How many categories the list beside the ring names.
+ *
+ * The ring draws all of them; the list would grow without limit, and a
+ * business with fifty categories would push the boxes below off the screen.
+ * The eight biggest are the ones worth reading by name - what is left is
+ * summed on one line underneath so the percentages still account for
+ * everything.
+ */
+const LEGEND_LIMIT = 8
 const LINKED_EXPENSE_CATEGORY_DELETE_MESSAGE = 'Cannot Delete Category: This expense category contains existing transaction history. You must delete all linked transactions first before removing the category!'
 
 export default function ExpenseDashboard() {
@@ -202,9 +212,19 @@ export default function ExpenseDashboard() {
       .filter(row => row.value > 0)
       .sort((a, b) => b.value - a.value)
     const total = rows.reduce((sum, row) => sum + row.value, 0)
+    const withShare = rows.map(row => ({ ...row, share: total > 0 ? (row.value / total) * 100 : 0 }))
+    const listed = withShare.slice(0, LEGEND_LIMIT)
+    const rest = withShare.slice(LEGEND_LIMIT)
     return {
       total,
-      rows: rows.map(row => ({ ...row, share: total > 0 ? (row.value / total) * 100 : 0 })),
+      // Every category, for the ring.
+      rows: withShare,
+      // The biggest few, for the list beside it. They are already sorted
+      // largest first, so this is the top eight by spend.
+      listed,
+      restCount: rest.length,
+      restValue: rest.reduce((sum, row) => sum + row.value, 0),
+      restShare: rest.reduce((sum, row) => sum + row.share, 0),
     }
   }, [categories, allTimeTotals])
 
@@ -317,9 +337,11 @@ export default function ExpenseDashboard() {
               </div>
             </div>
 
-            {/* Every category by name, including the slices too thin to label. */}
+            {/* The eight biggest by name. The rest are in the ring and in the
+                boxes below; here they are one line, so the percentages still
+                add up to the total in the middle. */}
             <div className="min-w-0 flex-1 divide-y divide-slate-200">
-              {expenseShare.rows.map(row => (
+              {expenseShare.listed.map(row => (
                 <div key={row.id} className="flex items-center gap-3 py-2.5">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                   <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700" title={row.name}>{row.name}</span>
@@ -327,6 +349,16 @@ export default function ExpenseDashboard() {
                   <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-navy-900">{row.share.toFixed(1)}%</span>
                 </div>
               ))}
+              {expenseShare.restCount > 0 && (
+                <div className="flex items-center gap-3 py-2.5">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-slate-300 bg-white" />
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-500">
+                    {expenseShare.restCount} more {expenseShare.restCount === 1 ? 'category' : 'categories'}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(expenseShare.restValue)}</span>
+                  <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-slate-500">{expenseShare.restShare.toFixed(1)}%</span>
+                </div>
+              )}
             </div>
           </div>
         )}
