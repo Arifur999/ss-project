@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { PlusIcon as Plus, FloppyDiskIcon as Save, PencilSimpleIcon as Pencil, TrashIcon as Trash2, CalendarDotsIcon as CalendarDays, ClipboardTextIcon as ClipboardList, TargetIcon as Target, WalletIcon as WalletCards } from '@phosphor-icons/react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
@@ -14,11 +14,14 @@ const PRESET_COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#
 const LINKED_EXPENSE_CATEGORY_DELETE_MESSAGE = 'Cannot Delete Category: This expense category contains existing transaction history. You must delete all linked transactions first before removing the category!'
 
 export default function ExpenseDashboard() {
-  const { t, formatCurr } = useLang()
+  const { t, formatCurr, monthName, monthShort } = useLang()
   const [categories, setCategories] = useState<any[]>([])
   const [allTimeTotals, setAllTimeTotals] = useState<Record<string, number>>({})
   const [thisMonthTotals, setThisMonthTotals] = useState<Record<string, number>>({})
   const [thisYearTotals, setThisYearTotals] = useState<Record<string, number>>({})
+  // This year's spend month by month. Built from the same fetch as the totals,
+  // so the panel costs nothing extra to fill.
+  const [monthlySpend, setMonthlySpend] = useState<number[]>(() => Array(12).fill(0))
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
   const [form, setForm] = useState({ name: '', color: PRESET_COLORS[0], monthly_budget: 0 })
@@ -50,6 +53,7 @@ export default function ExpenseDashboard() {
     const totals: Record<string, number> = {}
     const monthTotals: Record<string, number> = {}
     const yearTotals: Record<string, number> = {}
+    const perMonth: number[] = Array(12).fill(0)
     expenses.forEach((e: any) => {
       const d = new Date(e.date)
       totals[e.category_id] = (totals[e.category_id] || 0) + Number(e.amount)
@@ -58,11 +62,13 @@ export default function ExpenseDashboard() {
       }
       if (d.getFullYear() === currentYear) {
         yearTotals[e.category_id] = (yearTotals[e.category_id] || 0) + Number(e.amount)
+        perMonth[d.getMonth()] += Number(e.amount)
       }
     })
     setAllTimeTotals(totals)
     setThisMonthTotals(monthTotals)
     setThisYearTotals(yearTotals)
+    setMonthlySpend(perMonth)
   }
 
   function openModal(item?: any) {
@@ -234,6 +240,47 @@ export default function ExpenseDashboard() {
     )
   }
 
+  /**
+   * This year month by month, for the space beside the ring.
+   *
+   * The ring says where the money went; this says when. Months that have not
+   * happened yet are still drawn, so a half-empty year reads as a year in
+   * progress rather than as a collapse in spending.
+   */
+  const monthlyTrend = useMemo(() => {
+    const rows = monthlySpend.map((amount, index) => ({
+      month: monthShort(index + 1),
+      monthIndex: index + 1,
+      amount,
+      // The current month is not finished, so it is drawn lighter than the
+      // months that are.
+      settled: index + 1 < currentMonth,
+    }))
+    const spent = rows.reduce((sum, row) => sum + row.amount, 0)
+    const withSpend = rows.filter(row => row.amount > 0)
+    const busiest = withSpend.reduce<typeof rows[number] | null>((best, row) => (!best || row.amount > best.amount ? row : best), null)
+    return {
+      rows,
+      busiest,
+      // The average is over the months that actually had spending - dividing
+      // by twelve in March would say the business spends a quarter of what it
+      // does.
+      average: withSpend.length > 0 ? spent / withSpend.length : 0,
+    }
+  }, [monthlySpend, currentMonth, monthShort])
+
+  function TrendTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
+    if (!active || !payload?.length) return null
+    const row = payload[0]?.payload
+    if (!row) return null
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg">
+        <p className="text-xs font-bold text-slate-900">{monthName(row.monthIndex)} {currentYear}</p>
+        <p className="mt-1 text-sm font-black tabular-nums text-slate-900">{formatCurr(row.amount)}</p>
+      </div>
+    )
+  }
+
   // The taka figure, which the chart deliberately does not show until asked.
   function ShareTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
     if (!active || !payload?.length) return null
@@ -287,8 +334,11 @@ export default function ExpenseDashboard() {
             Nothing spent yet. Every category you create appears here as soon as it has an expense against it.
           </p>
         ) : (
-          <div className="flex flex-col items-center gap-6 p-5 lg:flex-row lg:items-center">
-            <div className="relative w-full max-w-[380px] shrink-0 lg:w-[380px]">
+          // Three columns across the card's whole width: the ring, then every
+          // category by name, then the year month by month in what would
+          // otherwise be empty space to the right.
+          <div className="grid grid-cols-1 gap-6 p-5 lg:grid-cols-2 xl:grid-cols-[340px_minmax(0,1fr)_400px]">
+            <div className="relative w-full justify-self-center xl:justify-self-start">
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
@@ -318,15 +368,46 @@ export default function ExpenseDashboard() {
             </div>
 
             {/* Every category by name, including the slices too thin to label. */}
-            <div className="min-w-0 flex-1 divide-y divide-slate-200">
+            <div className="min-w-0 divide-y divide-slate-200 self-start">
               {expenseShare.rows.map(row => (
                 <div key={row.id} className="flex items-center gap-3 py-2.5">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
                   <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700" title={row.name}>{row.name}</span>
                   <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(row.value)}</span>
-                  <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-navy-900">{row.share.toFixed(1)}%</span>
+                  <span className="w-14 shrink-0 text-right text-xs font-bold tabular-nums text-navy-900">{row.share.toFixed(1)}%</span>
                 </div>
               ))}
+            </div>
+
+            {/* The ring answers where the money went; this answers when. */}
+            <div className="min-w-0 self-start rounded-xl border border-surface-border bg-white/60 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Month By Month · {currentYear}</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <p className="text-lg font-black tabular-nums leading-none text-navy-900">{formatCurr(monthlyTrend.average)}</p>
+                <p className="text-[11px] text-slate-500">average, in the months with spending</p>
+              </div>
+              <div className="mt-3">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={monthlyTrend.rows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="20%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={38} />
+                    <Tooltip content={<TrendTooltip />} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
+                    <Bar dataKey="amount" radius={[3, 3, 0, 0]}>
+                      {monthlyTrend.rows.map(row => (
+                        // A month still running is drawn lighter, so a low bar
+                        // for it does not read as a month that came in cheap.
+                        <Cell key={row.monthIndex} fill={row.settled ? '#0F1117' : '#94A3B8'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {monthlyTrend.busiest && (
+                <p className="mt-2 text-[11px] text-slate-500">
+                  Busiest {monthName(monthlyTrend.busiest.monthIndex)}: <span className="font-bold tabular-nums text-navy-900">{formatCurr(monthlyTrend.busiest.amount)}</span>
+                </p>
+              )}
             </div>
           </div>
         )}
