@@ -9,6 +9,7 @@ import { monthKey, purchaseProgressForMonth, type MonthProgress } from '../../li
 import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
+import { roundTaka } from '../../lib/utils'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
 import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
@@ -160,8 +161,13 @@ function pct(value: number, target: number) {
   return target > 0 ? (value / target) * 100 : 0
 }
 
+// Every money field on this page comes in through here, and it rounds to the
+// whole taka on the way in rather than at display time. That is what keeps a
+// breakdown table's rows adding up to the total printed under it: rounding only
+// on the way out would show two rows of 10.4 as "10" and "10" beneath a total
+// of "21".
 function amount(value: any) {
-  return Number(value || 0)
+  return roundTaka(value)
 }
 
 function percentText(value: number) {

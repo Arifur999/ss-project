@@ -5,7 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import { useLang } from '../../context/LanguageContext'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, roundTaka } from '../../lib/utils'
 import {
   loadCustomerDashboardDataset,
   parseAmountText,
@@ -70,7 +70,7 @@ function sortLedgerEntries(a: any, b: any) {
 }
 
 function formatTk(value: number) {
-  return `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })} TK`
+  return `${roundTaka(value).toLocaleString('en-US')} TK`
 }
 
 function pdfEscape(value: string) {

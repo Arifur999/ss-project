@@ -11,6 +11,7 @@
  * assert them directly - which is why the arithmetic lives here as pure
  * functions rather than inline in the page.
  */
+import { roundTaka } from './utils'
 
 /** Every movement field a row carries, in and out. */
 export interface AccountMovements {
@@ -40,10 +41,11 @@ export interface AccountTotals {
   others_net: number
 }
 
-const money = (value: unknown): number => {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric : 0
-}
+// Rounded to the whole taka on the way in, so the four nets below and the
+// balance they add up to are all whole numbers. Rounding each net at display
+// time instead would let the printed nets disagree with the printed balance by
+// a taka, and identity (2) in the tests would no longer be checkable by eye.
+const money = (value: unknown): number => roundTaka(value)
 
 /**
  * The derived figures, all from fields already on the row.

@@ -13,6 +13,7 @@ import { NoValue } from '../../components/CellValue'
 import TableScroller from '../../components/TableScroller'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../../components/ProgressDialog'
 import { useLang } from '../../context/LanguageContext'
+import { roundTaka } from '../../lib/utils'
 import {
   CODE_HEADER_KEYS,
   chunkArray,
@@ -56,7 +57,7 @@ function detectPriceHeaderRow(rows: string[][]): number {
 }
 
 const money = (value: number | undefined) =>
-  value === undefined ? '' : Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })
+  value === undefined ? '' : roundTaka(value).toLocaleString('en-US')
 
 export default function UpdatePrice() {
   const { t, formatDateShort, formatNum } = useLang()

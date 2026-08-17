@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { PlusIcon as Plus, FloppyDiskIcon as Save, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, InfoIcon as Info, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
-import { formatDate, generateSINo, todayISO } from '../../lib/utils'
+import { formatDate, generateSINo, roundTaka, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import Modal from '../../components/Modal'
@@ -56,11 +56,12 @@ interface PurchaseItem {
 // never typed. Every place that changes a row's total has to run through this,
 // or the percentage and the figure beside it would drift apart.
 function applySpPercent(item: PurchaseItem, percent: number): PurchaseItem {
-  const total = Number(item.total_amount || 0)
+  const total = roundTaka(item.total_amount)
   const pct = Number(percent) || 0
-  // total * pct / 100, rounded to two decimals - Math.round(total * pct) is the
-  // same thing with one fewer floating-point step.
-  const spAmount = Math.round(total * pct) / 100
+  // Whole taka: a percentage of a total almost never divides evenly (5% of
+  // 1,050 is 52.50), and this figure is both shown to the operator and saved,
+  // so the paisa used to reach the supplier ledger and every profit report.
+  const spAmount = roundTaka((total * pct) / 100)
   return { ...item, sp_amount: spAmount, deposit_amount: Math.max(0, total - spAmount) }
 }
 
@@ -322,8 +323,12 @@ export default function PlaceOrder() {
     }
 
     const item = newItems[idx]
-    item.actual_dp = item.dp_price * (1 - item.discount_pct / 100)
-    item.total_amount = item.actual_dp * item.qty
+    // A percentage discount off the DP is the other place paisa were created:
+    // 7% off Tk 1,050 is 976.50. Round the unit price first and multiply after,
+    // so the line total is the whole-taka unit price times the quantity - the
+    // arithmetic the operator can redo on paper.
+    item.actual_dp = roundTaka(item.dp_price * (1 - item.discount_pct / 100))
+    item.total_amount = roundTaka(item.actual_dp * item.qty)
     newItems[idx] = applySpPercent(item, spPercent)
     setItems(newItems)
   }
@@ -364,9 +369,9 @@ export default function PlaceOrder() {
   }, [productSearch, products, categoryFilter])
 
   function addProductToOrder(product: any) {
-    const dp = Number(product.cost_price || 0)
+    const dp = roundTaka(product.cost_price)
     const discount = Number(product.dp_discount ?? product.discount ?? 0)
-    const actual = dp * (1 - discount / 100)
+    const actual = roundTaka(dp * (1 - discount / 100))
     const nextItem: PurchaseItem = applySpPercent({
       product_id: product.id,
       product_code: product.product_code || '',
@@ -389,7 +394,7 @@ export default function PlaceOrder() {
         const next = [...current]
         const ex = next[existingIndex]
         const qty = Number(ex.qty || 0) + 1
-        const total = Number(ex.actual_dp || 0) * qty
+        const total = roundTaka(Number(ex.actual_dp || 0) * qty)
         next[existingIndex] = applySpPercent({ ...ex, qty, total_amount: total }, spPercent)
         return next
       }

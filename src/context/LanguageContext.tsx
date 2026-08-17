@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import en from '../locales/en.json'
 import bn from '../locales/bn.json'
-import { formatDate } from '../lib/utils'
+import { formatDate, roundTaka } from '../lib/utils'
 
 export type Lang = 'en' | 'bn'
 
@@ -68,10 +68,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [lang])
 
   const formatCurr = useCallback((n: number): string => {
-    // Guard the input: a null/undefined amount used to throw here and blank
-    // the entire page rather than show a zero in one cell.
-    const safe = Number(n)
-    const amount = (Number.isFinite(safe) ? safe : 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    // Whole taka, always: roundTaka guards a null/undefined amount (which used
+    // to throw here and blank the entire page rather than show a zero in one
+    // cell) and drops the paisa in the same step. maximumFractionDigits stays
+    // at 0 so nothing can slip a decimal past it.
+    const amount = roundTaka(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
     // "৳" is a Bengali-script glyph and looks out of place inside English
     // text, so use it only in Bangla; English uses the "Tk" abbreviation.
     // A non-breaking space (U+00A0) between "Tk" and the number stops the

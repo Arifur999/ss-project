@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import { getChurnedCustomers, sendFollowupEmail } from '../../services/admin.services'
-import { formatDate as formatDateUtil } from '../../lib/utils'
+import { formatDate as formatDateUtil, roundTaka } from '../../lib/utils'
 
 type PaidCustomer = {
   id: string
@@ -24,7 +24,7 @@ type PaidCustomer = {
   last_active: string | null
 }
 
-const money = (n: number) => 'Tk ' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })
+const money = (n: number) => 'Tk ' + roundTaka(n).toLocaleString('en-US')
 const formatDate = (value: string | null) => formatDateUtil(value) || '-'
 const planLabel = (planType: string) => (planType === 'yearly' ? 'Yearly' : planType === 'monthly' ? 'Monthly' : planType || '-')
 

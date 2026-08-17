@@ -5,7 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import SearchableSelect from '../../components/SearchableSelect'
 import { supabase } from '../../lib/supabase'
-import { formatDate, todayISO } from '../../lib/utils'
+import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { confirmAction } from '../../components/ConfirmDialog'
@@ -30,7 +30,7 @@ function escapeHtml(value: string) {
 }
 
 function formatPrintAmount(value: number) {
-  return Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return roundTaka(value).toLocaleString('en-US')
 }
 
 function isUuid(value: string) {

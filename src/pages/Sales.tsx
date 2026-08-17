@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PrinterIcon as Printer, PencilSimpleIcon as Pencil, TrashIcon as Trash2, ImageIcon as Image, BarcodeIcon as Barcode, FunnelIcon as Filter, TruckIcon as Truck, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CalendarBlankIcon as Calendar, ClipboardIcon as Clipboard, EyeIcon as Eye, EyeSlashIcon as EyeOff, TagIcon as Tag } from '@phosphor-icons/react'
 import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
-import { formatDate, generateInvoiceNo, todayISO } from '../lib/utils'
+import { formatDate, generateInvoiceNo, roundTaka, todayISO } from '../lib/utils'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
 import { confirmAction } from '../components/ConfirmDialog'
@@ -603,10 +603,14 @@ export default function Sales() {
     }
     
     const item = newItems[idx]
-    item.discount_amount = Math.min(Math.max(0, Number(item.discount_amount || 0)), Number(item.selling_price || 0))
+    // Money to the whole taka before it is stored on the row: what is saved
+    // here is what the invoice prints and what every report reads back, so a
+    // paisa typed into the price would otherwise travel all the way through.
+    // discount_pct is a percentage, not money, and keeps its decimals.
+    item.discount_amount = Math.min(Math.max(0, roundTaka(item.discount_amount)), Math.max(0, roundTaka(item.selling_price)))
     item.discount_pct = item.selling_price > 0 ? (item.discount_amount / item.selling_price) * 100 : 0
-    item.actual_price = Math.max(0, item.selling_price - item.discount_amount)
-    item.total_amount = item.actual_price * item.qty
+    item.actual_price = Math.max(0, roundTaka(item.selling_price) - item.discount_amount)
+    item.total_amount = roundTaka(item.actual_price * item.qty)
     setItems(newItems)
   }
 

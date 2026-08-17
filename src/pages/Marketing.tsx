@@ -3,7 +3,7 @@ import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, Cl
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'
-import { formatDate, todayISO } from '../lib/utils'
+import { formatDate, roundTaka, todayISO } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loans/loanFallback'
@@ -23,7 +23,7 @@ import {
   type MarketingContact,
 } from '../lib/marketingContacts'
 
-const money = (n: number) => 'Tk ' + Number(n || 0).toLocaleString('en-US')
+const money = (n: number) => 'Tk ' + roundTaka(n).toLocaleString('en-US')
 
 type ContactType = 'customer' | 'supplier' | 'employee' | 'contact'
 

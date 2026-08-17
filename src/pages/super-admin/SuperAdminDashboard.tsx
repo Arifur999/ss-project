@@ -8,8 +8,9 @@ import { LiveOwner, OwnerStatus, daysLeft, formatDate, loadOwners } from './supe
 import { updateOwnerSubscription } from '../../services/admin.services'
 import { getPlatformSummary } from '../../services/platformFinance.services'
 import { NoValue } from '../../components/CellValue'
+import { roundTaka } from '../../lib/utils'
 
-const money = (value: number) => `Tk ${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+const money = (value: number) => `Tk ${roundTaka(value).toLocaleString('en-US')}`
 
 function isMissingExpiryDateColumn(error: any) {
   const message = String(error?.message || '')
