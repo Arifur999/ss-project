@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
-import { createPurchase as createPurchaseRequest, deletePurchaseReceive, receivePurchaseItem, updatePurchaseReceive } from '../../services/purchase.services'
+import { createPurchase as createPurchaseRequest, deletePurchaseReceive, receiveAllPurchaseItems, receivePurchaseItem, updatePurchaseReceive } from '../../services/purchase.services'
 import { createOpeningStockBatch, createReceiveStockBatch } from '../../lib/fifoInventory'
 import { NoValue } from '../../components/CellValue'
 
@@ -469,19 +469,15 @@ export default function PlaceOrder() {
       // the receipt, adds the stock and lays down the FIFO cost layer, so a
       // purchase received here is costed identically to one received there.
       if (receiveNow) {
-        const createdItems: any[] = created?.purchase_items || []
-        for (const createdItem of createdItems) {
-          const qty = Number(createdItem.qty || 0)
-          if (!createdItem.product_id || qty <= 0) continue
-          await receivePurchaseItem(created.id, {
-            purchase_item_id: createdItem.id,
-            receive_date: form.date,
-            received_qty: qty,
-            receiver_name: '',
-            condition: 'good',
-            notes: 'Received on order creation',
-          })
-        }
+        // One atomic call, not a loop. Receiving line by line meant a failure on
+        // item 3 of 5 left items 1-2 in stock and 3-5 not, and the error said
+        // nothing about which had landed - the operator had to read the ledger to
+        // find out. Now either the whole order is in stock or none of it is.
+        await receiveAllPurchaseItems(created.id, {
+          receive_date: form.date,
+          receiver_name: '',
+          notes: 'Received on order creation',
+        })
       }
 
       await touchOwnerActivity(true)

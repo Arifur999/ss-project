@@ -9,6 +9,14 @@ export const createPurchase = (payload: any) => http.post<any>('/purchases', pay
 export const updatePurchase = (id: string, payload: any) => http.patch<any>(`/purchases/${id}`, payload)
 export const receivePurchaseItem = (purchaseId: string, payload: any) =>
   http.post<any>(`/purchases/${purchaseId}/receive`, payload)
+/**
+ * Receive every outstanding line on a purchase in one atomic server call.
+ *
+ * Replaces looping receivePurchaseItem per item, where a failure on item 3 of 5
+ * left 1-2 in stock and 3-5 not, with no way to tell which had landed.
+ */
+export const receiveAllPurchaseItems = (purchaseId: string, payload: { receive_date: string; receiver_name?: string; notes?: string }) =>
+  http.post<any>(`/purchases/${purchaseId}/receive-all`, payload)
 export const updatePurchaseReceive = (receiveId: string, receivedQty: number) =>
   http.patch<any>(`/purchases/receives/${receiveId}`, { received_qty: receivedQty })
 export const deletePurchaseReceive = (receiveId: string) =>
