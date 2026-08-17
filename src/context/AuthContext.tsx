@@ -9,6 +9,7 @@ import {
   verifyOtpRequest,
 } from '../services/auth.services'
 import { isUnauthorized } from '../lib/httpClient'
+import { setSmsTemplateScope } from '../lib/smsTemplates'
 
 export type UserRole = 'super_admin' | 'owner' | 'manager' | 'sales_staff' | 'accountant'
 export type SubscriptionStatus = 'pending' | 'trial' | 'active' | 'expired' | 'blocked' | 'suspended'
@@ -175,6 +176,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadAccount()
     return () => window.clearTimeout(retryTimer.current)
   }, [])
+
+  // SMS templates are stored in localStorage, and their key used to be shared by
+  // every account on the machine - so two owners on one browser saw and overwrote
+  // each other's templates. Scoping it here means it is set before any page reads
+  // them, including the ones that read on first render.
+  useEffect(() => {
+    setSmsTemplateScope(user?.id)
+  }, [user?.id])
 
   // An owner's subscription can expire while the app is open - re-check near expiry.
   useEffect(() => {

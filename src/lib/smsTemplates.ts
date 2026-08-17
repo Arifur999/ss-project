@@ -123,12 +123,44 @@ export function buildDueSms(input: DueSmsInput): string {
 }
 
 
-const KEY = 'sms_templates_v2'
+/**
+ * Templates are per user, not per browser.
+ *
+ * The key used to be a bare 'sms_templates_v2' shared by every account on the
+ * machine, so two owners on one browser saw and overwrote each other's templates.
+ * The unscoped key is still read once and migrated into the current user's key,
+ * so nobody loses what they had written.
+ */
+const KEY_PREFIX = 'sms_templates_v2'
+const SHARED_KEY = 'sms_templates_v2'
 const LEGACY_KEY = 'sms_marketing_templates_v1' // old string[] of message bodies
 
+let scopeId: string | undefined
+
+/** Called once after login so every read and write below lands in this user's key. */
+export function setSmsTemplateScope(userId?: string) {
+  scopeId = userId || undefined
+}
+
+function templateKey() {
+  return scopeId ? `${KEY_PREFIX}_${scopeId}` : KEY_PREFIX
+}
+
 export function readSmsTemplates(): SmsTemplate[] {
+  const KEY = templateKey()
   try {
-    const raw = localStorage.getItem(KEY)
+    let raw = localStorage.getItem(KEY)
+
+    // First read for this user: adopt whatever is in the old shared key. Copied
+    // rather than moved, because another account on this browser may not have
+    // migrated yet and removing it would take their templates with it.
+    if (!raw && KEY !== SHARED_KEY) {
+      const shared = localStorage.getItem(SHARED_KEY)
+      if (shared) {
+        localStorage.setItem(KEY, shared)
+        raw = shared
+      }
+    }
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed.filter(t => t && typeof t.name === 'string' && typeof t.message === 'string')
@@ -152,7 +184,7 @@ export function readSmsTemplates(): SmsTemplate[] {
 }
 
 export function writeSmsTemplates(list: SmsTemplate[]) {
-  localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)))
+  localStorage.setItem(templateKey(), JSON.stringify(list.slice(0, 50)))
 }
 
 // Upsert by name (a repeat campaign name overwrites its old message).

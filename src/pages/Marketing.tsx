@@ -10,9 +10,11 @@ import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredA
 import { getPaymentInfo } from '../services/admin.services'
 import {
   getSmsPackages,
+  getSmsMessages,
   getSmsWallet,
   sendSms as sendSmsApi,
   submitSmsPurchase,
+  type SmsMessage,
   type SmsPackage,
 } from '../services/sms.services'
 import { hasUnicode, readSmsTemplates, saveSmsTemplate, segmentsFor, type SmsTemplate } from '../lib/smsTemplates'
@@ -95,6 +97,10 @@ export default function Marketing() {
   const [templates, setTemplates] = useState<SmsTemplate[]>(() => readSmsTemplates())
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => readStorage(campaignStorageKey, []))
+  // The account's real SMS log, from the server. The stat cards read this; the
+  // campaign list below still uses the local copy, because it carries the campaign
+  // NAME the operator typed and the server log does not store one.
+  const [sentMessages, setSentMessages] = useState<SmsMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
 
@@ -111,11 +117,22 @@ export default function Marketing() {
   useEffect(() => {
     loadContacts()
     loadWallet()
+    loadSentMessages()
     getSmsPackages().then(setPackages).catch(() => setPackages([]))
     getPaymentInfo()
       .then(info => setPayInfo({ bkash_number: info.bkash_number, bkash_qr_url: info.bkash_qr_url }))
       .catch(() => setPayInfo(null))
   }, [])
+
+  async function loadSentMessages() {
+    try {
+      setSentMessages(await getSmsMessages())
+    } catch {
+      // A failure here only empties the three stat cards; it must not stop the
+      // page, which is primarily for composing and sending.
+      setSentMessages([])
+    }
+  }
 
   async function loadWallet() {
     try {
@@ -282,13 +299,27 @@ export default function Marketing() {
   const selectedContacts = contacts.filter(contact => selectedIds.includes(contact.id))
   const selectedWithPhone = selectedContacts.filter(contact => contact.phone)
   const todayKey = todayISO()
-  const sentToday = campaigns
-    .filter(campaign => campaign.created_at.startsWith(todayKey))
-    .reduce((sum, campaign) => sum + campaign.success, 0)
-  const campaignThisMonth = campaigns.filter(campaign => campaign.created_at.slice(0, 7) === todayKey.slice(0, 7)).length
-  const totalSuccess = campaigns.reduce((sum, campaign) => sum + campaign.success, 0)
-  const totalRecipients = campaigns.reduce((sum, campaign) => sum + campaign.recipients, 0)
-  const deliveryRate = totalRecipients > 0 ? (totalSuccess / totalRecipients) * 100 : 100
+  // These three read the SERVER's sms_messages log, not the browser's campaign
+  // list. They used to come from localStorage (capped at 50 entries), so "SMS Sent
+  // Today", "Campaigns This Month" and "Delivery Rate" described whatever had been
+  // sent from THIS browser and were presented as account-wide truth - the office
+  // desktop and the shop tablet reported different numbers for the same account,
+  // and a cleared cache reset them to zero. getSmsMessages() has existed all along
+  // and was never called.
+  //
+  // Delivery rate is sent-vs-attempted across every batch the account has ever
+  // sent: recipient_count is what was attempted, and a batch the gateway rejected
+  // is logged with status 'failed' and credits_used 0.
+  const sentToday = sentMessages
+    .filter(row => String(row.created_at).startsWith(todayKey) && row.status === 'sent')
+    .reduce((sum, row) => sum + Number(row.recipient_count || 0), 0)
+  const campaignThisMonth = sentMessages
+    .filter(row => String(row.created_at).slice(0, 7) === todayKey.slice(0, 7)).length
+  const totalAttempted = sentMessages.reduce((sum, row) => sum + Number(row.recipient_count || 0), 0)
+  const totalDelivered = sentMessages
+    .filter(row => row.status === 'sent')
+    .reduce((sum, row) => sum + Number(row.recipient_count || 0), 0)
+  const deliveryRate = totalAttempted > 0 ? (totalDelivered / totalAttempted) * 100 : 100
   const smsCount = segmentsFor(message)
   const isUnicode = hasUnicode(message)
   // Credits this batch will cost = segments x recipients that actually have a phone.
@@ -314,6 +345,9 @@ export default function Marketing() {
     const updated = [next, ...campaigns].slice(0, 50)
     setCampaigns(updated)
     writeStorage(campaignStorageKey, updated)
+    // Re-read the server log so the three stat cards move on this send too,
+    // rather than only after the next page load.
+    loadSentMessages()
   }
 
   async function sendSms() {
