@@ -194,8 +194,8 @@ export default function ReceiveProduct() {
         })
 
       setPendingItems(pending)
-    } catch (error) {
-      toast.error('Failed to load pending items')
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load pending items')
       console.error(error)
     } finally {
       setLoading(false)
@@ -234,8 +234,11 @@ export default function ReceiveProduct() {
       setReceiveNote('')
       setReceiveDate(todayISO())
       loadPendingItems()
-    } catch (error) {
-      toast.error('Failed to receive product')
+    } catch (error: any) {
+      // Say what the server said. A generic message with the reason only in the
+      // console is why a refused receive looked like a broken app rather than an
+      // input that needed fixing.
+      toast.error(error?.message || 'Failed to receive product')
       console.error(error)
     } finally {
       setSubmitting(false)
@@ -281,8 +284,8 @@ export default function ReceiveProduct() {
         setShowEditModal(false)
         setEditingId(null)
         loadPendingItems()
-      } catch (error) {
-        toast.error('Failed to update')
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to update the received quantity')
         console.error(error)
       } finally {
         setSubmitting(false)

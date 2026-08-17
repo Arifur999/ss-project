@@ -506,21 +506,31 @@ export default function PlaceOrder() {
   async function saveReceive() {
     if (!receiveItem) return
 
-    // The backend records the receive, bumps item/inventory quantities,
-    // creates the FIFO batch and refreshes the shipping status atomically.
-    await receivePurchaseItem(receiveItem.purchase_id, {
-      purchase_item_id: receiveItem.id,
-      receive_date: receiveForm.receive_date,
-      receiver_name: receiveForm.receiver_name,
-      received_qty: receiveForm.received_qty,
-      condition: receiveForm.condition,
-      notes: receiveForm.notes,
-    })
+    // Wrapped, like every sibling handler in this file. It was the one that
+    // wasn't: on a 403 from a lapsed subscription, a 500, or a dropped
+    // connection, the promise rejected unhandled - no toast, no error, the modal
+    // just sat there and the success message never came. The stock had not been
+    // received and nothing on screen said so.
+    try {
+      // The backend records the receive, bumps item/inventory quantities,
+      // creates the FIFO batch and refreshes the shipping status atomically.
+      await receivePurchaseItem(receiveItem.purchase_id, {
+        purchase_item_id: receiveItem.id,
+        receive_date: receiveForm.receive_date,
+        receiver_name: receiveForm.receiver_name,
+        received_qty: receiveForm.received_qty,
+        condition: receiveForm.condition,
+        notes: receiveForm.notes,
+      })
 
-    await touchOwnerActivity(true)
-    toast.success(t('common_saved'))
-    setShowReceiveModal(false)
-    loadAll()
+      await touchOwnerActivity(true)
+      toast.success(t('common_saved'))
+      setShowReceiveModal(false)
+      loadAll()
+    } catch (error: any) {
+      // The modal stays open on purpose, so the entered quantity is not lost.
+      toast.error(error?.message || 'Could not record this receive')
+    }
   }
 
   async function handleEditReceive() {
@@ -533,9 +543,11 @@ export default function PlaceOrder() {
       setShowEditReceiveModal(false)
       setEditingReceiveId(null)
       loadAll()
-    } catch (error) {
-      toast.error('Failed to update')
-      console.error(error)
+    } catch (error: any) {
+      // Say what went wrong. "Failed to update" with the reason only in the
+      // console is why a stock edit that the server refused looked like the app
+      // was broken rather than like the input needed fixing.
+      toast.error(error?.message || 'Failed to update this receive')
     }
   }
 
@@ -546,9 +558,8 @@ export default function PlaceOrder() {
       await touchOwnerActivity(true)
       toast.success('Deleted successfully')
       loadAll()
-    } catch (error) {
-      toast.error('Failed to delete')
-      console.error(error)
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete this receive')
     }
   }
 
