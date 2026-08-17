@@ -5,6 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
+import { profitLoss as profitLossOf, type ProfitInputs } from '../../lib/profit'
 import { monthKey, purchaseProgressForMonth, type MonthProgress } from '../../lib/purchaseRollingTarget'
 import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
@@ -590,7 +591,16 @@ export default function ReportSummary() {
         .sort((a, b) => b.target - a.target)
 
       const profitWithdraw = withdrawals.reduce((sum: number, withdrawal: any) => sum + amount(withdrawal.amount), 0)
-      const profitLoss = grossProfit + purchaseIncentive + totalOtherIncome - totalExpenses
+      // This page already had the definition the owner uses; it now reads it from
+      // lib/profit.ts so the Yearly page and the Dashboard cannot drift from it
+      // again the way they had.
+      const profitInputs: ProfitInputs = {
+        grossProfit,
+        purchaseIncentive,
+        otherIncome: totalOtherIncome,
+        expenses: totalExpenses,
+      }
+      const profitLoss = profitLossOf(profitInputs)
 
       // Daily performance series: one bucket per calendar day in the range with
       // Sales / Profit / Expense, so the overview chart can show four bars per

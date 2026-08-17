@@ -14,6 +14,7 @@ import SharedStatCard from '../components/StatCard'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
+import { businessEarnings, profitLoss, type ProfitInputs } from '../lib/profit'
 import {
   Bar,
   BarChart,
@@ -148,6 +149,15 @@ function getSaleProfit(sale: any) {
   }, 0)
 }
 
+/**
+ * The SP incentive a purchase gave back, summed over its lines - the same term
+ * the two report pages read. Earnings, not a discount, so it belongs in profit.
+ */
+function purchaseIncentiveOf(purchase: any) {
+  return (purchase.purchase_items || []).reduce((sum: number, item: any) =>
+    sum + Number(item.sp_amount || 0), 0)
+}
+
 function getSaleAmount(sale: any) {
   const items = sale.sale_items || []
   const itemGrossTotal = items.reduce((sum: number, item: any) =>
@@ -260,8 +270,12 @@ export default function Dashboard() {
       supabase.from('sales').select('id, date, customer_name, subtotal, discount_amount, net_amount, due_amount, sale_items(selling_price, actual_price, cost_price, qty)').eq('status', 'completed').gte('date', previousRange.start).lte('date', previousRange.end),
       supabase.from('expenses').select('id, date, category_name, amount').gte('date', selectedRange.start).lte('date', selectedRange.end),
       supabase.from('expenses').select('amount').gte('date', previousRange.start).lte('date', previousRange.end),
-      supabase.from('purchases').select('id, si_no, date, supplier_name, net_amount').gte('date', selectedRange.start).lte('date', selectedRange.end),
-      supabase.from('purchases').select('net_amount').gte('date', previousRange.start).lte('date', previousRange.end),
+      // purchase_items(sp_amount) is here for the incentive: it is part of what
+      // the business earned, so Net Profit needs it. This page used to fetch
+      // only net_amount and so reported a profit short by the whole period's
+      // supplier incentive, while the two report pages included it.
+      supabase.from('purchases').select('id, si_no, date, supplier_name, net_amount, purchase_items(sp_amount)').gte('date', selectedRange.start).lte('date', selectedRange.end),
+      supabase.from('purchases').select('net_amount, purchase_items(sp_amount)').gte('date', previousRange.start).lte('date', previousRange.end),
       supabase.from('supplier_payments').select('id, date, supplier_name, amount').gte('date', selectedRange.start).lte('date', selectedRange.end),
       supabase.from('supplier_payments').select('amount').gte('date', previousRange.start).lte('date', previousRange.end),
       supabase.from('other_incomes').select('id, date, income_type, supplier_name, source_name, amount').gte('date', selectedRange.start).lte('date', selectedRange.end),
@@ -285,6 +299,7 @@ export default function Dashboard() {
     const totalSales = sales.reduce((sum: number, sale: any) => sum + getSaleAmount(sale), 0)
     const totalProfit = sales.reduce((sum: number, sale: any) => sum + getSaleProfit(sale), 0)
     const totalPurchases = purchases.reduce((sum: number, purchase: any) => sum + Number(purchase.net_amount || 0), 0)
+    const totalPurchaseIncentive = purchases.reduce((sum: number, purchase: any) => sum + purchaseIncentiveOf(purchase), 0)
     const totalExpenses = expenses.reduce((sum: number, expense: any) => sum + Number(expense.amount || 0), 0)
     const totalOtherIncome = otherIncomes.reduce((sum: number, income: any) => sum + Number(income.amount || 0), 0)
     const supplierPaymentTotal = supplierPayments.reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0)
@@ -297,6 +312,7 @@ export default function Dashboard() {
     const previousTotalSales = previousSales.reduce((sum: number, sale: any) => sum + getSaleAmount(sale), 0)
     const previousTotalProfit = previousSales.reduce((sum: number, sale: any) => sum + getSaleProfit(sale), 0)
     const previousTotalPurchases = (previousPurchasesRes.data || []).reduce((sum: number, purchase: any) => sum + Number(purchase.net_amount || 0), 0)
+    const previousPurchaseIncentive = (previousPurchasesRes.data || []).reduce((sum: number, purchase: any) => sum + purchaseIncentiveOf(purchase), 0)
     const previousTotalExpenses = (previousExpensesRes.data || []).reduce((sum: number, expense: any) => sum + Number(expense.amount || 0), 0)
     const previousTotalOtherIncome = (previousOtherIncomeRes.data || []).reduce((sum: number, income: any) => sum + Number(income.amount || 0), 0)
     const previousSupplierPayments = (previousSupplierPaymentsRes.data || []).reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0)
@@ -428,12 +444,27 @@ export default function Dashboard() {
       date: income.date,
       tone: 'green' as CardTone,
     }))
-    const profitWithOtherIncome = totalProfit + totalOtherIncome
-    const previousProfitWithOtherIncome = previousTotalProfit + previousTotalOtherIncome
+    // Same shared definition as both report pages. The three earning terms are
+    // added, then expenses come off - see lib/profit.ts for why the supplier
+    // incentive belongs with the other two.
+    const profitInputs: ProfitInputs = {
+      grossProfit: totalProfit,
+      purchaseIncentive: totalPurchaseIncentive,
+      otherIncome: totalOtherIncome,
+      expenses: totalExpenses,
+    }
+    const previousProfitInputs: ProfitInputs = {
+      grossProfit: previousTotalProfit,
+      purchaseIncentive: previousPurchaseIncentive,
+      otherIncome: previousTotalOtherIncome,
+      expenses: previousTotalExpenses,
+    }
+    const earnings = businessEarnings(profitInputs)
+    const previousEarnings = businessEarnings(previousProfitInputs)
 
     const nextData: DashboardData = {
       totalSales,
-      totalProfit: profitWithOtherIncome,
+      totalProfit: earnings,
       totalPurchases,
       totalExpenses,
       totalOtherIncome,
@@ -441,10 +472,10 @@ export default function Dashboard() {
       dueCollections: dueCollectionTotal,
       totalDiscountAllowed,
       totalCustomers: customersRes.count || 0,
-      netProfit: profitWithOtherIncome - totalExpenses,
+      netProfit: profitLoss(profitInputs),
       previous: {
         totalSales: previousTotalSales,
-        totalProfit: previousProfitWithOtherIncome,
+        totalProfit: previousEarnings,
         totalPurchases: previousTotalPurchases,
         totalExpenses: previousTotalExpenses,
         totalOtherIncome: previousTotalOtherIncome,
@@ -452,7 +483,7 @@ export default function Dashboard() {
         dueCollections: previousDueCollections,
         totalDiscountAllowed: previousTotalDiscountAllowed,
         totalCustomers: customersRes.count || 0,
-        netProfit: previousProfitWithOtherIncome - previousTotalExpenses,
+        netProfit: profitLoss(previousProfitInputs),
       },
       monthlySales: Array.from({ length: 12 }, (_, i) => ({
         monthIndex: i + 1,

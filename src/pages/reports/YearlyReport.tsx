@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
+import { availableProfit, businessEarnings, profitLoss, profitMargin, type ProfitInputs } from '../../lib/profit'
 import { monthKey, targetCompletion } from '../../lib/purchaseRollingTarget'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
@@ -49,6 +50,21 @@ type Summary = {
   profitWithdraw: number
   availableProfit: number
   purchaseQty: number
+}
+
+/**
+ * The year's totals, in the shape the shared profit rules take. The summary
+ * carries the same four terms under longer names, so this is a rename rather
+ * than a second calculation - which is the point: the card, the margin and the
+ * month rows all read the same four numbers.
+ */
+function summaryProfitInputs(totals: Pick<Summary, 'totalProfit' | 'purchaseIncentive' | 'totalOtherIncome' | 'totalExpenses'>): ProfitInputs {
+  return {
+    grossProfit: totals.totalProfit,
+    purchaseIncentive: totals.purchaseIncentive,
+    otherIncome: totals.totalOtherIncome,
+    expenses: totals.totalExpenses,
+  }
 }
 
 type PurchaseTargetRow = {
@@ -212,8 +228,17 @@ export default function YearlyReport() {
         const expenseAmount = monthExpenses.reduce((sum: number, expense: any) => sum + Number(expense.amount || 0), 0)
         const otherIncomeAmount = monthOtherIncomes.reduce((sum: number, income: any) => sum + Number(income.amount || 0), 0)
         const profitWithdraw = monthWithdrawals.reduce((sum: number, withdrawal: any) => sum + Number(withdrawal.amount || 0), 0)
-        const totalBusinessProfit = totalProfit + otherIncomeAmount
-        const profitLoss = totalProfit + otherIncomeAmount - expenseAmount
+        // One definition, shared with the Dashboard and both other report pages.
+        // These month rows used to leave purchaseStats.incentive out - the figure
+        // was sitting right here, unused - so every Profit/Loss and Available
+        // Profit in the table was short by the whole year's supplier incentive,
+        // while the "Profit Achieved" card above the table did add it.
+        const profitInputs: ProfitInputs = {
+          grossProfit: totalProfit,
+          purchaseIncentive: purchaseStats.incentive,
+          otherIncome: otherIncomeAmount,
+          expenses: expenseAmount,
+        }
 
         return {
           month: monthShort(monthIndex),
@@ -230,9 +255,9 @@ export default function YearlyReport() {
           totalProfit,
           otherIncome: otherIncomeAmount,
           expenses: expenseAmount,
-          profitLoss: totalBusinessProfit - expenseAmount,
+          profitLoss: profitLoss(profitInputs),
           profitWithdraw,
-          availableProfit: totalBusinessProfit - expenseAmount - profitWithdraw,
+          availableProfit: availableProfit(profitInputs, profitWithdraw),
         }
       })
 
@@ -325,18 +350,19 @@ export default function YearlyReport() {
 
     return {
       ...totals,
-      profitMargin: totals.actualSales > 0 ? (totals.profitLoss / totals.actualSales) * 100 : 0,
+      profitMargin: profitMargin(summaryProfitInputs(totals), totals.actualSales),
     }
   }, [rows])
 
   const startLabel = `1-${monthShort(1)}-${year}`
   const endLabel = `31-${monthShort(12)}-${year}`
   const salesAchievedPct = pct(summary.actualSales, summary.salesGoal)
-  // What counts as profit against the yearly target: what the sales themselves
-  // made, plus the other two earnings that land in the same pocket - other
-  // income and the incentive the suppliers give back on purchases. Kept as one
-  // value so the figure on the card and the percentage under it cannot drift.
-  const profitAchieved = summary.totalProfit + summary.totalOtherIncome + summary.purchaseIncentive
+  // What counts as profit against the yearly target: everything the business
+  // earned before expenses come off it. Same shared definition as the month
+  // rows, so this card and the Profit/Loss column below it can no longer
+  // disagree about whether the supplier incentive counts - which is exactly
+  // what they used to do.
+  const profitAchieved = businessEarnings(summaryProfitInputs(summary))
   const profitAchievedPct = pct(profitAchieved, summary.profitGoal)
   const hasYearData = rows.some(row => row.actualSales || row.purchaseOrderValue || row.expenses || row.totalProfit || row.otherIncome)
   const bestMonth = rows.reduce((best, row) => row.profitLoss > best.profitLoss ? row : best, rows[0] || null)

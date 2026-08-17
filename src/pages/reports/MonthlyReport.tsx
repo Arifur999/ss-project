@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
+import { profitLoss } from '../../lib/profit'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -198,7 +199,15 @@ export default function MonthlyReport() {
       const purchaseRows = Object.values(purchaseProductMap)
       const totalPurchases = purchaseRows.reduce((sum, row) => sum + row.amount, 0)
       const totalIncentiveProfit = purchaseRows.reduce((sum, row) => sum + Number(row.spAmount || 0), 0)
-      const netProfit = grossProfit + totalIncentiveProfit + totalOtherIncome - totalExpenses
+      // Shared definition - see lib/profit.ts. This page already agreed with the
+      // Report Summary; reading the rule from one place is what keeps the Yearly
+      // page and the Dashboard agreeing with both.
+      const netProfit = profitLoss({
+        grossProfit,
+        purchaseIncentive: totalIncentiveProfit,
+        otherIncome: totalOtherIncome,
+        expenses: totalExpenses,
+      })
       const totalPurchaseQty = purchaseRows.reduce((sum, row) => sum + Number(row.qty || 0), 0)
       const purchaseBreakdown = Object.values(purchaseProductMap)
         .map(row => ({ ...row, percent: pct(row.amount, totalPurchases) }))
