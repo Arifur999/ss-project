@@ -9,6 +9,14 @@ import { RecycleBinItem } from '../lib/recycleBin'
 import { formatDate } from '../lib/utils'
 import { deleteRecycleBinItemPermanently, getRecycleBinItems, restoreRecycleBinItem } from '../services/admin.services'
 
+/**
+ * One key per menu a deleted record can come back to.
+ *
+ * 'inventory', 'reports' and 'settings' are gone. Nothing in the app has ever
+ * been able to produce a recycle item of those types - they are not areas that
+ * hold deletable records - so the three tabs sat there forever showing a 0 and
+ * suggesting the bin had lost something.
+ */
 type TabKey =
   | 'balance'
   | 'transactions'
@@ -16,12 +24,9 @@ type TabKey =
   | 'expenses'
   | 'productList'
   | 'purchase'
-  | 'inventory'
   | 'sales'
   | 'customers'
-  | 'reports'
   | 'employees'
-  | 'settings'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'balance', label: 'Balance' },
@@ -30,12 +35,9 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'expenses', label: 'Expenses' },
   { key: 'productList', label: 'Product List' },
   { key: 'purchase', label: 'Purchase' },
-  { key: 'inventory', label: 'Inventory' },
   { key: 'sales', label: 'Sales' },
   { key: 'customers', label: 'Customers' },
-  { key: 'reports', label: 'Reports' },
   { key: 'employees', label: 'Employees' },
-  { key: 'settings', label: 'Settings' },
 ]
 
 const recycleTypeToMenu: Record<string, TabKey> = {
@@ -43,6 +45,9 @@ const recycleTypeToMenu: Record<string, TabKey> = {
   products: 'productList',
   purchases: 'purchase',
   sales: 'sales',
+  // Suppliers live under the Purchase menu, so their deletions belong on that tab
+  // rather than in a tab of their own.
+  suppliers: 'purchase',
 }
 
 const recycleTypeLabel: Record<string, string> = {
@@ -51,6 +56,8 @@ const recycleTypeLabel: Record<string, string> = {
   purchases: 'Purchase',
   sales: 'Sales',
   customers: 'Customers',
+  suppliers: 'Purchase',
+  balance: 'Balance',
   transactions: 'Shareholders',
   loanManagement: 'Loan Management',
   expenses: 'Expenses',
