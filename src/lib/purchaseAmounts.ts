@@ -51,3 +51,68 @@ export function spAmountFor(totalAmount: unknown, spPct: unknown): number {
   const pct = Number(spPct) || 0
   return roundTaka((total * pct) / 100)
 }
+
+/**
+ * A supplier's opening position, signed.
+ *
+ * `opening_due` is stored as a magnitude with `due_type` carrying the direction:
+ * "pawna" is money they owe us (positive), anything else is money we owe them
+ * (negative).
+ */
+export function supplierOpeningBalance(supplier: { opening_due?: unknown; due_type?: unknown }): number {
+  const magnitude = Math.abs(roundTaka(supplier.opening_due))
+  // `|| 0` on the negative branch, because -Math.abs(0) is -0 and a supplier
+  // with no opening due would have rendered as "-0".
+  return supplier.due_type === 'pawna' ? magnitude : -magnitude || 0
+}
+
+/**
+ * What a supplier's account stands at. Negative means we owe them.
+ *
+ * There were three answers to this, and for one supplier - opening 0, an order
+ * of 100 units at Tk 1,000 with 5% SP, 40 units received, Tk 30,000 paid - they
+ * came out at -65,000, -10,000 and 70,000:
+ *
+ *   Supplier Dashboard    opening + payments - (ordered - SP)
+ *   Purchase Orders       opening + payments - (received x actual_dp), no SP
+ *   Monthly / Summary     net_amount - payments, no SP and no opening
+ *
+ * The Purchase Orders figure is the one on screen at the moment the owner
+ * decides how much to pay a supplier, so it mattered most that it was the odd
+ * one out.
+ *
+ * This is the ordered basis with the incentive deducted, because that is what
+ * the app's own paperwork already says: the Purchase Ledger prints "Actual
+ * Deposit" as total less SP and its Grand Total as previous due plus that. So a
+ * supplier's balance is their opening position, plus what we have paid, less the
+ * deposit owed on every line ordered - `purchaseDeposit`, the same term the
+ * Deposit column shows.
+ */
+export function supplierBalance(input: {
+  supplier: { opening_due?: unknown; due_type?: unknown }
+  /** Every purchase_items row belonging to this supplier. */
+  items: { total_amount?: unknown; sp_amount?: unknown }[]
+  /** Every supplier_payments row belonging to this supplier. */
+  payments: { amount?: unknown }[]
+}): number {
+  const opening = supplierOpeningBalance(input.supplier)
+  const paid = input.payments.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
+  const owed = input.items.reduce((sum, item) => sum + purchaseItemDeposit(item), 0)
+  return opening + paid - owed
+}
+
+/**
+ * What is still owed on a set of purchases, for the report tables.
+ *
+ * The same deposit basis as supplierBalance, minus payments - so the Due column
+ * on a report and the balance on the Supplier Dashboard describe the same debt.
+ * It excludes the opening position, because a report covers a date range and the
+ * opening due belongs to no month in it.
+ */
+export function purchaseDueForPeriod(
+  items: { total_amount?: unknown; sp_amount?: unknown }[],
+  paidAmount: unknown
+): number {
+  const owed = items.reduce((sum, item) => sum + purchaseItemDeposit(item), 0)
+  return owed - roundTaka(paidAmount)
+}

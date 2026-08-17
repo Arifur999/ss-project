@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { actualDp, purchaseDeposit, purchaseItemDeposit, spAmountFor } from './purchaseAmounts'
+import {
+  actualDp,
+  purchaseDeposit,
+  purchaseDueForPeriod,
+  purchaseItemDeposit,
+  spAmountFor,
+  supplierBalance,
+  supplierOpeningBalance,
+} from './purchaseAmounts'
 
 describe('purchaseDeposit', () => {
   it('is the total less the incentive the supplier gives back', () => {
@@ -70,6 +78,94 @@ describe('actualDp', () => {
     expect(actualDp(1_000, 100)).toBe(0)
     expect(actualDp(1_000, null)).toBe(1_000)
     expect(actualDp(null, 10)).toBe(0)
+  })
+})
+
+describe('supplierOpeningBalance', () => {
+  it('reads "pawna" as money they owe us', () => {
+    expect(supplierOpeningBalance({ opening_due: 5_000, due_type: 'pawna' })).toBe(5_000)
+  })
+
+  it('reads anything else as money we owe them', () => {
+    expect(supplierOpeningBalance({ opening_due: 5_000, due_type: 'dena' })).toBe(-5_000)
+    expect(supplierOpeningBalance({ opening_due: 5_000 })).toBe(-5_000)
+  })
+
+  it('ignores the stored sign, since due_type carries the direction', () => {
+    expect(supplierOpeningBalance({ opening_due: -5_000, due_type: 'pawna' })).toBe(5_000)
+    expect(supplierOpeningBalance({ opening_due: -5_000, due_type: 'dena' })).toBe(-5_000)
+  })
+
+  it('is zero with nothing stored, and never negative zero', () => {
+    // -Math.abs(0) is -0, which toLocaleString renders as "-0".
+    expect(supplierOpeningBalance({})).toBe(0)
+    expect(Object.is(supplierOpeningBalance({}), -0)).toBe(false)
+    expect(supplierOpeningBalance({ opening_due: 0, due_type: 'dena' }).toLocaleString('en-US')).toBe('0')
+  })
+})
+
+describe('supplierBalance', () => {
+  // The supplier from the audit: 100 units at Tk 1,000 with 5% SP, Tk 30,000
+  // paid. The three screens said -65,000, -10,000 and 70,000.
+  const items = [{ total_amount: 100_000, sp_amount: 5_000 }]
+  const payments = [{ amount: 30_000 }]
+
+  it('is opening plus paid less what is owed', () => {
+    expect(supplierBalance({ supplier: {}, items, payments })).toBe(-65_000)
+  })
+
+  it('deducts the SP incentive, because the paperwork does', () => {
+    // The Purchase Ledger prints Actual Deposit as total less SP. Without the
+    // incentive this would be -70,000.
+    const noIncentive = [{ total_amount: 100_000, sp_amount: 0 }]
+    expect(supplierBalance({ supplier: {}, items: noIncentive, payments })).toBe(-70_000)
+  })
+
+  it('bills what was ordered, not what has been received', () => {
+    // The Purchase Orders page used to bill received x actual_dp, which for 40
+    // of 100 units received came to -10,000 - the figure on screen when the
+    // owner decides how much to pay.
+    expect(supplierBalance({ supplier: {}, items, payments })).not.toBe(-10_000)
+  })
+
+  it('carries the opening position', () => {
+    expect(supplierBalance({ supplier: { opening_due: 20_000, due_type: 'pawna' }, items, payments })).toBe(-45_000)
+    expect(supplierBalance({ supplier: { opening_due: 20_000, due_type: 'dena' }, items, payments })).toBe(-85_000)
+  })
+
+  it('is positive when we have overpaid', () => {
+    expect(supplierBalance({ supplier: {}, items, payments: [{ amount: 120_000 }] })).toBe(25_000)
+  })
+
+  it('is zero for a supplier with no history', () => {
+    expect(supplierBalance({ supplier: {}, items: [], payments: [] })).toBe(0)
+  })
+
+  it('sums many lines and many payments', () => {
+    expect(supplierBalance({
+      supplier: {},
+      items: [
+        { total_amount: 50_000, sp_amount: 2_500 },
+        { total_amount: 30_000, sp_amount: 1_500 },
+      ],
+      payments: [{ amount: 10_000 }, { amount: 5_000 }],
+    })).toBe(15_000 - 76_000)
+  })
+})
+
+describe('purchaseDueForPeriod', () => {
+  it('is what is owed on the lines, less what was paid', () => {
+    expect(purchaseDueForPeriod([{ total_amount: 100_000, sp_amount: 5_000 }], 30_000)).toBe(65_000)
+  })
+
+  it('agrees in magnitude with supplierBalance when there is no opening due', () => {
+    const items = [{ total_amount: 100_000, sp_amount: 5_000 }]
+    const payments = [{ amount: 30_000 }]
+    expect(purchaseDueForPeriod(items, 30_000)).toBe(-supplierBalance({ supplier: {}, items, payments }))
+  })
+
+  it('goes negative on an overpayment rather than clamping', () => {
+    expect(purchaseDueForPeriod([{ total_amount: 10_000, sp_amount: 0 }], 15_000)).toBe(-5_000)
   })
 })
 

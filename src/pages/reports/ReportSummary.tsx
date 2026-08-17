@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { profitLoss as profitLossOf, type ProfitInputs } from '../../lib/profit'
+import { purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { monthKey, purchaseProgressForMonth, type MonthProgress } from '../../lib/purchaseRollingTarget'
 import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
@@ -26,6 +27,8 @@ type BreakdownRow = {
   incentive?: number
   actualPurchase?: number
   paid?: number
+  /** What is owed on these lines: total less the SP incentive. `due` is this minus `paid`. */
+  owed?: number
   due?: number
   percent?: number
 }
@@ -459,10 +462,15 @@ export default function ReportSummary() {
         const key = purchase.supplier_id || purchase.supplier_name || 'Unknown Supplier'
         const name = purchase.supplier_name || 'Unknown Supplier'
         const purchaseAmount = firstAmount(purchase.net_amount, purchase.total_amount)
-        const qty = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + amount(item.qty), 0)
-        const current = supplierPaymentMap[key] || { name, qty: 0, amount: 0, paid: 0, due: 0 }
+        const items = purchase.purchase_items || []
+        const qty = items.reduce((sum: number, item: any) => sum + amount(item.qty), 0)
+        const current = supplierPaymentMap[key] || { name, qty: 0, amount: 0, owed: 0, paid: 0, due: 0 }
         current.qty = amount(current.qty) + qty
         current.amount += purchaseAmount
+        // Owed is the total less the SP incentive - the same basis as the Supplier
+        // Dashboard's balance and the Purchase Ledger's Grand Total. The Due
+        // column was amount - paid, which never deducted the incentive.
+        current.owed = amount(current.owed) + items.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
         supplierPaymentMap[key] = current
       })
       supplierPayments.forEach((payment: any) => {
@@ -474,7 +482,7 @@ export default function ReportSummary() {
       })
       const supplierPaymentsTotal = supplierPayments.reduce((sum: number, payment: any) => sum + amount(payment.amount), 0)
       const supplierPaymentBreakdown = Object.values(supplierPaymentMap)
-        .map(row => ({ ...row, due: amount(row.amount) - amount(row.paid), percent: pct(row.amount, purchaseValue) }))
+        .map(row => ({ ...row, due: amount(row.owed) - amount(row.paid), percent: pct(row.amount, purchaseValue) }))
         .sort((a, b) => b.amount - a.amount)
 
       const totalOtherIncome = otherIncomes.reduce((sum: number, income: any) => sum + amount(income.amount), 0)

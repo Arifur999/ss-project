@@ -4,6 +4,8 @@ import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import { useLang } from '../../context/LanguageContext'
 import { NoValue } from '../../components/CellValue'
+import { purchaseItemDeposit, supplierBalance, supplierOpeningBalance } from '../../lib/purchaseAmounts'
+import { firstAmount, roundTaka } from '../../lib/utils'
 
 export default function SupplierDashboard() {
   const { t, formatCurr } = useLang()
@@ -27,28 +29,32 @@ export default function SupplierDashboard() {
     const result = suppliers.map(sup => {
       const supplierPurchases = purchases.filter(p => p.supplier_id === sup.id)
       const supplierItems = supplierPurchases.flatMap((purchase: any) => purchase.purchase_items || [])
-      const openingRaw = Math.abs(Number(sup.opening_due || 0))
-      const openingBalance = sup.due_type === 'pawna' ? openingRaw : -openingRaw
+      const openingBalance = supplierOpeningBalance(sup)
+      const supplierPaymentRows = payments.filter(p => p.supplier_id === sup.id)
 
-      const totalDpAmount = supplierItems.reduce((sum: number, item: any) => {
-        const dpPrice = Number(item.dp_price || 0)
-        const qty = Number(item.qty || 0)
-        return sum + (dpPrice * qty)
-      }, 0)
+      const totalDpAmount = supplierItems.reduce((sum: number, item: any) =>
+        sum + roundTaka(roundTaka(item.dp_price) * Number(item.qty || 0)), 0)
 
       const regularDiscount = supplierItems.reduce((sum: number, item: any) => {
-        const dpPrice = Number(item.dp_price || 0)
-        const actualDp = Number(item.actual_dp || dpPrice)
-        const qty = Number(item.qty || 0)
-        return sum + Math.max(0, (dpPrice - actualDp) * qty)
+        const dpPrice = roundTaka(item.dp_price)
+        const actual = firstAmount(item.actual_dp, dpPrice)
+        return sum + Math.max(0, roundTaka((dpPrice - actual) * Number(item.qty || 0)))
       }, 0)
 
+      // orderAmount and specialDiscount stay as their own lines because the table
+      // shows each of them in its own column. actualAmount is the sum of the
+      // per-line deposits, which is the same term the shared balance rule uses -
+      // so the columns on this page add up to the balance beside them.
       const orderAmount = totalDpAmount - regularDiscount
-      const specialDiscount = supplierItems.reduce((sum: number, item: any) => sum + Number(item.sp_amount || 0), 0)
-      const actualAmount = Math.max(0, orderAmount - specialDiscount)
-      const paymentAmount = payments.filter(p => p.supplier_id === sup.id).reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+      const specialDiscount = supplierItems.reduce((sum: number, item: any) => sum + roundTaka(item.sp_amount), 0)
+      const actualAmount = supplierItems.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
+      const paymentAmount = supplierPaymentRows.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
 
-      const availableBalance = openingBalance + paymentAmount - actualAmount
+      const availableBalance = supplierBalance({
+        supplier: sup,
+        items: supplierItems,
+        payments: supplierPaymentRows,
+      })
 
       return {
         ...sup,

@@ -5,7 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { profitLoss } from '../../lib/profit'
-import { purchaseDeposit } from '../../lib/purchaseAmounts'
+import { purchaseDeposit, purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import { firstAmount } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
@@ -25,6 +25,8 @@ type BreakdownRow = {
   spAmount?: number
   actualPurchase?: number
   payment?: number
+  /** What is owed on these lines: total less the SP incentive. `due` is this minus payments. */
+  owed?: number
   due?: number
 }
 
@@ -219,11 +221,17 @@ export default function MonthlyReport() {
       purchases.forEach((purchase: any) => {
         const supplierKey = purchase.supplier_id || purchase.supplier_name || 'Unknown Supplier'
         const name = purchase.supplier_name || 'Unknown Supplier'
-        const amount = Number(purchase.net_amount || 0)
-        const qty = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + Number(item.qty || 0), 0)
-        const current = supplierMap[supplierKey] || { name, qty: 0, amount: 0, payment: 0, due: 0, percent: 0 }
+        const amount = firstAmount(purchase.net_amount, purchase.total_amount)
+        const items = purchase.purchase_items || []
+        const qty = items.reduce((sum: number, item: any) => sum + Number(item.qty || 0), 0)
+        const current = supplierMap[supplierKey] || { name, qty: 0, amount: 0, owed: 0, payment: 0, due: 0, percent: 0 }
         current.qty = Number(current.qty || 0) + qty
         current.amount += amount
+        // What is actually owed on these lines: the total less the SP incentive.
+        // The Due column used to be net_amount - payments, which ignored the
+        // incentive entirely and so disagreed with both the Supplier Dashboard
+        // and the Purchase Ledger's own Grand Total.
+        current.owed = Number(current.owed || 0) + items.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
         supplierMap[supplierKey] = current
       })
       supplierPayments.forEach((payment: any) => {
@@ -236,7 +244,7 @@ export default function MonthlyReport() {
       const supplierBreakdown = Object.values(supplierMap)
         .map(row => ({
           ...row,
-          due: Number(row.amount || 0) - Number(row.payment || 0),
+          due: Number(row.owed || 0) - Number(row.payment || 0),
           percent: pct(row.amount, totalPurchases),
         }))
         .sort((a, b) => b.amount - a.amount)

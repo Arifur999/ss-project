@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { PlusIcon as Plus, FloppyDiskIcon as Save, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, InfoIcon as Info, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
-import { actualDp, purchaseDeposit, purchaseItemDeposit, spAmountFor } from '../../lib/purchaseAmounts'
+import { actualDp, purchaseDeposit, purchaseItemDeposit, spAmountFor, supplierBalance } from '../../lib/purchaseAmounts'
 import { formatDate, generateSINo, roundTaka, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
@@ -195,19 +195,15 @@ export default function PlaceOrder() {
     ;(supRes.data || []).forEach((sup: any) => {
       const supplierPurchases = allPurchases.filter((purchase: any) => purchase.supplier_id === sup.id)
       const supplierItems = supplierPurchases.flatMap((purchase: any) => purchase.purchase_items || [])
-      const openingRaw = Math.abs(Number(sup.opening_due || 0))
-      const openingBalance = sup.due_type === 'pawna' ? openingRaw : -openingRaw
-      const actualDeposit = payments
-        .filter((payment: any) => payment.supplier_id === sup.id)
-        .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0)
-      const receivedAmount = supplierItems.reduce((sum: number, item: any) => {
-        const receivedQty = (item.purchase_receives || []).reduce(
-          (total: number, receive: any) => total + Number(receive.received_qty || 0),
-          0
-        ) || Number(item.received_qty || 0)
-        return sum + (receivedQty * Number(item.actual_dp || 0))
-      }, 0)
-      balanceMap[sup.id] = openingBalance + actualDeposit - receivedAmount
+      // The shared rule, same as the Supplier Dashboard and the report Due
+      // columns. This used to bill on what had been RECEIVED and never deduct
+      // the SP incentive, so it was the one screen out of three that disagreed -
+      // and it is the figure on screen when the owner decides how much to pay.
+      balanceMap[sup.id] = supplierBalance({
+        supplier: sup,
+        items: supplierItems,
+        payments: payments.filter((payment: any) => payment.supplier_id === sup.id),
+      })
     })
     setSupplierBalanceById(balanceMap)
   }
