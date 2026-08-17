@@ -307,18 +307,34 @@ export default function UpdatePrice() {
 
       {preview && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3 max-w-2xl">
-            <div className="card p-4">
-              <p className="text-xs text-neutral-500">{t('price_willChange')}</p>
-              <p className="mt-1 text-2xl font-medium text-brand-green">{matched.length}</p>
+          {/* Apply sits beside the counts, not under the table. A spreadsheet
+              of a few hundred products put it a long scroll away from the
+              three figures the decision is made on. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="grid min-w-[320px] max-w-2xl flex-1 grid-cols-3 gap-3">
+              <div className="card p-4">
+                <p className="text-xs text-neutral-500">{t('price_willChange')}</p>
+                <p className="mt-1 text-2xl font-medium text-brand-green">{matched.length}</p>
+              </div>
+              <div className="card p-4">
+                <p className="text-xs text-neutral-500">{t('price_alreadyCorrect')}</p>
+                <p className="mt-1 text-2xl font-medium text-neutral-500">{unchanged.length}</p>
+              </div>
+              <div className="card p-4">
+                <p className="text-xs text-neutral-500">{t('price_notFound')}</p>
+                <p className="mt-1 text-2xl font-medium text-brand-red">{notFound.length}</p>
+              </div>
             </div>
-            <div className="card p-4">
-              <p className="text-xs text-neutral-500">{t('price_alreadyCorrect')}</p>
-              <p className="mt-1 text-2xl font-medium text-neutral-500">{unchanged.length}</p>
-            </div>
-            <div className="card p-4">
-              <p className="text-xs text-neutral-500">{t('price_notFound')}</p>
-              <p className="mt-1 text-2xl font-medium text-brand-red">{notFound.length}</p>
+
+            <div className="flex shrink-0 gap-2">
+              <button onClick={() => { setPreview(null); setPendingRows([]) }} className="btn-secondary">
+                {t('price_cancel')}
+              </button>
+              {matched.length > 0 && (
+                <button onClick={apply} disabled={saving} className="btn-primary">
+                  {saving ? t('price_applying') : t('price_apply')}
+                </button>
+              )}
             </div>
           </div>
 
@@ -372,16 +388,6 @@ export default function UpdatePrice() {
             </TableScroller>
           )}
 
-          <div className="flex gap-2">
-            <button onClick={() => { setPreview(null); setPendingRows([]) }} className="btn-secondary">
-              {t('price_cancel')}
-            </button>
-            {matched.length > 0 && (
-              <button onClick={apply} disabled={saving} className="btn-primary">
-                {saving ? t('price_applying') : t('price_apply')}
-              </button>
-            )}
-          </div>
         </div>
       )}
 
