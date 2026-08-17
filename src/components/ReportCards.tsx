@@ -1,6 +1,7 @@
 import React from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { useLang } from '../context/LanguageContext'
+import StatCard from './StatCard'
 
 /**
  * The pieces the Monthly and Yearly reports are built from.
@@ -30,13 +31,20 @@ export const CHART_GREEN = '#0E9F6E'
  */
 export const CHART_MUTED = '#D1D5DB'
 
+/**
+ * The reports' name for the site's summary card.
+ *
+ * It is the shared StatCard - kept as a thin alias only because the report
+ * pages read `label` and `note` where the rest of the site reads `title` and
+ * `subtitle`. The card itself lives in one place.
+ */
 export function KpiCard({
   label,
   icon,
   value,
   note,
   progress,
-  valueClassName = 'text-navy-900',
+  valueClassName,
 }: {
   label: string
   icon: React.ReactNode
@@ -46,23 +54,14 @@ export function KpiCard({
   valueClassName?: string
 }) {
   return (
-    <section className="flex min-h-[124px] flex-col justify-between rounded-2xl border border-surface-border bg-surface p-5">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
-          {icon}
-        </span>
-        <span className="truncate text-sm text-neutral-700" title={label}>{label}</span>
-      </div>
-      <p className={`mt-4 text-2xl font-medium leading-none tracking-tight tabular-nums ${valueClassName}`}>{value}</p>
-      <div className="mt-2 space-y-1.5">
-        {note && <p className="truncate text-[11px] text-neutral-500" title={note}>{note}</p>}
-        {progress !== undefined && (
-          <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200">
-            <div className="h-full rounded-full bg-navy-900" style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
-          </div>
-        )}
-      </div>
-    </section>
+    <StatCard
+      title={label}
+      icon={icon}
+      value={value}
+      subtitle={note}
+      progress={progress}
+      valueClassName={valueClassName}
+    />
   )
 }
 

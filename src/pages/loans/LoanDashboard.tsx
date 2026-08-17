@@ -3,6 +3,7 @@ import { PulseIcon as Activity, CalendarDotsIcon as CalendarDays, DownloadSimple
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import StatCard from '../../components/StatCard'
 import { useLang } from '../../context/LanguageContext'
 import { buildLoanSummary, loanBalanceColor, loanBalanceLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
@@ -154,29 +155,21 @@ export default function LoanDashboard() {
     )
   }
 
+  // The site's card, with this page's tones mapped onto the ones it takes.
+  // `purple` had no colour of its own here anyway - both it and `blue` were
+  // the same slate.
   function DashboardCard({ title, value, subtitle, icon, tone = 'default' }: { title: string; value: string; subtitle: string; icon: React.ReactNode; tone?: 'green' | 'red' | 'blue' | 'orange' | 'purple' | 'default' }) {
-    const tones = {
-      green: 'bg-neutral-100 text-navy-900',
-      red: 'bg-red-50 text-brand-red',
-      blue: 'bg-slate-100 text-slate-700',
-      orange: 'bg-brand-blue-soft text-brand-blue',
-      purple: 'bg-slate-100 text-slate-700',
-      default: 'bg-slate-100 text-slate-700',
-    }
-
+    const color = tone === 'green' || tone === 'red' ? tone : 'default'
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-            <p className="mt-2 break-words text-2xl font-bold tabular-nums text-slate-900">{value}</p>
-            <p className={`mt-3 text-xs font-medium ${subtitle.toLowerCase().includes('dena') ? 'text-brand-red' : 'text-slate-600'}`}>{subtitle}</p>
-          </div>
-          <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl ${tones[tone]}`}>
-            {icon}
-          </div>
-        </div>
-      </div>
+      <StatCard
+        title={title}
+        value={value}
+        subtitle={subtitle}
+        icon={icon}
+        color={color}
+        // Dena is money owed out, so it reads red wherever it appears.
+        valueClassName={subtitle.toLowerCase().includes('dena') ? 'text-brand-red' : undefined}
+      />
     )
   }
 

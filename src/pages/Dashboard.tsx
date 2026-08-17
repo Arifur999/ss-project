@@ -10,6 +10,7 @@ import {
   CalendarDotsIcon as CalendarDays,
 } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
+import SharedStatCard from '../components/StatCard'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
@@ -718,20 +719,18 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
 // Icon in its own outlined square with the label beside it, the figure large
 // below, and the change under that - nothing else. Anything more competed
 // with the number the card exists to show.
+// The card this page used to define is now the site's shared one - this is the
+// same shape it always was, with the trend line passed in as its footer.
 function StatCard({ label, icon, value, trend, inverted = false }: {
   label: string; icon: React.ReactNode; value: string; trend: number; inverted?: boolean
 }) {
   return (
-    <section className="card flex min-h-[124px] flex-col justify-between p-5">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-neutral-700">
-          {icon}
-        </span>
-        <span className="truncate text-sm text-neutral-700">{label}</span>
-      </div>
-      <p className="mt-5 text-2xl font-medium tracking-tight tabular-nums leading-none text-navy-900">{value}</p>
-      <div className="mt-2 h-4"><TrendLine trend={trend} inverted={inverted} /></div>
-    </section>
+    <SharedStatCard
+      title={label}
+      icon={icon}
+      value={value}
+      footer={<div className="h-4"><TrendLine trend={trend} inverted={inverted} /></div>}
+    />
   )
 }
 

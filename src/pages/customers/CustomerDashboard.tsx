@@ -160,13 +160,14 @@ export default function CustomerDashboard() {
     <div className="overflow-x-hidden p-4 sm:p-6 lg:p-8">
       <PageHeader title={t('customerDash_title')} subtitle={`${t('customerDash_subtitle')} — ${monthName(currentMonth)} ${currentYear}`} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7 gap-4 mb-6">
+      {/* Six, not seven: Extra Discount is not wanted as a headline. It still
+          has its column in the list below, so the figure is not lost. */}
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard title={t('customerDash_totalCustomers')} value={String(stats.totalCustomers)} icon={<Users size={20} />} color="green" />
         <StatCard title={t('customerDash_openingDue')} value={formatCurr(stats.openingDue)} icon={<Wallet size={20} />} color="orange" />
         <StatCard title={t('customerDash_totalPurchase')} value={formatCurr(stats.totalPurchase)} icon={<ShoppingCart size={20} />} color="blue" />
         <StatCard title="Discount" value={formatCurr(stats.totalDiscount)} icon={<Tag size={20} />} color="red" />
         <StatCard title={t('customerDash_collectionsAmount')} value={formatCurr(stats.collectionsAmount)} icon={<Download size={20} />} color="green" />
-        <StatCard title="Extra Discount" value={formatCurr(stats.extraDiscount)} icon={<Tag size={20} />} color="orange" />
         <StatCard title={t('customerDash_currentDue')} value={formatCurr(stats.currentDue)} icon={<AlertCircle size={20} />} color="red" />
       </div>
 
