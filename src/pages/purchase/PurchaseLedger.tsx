@@ -7,7 +7,8 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { deletePurchaseItem } from '../../services/purchase.services'
-import { firstAmount, formatDate } from '../../lib/utils'
+import { actualDp, purchaseItemDeposit } from '../../lib/purchaseAmounts'
+import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -82,11 +83,7 @@ function invoiceMetrics(purchase: any) {
     return sum + ((dp * discountPct) / 100) * qty
   }, 0)
   const specialDiscountAmount = items.reduce((sum: number, item: any) => sum + Number(item.sp_amount || 0), 0)
-  const actualDepositAmount = items.reduce((sum: number, item: any) => {
-    const itemTotal = Number(item.total_amount || 0)
-    const spAmount = Number(item.sp_amount || 0)
-    return sum + Math.max(0, itemTotal - spAmount)
-  }, 0)
+  const actualDepositAmount = items.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
   const previousDue = Number(purchase.previous_due || 0)
 
   return {
@@ -249,11 +246,11 @@ export default function PurchaseLedger() {
     setEditItems(current => current.map((item, itemIndex) => {
       if (itemIndex !== index) return item
       const next = { ...item, [field]: value }
-      const dp = Number(next.dp_price || 0)
-      const discount = Number(next.discount_pct || 0)
       const qty = Number(next.qty || 0)
-      next.actual_dp = dp * (1 - discount / 100)
-      next.total_amount = next.actual_dp * qty
+      // Same shared rule as the Purchase Orders page, so editing an invoice here
+      // cannot produce a different unit price from the one that created it.
+      next.actual_dp = actualDp(next.dp_price, next.discount_pct)
+      next.total_amount = roundTaka(next.actual_dp * qty)
       return next
     }))
   }

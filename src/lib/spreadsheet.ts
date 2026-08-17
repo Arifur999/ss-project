@@ -5,6 +5,7 @@
  * Two copies of this would drift, and the drift would show up as one page
  * accepting a supplier's file and the other rejecting it for no visible reason.
  */
+import { actualDp } from './purchaseAmounts'
 
 export const CODE_HEADER_KEYS = ['code', 'productcode', 'prodcode', 'sku', 'skunumber', 'itemcode']
 export const NAME_HEADER_KEYS = ['productname', 'name', 'prodname', 'itemname', 'description']
@@ -61,10 +62,15 @@ export function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-/** Price after a percentage discount, rounded to 2 decimals. */
+/**
+ * Price after a percentage discount, to the whole taka.
+ *
+ * Delegates so there is one discount rule in the app: see actualDp for why it
+ * subtracts the discount rather than multiplying by (1 - pct/100), and why that
+ * is what makes an exact half round up.
+ */
 export function afterDiscount(price: number, discountPct: number) {
-  const net = Number(price || 0) * (1 - Number(discountPct || 0) / 100)
-  return Math.round(net * 100) / 100
+  return actualDp(price, discountPct)
 }
 
 export function parseCsv(text: string) {

@@ -5,6 +5,7 @@ import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { profitLoss } from '../../lib/profit'
+import { purchaseDeposit } from '../../lib/purchaseAmounts'
 import { isMissingTableError } from '../../lib/supabaseErrors'
 import { firstAmount } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
@@ -187,7 +188,7 @@ export default function MonthlyReport() {
           const qty = Number(item.qty || 0)
           const amount = Number(item.total_amount || 0)
           const spAmount = Number(item.sp_amount || 0)
-          const actualPurchase = Number(item.deposit_amount || 0) || Math.max(0, amount - spAmount)
+          const actualPurchase = purchaseDeposit(amount, spAmount)
           const current = purchaseProductMap[name] || { name, qty: 0, amount: 0, spAmount: 0, actualPurchase: 0, percent: 0 }
           current.qty = Number(current.qty || 0) + qty
           current.amount += amount

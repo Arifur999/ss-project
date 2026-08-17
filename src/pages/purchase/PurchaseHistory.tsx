@@ -3,7 +3,8 @@ import { CalendarBlankIcon as Calendar, FileTextIcon as FileText, PackageIcon as
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { firstAmount, formatDate } from '../../lib/utils'
+import { actualDp as actualDpOf, purchaseDeposit } from '../../lib/purchaseAmounts'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
@@ -62,7 +63,7 @@ export default function PurchaseHistory() {
           const dpPrice = Number(item.dp_price || 0)
           const discountPct = Number(item.discount_pct || 0)
           const qty = Number(item.qty || 0)
-          const actualDp = Number(item.actual_dp || dpPrice * (1 - discountPct / 100))
+          const actualDp = firstAmount(item.actual_dp, actualDpOf(dpPrice, discountPct))
           const totalAmount = Number(item.total_amount || actualDp * qty)
           const spAmount = Number(item.sp_amount || 0)
           const receivedQtyFromHistory = (item.purchase_receives || []).reduce(
@@ -84,7 +85,7 @@ export default function PurchaseHistory() {
             actual_dp: actualDp,
             total_amount: totalAmount,
             discount_amount: (dpPrice * discountPct / 100) * qty,
-            deposit_amount: Number(item.deposit_amount || 0) || Math.max(0, totalAmount - spAmount),
+            deposit_amount: purchaseDeposit(totalAmount, spAmount),
             received_qty: receivedQtyFromHistory || Number(item.received_qty || 0),
             shipping_status: purchase.shipping_status || 'pending',
           }

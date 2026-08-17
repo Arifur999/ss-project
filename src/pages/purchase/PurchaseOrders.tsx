@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { PlusIcon as Plus, FloppyDiskIcon as Save, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, InfoIcon as Info, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
+import { actualDp, purchaseDeposit, purchaseItemDeposit, spAmountFor } from '../../lib/purchaseAmounts'
 import { formatDate, generateSINo, roundTaka, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
@@ -56,13 +57,11 @@ interface PurchaseItem {
 // never typed. Every place that changes a row's total has to run through this,
 // or the percentage and the figure beside it would drift apart.
 function applySpPercent(item: PurchaseItem, percent: number): PurchaseItem {
-  const total = roundTaka(item.total_amount)
-  const pct = Number(percent) || 0
   // Whole taka: a percentage of a total almost never divides evenly (5% of
   // 1,050 is 52.50), and this figure is both shown to the operator and saved,
   // so the paisa used to reach the supplier ledger and every profit report.
-  const spAmount = roundTaka((total * pct) / 100)
-  return { ...item, sp_amount: spAmount, deposit_amount: Math.max(0, total - spAmount) }
+  const spAmount = spAmountFor(item.total_amount, percent)
+  return { ...item, sp_amount: spAmount, deposit_amount: purchaseDeposit(item.total_amount, spAmount) }
 }
 
 const productListCacheKey = 'product_list_cache_v1'
@@ -323,11 +322,7 @@ export default function PlaceOrder() {
     }
 
     const item = newItems[idx]
-    // A percentage discount off the DP is the other place paisa were created:
-    // 7% off Tk 1,050 is 976.50. Round the unit price first and multiply after,
-    // so the line total is the whole-taka unit price times the quantity - the
-    // arithmetic the operator can redo on paper.
-    item.actual_dp = roundTaka(item.dp_price * (1 - item.discount_pct / 100))
+    item.actual_dp = actualDp(item.dp_price, item.discount_pct)
     item.total_amount = roundTaka(item.actual_dp * item.qty)
     newItems[idx] = applySpPercent(item, spPercent)
     setItems(newItems)
@@ -371,7 +366,7 @@ export default function PlaceOrder() {
   function addProductToOrder(product: any) {
     const dp = roundTaka(product.cost_price)
     const discount = Number(product.dp_discount ?? product.discount ?? 0)
-    const actual = roundTaka(dp * (1 - discount / 100))
+    const actual = actualDp(dp, discount)
     const nextItem: PurchaseItem = applySpPercent({
       product_id: product.id,
       product_code: product.product_code || '',
@@ -463,7 +458,11 @@ export default function PlaceOrder() {
           actual_dp: i.actual_dp,
           qty: i.qty,
           total_amount: i.total_amount,
-          sp_pct: 0,
+          // The real percentage, not 0. sp_pct is a column and was always sent
+          // as zero, so a reopened order could not show which percentage it was
+          // placed at - and re-saving it recomputed the incentive from 0 and
+          // wiped it.
+          sp_pct: spPercent,
           sp_amount: i.sp_amount,
           received_qty: 0,
         })),
@@ -639,7 +638,10 @@ export default function PlaceOrder() {
         qty: item.qty,
         total_amount: item.total_amount,
         discount_amount: (item.dp_price * item.discount_pct / 100) * item.qty,
-        deposit_amount: item.deposit_amount || 0,
+        // Derived, not read back: there is no deposit_amount column, so this
+        // used to render Tk 0 on every saved order while Purchase History and
+        // the Monthly Report derived it and showed the real figure.
+        deposit_amount: purchaseItemDeposit(item),
         received_qty: receivedQty,
         pending_qty: pendingQty,
         shipping_status: po.shipping_status,
@@ -852,7 +854,12 @@ export default function PlaceOrder() {
                         <td className="px-3 py-3"><input type="number" min="1" className="input h-10 w-20 text-right text-xs" value={item.qty} onChange={e => updateItem(idx, 'qty', Number(e.target.value))} /></td>
                         <td className="px-3 py-3 text-right font-bold text-navy-800">{formatCurr(item.total_amount)}</td>
                         <td className="px-3 py-3"><input type="number" readOnly tabIndex={-1} title="Set by the SP % field in the order summary" className="input h-10 w-24 cursor-not-allowed bg-white text-right text-xs text-slate-600" value={item.sp_amount || ''} /></td>
-                        <td className="px-3 py-3 text-right"><input type="number" min="0" className="input h-10 w-28 text-right text-xs font-bold text-navy-800" value={item.deposit_amount || ''} onChange={e => updateItem(idx, 'deposit_amount', Number(e.target.value))} /></td>
+                        {/* Read-only like the SP cell before it: the deposit is
+                            total less the incentive, so there is nothing to type.
+                            It was an editable input, but applySpPercent overwrote
+                            whatever was typed and no deposit_amount column exists
+                            to save it to - so the figure came back as Tk 0. */}
+                        <td className="px-3 py-3 text-right"><input type="number" readOnly tabIndex={-1} title="Total less the SP incentive" className="input h-10 w-28 cursor-not-allowed bg-white text-right text-xs font-bold text-navy-800" value={item.deposit_amount || ''} /></td>
                         <td className="px-3 py-3 text-center"><span className="rounded-md bg-brand-orange-soft px-2 py-1 text-[11px] font-bold text-brand-orange">●Pending</span></td>
                         <td className="px-3 py-3 text-center">
                           <button onClick={() => removeItem(idx)} className="rounded-md border border-red-100 bg-red-50 p-2 text-brand-red hover:bg-red-100" title="Remove">
