@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { deletePurchaseItem } from '../../services/purchase.services'
-import { formatDate } from '../../lib/utils'
+import { firstAmount, formatDate } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -62,7 +62,7 @@ function purchaseTotal(purchase: any) {
     (sum: number, item: any) => sum + Number(item.total_amount || 0),
     0
   )
-  return Number(purchase.net_amount || purchase.total_amount || itemTotal || 0)
+  return firstAmount(purchase.net_amount, purchase.total_amount, itemTotal)
 }
 
 function invoiceMetrics(purchase: any) {

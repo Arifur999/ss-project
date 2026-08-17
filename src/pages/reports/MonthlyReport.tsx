@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { profitLoss } from '../../lib/profit'
 import { isMissingTableError } from '../../lib/supabaseErrors'
+import { firstAmount } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
@@ -130,7 +131,7 @@ export default function MonthlyReport() {
         ? readOtherIncomeFallbackRows(user?.id).filter(row => row.date >= startDate && row.date <= endDate)
         : otherIncomeRes.data || []
 
-      const totalSales = sales.reduce((sum: number, sale: any) => sum + Number(sale.net_amount || 0), 0)
+      const totalSales = sales.reduce((sum: number, sale: any) => sum + firstAmount(sale.net_amount, sale.subtotal), 0)
       const totalPaid = sales.reduce((sum: number, sale: any) => sum + Number(sale.paid_amount || 0), 0)
       const totalDue = sales.reduce((sum: number, sale: any) => sum + Number(sale.due_amount || 0), 0)
       const totalExpenses = expenses.reduce((sum: number, expense: any) => sum + Number(expense.amount || 0), 0)
@@ -261,7 +262,7 @@ export default function MonthlyReport() {
           sum + (Number(item.cost_price || 0) > 0 ? (Number(item.actual_price || 0) - Number(item.cost_price || 0)) * Number(item.qty || 0) : 0), 0)
         dailyMap[day] = {
           day,
-          sales: (dailyMap[day]?.sales || 0) + Number(sale.net_amount || 0),
+          sales: (dailyMap[day]?.sales || 0) + firstAmount(sale.net_amount, sale.subtotal),
           profit: (dailyMap[day]?.profit || 0) + saleProfit,
         }
       })

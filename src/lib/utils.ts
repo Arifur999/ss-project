@@ -68,6 +68,32 @@ export function roundTaka(value: unknown): number {
  */
 export const taka = (value: unknown): number => roundTaka(value)
 
+/**
+ * The first of several money fields that the row actually carries.
+ *
+ * Use this instead of `a || b || c`. That chain treats 0 as "missing" and falls
+ * through to the next field, and a legitimate zero is exactly what the two
+ * cheapest things in a furniture shop have:
+ *
+ *   - A free item given with a set: total_amount 0, actual_price 0. The old
+ *     chain fell all the way through to selling_price x qty, so a Tk 40,000
+ *     wardrobe given away was booked as Tk 40,000 of revenue and, against a
+ *     Tk 25,000 cost, Tk 15,000 of profit on a giveaway.
+ *   - A fully discounted invoice: net_amount 0, subtotal 50,000. The chain fell
+ *     through to the pre-discount subtotal and counted the whole Tk 50,000.
+ *
+ * "Missing" here means null, undefined or an empty string - what the API sends
+ * for a column that has no value. A present 0 stops the search and is returned.
+ * If every field is missing the answer is 0.
+ */
+export function firstAmount(...values: unknown[]): number {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue
+    return roundTaka(value)
+  }
+  return 0
+}
+
 export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }

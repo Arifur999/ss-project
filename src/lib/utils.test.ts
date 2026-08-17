@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { roundTaka, taka } from './utils'
+import { firstAmount, roundTaka, taka } from './utils'
 
 describe('roundTaka', () => {
   it('drops the paisa below half a taka', () => {
@@ -59,6 +59,48 @@ describe('roundTaka', () => {
   it('taka is the same function under the read-side name', () => {
     expect(taka('105.9')).toBe(106)
     expect(taka(null)).toBe(0)
+  })
+})
+
+describe('firstAmount', () => {
+  it('takes a present zero rather than falling through to a bigger field', () => {
+    // The whole point. A Tk 40,000 wardrobe given away free has total_amount 0,
+    // and `a || b` would have fallen through to the Tk 40,000 MRP - booking a
+    // giveaway as revenue and as profit.
+    expect(firstAmount(0, 40_000)).toBe(0)
+    expect(firstAmount('0', 40_000)).toBe(0)
+    expect(firstAmount(0, 40_000, 99_999)).toBe(0)
+  })
+
+  it('is what a fully discounted invoice needs', () => {
+    // net_amount 0 against a pre-discount subtotal of 50,000.
+    expect(firstAmount(0, 50_000)).toBe(0)
+  })
+
+  it('falls through when a field is genuinely missing', () => {
+    expect(firstAmount(null, 40_000)).toBe(40_000)
+    expect(firstAmount(undefined, 40_000)).toBe(40_000)
+    expect(firstAmount('', 40_000)).toBe(40_000)
+    expect(firstAmount(null, undefined, 40_000)).toBe(40_000)
+  })
+
+  it('prefers the first present field over any later one', () => {
+    expect(firstAmount(1_000, 2_000, 3_000)).toBe(1_000)
+    expect(firstAmount(null, 2_000, 3_000)).toBe(2_000)
+  })
+
+  it('rounds what it returns', () => {
+    expect(firstAmount(105.9)).toBe(106)
+    expect(firstAmount(null, '105.4')).toBe(105)
+  })
+
+  it('is zero when every field is missing', () => {
+    expect(firstAmount()).toBe(0)
+    expect(firstAmount(null, undefined, '')).toBe(0)
+  })
+
+  it('keeps a negative, which is a real credit balance', () => {
+    expect(firstAmount(-500, 40_000)).toBe(-500)
   })
 })
 

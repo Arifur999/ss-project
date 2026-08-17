@@ -10,7 +10,7 @@ import { monthKey, purchaseProgressForMonth, type MonthProgress } from '../../li
 import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
-import { roundTaka } from '../../lib/utils'
+import { firstAmount, roundTaka } from '../../lib/utils'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
 import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
@@ -169,6 +169,30 @@ function pct(value: number, target: number) {
 // of "21".
 function amount(value: any) {
   return roundTaka(value)
+}
+
+/**
+ * What a sale line was actually sold for.
+ *
+ * total_amount is the figure the Sales page saved for the line; actual_price x
+ * qty and selling_price x qty are only there for older rows saved before that
+ * column existed. So the order matters, and so does the difference between "this
+ * field is missing" and "this field is zero".
+ *
+ * It used to be `total_amount || actual_price * qty || selling_price * qty`, and
+ * `||` reads a real zero as missing. A Tk 40,000 wardrobe given away free with a
+ * bedroom set has total_amount 0 and actual_price 0, so the chain fell all the
+ * way through to selling_price - the full MRP - and the giveaway was booked as
+ * Tk 40,000 of sales and, against its Tk 25,000 cost, Tk 15,000 of profit.
+ */
+function saleItemAmount(item: any, qty: number) {
+  if (item.total_amount !== null && item.total_amount !== undefined && item.total_amount !== '') {
+    return amount(item.total_amount)
+  }
+  if (item.actual_price !== null && item.actual_price !== undefined && item.actual_price !== '') {
+    return amount(amount(item.actual_price) * qty)
+  }
+  return amount(amount(item.selling_price) * qty)
 }
 
 function percentText(value: number) {
@@ -389,13 +413,13 @@ export default function ReportSummary() {
       const salesTarget = activeTargets.reduce((sum: number, target: any) => sum + amount(target.sales_target), 0)
       const profitTarget = activeTargets.reduce((sum: number, target: any) => sum + amount(target.profit_target), 0)
 
-      const totalSales = sales.reduce((sum: number, sale: any) => sum + amount(sale.net_amount || sale.subtotal), 0)
+      const totalSales = sales.reduce((sum: number, sale: any) => sum + firstAmount(sale.net_amount, sale.subtotal), 0)
       const saleProductMap: Record<string, BreakdownRow> = {}
       sales.forEach((sale: any) => {
         (sale.sale_items || []).forEach((item: any) => {
           const name = item.product_name || 'Unknown Product'
           const qty = amount(item.qty)
-          const saleAmount = amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
+          const saleAmount = saleItemAmount(item, qty)
           const unitCost = amount(item.cost_price)
           // With no purchase rate on the line the profit is unknowable, so it
           // counts as zero. Booking the whole sale as profit would inflate every
@@ -432,7 +456,7 @@ export default function ReportSummary() {
           purchaseProductMap[name] = current
         })
       })
-      const purchaseValue = purchases.reduce((sum: number, purchase: any) => sum + amount(purchase.net_amount || purchase.total_amount), 0)
+      const purchaseValue = purchases.reduce((sum: number, purchase: any) => sum + firstAmount(purchase.net_amount, purchase.total_amount), 0)
         || Object.values(purchaseProductMap).reduce((sum, row) => sum + row.amount, 0)
       const purchaseIncentive = Object.values(purchaseProductMap).reduce((sum, row) => sum + amount(row.incentive), 0)
       const purchaseDeposit = Math.max(0, purchaseValue - purchaseIncentive)
@@ -458,7 +482,7 @@ export default function ReportSummary() {
       purchases.forEach((purchase: any) => {
         const key = purchase.supplier_id || purchase.supplier_name || 'Unknown Supplier'
         const name = purchase.supplier_name || 'Unknown Supplier'
-        const purchaseAmount = amount(purchase.net_amount || purchase.total_amount)
+        const purchaseAmount = firstAmount(purchase.net_amount, purchase.total_amount)
         const qty = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + amount(item.qty), 0)
         const current = supplierPaymentMap[key] || { name, qty: 0, amount: 0, paid: 0, due: 0 }
         current.qty = amount(current.qty) + qty
@@ -521,7 +545,7 @@ export default function ReportSummary() {
           // was actually billed. Using selling_price (the pre-discount MRP)
           // inflated these rows by the whole discount.
           const qty = amount(item.qty)
-          current.sales += amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
+          current.sales += saleItemAmount(item, qty)
           companyMap[company] = current
         })
       })
@@ -620,10 +644,10 @@ export default function ReportSummary() {
         const key = String(sale.date || '').slice(0, 10)
         if (!key) return
         const bucket = ensureDay(key)
-        bucket.sales += amount(sale.net_amount || sale.subtotal)
+        bucket.sales += firstAmount(sale.net_amount, sale.subtotal)
         bucket.profit += (sale.sale_items || []).reduce((sum: number, item: any) => {
           const qty = amount(item.qty)
-          const saleAmount = amount(item.total_amount) || amount(item.actual_price) * qty || amount(item.selling_price) * qty
+          const saleAmount = saleItemAmount(item, qty)
           const unitCost = amount(item.cost_price)
           // No purchase rate -> no known profit for this line (see above).
           if (unitCost <= 0) return sum
@@ -670,7 +694,7 @@ export default function ReportSummary() {
         if (saleDate.length < 10 || !day) return
         const key = saleDate.slice(0, 7)
         const perDay = salesByMonth[key] || (salesByMonth[key] = {})
-        perDay[day] = (perDay[day] || 0) + amount(sale.net_amount || sale.subtotal)
+        perDay[day] = (perDay[day] || 0) + firstAmount(sale.net_amount, sale.subtotal)
       })
 
       const targetByMonth: Record<string, number> = {}

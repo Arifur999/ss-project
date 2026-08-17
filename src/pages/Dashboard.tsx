@@ -15,6 +15,7 @@ import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
 import { businessEarnings, profitLoss, type ProfitInputs } from '../lib/profit'
+import { firstAmount } from '../lib/utils'
 import {
   Bar,
   BarChart,
@@ -162,7 +163,7 @@ function getSaleAmount(sale: any) {
   const items = sale.sale_items || []
   const itemGrossTotal = items.reduce((sum: number, item: any) =>
     sum + Number(item.selling_price || 0) * Number(item.qty || 0), 0)
-  const gross = itemGrossTotal || Number(sale.subtotal || sale.net_amount || 0)
+  const gross = items.length ? itemGrossTotal : firstAmount(sale.subtotal, sale.net_amount)
   const discount = Number(sale.discount_amount || 0)
   return Math.max(0, gross - discount)
 }

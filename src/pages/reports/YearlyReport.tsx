@@ -7,6 +7,7 @@ import { monthKey, targetCompletion } from '../../lib/purchaseRollingTarget'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { isMissingTableError } from '../../lib/supabaseErrors'
+import { firstAmount } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
@@ -205,7 +206,7 @@ export default function YearlyReport() {
           return monthFromDate(withdrawal.date) === monthIndex
         })
 
-        const salesAmount = monthSales.reduce((sum: number, sale: any) => sum + Number(sale.subtotal || sale.net_amount || 0), 0)
+        const salesAmount = monthSales.reduce((sum: number, sale: any) => sum + firstAmount(sale.subtotal, sale.net_amount), 0)
         const discount = monthSales.reduce((sum: number, sale: any) => sum + Number(sale.discount_amount || 0), 0)
         const totalProfit = monthSales.reduce((saleSum: number, sale: any) => {
           return saleSum + (sale.sale_items || []).reduce((itemSum: number, item: any) => {
@@ -214,7 +215,7 @@ export default function YearlyReport() {
             return itemSum + (Number(item.actual_price || 0) - costPrice) * Number(item.qty || 0)
           }, 0)
         }, 0)
-        const purchaseOrderValue = monthPurchases.reduce((sum: number, purchase: any) => sum + Number(purchase.net_amount || purchase.total_amount || 0), 0)
+        const purchaseOrderValue = monthPurchases.reduce((sum: number, purchase: any) => sum + firstAmount(purchase.net_amount, purchase.total_amount), 0)
         const purchaseStats = monthPurchases.reduce((stats: { incentive: number; deposit: number; qty: number }, purchase: any) => {
           (purchase.purchase_items || []).forEach((item: any) => {
             const itemAmount = Number(item.total_amount || 0)
