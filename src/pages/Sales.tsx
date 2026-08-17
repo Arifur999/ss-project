@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PrinterIcon as Printer, PencilSimpleIcon as Pencil, TrashIcon as Trash2, ImageIcon as Image, BarcodeIcon as Barcode, FunnelIcon as Filter, TruckIcon as Truck, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CalendarBlankIcon as Calendar, ClipboardIcon as Clipboard, EyeIcon as Eye, EyeSlashIcon as EyeOff, TagIcon as Tag } from '@phosphor-icons/react'
+import { PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PrinterIcon as Printer, PencilSimpleIcon as Pencil, TrashIcon as Trash2, ImageIcon as Image, FunnelIcon as Filter, TruckIcon as Truck, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CalendarBlankIcon as Calendar, ClipboardIcon as Clipboard, EyeIcon as Eye, EyeSlashIcon as EyeOff, TagIcon as Tag } from '@phosphor-icons/react'
 import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateInvoiceNo, roundTaka, todayISO } from '../lib/utils'
@@ -37,14 +37,6 @@ interface SaleItem {
   cost_price: number
   delivery_status: 'delivered' | 'undelivered'
   image_url?: string | null
-}
-
-type CostBatch = {
-  product_id: string
-  date: string
-  created_at?: string
-  actual_dp: number
-  remaining_qty: number
 }
 
 type PaymentRow = {
@@ -827,29 +819,6 @@ export default function Sales() {
     return String(item.product_name || item.product_code || 'Manual Item').trim()
   }
 
-  async function invoiceNoExists(invoiceNo: string) {
-    if (!invoiceNo) return false
-    const { data, error } = await supabase
-      .from('sales')
-      .select('id')
-      .eq('invoice_no', invoiceNo)
-      .maybeSingle()
-    if (error) throw error
-    return Boolean(data)
-  }
-
-  async function getAvailableInvoiceNo(preferredInvoiceNo?: string) {
-    if (preferredInvoiceNo && !(await invoiceNoExists(preferredInvoiceNo))) {
-      return preferredInvoiceNo
-    }
-
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const invoiceNo = generateInvoiceNo()
-      if (!(await invoiceNoExists(invoiceNo))) return invoiceNo
-    }
-
-    return `INV-${Date.now()}`
-  }
 
   function saleOutstandingAmount(sale: any) {
     const storedDue = Number(sale.due_amount || 0)
@@ -873,88 +842,6 @@ export default function Sales() {
     return unitCost
   }
 
-  function consumeCostBatches(batches: CostBatch[], qty: number) {
-    let remainingQty = Math.max(0, Number(qty || 0))
-    let costTotal = 0
-    let costedQty = 0
-
-    for (const batch of batches) {
-      if (remainingQty <= 0) break
-      const takeQty = Math.min(batch.remaining_qty, remainingQty)
-      if (takeQty <= 0) continue
-
-      costTotal += takeQty * batch.actual_dp
-      costedQty += takeQty
-      batch.remaining_qty -= takeQty
-      remainingQty -= takeQty
-    }
-
-    return costedQty > 0 ? costTotal / costedQty : 0
-  }
-
-  async function calculateFifoCostPrices(sourceItems: SaleItem[]) {
-    const productIds = Array.from(new Set(sourceItems.map(item => item.product_id).filter(Boolean)))
-    if (productIds.length === 0) return sourceItems.map(item => Number(item.cost_price || 0))
-
-    const [purchaseRes, salesRes] = await Promise.all([
-      supabase
-        .from('purchase_items')
-        .select('id, product_id, actual_dp, received_qty, purchases(date, created_at)')
-        .in('product_id', productIds),
-      supabase
-        .from('sales')
-        .select('id, date, created_at, sale_items(product_id, qty)')
-        .eq('status', 'completed')
-        .lte('date', form.date)
-    ])
-
-    if (purchaseRes.error) throw purchaseRes.error
-    if (salesRes.error) throw salesRes.error
-
-    const batchesByProduct: Record<string, CostBatch[]> = {}
-    for (const row of purchaseRes.data || []) {
-      const productId = row.product_id
-      const receivedQty = Number(row.received_qty || 0)
-      if (!productId || receivedQty <= 0) continue
-
-      const purchase = Array.isArray(row.purchases) ? row.purchases[0] : row.purchases
-      const batch: CostBatch = {
-        product_id: productId,
-        date: purchase?.date || '',
-        created_at: purchase?.created_at || '',
-        actual_dp: Number(row.actual_dp || 0),
-        remaining_qty: receivedQty
-      }
-      batchesByProduct[productId] = [...(batchesByProduct[productId] || []), batch]
-    }
-
-    Object.values(batchesByProduct).forEach(batches => {
-      batches.sort((a, b) =>
-        new Date(a.date || a.created_at || 0).getTime() - new Date(b.date || b.created_at || 0).getTime() ||
-        String(a.created_at || '').localeCompare(String(b.created_at || ''))
-      )
-    })
-
-    const previousSaleItems = (salesRes.data || [])
-      .filter((sale: any) => sale.id !== editingSale?.id)
-      .sort((a: any, b: any) =>
-        new Date(a.date || a.created_at || 0).getTime() - new Date(b.date || b.created_at || 0).getTime() ||
-        String(a.created_at || '').localeCompare(String(b.created_at || ''))
-      )
-      .flatMap((sale: any) => sale.sale_items || [])
-
-    for (const saleItem of previousSaleItems) {
-      const productId = saleItem.product_id
-      if (!productId || !batchesByProduct[productId]) continue
-      consumeCostBatches(batchesByProduct[productId], Number(saleItem.qty || 0))
-    }
-
-    return sourceItems.map(item => {
-      const batches = batchesByProduct[item.product_id] || []
-      const fifoCost = consumeCostBatches(batches, Number(item.qty || 0))
-      return fifoCost > 0 ? fifoCost : Number(item.cost_price || 0)
-    })
-  }
 
   async function createInitialDeliveries(saleId: string, invoiceNo: string, insertedItems: any[], sourceItems: SaleItem[]) {
     const deliveryRows = insertedItems
@@ -1141,7 +1028,13 @@ export default function Sales() {
       if (leftover > 0) duePaymentRows.push({ account_id: row.account_id, amount: leftover })
     })
 
-    const invoiceNo = editingSale ? form.invoice_no : await getAvailableInvoiceNo(form.invoice_no)
+    // The server resolves this: resolveInvoiceNo finds the next free number and
+    // suffixes if the requested one is taken, inside the same transaction that
+    // writes the sale. The old client-side pre-check was a query per attempt that
+    // could not be authoritative anyway - between the check and the insert another
+    // till could take the number - and the number it reported is not necessarily
+    // the one that was saved. savedSale.invoice_no below is.
+    const invoiceNo = form.invoice_no
     const saleValues = {
       ...form,
       invoice_no: invoiceNo,
@@ -1198,6 +1091,11 @@ export default function Sales() {
       // existed anywhere. editSale() deliberately resets previousDuePay to 0
       // (the original collection is already its own customer payment), so any
       // figure entered during an edit is a NEW collection and belongs here.
+      // The number the server actually saved: resolveInvoiceNo may have suffixed
+      // the requested one if another till had taken it, and the note and the SMS
+      // have to name the invoice the customer is holding.
+      const savedInvoiceNo = savedSale?.invoice_no || invoiceNo
+
       if (paidToPreviousDue > 0 && form.customer_id) {
         try {
           await Promise.all(duePaymentRows.map(row => createCustomerPayment({
@@ -1207,7 +1105,7 @@ export default function Sales() {
             amount: row.amount,
             account_id: row.account_id,
             account_name: accounts.find(a => a.id === row.account_id)?.name || '',
-            notes: `Previous due collected with invoice ${invoiceNo}`,
+            notes: `Previous due collected with invoice ${savedInvoiceNo}`,
             created_by: user?.id,
           })))
         } catch (error: any) {
@@ -1230,7 +1128,7 @@ export default function Sales() {
       await touchOwnerActivity(true)
       toast.success(t('sales_saved'))
       // Before resetForm(), which clears the customer and totals the SMS needs.
-      await textInvoiceToCustomer(invoiceNo, finalPaid, finalDue)
+      await textInvoiceToCustomer(savedInvoiceNo, finalPaid, finalDue)
       setSales(prev => [savedSale, ...prev.filter(s => s.id !== savedSale.id)])
       setSelectedSale(savedSale)
       setShowInvoice(true)
@@ -2026,13 +1924,6 @@ export default function Sales() {
                 aria-label="Add New Product"
               >
                 <Plus size={16} />
-              </button>
-              <button 
-                onClick={() => toast.success('Barcode scan active')} 
-                className="p-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-neutral-100 transition"
-                title="Barcode Scanner Mode"
-              >
-                <Barcode size={16} />
               </button>
               <div className="relative">
                 <button

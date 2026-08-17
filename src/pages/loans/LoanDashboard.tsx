@@ -181,10 +181,12 @@ export default function LoanDashboard() {
           <p className="mt-2 text-sm text-slate-500">Manage loans, track outstanding and transactions</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className="btn-secondary bg-white px-4">
+          {/* A label, not a button. It was a styled button with no handler, so it
+              read as a date-range picker that did nothing. */}
+          <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">
             <CalendarDays size={16} />
             {todayLabel}
-          </button>
+          </span>
           <button type="button" onClick={() => navigate('/loan-management/lenders')} className="btn-primary px-4">
             <Plus size={16} />
             Add Loan / Person

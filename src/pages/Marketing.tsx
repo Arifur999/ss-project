@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, FunnelIcon as Filter, CircleNotchIcon as Loader2, MegaphoneIcon as Megaphone, ChatTextIcon as MessageSquareText, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as Wallet, XIcon as X, XCircleIcon as XCircle } from '@phosphor-icons/react'
+import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CircleNotchIcon as Loader2, MegaphoneIcon as Megaphone, ChatTextIcon as MessageSquareText, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as Wallet, XIcon as X, XCircleIcon as XCircle } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { supabase } from '../lib/supabase'
@@ -462,9 +462,6 @@ export default function Marketing() {
                   className="input pl-9"
                 />
               </div>
-              <button type="button" className="btn-secondary px-3" title="Filter contacts">
-                <Filter size={16} />
-              </button>
             </div>
             <select className="input mt-3" value={contactFilter} onChange={e => setContactFilter(e.target.value as any)}>
               <option value="all">All Contacts</option>

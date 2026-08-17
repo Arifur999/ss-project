@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FloppyDiskIcon as Save, PlusIcon as Plus, TrashIcon as Trash2, UsersIcon as Users, CreditCardIcon as CreditCard, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
+import { PlusIcon as Plus, TrashIcon as Trash2, UsersIcon as Users, CreditCardIcon as CreditCard, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
 import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'
@@ -510,7 +510,6 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
           inside a modal where it costs a re-blur on every repaint. */}
       <div className="sticky bottom-0 -mx-6 mt-4 flex flex-col-reverse gap-2 border-t border-slate-100 bg-white/95 px-6 pt-4 sm:flex-row sm:justify-end">
         <button onClick={onClose} className="btn-secondary justify-center sm:w-32">{t('common_cancel')}</button>
-        <button type="button" className="btn-secondary justify-center sm:w-36"><Save size={15} />Save Draft</button>
         <button onClick={save} disabled={loading} className="btn-primary justify-center sm:w-40">
           {loading ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <UserRoundPlus size={16} />}
           {loading ? t('settings_creating') : t('settings_createUserBtn')}
