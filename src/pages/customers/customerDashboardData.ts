@@ -23,7 +23,12 @@ export type CustomerDashboardStats = {
   totalDiscount: number
   collectionsAmount: number
   extraDiscount: number
+  /** The net position across every customer: what is owed less what is in credit. */
   currentDue: number
+  /** Only the customers who owe us - the figure to chase collections against. */
+  outstandingDue: number
+  /** Only the customers we owe, i.e. overpayments sitting on account. */
+  customerCredit: number
 }
 
 export type CustomerDashboardDataset = {
@@ -92,9 +97,16 @@ export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardD
     customerMap[payment.customer_id].extraDiscount += dueDiscount
   })
 
+  // Not clamped at zero. It used to be Math.max(0, ...), which hid every credit
+  // balance: a customer who had overpaid read as owing nothing instead of being
+  // in credit, and because the headline below sums these values, the total
+  // "Current Due" was overstated by the sum of every customer's credit.
+  //
+  // A negative here is money we owe the customer, and formatCurr/amountClass
+  // already render a negative in red site-wide, so it reads correctly on screen.
   const customerList = Object.values(customerMap).map(customer => ({
     ...customer,
-    currentDue: Math.max(0, customer.openingDue + customer.invoiceDue - customer.dueReceived - customer.extraDiscount),
+    currentDue: customer.openingDue + customer.invoiceDue - customer.dueReceived - customer.extraDiscount,
   })).sort((a, b) => b.currentDue - a.currentDue)
 
   return {
@@ -106,7 +118,13 @@ export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardD
       totalDiscount: customerList.reduce((sum, customer) => sum + customer.totalDiscount, 0),
       collectionsAmount: customerList.reduce((sum, customer) => sum + customer.collectionsAmount, 0),
       extraDiscount: customerList.reduce((sum, customer) => sum + customer.extraDiscount, 0),
+      // The net position across all customers, which is what the two figures
+      // beside it (what was billed, what was collected) actually add up to.
       currentDue: customerList.reduce((sum, customer) => sum + customer.currentDue, 0),
+      /** Only the customers who owe us, for chasing collections. */
+      outstandingDue: customerList.reduce((sum, customer) => sum + Math.max(0, customer.currentDue), 0),
+      /** Only the customers we owe, i.e. overpayments sitting on account. */
+      customerCredit: customerList.reduce((sum, customer) => sum + Math.max(0, -customer.currentDue), 0),
     },
   }
 }

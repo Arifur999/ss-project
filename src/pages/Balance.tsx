@@ -6,7 +6,7 @@ import { useLang } from '../context/LanguageContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
 import { amountClass } from '../lib/utils'
 import { ZeroAmount } from '../components/CellValue'
-import { BALANCE_TABS, accountTotals, type BalanceColumn } from '../lib/balanceTabs'
+import { BALANCE_TABS, accountTotals, saleRemainderForAccount, splitPaymentCoverage, type BalanceColumn } from '../lib/balanceTabs'
 
 const BALANCE_CACHE_KEY = 'balance-accounts'
 
@@ -107,10 +107,17 @@ export default function Balance() {
     const dbSalePayments = salePayRes.data || []
     const fallbackPayments = fallbackSalePayments()
     const dbSplitSaleIds = new Set(dbSalePayments.map((payment: any) => payment.sale_id).filter(Boolean))
+    // Sales are filtered to status 'completed' above; the payment rows were not.
+    // A sale patched to another status kept feeding its payments into the account
+    // balance while its own paid_amount had dropped out - so the balance counted
+    // money from a sale the rest of the page had stopped counting. A payment with
+    // no sale_id at all is kept: it is still money that landed in an account.
+    const completedSaleIds = new Set<string>(sales.map((sale: any) => String(sale.id)))
+    const belongsToCountedSale = (payment: any) => !payment.sale_id || completedSaleIds.has(payment.sale_id)
     const salePayments = [
       ...dbSalePayments,
       ...fallbackPayments.filter((payment: any) => !dbSplitSaleIds.has(payment.sale_id))
-    ]
+    ].filter(belongsToCountedSale)
     const custPays = custPayRes.data || []
     const supplierPays = supplierPayRes.data || []
     const otherIncomes = otherIncomeRes.data || []
@@ -118,7 +125,9 @@ export default function Balance() {
     function sumBy(arr: any[], accountId: string, field: string) {
       return arr.filter(r => r.account_id === accountId).reduce((s, r) => s + Number(r[field] || 0), 0)
     }
-    const splitSaleIds = new Set(salePayments.map((payment: any) => payment.sale_id).filter(Boolean))
+    // See splitPaymentCoverage / saleRemainderForAccount in lib/balanceTabs for
+    // why this counts the remainder rather than excluding the whole sale.
+    const coveredBySplitRows = splitPaymentCoverage(salePayments, completedSaleIds)
 
     const rows: AccountRow[] = accs.map(acc => {
       const total_invest = sumBy(investments, acc.id, 'invest_amount')
@@ -128,8 +137,8 @@ export default function Balance() {
       const loan_payment = loans.filter(r => r.account_id === acc.id).reduce((s, r) => s + Number(r.payment_amount || 0), 0)
       const supplier_payment = sumBy(supplierPays, acc.id, 'amount')
       const legacyCashSales = sales
-        .filter(r => !splitSaleIds.has(r.id) && r.account_id === acc.id)
-        .reduce((s, r) => s + Number(r.paid_amount || 0), 0)
+        .filter(r => r.account_id === acc.id)
+        .reduce((s, r) => s + saleRemainderForAccount(r, coveredBySplitRows), 0)
       const splitCashSales = sumBy(salePayments, acc.id, 'amount')
       const cash_sales = legacyCashSales + splitCashSales
       const customer_due_received = sumBy(custPays, acc.id, 'amount')

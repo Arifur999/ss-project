@@ -429,7 +429,10 @@ export default function CustomerDueReceived() {
   }
 
   function receiptNo(payment: any) {
-    const year = String(payment?.date || new Date().toISOString()).slice(0, 4)
+    // todayISO, not toISOString: between midnight and 6am in Bangladesh the UTC
+    // year is still the previous one on 1 January, so a receipt issued in the new
+    // year would be numbered against the old one.
+    const year = String(payment?.date || todayISO()).slice(0, 4)
     const suffix = String(payment?.payment_ids?.[0] || payment?.id || Date.now()).replace(/\D/g, '').slice(-3).padStart(3, '0')
     return `DR-${year}-${suffix}`
   }

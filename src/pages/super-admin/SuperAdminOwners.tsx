@@ -6,6 +6,7 @@ import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
 import { LiveOwner, OwnerPlan, OwnerStatus, PlanType, daysLeft, formatDate, formatLastActive, isOwnerOnline, loadOwners, planTypeLabel, registeredDays } from './superAdminLive'
 import { grantTrialExtension, updateOwnerSubscription } from '../../services/admin.services'
+import { toISODate } from '../../lib/utils'
 
 const statusClass: Record<OwnerStatus, string> = {
   pending: 'badge-orange',
@@ -32,9 +33,13 @@ type OwnerEditForm = {
   blockedReason: string
 }
 
+// toISODate reads the local calendar. toISOString() converts to UTC first, and
+// Bangladesh is six hours ahead - so a subscription start or expiry date shown in
+// a date input came out a day early.
 function toInputDate(value?: string | null) {
   if (!value) return ''
-  return new Date(value).toISOString().slice(0, 10)
+  const parsed = new Date(value)
+  return isNaN(parsed.getTime()) ? '' : toISODate(parsed)
 }
 
 function endOfDayIso(value: string) {

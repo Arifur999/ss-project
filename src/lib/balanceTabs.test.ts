@@ -1,5 +1,78 @@
 import { describe, it, expect } from 'vitest'
-import { BALANCE_TABS, MOVEMENT_KEYS, accountTotals, type AccountMovements } from './balanceTabs'
+import {
+  BALANCE_TABS,
+  MOVEMENT_KEYS,
+  accountTotals,
+  saleRemainderForAccount,
+  splitPaymentCoverage,
+  type AccountMovements,
+} from './balanceTabs'
+
+describe('how a sale reaches an account balance', () => {
+  const completed = new Set(['s1', 's2'])
+
+  it('counts the whole paid_amount when there are no split rows', () => {
+    const covered = splitPaymentCoverage([], completed)
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: 50_000 }, covered)).toBe(50_000)
+  })
+
+  it('counts nothing extra when the split rows sum to the paid amount', () => {
+    const covered = splitPaymentCoverage(
+      [{ sale_id: 's1', amount: 30_000 }, { sale_id: 's1', amount: 20_000 }],
+      completed
+    )
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: 50_000 }, covered)).toBe(0)
+  })
+
+  it('counts the shortfall when the split rows fall short', () => {
+    // The bug this replaces: an all-or-nothing guard excluded the sale's whole
+    // paid_amount as soon as ANY payment row existed, so one stray Tk 1 row
+    // against a Tk 50,000 sale wiped Tk 50,000 off the account balance.
+    const covered = splitPaymentCoverage([{ sale_id: 's1', amount: 1 }], completed)
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: 50_000 }, covered)).toBe(49_999)
+  })
+
+  it('never counts a negative when the split rows overshoot', () => {
+    const covered = splitPaymentCoverage([{ sale_id: 's1', amount: 60_000 }], completed)
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: 50_000 }, covered)).toBe(0)
+  })
+
+  it('keeps each sale independent', () => {
+    const covered = splitPaymentCoverage(
+      [{ sale_id: 's1', amount: 50_000 }, { sale_id: 's2', amount: 1_000 }],
+      completed
+    )
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: 50_000 }, covered)).toBe(0)
+    expect(saleRemainderForAccount({ id: 's2', paid_amount: 8_000 }, covered)).toBe(7_000)
+  })
+
+  it('ignores payments belonging to a sale the page is not counting', () => {
+    // Sales are filtered to status 'completed'; the payment rows were not, so a
+    // sale patched to another status kept feeding its payments into the balance
+    // while its own paid_amount had dropped out.
+    const covered = splitPaymentCoverage([{ sale_id: 'not-completed', amount: 9_000 }], completed)
+    expect(covered.size).toBe(0)
+  })
+
+  it('leaves a payment with no sale_id out of the coverage map', () => {
+    // It is still money in an account and is summed directly elsewhere; it just
+    // does not offset any particular sale.
+    const covered = splitPaymentCoverage([{ sale_id: null, amount: 9_000 }], completed)
+    expect(covered.size).toBe(0)
+  })
+
+  it('rounds to the whole taka on the way in', () => {
+    const covered = splitPaymentCoverage([{ sale_id: 's1', amount: '10.4' }], completed)
+    expect(covered.get('s1')).toBe(10)
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: 100.5 }, covered)).toBe(91)
+  })
+
+  it('treats a missing paid_amount as zero rather than NaN', () => {
+    const covered = splitPaymentCoverage([], completed)
+    expect(saleRemainderForAccount({ id: 's1' }, covered)).toBe(0)
+    expect(saleRemainderForAccount({ id: 's1', paid_amount: null }, covered)).toBe(0)
+  })
+})
 
 // Splitting one table into five can silently drop a column or count one twice,
 // and nothing on screen would look wrong - the balance would just quietly stop

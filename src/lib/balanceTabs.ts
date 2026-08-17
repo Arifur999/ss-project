@@ -48,6 +48,51 @@ export interface AccountTotals {
 const money = (value: unknown): number => roundTaka(value)
 
 /**
+ * How much of each sale's paid_amount its own split-payment rows already cover.
+ *
+ * Only payments belonging to a counted sale are included. Sales are filtered to
+ * status 'completed', and the payment rows were not - so a sale patched to
+ * another status kept feeding its payments into the account balance while its own
+ * paid_amount had dropped out. A payment with no sale_id is kept: it is still
+ * money that landed in an account.
+ */
+export function splitPaymentCoverage(
+  payments: { sale_id?: string | null; amount?: unknown }[],
+  countedSaleIds: Set<string>
+): Map<string, number> {
+  const covered = new Map<string, number>()
+  for (const payment of payments) {
+    if (!payment.sale_id) continue
+    if (!countedSaleIds.has(payment.sale_id)) continue
+    covered.set(payment.sale_id, (covered.get(payment.sale_id) || 0) + money(payment.amount))
+  }
+  return covered
+}
+
+/**
+ * What a sale contributes to its account beyond its own split-payment rows.
+ *
+ * This replaces an all-or-nothing guard that excluded a sale's whole paid_amount
+ * as soon as it had ANY payment row. That is airtight against double counting but
+ * not against under-counting: one stray Tk 1 row against a Tk 50,000 sale
+ * suppressed the entire Tk 50,000 from the account balance, and nothing in the app
+ * enforces that the rows sum to paid_amount.
+ *
+ * Counting the remainder is right in every case:
+ *
+ *   no rows            the whole paid_amount, as before
+ *   rows summing exact nothing left over, as before
+ *   rows falling short exactly the shortfall, against the sale's own account
+ *   rows overshooting  nothing (clamped), since the rows are the finer record
+ */
+export function saleRemainderForAccount(
+  sale: { id: string; paid_amount?: unknown },
+  covered: Map<string, number>
+): number {
+  return Math.max(0, money(sale.paid_amount) - (covered.get(sale.id) || 0))
+}
+
+/**
  * The derived figures, all from fields already on the row.
  *
  * Every one of the twelve movement fields appears in exactly one of the four

@@ -8,7 +8,7 @@ import Modal from '../../components/Modal'
 import PeriodFilter from '../../components/PeriodFilter'
 import TableScroller from '../../components/TableScroller'
 import { confirmAction } from '../../components/ConfirmDialog'
-import { formatDate, roundTaka } from '../../lib/utils'
+import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { periodLabel, periodToRange, type Period } from '../../lib/periodFilter'
 import {
   createPlatformExpense,
@@ -48,7 +48,10 @@ const CATEGORY_SUGGESTIONS = ['Server', 'Domain', 'Email service', 'SMS gateway'
 // Tk 1,200 with a non-breaking space, so the amount never wraps away from
 // its currency label in a narrow stat card.
 const money = (value: number | string) => `Tk\u00A0${roundTaka(value).toLocaleString('en-US')}`
-const today = () => new Date().toISOString().slice(0, 10)
+// todayISO reads the local calendar. toISOString() converts to UTC first, and
+// Bangladesh is six hours ahead, so a payment recorded between midnight and 6am
+// was dated to the previous day.
+const today = () => todayISO()
 
 type ExpenseForm = { date: string; category: string; amount: string; notes: string }
 type WithdrawalForm = { date: string; taken_by: string; amount: string; notes: string }
