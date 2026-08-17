@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { firstAmount, roundTaka, taka } from './utils'
+import { firstAmount, roundTaka, saleItemAmount, taka } from './utils'
 
 describe('roundTaka', () => {
   it('drops the paisa below half a taka', () => {
@@ -101,6 +101,42 @@ describe('firstAmount', () => {
 
   it('keeps a negative, which is a real credit balance', () => {
     expect(firstAmount(-500, 40_000)).toBe(-500)
+  })
+})
+
+describe('saleItemAmount', () => {
+  it('prefers the saved line total', () => {
+    expect(saleItemAmount({ total_amount: 9_000, actual_price: 3_000, selling_price: 4_000 }, 3)).toBe(9_000)
+  })
+
+  it('books a free line at zero, not at its MRP', () => {
+    // The Tk 40,000 wardrobe given away with a bedroom set.
+    expect(saleItemAmount({ total_amount: 0, actual_price: 0, selling_price: 40_000 }, 1)).toBe(0)
+  })
+
+  it('falls back to actual_price x qty only when the total is missing', () => {
+    expect(saleItemAmount({ actual_price: 3_000, selling_price: 4_000 }, 3)).toBe(9_000)
+    expect(saleItemAmount({ total_amount: null, actual_price: 3_000, selling_price: 4_000 }, 3)).toBe(9_000)
+  })
+
+  it('honours a discounted actual_price of zero over the MRP', () => {
+    expect(saleItemAmount({ actual_price: 0, selling_price: 4_000 }, 3)).toBe(0)
+  })
+
+  it('reaches selling_price only when both better fields are absent', () => {
+    expect(saleItemAmount({ selling_price: 4_000 }, 3)).toBe(12_000)
+  })
+
+  it('never returns NaN when a field is missing entirely', () => {
+    // A missing actual_price multiplied by qty is NaN, which a plain
+    // firstAmount(...) chain would have accepted as a present value.
+    expect(saleItemAmount({}, 3)).toBe(0)
+    expect(Number.isFinite(saleItemAmount({}, 3))).toBe(true)
+  })
+
+  it('rounds to the whole taka', () => {
+    expect(saleItemAmount({ selling_price: 105.9 }, 1)).toBe(106)
+    expect(saleItemAmount({ actual_price: '333.4' }, 3)).toBe(999)
   })
 })
 

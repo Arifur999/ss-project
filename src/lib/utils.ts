@@ -94,6 +94,31 @@ export function firstAmount(...values: unknown[]): number {
   return 0
 }
 
+const isPresent = (value: unknown) => value !== null && value !== undefined && value !== ''
+
+/**
+ * What a sale line was actually sold for, on any screen that reports sales.
+ *
+ * `total_amount` is the figure the Sales page saves for the line. The other two
+ * are only for rows saved before that column existed, which is why the order is
+ * fixed and why this is not a `firstAmount(...)` call: `actual_price * qty` has
+ * to be evaluated only after we know actual_price is there, or a missing field
+ * would multiply out to NaN and be read as a present zero.
+ *
+ * The same rule for every page is the point. The Yearly Report used to lead with
+ * `selling_price * qty` - the pre-discount MRP - so at an average 10% discount
+ * it reported a company's sales about 11% higher than the Report Summary did for
+ * the same months.
+ */
+export function saleItemAmount(
+  item: { total_amount?: unknown; actual_price?: unknown; selling_price?: unknown },
+  qty: number
+): number {
+  if (isPresent(item.total_amount)) return roundTaka(item.total_amount)
+  if (isPresent(item.actual_price)) return roundTaka(roundTaka(item.actual_price) * qty)
+  return roundTaka(roundTaka(item.selling_price) * qty)
+}
+
 export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }

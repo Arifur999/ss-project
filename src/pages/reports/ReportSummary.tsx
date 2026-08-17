@@ -10,7 +10,7 @@ import { monthKey, purchaseProgressForMonth, type MonthProgress } from '../../li
 import { calculateRollingTargets, getDaysInMonth } from '../../lib/rollingTarget'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
-import { firstAmount, roundTaka } from '../../lib/utils'
+import { firstAmount, roundTaka, saleItemAmount } from '../../lib/utils'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
 import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
@@ -169,30 +169,6 @@ function pct(value: number, target: number) {
 // of "21".
 function amount(value: any) {
   return roundTaka(value)
-}
-
-/**
- * What a sale line was actually sold for.
- *
- * total_amount is the figure the Sales page saved for the line; actual_price x
- * qty and selling_price x qty are only there for older rows saved before that
- * column existed. So the order matters, and so does the difference between "this
- * field is missing" and "this field is zero".
- *
- * It used to be `total_amount || actual_price * qty || selling_price * qty`, and
- * `||` reads a real zero as missing. A Tk 40,000 wardrobe given away free with a
- * bedroom set has total_amount 0 and actual_price 0, so the chain fell all the
- * way through to selling_price - the full MRP - and the giveaway was booked as
- * Tk 40,000 of sales and, against its Tk 25,000 cost, Tk 15,000 of profit.
- */
-function saleItemAmount(item: any, qty: number) {
-  if (item.total_amount !== null && item.total_amount !== undefined && item.total_amount !== '') {
-    return amount(item.total_amount)
-  }
-  if (item.actual_price !== null && item.actual_price !== undefined && item.actual_price !== '') {
-    return amount(amount(item.actual_price) * qty)
-  }
-  return amount(amount(item.selling_price) * qty)
 }
 
 function percentText(value: number) {

@@ -7,7 +7,7 @@ import { monthKey, targetCompletion } from '../../lib/purchaseRollingTarget'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { isMissingTableError } from '../../lib/supabaseErrors'
-import { firstAmount } from '../../lib/utils'
+import { firstAmount, saleItemAmount } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import toast from 'react-hot-toast'
@@ -266,15 +266,21 @@ export default function YearlyReport() {
       purchases.forEach((purchase: any) => {
         const company = companyName(purchase.supplier_name)
         const current = companyMap[company] || { company, purchase: 0, sales: 0 }
-        const itemTotal = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + Number(item.total_amount || 0), 0)
-        current.purchase += itemTotal || Number(purchase.total_amount || purchase.net_amount || 0)
+        const itemTotal = (purchase.purchase_items || []).reduce((sum: number, item: any) => sum + firstAmount(item.total_amount), 0)
+        current.purchase += purchase.purchase_items?.length ? itemTotal : firstAmount(purchase.total_amount, purchase.net_amount)
         companyMap[company] = current
       })
       sales.forEach((sale: any) => {
         (sale.sale_items || []).forEach((item: any) => {
           const company = companyName(productCompanyMap.get(item.product_id) || productCompanyMap.get(item.product_code))
           const current = companyMap[company] || { company, purchase: 0, sales: 0 }
-          current.sales += Number(item.selling_price || 0) * Number(item.qty || 0) || Number(item.total_amount || 0)
+          // The discounted amount that was actually billed - the same basis as
+          // the Report Summary's Company Ways table and as this page's own sales
+          // figures. It used to lead with selling_price x qty, the pre-discount
+          // MRP, so at an average 10% discount a company's yearly sales read
+          // Tk 11,100,000 where the Report Summary read Tk 10,000,000 for the
+          // same months. This is the number the supplier negotiation uses.
+          current.sales += saleItemAmount(item, Number(item.qty || 0))
           companyMap[company] = current
         })
       })
