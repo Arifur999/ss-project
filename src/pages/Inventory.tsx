@@ -15,6 +15,12 @@ type InventoryRow = {
   id: string; product_id: string; available_qty: number; upcoming_qty: number; dp_price: number | null
   products: ProductRow
   opening_qty: number; order_qty: number; received_qty: number; sales_qty: number
+  /**
+   * What opening + received - sold comes to, beside available_qty (which is the
+   * stock ledger, the same figure the Sales page reads). They differ by exactly
+   * the manual adjustments, so a gap here is a real movement, not a bug.
+   */
+  computed_qty: number
   fifo_stock_value: number; fifo_average_dp: number
 }
 

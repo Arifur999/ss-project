@@ -1184,25 +1184,20 @@ export default function Sales() {
         })),
       }
 
-      if (editingSale) {
-        const savedSale = await updateSaleRequest(editingSale.id, salePayload)
-
-        await touchOwnerActivity(true)
-        toast.success(t('common_updated'))
-        setSales(prev => prev.map(s => s.id === editingSale.id ? savedSale : s))
-        setSelectedSale(savedSale)
-        setShowInvoice(true)
-        navigate('/sales/ledger')
-        await loadAll()
-        resetForm()
-        return
-      }
-
-      const savedSale = await createSaleRequest(salePayload)
+      const savedSale = editingSale
+        ? await updateSaleRequest(editingSale.id, salePayload)
+        : await createSaleRequest(salePayload)
 
       // Settle the old balance with a real customer payment, which is what the
       // previous-due figure is calculated from. Failing here must not lose the
       // sale that already saved, so it only warns.
+      //
+      // This runs on the edit path too. It used to sit below an early `return`
+      // for editingSale, so collecting previous due while editing an invoice was
+      // silently dropped - the cash was taken at the counter and no record of it
+      // existed anywhere. editSale() deliberately resets previousDuePay to 0
+      // (the original collection is already its own customer payment), so any
+      // figure entered during an edit is a NEW collection and belongs here.
       if (paidToPreviousDue > 0 && form.customer_id) {
         try {
           await Promise.all(duePaymentRows.map(row => createCustomerPayment({
@@ -1218,6 +1213,18 @@ export default function Sales() {
         } catch (error: any) {
           toast.error(`Sale saved, but the previous-due payment failed: ${error?.message || 'unknown error'}`)
         }
+      }
+
+      if (editingSale) {
+        await touchOwnerActivity(true)
+        toast.success(t('common_updated'))
+        setSales(prev => prev.map(s => s.id === editingSale.id ? savedSale : s))
+        setSelectedSale(savedSale)
+        setShowInvoice(true)
+        navigate('/sales/ledger')
+        await loadAll()
+        resetForm()
+        return
       }
 
       await touchOwnerActivity(true)
