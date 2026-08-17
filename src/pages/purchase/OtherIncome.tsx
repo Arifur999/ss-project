@@ -6,7 +6,7 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { isMissingTableError } from '../../lib/supabaseErrors'
-import { readOtherIncomeFallbackRows, sortOtherIncomeRows, writeOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
+import { migrateOtherIncomeFallbackRows, readOtherIncomeFallbackRows, sortOtherIncomeRows, writeOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { formatDate, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -82,9 +82,25 @@ export default function OtherIncome() {
     if (supplierRes.error) toast.error(supplierRes.error.message)
     if (accountRes.error) toast.error(accountRes.error.message)
 
-    setRows(missingOtherIncomeTable
-      ? sortOtherIncomeRows(readOtherIncomeFallbackRows(user?.id))
-      : (incomeRes.data || []).map((item: any) => ({ ...item, amount: Number(item.amount || 0) })))
+    if (missingOtherIncomeTable) {
+      setRows(sortOtherIncomeRows(readOtherIncomeFallbackRows(user?.id)))
+      setSuppliers(supplierRes.data || [])
+      setAccounts(accountRes.data || [])
+      setLoading(false)
+      return
+    }
+
+    // The table answered, so anything still sitting in this browser from when the
+    // fallback was live is real income that never reached the server. Push it up
+    // and re-read, so it starts counting on every device instead of only this one.
+    let incomeRows = incomeRes.data || []
+    if (await migrateOtherIncomeFallbackRows(user?.id)) {
+      const retry = await supabase.from('other_incomes').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })
+      if (!retry.error) incomeRows = retry.data || []
+      toast.success('Moved other income saved on this device up to your account')
+    }
+
+    setRows(incomeRows.map((item: any) => ({ ...item, amount: Number(item.amount || 0) })))
     setSuppliers(supplierRes.data || [])
     setAccounts(accountRes.data || [])
     setLoading(false)
@@ -142,22 +158,18 @@ export default function OtherIncome() {
       notes: form.notes,
     }
 
-    if (!tableReady) {
-      saveFallback(payload)
-      return
-    }
-
+    // No local fallback on the way in any more. It used to write the row to
+    // localStorage and show a green "Other income saved", so income the server
+    // had rejected read as recorded - and it then fed the Monthly Report, the
+    // Yearly Report, the Report Summary and the Shareholder Dashboard, giving a
+    // different profit per browser. If a save cannot reach the server the
+    // operator has to see that.
     const result = editingId
       ? await supabase.from('other_incomes').update(payload).eq('id', editingId)
       : await supabase.from('other_incomes').insert({ ...payload, created_by: user?.id })
 
     if (result.error) {
-      if (isMissingTableError(result.error, 'other_incomes')) {
-        setTableReady(false)
-        saveFallback(payload)
-        return
-      }
-      toast.error(result.error.message)
+      toast.error(result.error.message || 'Could not save other income')
       return
     }
 
@@ -167,49 +179,23 @@ export default function OtherIncome() {
     await loadAll()
   }
 
-  function saveFallback(payload: Omit<OtherIncomeRow, 'id'>) {
-    const previousRows = readOtherIncomeFallbackRows(user?.id)
-    const nextRows = editingId
-      ? previousRows.map(row => row.id === editingId ? { ...row, ...payload, amount: Number(payload.amount || 0) } : row)
-      : [
-          {
-            ...payload,
-            id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            amount: Number(payload.amount || 0),
-          },
-          ...previousRows,
-        ]
-
-    const sortedRows = sortOtherIncomeRows(nextRows)
-    writeOtherIncomeFallbackRows(user?.id, sortedRows)
-    setRows(sortedRows)
-    toast.success(editingId ? 'Other income updated' : 'Other income saved')
-    setShowModal(false)
-    resetForm()
-  }
-
   async function deleteItem(item: OtherIncomeRow) {
-    if (!tableReady) {
-      if (!(await confirmAction({ message: 'Delete this other income transaction?' }))) return
+    if (!(await confirmAction({ message: 'Delete this other income transaction?' }))) return
+
+    // A row whose id is local never reached the server, so there is nothing to
+    // delete there - only the browser copy. Every other row goes to the server,
+    // and a failure is reported rather than faked.
+    if (!tableReady || item.id.startsWith('local-')) {
       const nextRows = readOtherIncomeFallbackRows(user?.id).filter(row => row.id !== item.id)
       writeOtherIncomeFallbackRows(user?.id, nextRows)
-      setRows(sortOtherIncomeRows(nextRows))
+      setRows(current => current.filter(row => row.id !== item.id))
       toast.success('Other income deleted')
       return
     }
 
-    if (!(await confirmAction({ message: 'Delete this other income transaction?' }))) return
     const { error } = await supabase.from('other_incomes').delete().eq('id', item.id)
     if (error) {
-      if (isMissingTableError(error, 'other_incomes')) {
-        setTableReady(false)
-        const nextRows = readOtherIncomeFallbackRows(user?.id).filter(row => row.id !== item.id)
-        writeOtherIncomeFallbackRows(user?.id, nextRows)
-        setRows(sortOtherIncomeRows(nextRows))
-        toast.success('Other income deleted')
-        return
-      }
-      toast.error(error.message)
+      toast.error(error.message || 'Could not delete other income')
       return
     }
     toast.success('Other income deleted')

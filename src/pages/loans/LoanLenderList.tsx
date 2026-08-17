@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { confirmAction } from '../../components/ConfirmDialog'
-import { deleteStoredLoanLender, isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders, saveStoredLoanLender } from './loanFallback'
+import { deleteStoredLoanLender, isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders, migrateStoredLoanLenders, saveStoredLoanLender } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 import { NoValue } from '../../components/CellValue'
@@ -40,6 +40,7 @@ export default function LoanLenderList() {
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
+    const ownerId = profile?.owner_id || user?.id
     const lenderRes = await supabase.from('loan_lenders').select('*').order('created_at', { ascending: false })
     if (isLoanLenderTableMissing(lenderRes.error)) {
       const legacyLoanRes = await supabase.from('loans').select('*').order('created_at', { ascending: false })
@@ -48,7 +49,22 @@ export default function LoanLenderList() {
       return
     }
     if (lenderRes.error) toast.error(lenderRes.error.message)
-    setLenders(mergeStoredAndLoanLenders(lenderRes.data || []))
+
+    // The table answered, so anything still in this browser from when the
+    // fallback was live is a real lender that never reached the server. Push this
+    // owner's rows up and re-read. Rows stored against another owner_id are left
+    // alone - the storage key is shared across accounts on one browser.
+    let lenderRows = lenderRes.data || []
+    if (!lenderRes.error) {
+      const pushed = await migrateStoredLoanLenders(ownerId)
+      if (pushed > 0) {
+        const retry = await supabase.from('loan_lenders').select('*').order('created_at', { ascending: false })
+        if (!retry.error) lenderRows = retry.data || []
+        toast.success(`Moved ${pushed} bank / person saved on this device up to your account`)
+      }
+    }
+
+    setLenders(mergeStoredAndLoanLenders(lenderRows))
     setUsingFallback(false)
   }
 
@@ -200,28 +216,21 @@ export default function LoanLenderList() {
 
     setSaving(true)
     const { data, error } = await saveToSupabase(payload).finally(() => setSaving(false))
-    if (isLoanLenderTableMissing(error)) {
-      setUsingFallback(true)
-      const saved = saveStoredLoanLender(payload, editItem)
-      setLenders(current => editItem
-        ? current.map(item => item.id === saved.id ? saved : item)
-        : [saved, ...current])
-      toast.success(editItem ? 'Bank / Person updated' : 'Bank / Person saved')
-      resetForm()
-      loadAll()
-      return
-    }
-    if (error) return toast.error(error.message)
-    if (data) {
-      setLenders(current => editItem
-        ? current.map(item => item.id === data.id ? data : item)
-        : [data, ...current.filter(item => item.id !== data.id)])
-    } else {
-      const saved = saveStoredLoanLender(payload, editItem)
-      setLenders(current => editItem
-        ? current.map(item => item.id === saved.id ? saved : item)
-        : [saved, ...current])
-    }
+
+    // A failure is a failure. This used to divert into localStorage whenever the
+    // error text merely mentioned loan_lenders - which covers foreign key
+    // violations, validation errors and permission errors - and then show a green
+    // "Bank / Person saved". The endpoint exists, so anything going wrong here is
+    // something the operator needs to see.
+    if (error) return toast.error(error.message || 'Could not save this bank / person')
+
+    // And a response with no row is also a failure, not a reason to write locally.
+    // The old code took that branch silently and reported success.
+    if (!data) return toast.error('The server did not confirm the save. Please try again.')
+
+    setLenders(current => editItem
+      ? current.map(item => item.id === data.id ? data : item)
+      : [data, ...current.filter(item => item.id !== data.id)])
     toast.success(editItem ? 'Bank / Person updated' : 'Bank / Person saved')
     resetForm()
     loadAll()

@@ -997,18 +997,6 @@ export default function Sales() {
     }
   }
 
-  function previewSalePayments(saleId: string, invoiceNo: string, rows: PaymentRow[]) {
-    return rows.map((row, index) => ({
-      ...row,
-      id: row.id || `${saleId}-payment-${index}`,
-      sale_id: saleId,
-      invoice_no: invoiceNo,
-      date: form.date,
-      customer_id: form.customer_id || null,
-      customer_name: form.customer_name || '',
-    }))
-  }
-
   function salePaymentPayloads(saleId: string, invoiceNo: string, rows: PaymentRow[]) {
     return rows.map(row => ({
       sale_id: saleId,
@@ -1247,27 +1235,41 @@ export default function Sales() {
     }
   }
 
+  /**
+   * Write a sale's split payments to the server, and only to the server.
+   *
+   * There used to be a localStorage fallback here that fired when the error text
+   * contained 'sale_payments' OR 'does not exist', then showed a green "Split
+   * payment saved with local fallback." Both halves of that test were wrong:
+   *
+   *   - 'does not exist' matches real server rejections. "Account does not
+   *     exist" and "Customer does not exist" both routed genuine money records
+   *     into the browser while telling the operator they were saved.
+   *   - Those stranded rows were then merged into the Balance sheet, so the same
+   *     page showed different account balances on two computers, and a fallback
+   *     row for a since-deleted sale kept adding to cash sales forever.
+   *
+   * The `sale_payments` endpoint exists and has for a long time. A failure here
+   * has to surface: the sale itself is already saved by this point, so the caller
+   * shows the error and the operator can re-enter the payment split rather than
+   * discovering months later that the cash was never booked.
+   *
+   * The browser copy is still CLEARED on every successful write, so any rows left
+   * over from when the fallback was live disappear as soon as that sale is saved
+   * again - and readStorageRows is still read on load, so until then they are
+   * visible rather than silently dropped.
+   */
   async function saveSalePayments(saleId: string, invoiceNo: string, paymentRowsToSave: PaymentRow[]) {
-    try {
-      const { error: deleteError } = await supabase.from('sale_payments').delete().eq('sale_id', saleId)
-      if (deleteError) throw deleteError
-      if (paymentRowsToSave.length === 0) {
-        saveStorageRows(salePaymentsFallbackKey, saleId, [])
-        return
-      }
+    const { error: deleteError } = await supabase.from('sale_payments').delete().eq('sale_id', saleId)
+    if (deleteError) throw deleteError
+
+    if (paymentRowsToSave.length > 0) {
       const rows = salePaymentPayloads(saleId, invoiceNo, paymentRowsToSave)
       const { error } = await supabase.from('sale_payments').insert(rows)
       if (error) throw error
-      saveStorageRows(salePaymentsFallbackKey, saleId, [])
-    } catch (error: any) {
-      const message = String(error?.message || '')
-      if (message.toLowerCase().includes('sale_payments') || message.toLowerCase().includes('does not exist')) {
-        saveStorageRows(salePaymentsFallbackKey, saleId, previewSalePayments(saleId, invoiceNo, paymentRowsToSave))
-        toast.success('Split payment saved with local fallback.')
-        return
-      }
-      throw error
     }
+
+    saveStorageRows(salePaymentsFallbackKey, saleId, [])
   }
 
   function resetForm() {

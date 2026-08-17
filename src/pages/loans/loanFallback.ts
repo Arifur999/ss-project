@@ -1,7 +1,42 @@
+/**
+ * Loan lenders that were stranded in a browser, and getting them out.
+ *
+ * The `/loan-lenders` endpoint exists and works, so nothing is written here any
+ * more. While the fallback was live three things went wrong at once:
+ *
+ *   - The "table is missing" test was `error.message.includes('loan_lenders')`,
+ *     which matches any error that merely names the table - a foreign key
+ *     violation, a validation failure, a permission error. All of them diverted
+ *     the save into localStorage and showed a green "Bank / Person saved".
+ *   - Worse, a server response with no error but no row also wrote locally and
+ *     reported success.
+ *   - Unlike every other fallback in the app there was no push-up, so rows
+ *     merged in from the browser forever and never reached Postgres.
+ *
+ * The key is global rather than per-user, so two owners sharing one browser could
+ * see each other's lenders. That is why migration filters on the `owner_id` each
+ * row was saved with: rows belonging to somebody else are left where they are
+ * rather than handed to whoever logs in first.
+ */
+import { supabase } from '../../lib/supabase'
+
 const STORAGE_KEY = 'loan_lenders_fallback'
 
+/**
+ * Whether the loan_lenders table is genuinely absent.
+ *
+ * Deliberately narrow. The old version matched any message containing
+ * 'loan_lenders', which is most of them.
+ */
 export function isLoanLenderTableMissing(error?: { message?: string } | null) {
-  return Boolean(error?.message?.includes('loan_lenders'))
+  const message = String(error?.message || '').toLowerCase()
+  if (!message) return false
+  return (
+    message.includes('table not supported by api layer') ||
+    message.includes('does not exist') ||
+    message.includes('relation "loan_lenders"') ||
+    message.includes('404')
+  )
 }
 
 export function getStoredLoanLenders() {
@@ -35,6 +70,40 @@ export function saveStoredLoanLender(form: any, editItem?: any) {
   setStoredLoanLenders(next)
 
   return lender
+}
+
+/**
+ * Move this owner's stranded lenders up to the server, once.
+ *
+ * Returns the number pushed, so the caller knows whether to reload and tell the
+ * operator. Only rows whose stored `owner_id` matches - plus rows saved before
+ * owner_id was recorded, which can only have come from this browser's single
+ * account - are touched. Anything belonging to another owner is left alone, since
+ * the storage key is shared across accounts on the same browser.
+ *
+ * Rows are removed from the browser one at a time, as each insert succeeds, so a
+ * failure part-way through neither loses the rest nor duplicates what already
+ * went up.
+ */
+export async function migrateStoredLoanLenders(ownerId?: string): Promise<number> {
+  const stored = getStoredLoanLenders()
+  if (stored.length === 0 || !ownerId) return 0
+
+  const mine = stored.filter((lender: any) => !lender.owner_id || lender.owner_id === ownerId)
+  if (mine.length === 0) return 0
+
+  let pushed = 0
+  for (const lender of mine) {
+    // The server issues the id, created_at and created_by.
+    const { id: _localId, created_at: _createdAt, created_by: _createdBy, ...payload } = lender
+    const { error } = await supabase.from('loan_lenders').insert({ ...payload, owner_id: ownerId })
+    if (error) break
+
+    setStoredLoanLenders(getStoredLoanLenders().filter((row: any) => row.id !== lender.id))
+    pushed += 1
+  }
+
+  return pushed
 }
 
 export function deleteStoredLoanLender(item: any) {
