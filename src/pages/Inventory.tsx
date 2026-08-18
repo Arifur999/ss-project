@@ -345,14 +345,14 @@ export default function Inventory() {
     const headers = [
       t('inventory_colCode'), t('inventory_colName'), t('inventory_colSupplier'),
       t('inventory_colOpeningQty'), t('inventory_colOrderQty'), t('inventory_colReceivedQty'),
-      t('inventory_colUpcomingQty'), t('inventory_colSalesQty'), t('inventory_colAvailableStock'),
+      t('inventory_colUpcomingQty'), t('inventory_colAvailableStock'),
       t('inventory_colDp'), t('inventory_colTotalValue'), t('inventory_colStatus'),
     ]
     const csvRows = filtered.map(r => {
       const dp = r.dp_price != null ? r.dp_price : (r.products?.cost_price || 0)
       const sup = r.products?.suppliers?.company_name || r.products?.suppliers?.name || ''
       const status = t(statusConfig[getStatus(r)].labelKey)
-      return [r.products?.product_code || '', r.products?.name || '', sup, r.opening_qty, r.order_qty, r.received_qty, r.upcoming_qty, r.sales_qty, r.available_qty, dp, r.fifo_stock_value || 0, status].map(v => `"${v}"`).join(',')
+      return [r.products?.product_code || '', r.products?.name || '', sup, r.opening_qty, r.order_qty, r.received_qty, r.upcoming_qty, r.available_qty, dp, r.fifo_stock_value || 0, status].map(v => `"${v}"`).join(',')
     })
     const csv = [headers.join(','), ...csvRows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -375,7 +375,6 @@ export default function Inventory() {
         { label: t('inventory_colOrderQty'), align: 'right' },
         { label: t('inventory_colReceivedQty'), align: 'right' },
         { label: t('inventory_colUpcomingQty'), align: 'right' },
-        { label: t('inventory_colSalesQty'), align: 'right' },
         { label: t('inventory_colAvailableStock'), align: 'right' },
         { label: t('inventory_colDp'), align: 'right' },
         { label: t('inventory_colTotalValue'), align: 'right' },
@@ -389,7 +388,7 @@ export default function Inventory() {
           r.products?.product_code || '',
           r.products?.name || '',
           sup,
-          r.opening_qty, r.order_qty, r.received_qty, r.upcoming_qty, r.sales_qty, r.available_qty,
+          r.opening_qty, r.order_qty, r.received_qty, r.upcoming_qty, r.available_qty,
           formatCurr(Number(dp || 0)),
           formatCurr(Number(r.fifo_stock_value || 0)),
           t(statusConfig[getStatus(r)].labelKey),
@@ -455,7 +454,6 @@ export default function Inventory() {
               <th className="text-right py-2.5 px-3">{t('inventory_colOrderQty')}</th>
               <th className="text-right py-2.5 px-3">{t('inventory_colReceivedQty')}</th>
               <th className="text-right py-2.5 px-3">{t('inventory_colUpcomingQty')}</th>
-              <th className="text-right py-2.5 px-3">{t('inventory_colSalesQty')}</th>
               <th className="text-right py-2.5 px-3">{t('inventory_colAvailableStock')}</th>
               <th className="text-right py-2.5 px-3 min-w-[130px]">{t('inventory_colDp')}</th>
               <th className="text-right py-2.5 px-3">{t('inventory_colTotalValue')}</th>
@@ -496,7 +494,6 @@ export default function Inventory() {
                   <td className="py-2 px-3 text-right text-slate-700 font-medium">{row.order_qty}</td>
                   <td className="py-2 px-3 text-right text-brand-green font-medium">{row.received_qty}</td>
                   <td className="py-2 px-3 text-right text-brand-blue font-medium">{row.upcoming_qty}</td>
-                  <td className="py-2 px-3 text-right text-red-500 font-medium">{row.sales_qty}</td>
                   {/* The stock figure itself opens the adjustment box.
                       There was no way at all to record "five chairs were damaged"
                       - POST /inventory/adjust existed, kept FIFO in step, and had
@@ -533,14 +530,14 @@ export default function Inventory() {
                 </tr>
               )
             })}
-            {filtered.length === 0 && !loading && <tr><td colSpan={14} className="text-center py-10 text-slate-400">{t('common_noData')}</td></tr>}
+            {filtered.length === 0 && !loading && <tr><td colSpan={13} className="text-center py-10 text-slate-400">{t('common_noData')}</td></tr>}
             {/* Skeleton rows rather than a "loading" line, so the table is
                 seen filling in. */}
             {loading && <TableSkeleton rows={10} cols={14} />}
             {/* Loads the next page 600px before the reader reaches the end. */}
             {paged.hasMore && !loading && (
               <tr ref={paged.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
-                <td colSpan={14} className="py-4 text-center text-sm text-slate-400">
+                <td colSpan={13} className="py-4 text-center text-sm text-slate-400">
                   {paged.loadingMore
                     ? `Loading more… ${rows.length.toLocaleString()} of ${paged.total.toLocaleString()}`
                     : `${rows.length.toLocaleString()} of ${paged.total.toLocaleString()} loaded`}
