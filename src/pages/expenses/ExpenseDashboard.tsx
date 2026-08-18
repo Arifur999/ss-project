@@ -518,7 +518,9 @@ function CategoryCard({ category: cat, totalSpent, monthSpent, yearSpent, format
 
       {panel && (
         <div className="mb-3">
-          <p className="text-3xl font-black leading-none tracking-tight tabular-nums text-navy-900">{formatCurr(totalSpent)}</p>
+          {/* Same size, ordinary weight - the size alone is enough to make it
+              the headline here, and bold made it shout next to the ring. */}
+          <p className="text-3xl font-normal leading-none tracking-tight tabular-nums text-navy-900">{formatCurr(totalSpent)}</p>
           <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Spent</p>
         </div>
       )}
