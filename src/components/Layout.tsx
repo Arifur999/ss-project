@@ -194,18 +194,28 @@ export default function Layout() {
    *
    * A group whose children all disappear disappears with them, rather than
    * sitting there opening onto nothing.
+   *
+   * Top-level entries with no children (Dashboard, Inventory, and every
+   * super-admin link) are judged on their own path and otherwise left exactly as
+   * they are. The first version of this mapped `children: group.children ?? []`
+   * over everything, which gave those entries an EMPTY array where they had had
+   * none - and the "drop a group with no children left" rule then removed every
+   * one of them. Inventory vanished from the menu and the whole super-admin
+   * sidebar went blank.
    */
-  const visibleNavGroups = (profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups)
-    .map((group: any) => ({
-      ...group,
-      children: (group.children ?? []).filter((child: any) => {
-        const needed = ROUTE_PERMISSIONS[child.path]
-        return !needed || hasPermission(profile?.role, profile?.permissions, needed)
-      }),
-    }))
-    .filter((group: any) => !group.children || group.children.length > 0)
+  const allowedPath = (path?: string) => {
+    const needed = path ? ROUTE_PERMISSIONS[path] : undefined
+    return !needed || hasPermission(profile?.role, profile?.permissions, needed)
+  }
 
-  const navGroups = visibleNavGroups
+  const navGroups = (profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups)
+    .map((group: any) => {
+      // A direct link. Nothing to filter inside it, and it must keep its
+      // undefined `children` so the renderer still treats it as a link.
+      if (!group.children) return group
+      return { ...group, children: group.children.filter((child: any) => allowedPath(child.path)) }
+    })
+    .filter((group: any) => (group.children ? group.children.length > 0 : allowedPath(group.path)))
 
   // Keep the sidebar in sync with the current route: whenever the URL changes
   // (clicks, programmatic redirects, refresh), auto-open the group that owns the
