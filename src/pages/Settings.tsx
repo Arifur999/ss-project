@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { PlusIcon as Plus, TrashIcon as Trash2, UsersIcon as Users, CreditCardIcon as CreditCard, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
+import { ALL_PERMISSIONS, PERMISSION_GROUPS, PERMISSION_TEMPLATES } from '../lib/permissions'
 import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
@@ -278,27 +279,28 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const permissionGroups = [
-    { title: 'Purchase', icon: <ShoppingCart size={17} />, items: ['View Purchase', 'Add Purchase', 'Edit Purchase', 'Delete Purchase', 'Purchase Book', 'Purchase Book Edit', 'Purchase Book Delete'] },
-    { title: 'Sales', icon: <ShoppingCart size={17} />, items: ['View Sales', 'New Sale', 'Quick Sale', 'Cart Edit', 'Discount', 'Delivery Charge', 'Transaction List', 'Edit Sale', 'Delete Sale'] },
-    { title: 'Due Management', icon: <CreditCard size={17} />, items: ['View Due', 'Due History', 'Add Due', 'Edit Due', 'Delete Due'] },
-    { title: 'Expenses', icon: <Calculator size={17} />, items: ['View Expense', 'Add Expense', 'Edit Expense', 'Delete Expense', 'Category Add', 'Category Edit', 'Category Delete'] },
-    { title: 'Contacts - Customers', icon: <Users size={17} />, items: ['View Customer', 'Add Customer', 'Edit Customer', 'Delete Customer'] },
-    { title: 'Contacts - Suppliers', icon: <Truck size={17} />, items: ['View Supplier', 'Add Supplier', 'Edit Supplier', 'Delete Supplier'] },
-    { title: 'Contacts - Employees', icon: <UserCog size={17} />, items: ['View Employee', 'Add Employee', 'Edit Employee', 'Delete Employee'] },
-    { title: 'Inventory', icon: <Package size={17} />, items: ['Product List', 'Add Product', 'Edit Product', 'Delete Product', 'Stock Book', 'Stock History', 'Stock Update'] },
-    { title: 'Reports', icon: <BarChart3 size={17} />, items: ['Sales Report', 'Purchase Report', 'Expense Report', 'Customer Report', 'Supplier Report', 'Profit Report'] },
-    { title: 'Settings & System', icon: <Cog size={17} />, items: ['Business Settings', 'User Management', 'Backup', 'Restore'] },
-  ]
-  const allPermissions = permissionGroups.flatMap(group => group.items)
-  const templatePermissions: Record<string, string[]> = {
-    owner: allPermissions,
-    manager: allPermissions.filter(item => !item.includes('Delete') && !['User Management', 'Backup', 'Restore'].includes(item)),
-    sales_staff: ['View Sales', 'New Sale', 'Quick Sale', 'Cart Edit', 'Discount', 'Delivery Charge', 'Transaction List', 'View Customer', 'Add Customer', 'Edit Customer', 'Product List', 'Stock Book'],
-    inventory_manager: ['Product List', 'Add Product', 'Edit Product', 'Delete Product', 'Stock Book', 'Stock History', 'Stock Update', 'View Supplier', 'Add Supplier', 'Edit Supplier'],
-    accountant: ['View Due', 'Due History', 'Add Due', 'Edit Due', 'View Expense', 'Add Expense', 'Edit Expense', 'Sales Report', 'Purchase Report', 'Expense Report', 'Customer Report', 'Supplier Report', 'Profit Report'],
-    custom: [],
+  // The names come from lib/permissions, which mirrors the backend's canonical
+  // list - the server drops anything it does not recognise, so a name invented
+  // here alone would tick a box that grants nothing. Icons stay here because
+  // they are presentation.
+  const groupIcons: Record<string, React.ReactNode> = {
+    'Purchase': <ShoppingCart size={17} />,
+    'Sales': <ShoppingCart size={17} />,
+    'Due Management': <CreditCard size={17} />,
+    'Expenses': <Calculator size={17} />,
+    'Contacts - Customers': <Users size={17} />,
+    'Contacts - Suppliers': <Truck size={17} />,
+    'Contacts - Employees': <UserCog size={17} />,
+    'Inventory': <Package size={17} />,
+    'Money': <BarChart3 size={17} />,
+    'Reports & System': <Cog size={17} />,
   }
+  const permissionGroups = PERMISSION_GROUPS.map(group => ({
+    title: group.title,
+    icon: groupIcons[group.title] ?? <Cog size={17} />,
+    items: group.items,
+  }))
+  const templatePermissions = PERMISSION_TEMPLATES
   const [selectedTemplate, setSelectedTemplate] = useState('sales_staff')
   const [permissions, setPermissions] = useState<string[]>(templatePermissions.sales_staff)
   const templates = [
@@ -337,6 +339,10 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
         phone: form.phone,
         role: form.role,
         avatar_url: avatarUrl,
+        // The line that was missing. Sixty checkboxes were collected into
+        // `permissions` and then never sent, so clearing "Delete Sale" for a
+        // Manager changed nothing at all.
+        permissions,
       })
       toast.success(t('common_added'))
       onClose()
@@ -485,7 +491,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
               ))}
             </div>
             <div className="mb-4 flex flex-wrap gap-2 border-y border-slate-100 py-3">
-              <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions(allPermissions) }} className="btn-primary px-3 py-2 text-xs"><Check size={13} />Select All</button>
+              <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions(ALL_PERMISSIONS) }} className="btn-primary px-3 py-2 text-xs"><Check size={13} />Select All</button>
               <button type="button" onClick={() => { setSelectedTemplate('custom'); setPermissions([]) }} className="btn-secondary px-3 py-2 text-xs"><X size={13} />Unselect All</button>
             </div>
             <div className="grid max-h-[calc(100vh-420px)] min-h-[420px] grid-cols-1 gap-3 overflow-y-auto pr-1 lg:grid-cols-2 2xl:grid-cols-3">

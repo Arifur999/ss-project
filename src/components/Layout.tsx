@@ -5,6 +5,7 @@ import { GaugeIcon as Gauge, BankIcon as Bank, HandshakeIcon as Handshake, HandC
   UsersThreeIcon as UsersThree, ChartLineUpIcon as ChartLineUp, RecycleIcon as Recycle,
   IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck, TagIcon as Tag } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
+import { ROUTE_PERMISSIONS, hasPermission } from '../lib/permissions'
 import { useLang } from '../context/LanguageContext'
 import { whatsAppLink } from '../lib/support'
 import NotificationBell from './NotificationBell'
@@ -179,7 +180,32 @@ export default function Layout() {
     children: adminChildren,
   } as any)
 
-  const navGroups = profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups
+  /**
+   * Hide the menu entries this user cannot use.
+   *
+   * The sidebar was never filtered at all, so a Sales Staff member saw the whole
+   * app and discovered what they could not do by clicking it and getting a 403.
+   *
+   * This is presentation only - the server decides what is allowed, and every one
+   * of these routes is guarded there too. Anything not named in ROUTE_PERMISSIONS
+   * is always shown, and hasPermission returns true for an owner and for anyone
+   * with no permissions stored, so the default sidebar is unchanged for everyone
+   * who has not had boxes ticked for them.
+   *
+   * A group whose children all disappear disappears with them, rather than
+   * sitting there opening onto nothing.
+   */
+  const visibleNavGroups = (profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups)
+    .map((group: any) => ({
+      ...group,
+      children: (group.children ?? []).filter((child: any) => {
+        const needed = ROUTE_PERMISSIONS[child.path]
+        return !needed || hasPermission(profile?.role, profile?.permissions, needed)
+      }),
+    }))
+    .filter((group: any) => !group.children || group.children.length > 0)
+
+  const navGroups = visibleNavGroups
 
   // Keep the sidebar in sync with the current route: whenever the URL changes
   // (clicks, programmatic redirects, refresh), auto-open the group that owns the

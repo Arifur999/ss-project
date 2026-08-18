@@ -33,6 +33,8 @@ interface Profile {
   phone: string
   branch_id: string | null
   is_active: boolean
+  /** What this user may do within their role. Empty = everything the role allows. */
+  permissions?: string[]
 }
 
 interface OwnerSubscription {

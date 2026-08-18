@@ -3,9 +3,9 @@ import { api, http } from '../lib/httpClient'
 
 // ---------- Team management (owner) - replaces the manage-users edge function ----------
 export const listTeamUsers = () => http.get<any[]>('/users/list')
-export const createTeamUser = (payload: { email: string; password: string; full_name: string; role: string; phone?: string; avatar_url?: string }) =>
+export const createTeamUser = (payload: { email: string; password: string; full_name: string; role: string; phone?: string; avatar_url?: string; permissions?: string[] }) =>
   http.post<any>('/users/create', payload)
-export const updateTeamUser = (payload: { user_id: string; role?: string; full_name?: string; phone?: string; is_active?: boolean; password?: string; avatar_url?: string }) =>
+export const updateTeamUser = (payload: { user_id: string; role?: string; full_name?: string; phone?: string; is_active?: boolean; password?: string; avatar_url?: string; permissions?: string[] }) =>
   http.put<any>('/users/update', payload)
 // A person editing their own name, phone or photo. /users/update deliberately
 // refuses the caller's own row - that route is for managing staff.

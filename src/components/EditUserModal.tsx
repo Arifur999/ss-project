@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { updateOwnProfile, updateTeamUser } from '../services/admin.services'
 import { uploadImage } from '../services/product.services'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../lib/phone'
+import { PERMISSION_GROUPS } from '../lib/permissions'
 
 const ROLE_OPTIONS = [
   { value: 'manager', label: 'Manager' },
@@ -35,6 +36,11 @@ export default function EditUserModal({ user, onClose }: { user: any; onClose: (
     is_active: user?.is_active !== false,
     avatar_url: String(user?.avatar_url || ''),
   })
+  // What this user may do within their role. An empty list means "everything the
+  // role allows", which is what every existing team member has - so opening this
+  // modal on an untouched user shows nothing ticked and saving without touching
+  // the boxes leaves them exactly as they were.
+  const [permissions, setPermissions] = useState<string[]>(user?.permissions ?? [])
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -84,6 +90,7 @@ export default function EditUserModal({ user, onClose }: { user: any; onClose: (
           role: form.role,
           is_active: form.is_active,
           avatar_url: form.avatar_url,
+          permissions,
         })
       }
       toast.success(t('common_updated'))
@@ -180,6 +187,49 @@ export default function EditUserModal({ user, onClose }: { user: any; onClose: (
                 <option value="active">{t('common_active')}</option>
                 <option value="inactive">{t('common_inactive')}</option>
               </select>
+            </div>
+          </div>
+        )}
+
+        {/* Permissions, for staff only.
+            The create screen had these and this one did not, so a permission set
+            at creation could never be seen again, let alone changed. Nothing
+            ticked means "everything the role allows" - which is what every user
+            created before this existed has, and why an untouched user shows an
+            empty grid and keeps working exactly as before. */}
+        {!isSelf && (
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="label mb-0">{t('settings_permissions', 'Permissions')}</label>
+              <span className="text-[11px] text-slate-400">
+                {permissions.length === 0
+                  ? t('settings_permissionsAll', 'Nothing ticked = full access for this role')
+                  : `${permissions.length} selected`}
+              </span>
+            </div>
+            <div className="max-h-56 space-y-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
+              {PERMISSION_GROUPS.map(group => (
+                <div key={group.title}>
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">{group.title}</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {group.items.map(item => (
+                      <label key={item} className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+                        <input
+                          type="checkbox"
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-brand-green focus:ring-brand-green"
+                          checked={permissions.includes(item)}
+                          onChange={() => setPermissions(current =>
+                            current.includes(item)
+                              ? current.filter(value => value !== item)
+                              : [...current, item]
+                          )}
+                        />
+                        {item}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
