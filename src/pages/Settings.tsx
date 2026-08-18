@@ -182,8 +182,12 @@ export default function Settings() {
                           >
                             <Pencil size={14} />
                           </button>
+                          {/* Deletes. It used to deactivate, which the status
+                              pill beside it already does - so the one control
+                              that looked destructive was the one that was not,
+                              and there was no way to remove a user at all. */}
                           {!isSelf && (
-                            <button onClick={() => toggleUserActive(u.id, false)} className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-red-50 hover:text-brand-red" title="Deactivate"><Trash2 size={14} /></button>
+                            <button onClick={() => setShowDeleteConfirm(u)} className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-red-50 hover:text-brand-red" title={t('common_delete')}><Trash2 size={14} /></button>
                           )}
                         </div>
                       </td>
@@ -214,7 +218,17 @@ export default function Settings() {
               <Trash2 size={24} className="text-brand-red" />
             </div>
             <p className="font-semibold text-slate-800 mb-1">{showDeleteConfirm.full_name || showDeleteConfirm.email}</p>
-            <p className="text-sm text-slate-500 mb-6">{showDeleteConfirm.email}</p>
+            <p className="text-sm text-slate-500 mb-3">{showDeleteConfirm.email}</p>
+            {/* Says which of the two things this is, because the row offers
+                both. Everything they entered belongs to the business and is
+                keyed to it, not to them, so none of it leaves with the account
+                - and saying so is what makes the choice between the two
+                controls an informed one. */}
+            <p className="mb-6 text-sm leading-relaxed text-slate-500">
+              This removes the account for good and they will not be able to sign in again.
+              Everything they entered - sales, purchases, customers - stays with the business.
+              To stop their access without deleting them, use the Active button on their row instead.
+            </p>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteConfirm(null)} className="btn-secondary flex-1 justify-center">{t('common_cancel')}</button>
               <button onClick={() => deleteUser(showDeleteConfirm.id)} className="btn-danger flex-1 justify-center"><Trash2 size={14} /> {t('common_delete')}</button>
