@@ -592,8 +592,8 @@ export default function YearlyReport() {
                     {/* The year's own totals, on the first row where the Monthly
                         report puts them, rather than at the foot of twelve
                         months. */}
-                    <tr className="bg-white font-black text-slate-900">
-                      <td className="sticky left-0 bg-white px-2 py-2">Total</td>
+                    <tr className="table-total">
+                      <td className="sticky left-0 px-2 py-2">Total</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.salesGoal)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.actualSales)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitGoal)}</td>

@@ -629,7 +629,7 @@ function BreakdownTable({
             </tr>
           </thead>
           <tbody>
-            <tr className="bg-slate-100 font-bold text-slate-800">
+            <tr className="table-total">
               {columns.map(([, key]) => (
                 <td key={String(key)} className={`px-2 py-2 ${key === 'name' ? 'truncate text-left' : 'text-right'}`}>
                   {totalValue(key)}

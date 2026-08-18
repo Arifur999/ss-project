@@ -63,6 +63,9 @@ export default {
           'green-light': '#4ADE80',
           'green-soft': '#F0FDF4',
           red: '#EF4444',
+          // For red type on a near-black ground - the totals bar. #EF4444 is
+          // picked to read on white and goes muddy there.
+          'red-light': '#FCA5A5',
           'red-soft': '#FEF2F2',
           blue: '#3B82F6',
           'blue-soft': '#EFF6FF',

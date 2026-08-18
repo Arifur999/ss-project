@@ -167,6 +167,34 @@
     @apply hidden;
   }
 
+  /* The totals row, in the header's own near-black.
+     A total is the line people look for, and it was set apart only by a slight
+     grey and a bolder weight - on a long table it disappeared into the rows
+     above it. Reading the same as the header gives the table two fixed bars,
+     labels at one end and figures at the other.
+
+     The paint goes on the cells for the same reason as .table-header: a
+     background on the row loses to any cell that sets its own, and several of
+     these rows do (a sticky first column has to carry one). The element
+     selector also outranks the text-slate-* those cells set, so the type turns
+     white without editing each page. */
+  .table-total td,
+  .table-total th {
+    @apply whitespace-nowrap bg-navy-900 font-bold text-white;
+    background-image: linear-gradient(180deg, #33333a 0%, #17171c 55%, #0b0b0e 100%);
+    /* Also the hairline that keeps this bar from merging into the header
+       above it on the tables where the total sits on the first row. */
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+  /* Money keeps its meaning inside the bar - green in, red out - but the two
+     had been picked to read on white and go muddy on near-black. */
+  .table-total .text-brand-green {
+    @apply text-brand-green-light;
+  }
+  .table-total .text-brand-red {
+    @apply text-brand-red-light;
+  }
+
   /* Anything inside the header now sits on near-black, so it inverts. */
   .table-header th button,
   .table-header th a,

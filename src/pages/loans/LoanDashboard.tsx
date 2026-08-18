@@ -267,8 +267,8 @@ export default function LoanDashboard() {
                 )
               })}
               {displayed.length > 0 && (
-                <tr className="bg-slate-100/80">
-                  <td colSpan={2} className="px-4 py-5 font-bold text-slate-900">Total</td>
+                <tr className="table-total">
+                  <td colSpan={2} className="px-4 py-5">Total</td>
                   <td className="px-4 py-5 text-right">{signedAmount(shownOpening)}</td>
                   <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(shownReceived)}</td>
                   <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(shownPaid)}</td>
