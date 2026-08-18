@@ -82,12 +82,31 @@ jobs:
       # --delete removes files from old builds (hashed asset names would other-
       # wise pile up forever). Trailing slashes matter: copy the CONTENTS of
       # dist into the served folder.
+      # Retried, because a single SSH hiccup should not leave a good build
+      # undeployed. This step has failed on its own more than once with the code
+      # already green in quality-check, and the only remedy was pushing an empty
+      # commit to run the whole pipeline again - during which the site keeps
+      # serving the previous bundle and whatever was fixed stays unfixed.
+      #
+      # rsync is idempotent, so a retry after a partial transfer simply resumes:
+      # --delete removes what is no longer in dist, and re-sending an identical
+      # file is a checksum comparison rather than a copy. ConnectTimeout keeps a
+      # dead connection from burning the whole job's time budget.
       - name: Upload the build
         run: |
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
-            dist/ \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/Hatim/dist/"
+          for attempt in 1 2 3; do
+            if rsync -az --delete \
+                -e "ssh -i ~/.ssh/id_ed25519 -o ConnectTimeout=20 -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+                dist/ \
+                "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/Hatim/dist/"; then
+              echo "Uploaded on attempt $attempt"
+              exit 0
+            fi
+            echo "Upload attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+          echo "Upload failed three times - the VPS is unreachable, not the build"
+          exit 1
 
       # Asked over the public address, the same way a customer reaches it, so
       # DNS, the certificate and nginx all have to be working for this to pass.
