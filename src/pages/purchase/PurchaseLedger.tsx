@@ -408,14 +408,18 @@ export default function PurchaseLedger() {
             <div ref={invoiceRef} className="invoice-print-page bg-white text-slate-950">
               <div className="invoice-print-inner">
                 <h2 className="mb-4 text-center text-[24px] font-bold leading-none text-slate-950">Purchase Invoice / Voucher</h2>
-                <div className="grid grid-cols-2 gap-8 border-b border-slate-300 pb-4 text-[12px]">
-                  <div className="space-y-2">
-                    <p><span className="font-bold">Supplier:</span> {selectedInvoice.supplier_name}</p>
-                    <p><span className="font-bold">Invoice No:</span> <span className="font-mono">{selectedInvoice.si_no}</span></p>
+                {/* minmax(0,1fr) rather than a plain half-and-half split: a grid
+                    track's default minimum is its content, so a long supplier name
+                    would widen its own column and push the dates off the page
+                    instead of wrapping. Spacing is otherwise unchanged. */}
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-8 border-b border-slate-300 pb-4 text-[12px]">
+                  <div className="min-w-0 space-y-2">
+                    <p className="break-words"><span className="font-bold">Supplier:</span> {selectedInvoice.supplier_name}</p>
+                    <p className="break-words"><span className="font-bold">Invoice No:</span> <span className="font-mono">{selectedInvoice.si_no}</span></p>
                   </div>
-                  <div className="space-y-2 text-right">
-                    <p><span className="font-bold">Order Date:</span> {formatDate(selectedInvoice.order_date)}</p>
-                    <p><span className="font-bold">Invoice Date:</span> {formatDate(selectedInvoice.invoice_date)}</p>
+                  <div className="shrink-0 space-y-2 text-right">
+                    <p className="whitespace-nowrap"><span className="font-bold">Order Date:</span> {formatDate(selectedInvoice.order_date)}</p>
+                    <p className="whitespace-nowrap"><span className="font-bold">Invoice Date:</span> {formatDate(selectedInvoice.invoice_date)}</p>
                   </div>
                 </div>
 

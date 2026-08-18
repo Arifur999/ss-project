@@ -395,6 +395,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* A flex item will not shrink below its own content by default, so a long
+     customer name pushed straight out of its grid cell and over the column
+     beside it. These three let the value wrap onto a second line instead. */
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.due-receipt-meta > div > span,
+.due-receipt-customer > div > span {
+  min-width: 0;
+  /* anywhere, not break-word: an unbroken run - a long address with no spaces,
+     an email typed into the name - has to split somewhere or it defeats the
+     wrapping above. */
+  overflow-wrap: anywhere;
 }
 
 .due-receipt-icon {

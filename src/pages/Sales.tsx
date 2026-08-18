@@ -3220,10 +3220,14 @@ export default function Sales() {
                     <h1 className="text-[42px] font-bold leading-none tracking-normal text-slate-950">
                       {lang === 'bn' ? business?.name_bn || business?.name_en || t('appName') : business?.name_en || business?.name_bn || t('appName')}
                     </h1>
+                    {/* The business address and the phone/email line both used to
+                        be whitespace-nowrap, so a long address ran off the paper
+                        instead of taking a second line. They are centred, so a
+                        wrapped line still reads correctly. */}
                     <div className="mt-2 pt-1 text-[17px] italic leading-tight text-slate-700">
-                      <p className="whitespace-nowrap">{business?.address ? `Address: ${business.address}` : 'Where Quality Meets Style'}</p>
+                      <p className="break-words">{business?.address ? `Address: ${business.address}` : 'Where Quality Meets Style'}</p>
                       {(business?.phone || business?.email) && (
-                        <p className="whitespace-nowrap">
+                        <p className="break-words">
                           {business?.phone ? `Phone : ${business.phone}` : ''}
                           {business?.phone && business?.email ? ' , ' : ''}
                           {business?.email ? `Gmail : ${business.email}` : ''}
@@ -3233,16 +3237,28 @@ export default function Sales() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-[1fr_auto] gap-28 pb-1.5 pt-3 text-[16px] leading-tight">
+                {/* The gutter is unchanged. The overflow came from
+                    whitespace-nowrap on the address line: it made that line's
+                    minimum width the whole string, so the left column grew until
+                    the address ran under the Date. Dropping it lets the address
+                    take two or three lines instead. minmax(0,1fr) is belt and
+                    braces - a grid track's default minimum is its content, so
+                    this stops any future long field widening the column again. */}
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-28 pb-1.5 pt-3 text-[16px] leading-tight">
                   <div className="min-w-0 space-y-1">
-                    <p><span className="font-bold">{invoiceLabels.customerName}:</span> {safeText(selectedSale.customer_name) || '-'}</p>
+                    <p className="break-words"><span className="font-bold">{invoiceLabels.customerName}:</span> {safeText(selectedSale.customer_name) || '-'}</p>
                     <p><span className="font-bold">{invoiceLabels.mobile}:</span> {safeText(selectedSale.customer_phone) || '-'}</p>
-                    <p className="whitespace-nowrap"><span className="font-bold">{invoiceLabels.address}:</span> {selectedSaleCustomerAddress || invoiceLabels.noAddress}</p>
+                    {/* Wraps onto as many lines as it needs. break-words so an
+                        unbroken run - a long post code or an email typed into the
+                        address - splits rather than pushing the column wide again. */}
+                    <p className="break-words"><span className="font-bold">{invoiceLabels.address}:</span> {selectedSaleCustomerAddress || invoiceLabels.noAddress}</p>
                   </div>
                   {(() => {
                     const seller = saleSeller(selectedSale)
+                    // shrink-0 so the seller block keeps its width whatever the
+                    // address does - the address column is the one that gives.
                     return (
-                      <div className="w-[255px] space-y-2">
+                      <div className="w-[255px] shrink-0 space-y-2">
                         <p><span className="font-bold">{invoiceLabels.sellerName}:</span> {safeText(seller?.full_name) || '-'}</p>
                         <p><span className="font-bold">{invoiceLabels.sellerPhone}:</span> {safeText(seller?.phone) || '-'}</p>
                         <p><span className="font-bold">{invoiceLabels.date}:</span> <span className="whitespace-nowrap">{formatInvoiceDateTime(selectedSale.created_at || selectedSale.date)}</span></p>
