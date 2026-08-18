@@ -145,13 +145,14 @@ export default function LoanDashboard() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-green border-t-transparent rounded-full" /></div>
 
+  // One line. The figure and its label were stacked, which gave every row in
+  // the table two lines' height for something that fits on one.
   function signedAmount(amount: number) {
     const label = loanBalanceLabel(amount)
     return (
-      <div className={`font-semibold tabular-nums ${loanBalanceColor(amount)}`}>
-        <div>{formatCurr(amount)}</div>
-        <div className="text-xs">({label})</div>
-      </div>
+      <span className={`whitespace-nowrap font-semibold tabular-nums ${loanBalanceColor(amount)}`}>
+        {formatCurr(amount)} <span className="text-xs font-medium">({label})</span>
+      </span>
     )
   }
 

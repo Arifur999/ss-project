@@ -210,9 +210,8 @@ export default function LoanLedger() {
                     <td className="py-2.5 px-4 text-right text-brand-green">{entry.amounts.received ? formatCurr(entry.amounts.received) : <ZeroAmount />}</td>
                     <td className="py-2.5 px-4 text-right text-brand-red">{entry.amounts.paid ? formatCurr(entry.amounts.paid) : <ZeroAmount />}</td>
                     <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.interest ? formatCurr(entry.amounts.interest) : <ZeroAmount />}</td>
-                    <td className={`py-2.5 px-4 text-right font-semibold ${loanBalanceColor(entry.running_balance)}`}>
-                      {formatCurr(entry.running_balance)}
-                      <div className="text-xs">({loanBalanceLabel(entry.running_balance)})</div>
+                    <td className={`whitespace-nowrap py-2.5 px-4 text-right font-semibold ${loanBalanceColor(entry.running_balance)}`}>
+                      {formatCurr(entry.running_balance)} <span className="text-xs font-medium">({loanBalanceLabel(entry.running_balance)})</span>
                     </td>
                     <td className="py-2.5 px-4 text-slate-500">{entry.notes || <NoValue />}</td>
                   </tr>
