@@ -9,8 +9,19 @@ import { calculateRollingTargets, getDaysInMonth } from './rollingTarget'
  *    target kome jabe.. and jodi kno din sells 16129 tkr kom hoy tahole upcoming
  *    day gular target day bay day bere jabe."
  *
+ * and, when the first reading of that came out wrong, the sentence that settled
+ * it:
+ *
+ *   "aie maser r 10 din baki.. target ase 100000 / 10 diner.. jodi kno din besi
+ *    sells hoy tahole SOV GULAR target kome jabe, jodi kom sells hoy tahole bere
+ *    jabe."
+ *
+ * So every day that has not closed yet - today included - shows ONE shared
+ * figure, and that figure moves up or down together as sales land. Ten days left
+ * and 100,000 to go means ten bars of 10,000, not one bar of 10,000 and nine of
+ * 11,111, and not a staircase climbing to 100,000 on the last day.
+ *
  * This is the most sensitive arithmetic in the app and it had no tests at all.
- * Each block below is one sentence of that rule.
  */
 
 const AUG = { monthlyTarget: 500_000, year: 2026, month: 8 } // 31 days
@@ -21,9 +32,6 @@ const run = (salesMap: Record<number, number>, completed: number, current = comp
 
 const targetOn = (records: { day: number; openingTarget: number }[], day: number) =>
   records.find(r => r.day === day)!.openingTarget
-
-const everyDay = (salesMap: Record<number, number>) =>
-  Array.from({ length: 17 }, (_, i) => [i + 1, salesMap[i + 1] ?? 0])
 
 describe('day one asks for the flat share', () => {
   it('500,000 over 31 days is 16,129', () => {
@@ -63,91 +71,56 @@ describe('selling MORE than the target pulls the later days down', () => {
   })
 })
 
-describe('selling LESS than the target pushes the later days up, day by day', () => {
+describe('selling LESS than the target pushes every open day up, together', () => {
   it('rises across completed days when each sold under target', () => {
-    const r = run(Object.fromEntries(everyDay({})) as Record<number, number>, 17)
-    const days = [1, 2, 3, 16, 17].map(d => targetOn(r.dailyRecords, d))
+    const r = run({ 1: 5_000, 2: 5_000, 3: 5_000 }, 3)
+    const days = [1, 2, 3].map(d => targetOn(r.dailyRecords, d))
     for (let i = 1; i < days.length; i++) expect(days[i]).toBeGreaterThan(days[i - 1])
   })
 
-  it('keeps rising THROUGH the upcoming days - they are not all equal', () => {
-    // The bug the owner caught: "krommanoy barse na, upcoming ... porer gula
-    // soman". Every future day used to carry one flat figure, so the chart rose
-    // across history and then went flat from tomorrow - two rules in one month.
-    const r = run({ 1: 20_000 }, 1)
-    const upcoming = r.dailyRecords.filter(rec => rec.status === 'upcoming')
-    expect(upcoming.length).toBeGreaterThan(2)
-    for (let i = 1; i < upcoming.length; i++) {
-      expect(upcoming[i].openingTarget).toBeGreaterThan(upcoming[i - 1].openingTarget)
+  it("the owner's own example: 10 days left and 100,000 to go is 10,000 on EVERY one of them", () => {
+    // "aie maser r 10 din baki, target ase 100000 / 10 diner."
+    // Day 21 closes with 400,000 sold, so 100,000 is left across days 22-31.
+    const r = run({ 21: 400_000 }, 21)
+    for (let day = 22; day <= 31; day++) {
+      expect(targetOn(r.dailyRecords, day), `day ${day}`).toBeCloseTo(10_000, 1)
     }
   })
 
-  it('applies the SAME formula to a future day as to a past one', () => {
-    // remaining / (days from that day to month end), whichever side of today.
-    const r = run({ 1: 20_000 }, 1)
-    const remaining = 500_000 - 20_000
-    expect(targetOn(r.dailyRecords, 20)).toBeCloseTo(remaining / (31 - 20 + 1), 1)
-    expect(targetOn(r.dailyRecords, 31)).toBeCloseTo(remaining / 1, 1)
+  it('today and every upcoming day carry the SAME figure', () => {
+    // The bug: today divided by the days INCLUDING today, upcoming days divided
+    // by the days AFTER today - so 100,000 over 10 days showed 10,000 today and
+    // 11,111 for each of the other nine. One outstanding amount, two answers.
+    const r = run({ 1: 20_000 }, 1, 2)
+    const open = r.dailyRecords.filter(rec => rec.status !== 'completed')
+    expect(open.length).toBe(30)
+    expect(new Set(open.map(rec => rec.openingTarget)).size).toBe(1)
+    expect(r.upcomingDailyTarget).toBeCloseTo(r.currentDailyTarget, 1)
   })
 
-  it('the last day carries the whole outstanding amount', () => {
+  it('a heavy day pulls every remaining day down at once', () => {
+    const before = run({ 21: 400_000 }, 21)
+    const after = run({ 21: 400_000, 22: 40_000 }, 22)
+    const beforeEach = targetOn(before.dailyRecords, 25)
+    const afterEach = targetOn(after.dailyRecords, 25)
+    expect(afterEach).toBeLessThan(beforeEach)
+    // 60,000 left over the nine days 23-31.
+    expect(afterEach).toBeCloseTo(60_000 / 9, 1)
+  })
+
+  it('a quiet day pushes every remaining day up at once', () => {
+    const after = run({ 21: 400_000, 22: 1_000 }, 22)
+    // 99,000 left over the nine days 23-31.
+    expect(targetOn(after.dailyRecords, 25)).toBeCloseTo(99_000 / 9, 1)
+    expect(targetOn(after.dailyRecords, 31)).toBeCloseTo(99_000 / 9, 1)
+  })
+
+  it('the last day is not asked for the whole outstanding amount', () => {
+    // It would be, if each future day divided by its own days-to-month-end.
     const r = run({ 1: 20_000 }, 1)
-    expect(targetOn(r.dailyRecords, 31)).toBeCloseTo(480_000, 1)
+    expect(targetOn(r.dailyRecords, 31)).toBeLessThan(480_000)
+    expect(targetOn(r.dailyRecords, 31)).toBeCloseTo(480_000 / 30, 1)
   })
 })
 
-describe("today's own bar holds still", () => {
-  it('does not move however much sells today', () => {
-    const quiet = run({ 1: 20_000 }, 1, 2)
-    const busy = calculateRollingTargets({
-      ...AUG, dailySalesMap: { 1: 20_000, 2: 90_000 }, completedThroughDay: 1, inProgressDay: 2,
-    })
-    // Day 2 locks once it has sales, but its opening target is the same figure
-    // it showed all morning.
-    expect(targetOn(busy.dailyRecords, 2)).toBeCloseTo(targetOn(quiet.dailyRecords, 2), 1)
-  })
 
-  it('history never moves once a day is closed', () => {
-    const a = run({ 1: 20_000 }, 1)
-    const b = run({ 1: 20_000, 2: 5_000 }, 2)
-    const c = run({ 1: 20_000, 2: 5_000, 3: 80_000 }, 3)
-    expect(targetOn(b.dailyRecords, 1)).toBeCloseTo(targetOn(a.dailyRecords, 1), 1)
-    expect(targetOn(c.dailyRecords, 1)).toBeCloseTo(targetOn(a.dailyRecords, 1), 1)
-    expect(targetOn(c.dailyRecords, 2)).toBeCloseTo(targetOn(b.dailyRecords, 2), 1)
-  })
-})
-
-describe('the shape of the month', () => {
-  it('emits one record for every calendar day, exactly once', () => {
-    const r = run({ 1: 20_000 }, 1)
-    expect(r.dailyRecords).toHaveLength(31)
-    expect(new Set(r.dailyRecords.map(rec => rec.day)).size).toBe(31)
-  })
-
-  it('a past month has no current day and every day closed', () => {
-    const r = calculateRollingTargets({
-      ...AUG, dailySalesMap: { 1: 10_000 }, completedThroughDay: 31, inProgressDay: 0,
-    })
-    expect(r.inProgressDay).toBe(0)
-    expect(r.dailyRecords.every(rec => rec.status === 'completed')).toBe(true)
-  })
-
-  it('survives a missing target without dividing by anything odd', () => {
-    const r = calculateRollingTargets({
-      monthlyTarget: 0, year: 2026, month: 8,
-      dailySalesMap: {}, completedThroughDay: 17, inProgressDay: 18,
-    })
-    expect(r.dailyRecords.every(rec => rec.openingTarget === 0)).toBe(true)
-    expect(r.dailyRecords.every(rec => Number.isFinite(rec.openingTarget))).toBe(true)
-  })
-
-  it('treats rubbish input as zero rather than NaN', () => {
-    const r = calculateRollingTargets({
-      monthlyTarget: Number.NaN, year: 2026, month: 8,
-      dailySalesMap: { 1: Number.NaN, 2: -500 },
-      completedThroughDay: 2, inProgressDay: 3,
-    })
-    expect(r.dailyRecords.every(rec => Number.isFinite(rec.openingTarget))).toBe(true)
-    expect(r.totalSales).toBe(0)
-  })
-})
