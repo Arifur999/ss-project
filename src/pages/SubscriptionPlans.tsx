@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircleIcon as CheckCircle2, CopyIcon as Copy, CrownIcon as Crown, GlobeIcon as Globe, PhoneIcon as Phone, PaperPlaneTiltIcon as Send, ShieldCheckIcon as ShieldCheck, DeviceMobileIcon as Smartphone, SparkleIcon as Sparkles, TimerIcon as Timer, UsersIcon as Users } from '@phosphor-icons/react'
+import { CopyIcon as Copy, CrownIcon as Crown, GlobeIcon as Globe, ShieldCheckIcon as ShieldCheck, DeviceMobileIcon as Smartphone, SparkleIcon as Sparkles, TimerIcon as Timer } from '@phosphor-icons/react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { choosePlan as choosePlanRequest, getPaymentInfo, submitManualPayment } from '../services/admin.services'
 import { Lang, useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import PendingApproval from '../components/PendingApproval'
+import PlanCard from '../components/PlanCard'
+import { planFeatures } from '../lib/planFeatures'
+import { FALLBACK_PLAN_PRICES } from '../lib/planPricing'
 
 type PlanId = 'free_trial' | 'monthly' | 'yearly'
 
@@ -117,19 +120,6 @@ const planCopy = {
   },
 } satisfies Record<Lang, Record<string, string>>
 
-const featureCopy = {
-  en: {
-    free: ['Full software access', '10 free SMS', '1 dynamic user workspace', 'Standard reports', 'Basic backup layers'],
-    monthly: ['Absolute unlimited workspace features', '100 free SMS', 'Priority VIP tech support hotline', 'Isolated automated database schema backup engine'],
-    yearly: ['Absolute unlimited workspace features', '500 free SMS', 'Priority VIP tech support hotline', 'Isolated automated database schema backup engine'],
-  },
-  bn: {
-    free: ['সম্পূর্ণ সফটওয়্যার অ্যাক্সেস', '১০টি ফ্রি এসএমএস', '১টি ডাইনামিক ইউজার ওয়ার্কস্পেস', 'স্ট্যান্ডার্ড রিপোর্ট', 'বেসিক ব্যাকআপ লেয়ার'],
-    monthly: ['সম্পূর্ণ আনলিমিটেড ওয়ার্কস্পেস ফিচার', '১০০ ফ্রি এসএমএস', 'প্রায়োরিটি VIP টেক সাপোর্ট হটলাইন', 'আইসোলেটেড অটোমেটেড ডাটাবেস স্কিমা ব্যাকআপ ইঞ্জিন'],
-    yearly: ['সম্পূর্ণ আনলিমিটেড ওয়ার্কস্পেস ফিচার', '৫০০ ফ্রি এসএমএস', 'প্রায়োরিটি VIP টেক সাপোর্ট হটলাইন', 'আইসোলেটেড অটোমেটেড ডাটাবেস স্কিমা ব্যাকআপ ইঞ্জিন'],
-  },
-} satisfies Record<Lang, Record<'free' | 'monthly' | 'yearly', string[]>>
-
 // localStorage key that carries the selected plan + the moment it was chosen
 // across the /choose-plan -> /subscription-checkout navigation. The
 // checkout page uses `selectedAt` to run its 30-minute payment countdown.
@@ -168,9 +158,9 @@ export default function SubscriptionPlans() {
       })
       .catch(() => {
         // sane fallback if settings can't load
-        setYearlyPrice(6710)
-        setYearlyOriginalPrice(8388)
-        setMonthlyPrice(699)
+        setYearlyPrice(FALLBACK_PLAN_PRICES.yearly)
+        setYearlyOriginalPrice(FALLBACK_PLAN_PRICES.yearlyOriginal)
+        setMonthlyPrice(FALLBACK_PLAN_PRICES.monthly)
       })
   }, [])
 
@@ -183,50 +173,45 @@ export default function SubscriptionPlans() {
   const plans = useMemo(() => [
     {
       id: 'free_trial' as const,
-      eyebrow: 'FREE TRIAL',
       title: copy('freeTitle'),
-      price: '৳0',
-      originalPrice: null as string | null,
-      discountLabel: null as string | null,
-      features: featureCopy[lang].free,
+      price: lang === 'bn' ? 'ফ্রি' : 'Free',
+      period: lang === 'bn' ? '/ ৭ দিন' : '/ 7 days',
+      originalPrice: undefined as string | undefined,
+      discountLabel: undefined as string | undefined,
+      features: planFeatures(lang, 'free_trial'),
       button: trialUsed ? copy('freeUsedButton') : copy('freeButton'),
-      note: trialUsed ? copy('freeUsedNote') : null,
+      note: trialUsed ? copy('freeUsedNote') : undefined,
       disabled: trialUsed,
-      icon: <Sparkles size={22} />,
-      cardClass: 'border-slate-200',
-      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-neutral-100',
+      icon: <Sparkles size={22} weight="duotone" />,
+      popular: false,
     },
     {
       id: 'monthly' as const,
-      eyebrow: 'MONTHLY PLAN',
       title: lang === 'bn' ? 'মাসিক প্ল্যান' : 'Monthly Plan',
-      price: monthlyPrice === null ? '...' : `${formatBDT(monthlyPrice)} / month`,
-      originalPrice: null as string | null,
-      discountLabel: null as string | null,
-      features: featureCopy[lang].monthly,
+      price: monthlyPrice === null ? '...' : formatBDT(monthlyPrice),
+      period: lang === 'bn' ? '/ মাস' : '/ month',
+      originalPrice: undefined as string | undefined,
+      discountLabel: undefined as string | undefined,
+      features: planFeatures(lang, 'monthly'),
       button: lang === 'bn' ? 'মাসিক প্ল্যান নিন' : 'Choose Monthly',
-      note: lang === 'bn' ? 'কোনো ডিসকাউন্ট নেই' : 'No discount',
+      note: undefined as string | undefined,
       disabled: false,
-      icon: <Timer size={22} />,
-      cardClass: 'border-slate-200',
-      buttonClass: 'border border-slate-300 bg-white text-slate-800 hover:bg-neutral-100',
+      icon: <Timer size={22} weight="duotone" />,
+      popular: false,
     },
     {
       id: 'yearly' as const,
-      eyebrow: 'YEARLY PLAN',
       title: copy('yearlyTitle'),
-      price: yearlyPrice === null ? '...' : `${formatBDT(yearlyPrice)} / year`,
-      originalPrice: discountPercent !== null && yearlyOriginalPrice ? formatBDT(yearlyOriginalPrice) : null,
-      discountLabel: discountPercent !== null ? discountLabelText(discountPercent, lang) : null,
-      badge: copy('yearlyBadge'),
-      features: featureCopy[lang].yearly,
+      price: yearlyPrice === null ? '...' : formatBDT(yearlyPrice),
+      period: lang === 'bn' ? '/ বছর' : '/ year',
+      originalPrice: discountPercent !== null && yearlyOriginalPrice ? formatBDT(yearlyOriginalPrice) : undefined,
+      discountLabel: discountPercent !== null ? discountLabelText(discountPercent, lang) : undefined,
+      features: planFeatures(lang, 'yearly'),
       button: copy('yearlyButton'),
-      note: null as string | null,
+      note: undefined as string | undefined,
       disabled: false,
-      icon: <Crown size={22} />,
-      cardClass: 'border-slate-900 ring-2 ring-slate-200',
-      buttonClass: 'bg-slate-900 text-white hover:bg-black',
-      highlighted: true,
+      icon: <Crown size={22} weight="duotone" />,
+      popular: true,
     },
   ], [lang, t, yearlyPrice, yearlyOriginalPrice, monthlyPrice, discountPercent, trialUsed])
 
@@ -330,53 +315,26 @@ export default function SubscriptionPlans() {
           <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">{copy('subtitle')}</p>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {plans.map(plan => (
-            <section key={plan.id} className={`relative flex min-h-[460px] flex-col rounded-2xl border bg-white p-6 shadow-sm ${plan.cardClass}`}>
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-1 text-xs font-black text-white shadow-sm">
-                  {plan.badge}
-                </div>
-              )}
-              <div className="mb-5 flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{plan.eyebrow}</span>
-                <span className={`rounded-xl p-2 ${plan.highlighted ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>{plan.icon}</span>
-              </div>
-              <h2 className="text-xl font-black text-slate-950">{plan.title}</h2>
-              <div className="mt-4">
-                {plan.originalPrice && (
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-400 line-through">{plan.originalPrice}</span>
-                    {plan.discountLabel && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-black text-red-600">
-                        {plan.discountLabel}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <span className={`font-black ${plan.highlighted ? 'text-4xl text-slate-950' : 'text-3xl text-slate-950'}`}>{plan.price}</span>
-              </div>
-              <ul className="mt-6 space-y-3 text-sm text-slate-600">
-                {plan.features.map(feature => (
-                  <li key={feature} className="flex gap-2">
-                    <CheckCircle2 size={17} className="mt-0.5 flex-shrink-0 text-brand-green" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={() => handlePlanClick(plan.id)}
-                disabled={loadingPlan !== null || plan.disabled}
-                className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-colors disabled:opacity-60 ${plan.buttonClass}`}
-              >
-                {loadingPlan === plan.id ? copy('processing') : plan.button}
-                {loadingPlan !== plan.id && !plan.disabled && <Send size={16} />}
-              </button>
-              {plan.note && (
-                <p className="mt-2 text-center text-xs text-slate-400">{plan.note}</p>
-              )}
-            </section>
+            <PlanCard
+              key={plan.id}
+              icon={plan.icon}
+              title={plan.title}
+              tagline={plan.features.tagline}
+              price={plan.price}
+              period={plan.period}
+              originalPrice={plan.originalPrice}
+              discountLabel={plan.discountLabel}
+              included={plan.features.included}
+              missing={plan.features.missing}
+              buttonLabel={loadingPlan === plan.id ? copy('processing') : plan.button}
+              note={plan.note}
+              onSelect={() => handlePlanClick(plan.id)}
+              disabled={loadingPlan !== null || plan.disabled}
+              popular={plan.popular}
+              popularLabel={copy('yearlyBadge')}
+            />
           ))}
         </div>
       </div>

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircleIcon as CheckCircle2, CrownIcon as Crown, SparkleIcon as Sparkles, TimerIcon as Timer } from '@phosphor-icons/react'
+import { CrownIcon as Crown, SparkleIcon as Sparkles, TimerIcon as Timer } from '@phosphor-icons/react'
 import PageHeader from '../components/PageHeader'
+import PlanCard from '../components/PlanCard'
+import { planFeatures } from '../lib/planFeatures'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { getPaymentInfo } from '../services/admin.services'
 import { formatDate as formatDateUtil, roundTaka } from '../lib/utils'
+import { FALLBACK_PLAN_PRICES } from '../lib/planPricing'
 
 // Must match SubscriptionPlans / SubscriptionCheckout so the checkout page can
 // read which plan the owner is paying for.
@@ -27,13 +30,21 @@ export default function CurrentPlan() {
   useEffect(() => {
     getPaymentInfo()
       .then(info => setPrices({ monthly: Number(info.monthly_price), yearly: Number(info.yearly_price), yearlyOriginal: Number(info.yearly_original_price) }))
-      .catch(() => setPrices({ monthly: 699, yearly: 6710, yearlyOriginal: 8388 }))
+      .catch(() => setPrices({
+        monthly: FALLBACK_PLAN_PRICES.monthly,
+        yearly: FALLBACK_PLAN_PRICES.yearly,
+        yearlyOriginal: FALLBACK_PLAN_PRICES.yearlyOriginal,
+      }))
   }, [])
 
   const planType = (subscription?.plan_type || 'free_trial') as PlanKind
   const isActive = subscriptionStatus === 'active'
   const expiry = subscription?.expiry_date || null
   const daysLeft = expiry ? Math.ceil((new Date(expiry).getTime() - Date.now()) / 86400000) : null
+
+  const features = (plan: PlanKind) => planFeatures(bn ? 'bn' : 'en', plan)
+  const activeLabel = bn ? 'অ্যাক্টিভ' : 'Active'
+  const buyLabel = bn ? 'কিনুন / রিনিউ' : 'Choose / Renew'
 
   const planLabel = (kind: PlanKind) =>
     kind === 'yearly' ? (bn ? 'বার্ষিক' : 'Yearly')
@@ -82,132 +93,54 @@ export default function CurrentPlan() {
       </div>
 
       {/* Three plan cards, always shown */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <PlanCard
-          icon={<Sparkles size={20} />}
+          icon={<Sparkles size={22} weight="duotone" />}
           title={bn ? 'ফ্রি ট্রায়াল' : 'Free Trial'}
-          price={bn ? '৳০ / ৭ দিন' : 'Tk 0 / 7 days'}
-          note={bn ? 'একবারই ব্যবহারযোগ্য' : 'One-time only'}
-          features={[
-            bn ? 'সম্পূর্ণ সফটওয়্যার অ্যাক্সেস' : 'Full software access',
-            bn ? '১০টি ফ্রি এসএমএস' : '10 free SMS',
-            bn ? '৭ দিনের জন্য' : 'Valid for 7 days',
-          ]}
+          tagline={features('free_trial').tagline}
+          price={bn ? 'ফ্রি' : 'Free'}
+          period={bn ? '/ ৭ দিন' : '/ 7 days'}
+          included={features('free_trial').included}
+          missing={features('free_trial').missing}
+          buttonLabel={planType === 'free_trial' && isActive ? activeLabel : (bn ? 'একবারই ব্যবহারযোগ্য' : 'One-time only')}
           isCurrent={planType === 'free_trial' && isActive}
+          currentLabel={activeLabel}
           // Free trial is NEVER purchasable from here - always disabled.
           disabled
-          onSelect={() => undefined}
-          bn={bn}
         />
         <PlanCard
-          icon={<Timer size={20} />}
+          icon={<Timer size={22} weight="duotone" />}
           title={bn ? 'মাসিক' : 'Monthly'}
-          price={prices ? `${money(prices.monthly)} / ${bn ? 'মাস' : 'month'}` : '...'}
-          note={bn ? 'কোনো ডিসকাউন্ট নেই' : 'No discount'}
-          features={[
-            bn ? 'সম্পূর্ণ সফটওয়্যার অ্যাক্সেস' : 'Full software access',
-            bn ? '১০০ ফ্রি এসএমএস' : '100 free SMS',
-            bn ? 'প্রতি মাসে বিল' : 'Billed monthly',
-            bn ? 'মেয়াদের সাথে যোগ হয়' : 'Adds to your current expiry',
-          ]}
+          tagline={features('monthly').tagline}
+          price={prices ? money(prices.monthly) : '...'}
+          period={bn ? '/ মাস' : '/ month'}
+          included={features('monthly').included}
+          missing={features('monthly').missing}
+          buttonLabel={planType === 'monthly' && isActive ? activeLabel : buyLabel}
           isCurrent={planType === 'monthly' && isActive}
+          currentLabel={activeLabel}
           onSelect={() => goToCheckout('monthly')}
-          bn={bn}
         />
         <PlanCard
-          icon={<Crown size={20} />}
+          icon={<Crown size={22} weight="duotone" />}
           title={bn ? 'বার্ষিক' : 'Yearly'}
-          price={prices ? `${money(prices.yearly)} / ${bn ? 'বছর' : 'year'}` : '...'}
+          tagline={features('yearly').tagline}
+          price={prices ? money(prices.yearly) : '...'}
+          period={bn ? '/ বছর' : '/ year'}
           originalPrice={prices && prices.yearlyOriginal > prices.yearly ? money(prices.yearlyOriginal) : undefined}
-          discountPct={prices && prices.yearlyOriginal > prices.yearly ? Math.round((1 - prices.yearly / prices.yearlyOriginal) * 100) : undefined}
-          note={bn ? 'সবচেয়ে সাশ্রয়ী' : 'Best value'}
-          features={[
-            bn ? 'সম্পূর্ণ আনলিমিটেড ফিচার' : 'All features unlocked',
-            bn ? '৫০০ ফ্রি এসএমএস' : '500 free SMS',
-            bn ? 'প্রায়োরিটি সাপোর্ট' : 'Priority support',
-            bn ? 'মেয়াদের সাথে যোগ হয়' : 'Adds to your current expiry',
-          ]}
+          discountLabel={prices && prices.yearlyOriginal > prices.yearly
+            ? `${Math.round((1 - prices.yearly / prices.yearlyOriginal) * 100)}% ${bn ? 'ছাড়' : 'OFF'}`
+            : undefined}
+          included={features('yearly').included}
+          missing={features('yearly').missing}
+          buttonLabel={planType === 'yearly' && isActive ? activeLabel : buyLabel}
           isCurrent={planType === 'yearly' && isActive}
+          currentLabel={activeLabel}
           onSelect={() => goToCheckout('yearly')}
-          highlighted
           popular
-          bn={bn}
+          popularLabel={bn ? 'জনপ্রিয়' : 'Popular'}
         />
       </div>
     </div>
-  )
-}
-
-function PlanCard({
-  icon, title, price, originalPrice, discountPct, note, features, isCurrent, disabled, onSelect, highlighted, popular, bn,
-}: {
-  icon: React.ReactNode
-  title: string
-  price: string
-  originalPrice?: string
-  discountPct?: number
-  note: string
-  features: string[]
-  isCurrent: boolean
-  disabled?: boolean
-  onSelect: () => void
-  highlighted?: boolean
-  popular?: boolean
-  bn: boolean
-}) {
-  const buttonDisabled = disabled || isCurrent
-  const buttonLabel = isCurrent
-    ? (bn ? 'অ্যাক্টিভ' : 'Active')
-    : disabled
-      ? (bn ? 'উপলব্ধ নয়' : 'Not available')
-      : (bn ? 'কিনুন / রিনিউ' : 'Choose / Renew')
-
-  const buttonClass = isCurrent
-    ? 'bg-green-50 text-brand-green border border-green-200 cursor-default'
-    : disabled
-      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-      : highlighted
-        ? 'bg-slate-900 text-white hover:bg-black'
-        : 'border border-slate-300 bg-white text-slate-800 hover:bg-neutral-100'
-
-  return (
-    <section className={`relative flex flex-col rounded-2xl border bg-white px-[30px] py-[60px] shadow-sm ${isCurrent ? 'border-brand-green ring-2 ring-green-100' : highlighted ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200'}`}>
-      {isCurrent ? (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-green px-3 py-0.5 text-[11px] font-black text-white shadow-sm">
-          {bn ? 'অ্যাক্টিভ' : 'ACTIVE'}
-        </span>
-      ) : popular ? (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-3 py-0.5 text-[11px] font-black text-white shadow-sm">
-          {bn ? 'জনপ্রিয়' : 'POPULAR'}
-        </span>
-      ) : null}
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{title}</span>
-        <span className={`rounded-xl p-2 ${highlighted ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>{icon}</span>
-      </div>
-      <div className="flex flex-wrap items-baseline gap-2">
-        {originalPrice && <span className="text-base font-bold text-slate-400 line-through">{originalPrice}</span>}
-        <span className="text-2xl font-black text-slate-950">{price}</span>
-        {discountPct ? (
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-black text-brand-green">{discountPct}% {bn ? 'ছাড়' : 'OFF'}</span>
-        ) : null}
-      </div>
-      <p className="mt-1 text-xs font-semibold text-slate-400">{note}</p>
-      <ul className="mt-5 flex-1 space-y-2.5 text-sm text-slate-600">
-        {features.map(feature => (
-          <li key={feature} className="flex gap-2">
-            <CheckCircle2 size={17} className="mt-0.5 flex-shrink-0 text-brand-green" />
-            <span>{feature}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        onClick={buttonDisabled ? undefined : onSelect}
-        disabled={buttonDisabled}
-        className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-colors ${buttonClass}`}
-      >
-        {isCurrent && <CheckCircle2 size={16} />} {buttonLabel}
-      </button>
-    </section>
   )
 }
