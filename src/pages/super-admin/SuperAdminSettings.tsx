@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { EnvelopeSimpleIcon as Mail, QrCodeIcon as QrCode, ArrowCounterClockwiseIcon as RotateCcw, FloppyDiskIcon as Save, PaperPlaneTiltIcon as Send, CloudArrowUpIcon as UploadCloud, WalletIcon as Wallet } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
-import { getPlatformSettings, resetReminderTemplate, savePlatformSettings, sendTestReminder } from '../../services/admin.services'
+import { getPlatformSettings, resetReminderTemplate, savePlatformSettings, sendTestGiftCard, sendTestReminder } from '../../services/admin.services'
 import { uploadImage } from '../../services/product.services'
 
 interface PlatformSettings {
@@ -28,6 +28,9 @@ export default function SuperAdminSettings() {
   const [saving, setSaving] = useState(false)
   const [uploadingQr, setUploadingQr] = useState(false)
   const [sendingTest, setSendingTest] = useState(false)
+  const [sendingGiftCard, setSendingGiftCard] = useState(false)
+  // Blank means "send it to me" - the address the super admin is logged in as.
+  const [giftCardEmail, setGiftCardEmail] = useState('')
   const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
@@ -100,6 +103,24 @@ export default function SuperAdminSettings() {
       toast.error(error.message || 'Failed to reset template')
     } finally {
       setResetting(false)
+    }
+  }
+
+  // The welcome card is generated from the payment being approved, not from an
+  // editable template, so there is nothing to preview here except a real send.
+  async function handleSendGiftCard() {
+    setSendingGiftCard(true)
+    try {
+      const result = await sendTestGiftCard(giftCardEmail.trim() || undefined)
+      toast.success(
+        result.sent
+          ? `Welcome card sent to ${result.to} - check the inbox`
+          : 'Email is not configured yet, so nothing was sent'
+      )
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send the welcome card')
+    } finally {
+      setSendingGiftCard(false)
     }
   }
 
@@ -276,6 +297,37 @@ export default function SuperAdminSettings() {
             </div>
             <p className="text-xs text-slate-400">
               "Reset to default" restores the built-in template, including the clickable "Payment Now" button.
+            </p>
+          </div>
+        </div>
+
+        {/* The approval email. Not a template - it is built from the payment
+            being approved - so the only way to see it is to send one. */}
+        <div className="card">
+          <h2 className="mb-1 text-base font-bold text-slate-900">Plan Welcome Card</h2>
+          <p className="mb-4 text-xs leading-relaxed text-slate-500">
+            What an owner receives the moment you approve their payment: the plan and how long it runs,
+            the purchase and expiry dates, their business name, the receipt, and your support number as a
+            number they can tap to call. Send yourself a sample with placeholder figures to see it.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label className="label" htmlFor="super-admin-settings-f8">Send the sample to</label>
+              <input id="super-admin-settings-f8"
+                type="email"
+                className="input"
+                placeholder="Leave empty to send it to yourself"
+                value={giftCardEmail}
+                onChange={e => setGiftCardEmail(e.target.value)}
+              />
+            </div>
+            <button type="button" className="btn-secondary w-full justify-center" onClick={handleSendGiftCard} disabled={sendingGiftCard}>
+              <Send size={16} />
+              {sendingGiftCard ? 'Sending...' : 'Send sample welcome card'}
+            </button>
+            <p className="text-xs text-slate-400">
+              The sample uses a placeholder invoice number and transaction ID. A real approval sends the
+              actual payment, the owner's own business name and their real expiry date.
             </p>
           </div>
         </div>

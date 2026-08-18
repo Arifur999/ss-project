@@ -37,6 +37,10 @@ export const getPlatformSettings = () => http.get<any>('/platform-settings')
 export const savePlatformSettings = (payload: any) => http.put<any>('/platform-settings', payload)
 export const resetReminderTemplate = () => http.post<any>('/platform-settings/reset-reminder')
 export const sendTestReminder = () => http.post<{ sent: boolean; subject: string; html: string }>('/platform-settings/test-reminder')
+// The welcome card an owner receives when their payment is approved. `to` is
+// optional - left out, it goes to the super admin making the request.
+export const sendTestGiftCard = (to?: string) =>
+  http.post<{ sent: boolean; to: string; subject: string }>('/platform-settings/test-gift-card', to ? { to } : {})
 
 // ---------- Super admin ----------
 export const getOwners = () => http.get<any[]>('/super-admin/owners')
