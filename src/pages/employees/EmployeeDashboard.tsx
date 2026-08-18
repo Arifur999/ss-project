@@ -90,7 +90,6 @@ export default function EmployeeDashboard() {
               <th className="text-right py-2 px-4">{t('employee_subtotal')}</th>
               <th className="text-left py-2 px-4">{t('employee_joinDate')}</th>
               <th className="text-left py-2 px-4">{t('employee_resignDate')}</th>
-              <th className="text-left py-2 px-4">Resign Note</th>
               <th className="text-right py-2 px-4">{t('employee_workingDuration')}</th>
             </tr>
           </thead>
@@ -111,12 +110,11 @@ export default function EmployeeDashboard() {
                   <td className="py-2.5 px-4" style={{ color: emp.resign_date ? '#dc2626' : '#64748b' }}>
                     {emp.resign_date ? formatDate(emp.resign_date) : <NoValue />}
                   </td>
-                  <td className="py-2.5 px-4 text-slate-500">{emp.notes || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right text-slate-600">{calculateWorkingDays(emp)}</td>
                 </tr>
               )
             })}
-            {employees.length === 0 && <tr><td colSpan={11} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
+            {employees.length === 0 && <tr><td colSpan={10} className="text-center py-8 text-slate-400">{t('employee_noRecords')}</td></tr>}
           </tbody>
         </table>
       </TableScroller>
