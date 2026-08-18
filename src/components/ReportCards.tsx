@@ -26,7 +26,7 @@ export const CHART_GREEN = '#0E9F6E'
 /**
  * The unfilled part of a ring, and the bar a target is drawn with.
  *
- * neutral-300 rather than neutral-200: the cards are #EEF0F6 now, and #E5E7EB
+ * neutral-300 rather than neutral-200: the cards are #F4F4F4, and #E5E7EB
  * against that is close enough that a goal bar reads as empty space.
  */
 export const CHART_MUTED = '#D1D5DB'
@@ -163,10 +163,37 @@ export function PurchaseTargetDonut({
 
       {target > 0 ? (
         <>
-          {/* Who the buying went to, above the ring: the ring says how much of
+          <div className="relative px-4 pt-5">
+            <ResponsiveContainer width="100%" height={225}>
+              <PieChart>
+                <Pie
+                  data={slices}
+                  dataKey="value"
+                  nameKey="name"
+                  // A thin ring, not a filled wheel: at 13px the hole is wide
+                  // enough to hold both lines of the label.
+                  innerRadius={81}
+                  outerRadius={94}
+                  startAngle={90}
+                  endAngle={-270}
+                  paddingAngle={remaining > 0 ? 2 : 0}
+                  stroke="none"
+                >
+                  {slices.map(slice => <Cell key={slice.name} fill={slice.fill} />)}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            {/* The one figure this card exists to show. */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-5">
+              <p className="text-4xl font-black leading-none tracking-tight text-navy-900">{Math.round(percent)}%</p>
+              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Purchase Achievement</p>
+            </div>
+          </div>
+
+          {/* Who the buying went to, under the ring: the ring says how much of
               the target was met, this says by whom. */}
           {listed.length > 0 && (
-            <div className="border-b border-slate-200">
+            <div className="mt-4 border-t border-slate-200">
               {listed.map(row => {
                 const rowPct = row.target > 0 ? Math.round((row.achieved / row.target) * 100) : 0
                 return (
@@ -197,33 +224,6 @@ export function PurchaseTargetDonut({
               )}
             </div>
           )}
-
-          <div className="relative px-4 pt-5">
-            <ResponsiveContainer width="100%" height={225}>
-              <PieChart>
-                <Pie
-                  data={slices}
-                  dataKey="value"
-                  nameKey="name"
-                  // A thin ring, not a filled wheel: at 13px the hole is wide
-                  // enough to hold both lines of the label.
-                  innerRadius={81}
-                  outerRadius={94}
-                  startAngle={90}
-                  endAngle={-270}
-                  paddingAngle={remaining > 0 ? 2 : 0}
-                  stroke="none"
-                >
-                  {slices.map(slice => <Cell key={slice.name} fill={slice.fill} />)}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            {/* The one figure this card exists to show. */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-5">
-              <p className="text-4xl font-black leading-none tracking-tight text-navy-900">{Math.round(percent)}%</p>
-              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Purchase Achievement</p>
-            </div>
-          </div>
 
           <div className="grid grid-cols-3 gap-2 border-t border-slate-200 px-4 py-3 text-center">
             <div>
