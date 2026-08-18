@@ -392,9 +392,11 @@ export default function ExpenseDashboard() {
         )}
       </section>
 
-      {/* Four across, from large screens up. The grid stopped at three, so on a
-          wide monitor the row ended early and left a column of white beside it. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {/* Four across on a desktop. The grid stopped at three, so the row ended
+          early and left a column of white beside it. At p-5 a quarter column is
+          still ~185px of content - wide enough for a label and its taka on one
+          line - so four is the widest that reads comfortably. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {/* The biggest spender is shown beside the chart above, so it is not
             repeated here - seeing the same card twice on one screen reads as a
             duplicate rather than as emphasis. */}
