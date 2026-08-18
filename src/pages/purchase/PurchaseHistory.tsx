@@ -13,7 +13,6 @@ import { NoValue } from '../../components/CellValue'
 type PurchaseHistoryRow = {
   id: string
   purchase_id: string
-  si_no: string
   date: string
   supplier_name: string
   product_code: string
@@ -52,7 +51,7 @@ export default function PurchaseHistory() {
       setLoading(true)
       const { data, error } = await supabase
         .from('purchases')
-        .select('id, si_no, date, supplier_name, shipping_status, purchase_items(*, purchase_receives(*))')
+        .select('id, date, supplier_name, shipping_status, purchase_items(*, purchase_receives(*))')
         .order('date', { ascending: false })
         .limit(500)
 
@@ -74,7 +73,6 @@ export default function PurchaseHistory() {
           return {
             id: item.id,
             purchase_id: purchase.id,
-            si_no: purchase.si_no || '-',
             date: purchase.date,
             supplier_name: purchase.supplier_name || '-',
             product_code: item.product_code || '',
@@ -219,7 +217,6 @@ export default function PurchaseHistory() {
           <thead className="table-header">
             <tr className="border-b border-slate-100 bg-white/55">
               <th className="text-left py-3 px-4">#</th>
-              <th className="text-left py-3 px-4">SI No</th>
               <th className="text-left py-3 px-4">Company</th>
               <th className="text-left py-3 px-4">Date</th>
               <th className="text-left py-3 px-4">Product Code</th>
@@ -244,7 +241,6 @@ export default function PurchaseHistory() {
               return (
                 <tr key={row.id} className="table-row border-b border-slate-100 hover:bg-white/50">
                   <td className="py-3 px-4 text-slate-400">{index + 1}</td>
-                  <td className="py-3 px-4 font-mono text-xs">{row.si_no}</td>
                   <td className="py-3 px-4 font-medium text-slate-700">{row.supplier_name}</td>
                   <td className="py-3 px-4">
                     <span className="inline-flex items-center gap-1.5">
@@ -279,14 +275,14 @@ export default function PurchaseHistory() {
             })}
             {!loading && filteredRows.length === 0 && (
               <tr>
-                <td colSpan={16} className="py-10 text-center text-slate-400">
+                <td colSpan={15} className="py-10 text-center text-slate-400">
                   No purchase history found
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={16} className="py-10 text-center text-slate-400">
+                <td colSpan={15} className="py-10 text-center text-slate-400">
                   Loading purchase history...
                 </td>
               </tr>
@@ -296,7 +292,7 @@ export default function PurchaseHistory() {
               browser lays out at once, so no total or filter is affected. */}
           {shown.hasMore && (
             <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
-              <td colSpan={16} className="py-4 text-center text-sm text-slate-400">
+              <td colSpan={15} className="py-4 text-center text-sm text-slate-400">
                 {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
               </td>
             </tr>
