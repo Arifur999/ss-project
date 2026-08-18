@@ -13,12 +13,19 @@
  *    আজ যত বিক্রিই হোক, আজকের নিজের target নড়ে না — ওটাই তো আজ কতটা করার
  *    কথা ছিল তার হিসাব।
  *
- * 3. আজকের পরের সব দিন — মাসের সব বিক্রি বাদ দিয়ে যা বাকি, তা সমানভাবে ভাগ:
+ * 3. আজকের পরের সব দিন — শেষ হয়ে যাওয়া দিনগুলোর সাথে হুবহু একই সূত্র:
  *
- *        (Monthly Target − মাসের মোট Sales) ÷ (আজকের পরের দিন)
+ *        (Monthly Target − মাসের মোট Sales) ÷ (ঐ দিন থেকে মাসের শেষ পর্যন্ত দিন)
  *
- *    আজ target-এর বেশি বিক্রি হলে এই সব বার একসাথে নেমে যায়, কম হলে বেড়ে যায়,
- *    আর পুরো মাসের target একদিনেই তুলে ফেললে বাকি দিনের target 0 হয়ে যায়।
+ *    ভবিষ্যতের দিনে এখনো বিক্রি বসেনি, তাই উপরের ভাগফলের উপরের অংশ একই থাকে
+ *    আর নিচের অংশ প্রতিদিন এক করে কমে — ফলে target দিন দিন বাড়ে, ঠিক যেমন
+ *    বিক্রি না হলে অতীতের দিনগুলোতে বেড়েছিল। শেষ দিন গোটা বাকিটাই চায়।
+ *
+ *    আজ target-এর বেশি বিক্রি হলে গোটা curve-টা নেমে যায়, কম হলে উঠে যায়, আর
+ *    পুরো মাসের target একদিনেই তুলে ফেললে বাকি সব দিনের target 0 হয়ে যায়।
+ *
+ *    (আগে এখানে সব দিনে একটাই সমান মান বসত। তাতে chart-এ অতীতের বারগুলো ক্রমে
+ *    উঠত আর আগামীকাল থেকে হঠাৎ সমতল হয়ে যেত — এক মাসের ভিতরেই দুই রকম নিয়ম।)
  *
  * হিসাব সবসময় Monthly Target আর কাঁচা daily sales থেকে নতুন করে হয়। আগের
  * daily target, আগের remaining target বা অন্য কোনো cached মান কখনো ব্যবহার
@@ -238,12 +245,23 @@ export function calculateRollingTargets(
   }
 
   /*
-   * ৩. বাকি সব দিন।
+   * ৩. বাকি সব দিন — দিন দিন বাড়ে, সমান নয়।
    *
-   * settledThroughDay-এর পরে কোনো দিনে বিক্রি থাকতে পারে না (ওটাই তো শেষ
-   * বিক্রির দিন), তাই এখানে remaining আর কমে না — যা বাকি আছে সেটাই সমানভাবে
-   * ভাগ হয়। Loop-এর ভিতরে denominator কমানো হচ্ছে না, এটাই নিশ্চিত করে যে সব
-   * upcoming column হুবহু একই হবে।
+   * শেষ হয়ে যাওয়া দিনগুলোর মতোই একই সূত্র:
+   *
+   *     সেদিনের target = যা বাকি ÷ (সেদিন থেকে মাসের শেষ পর্যন্ত দিন)
+   *
+   * ভবিষ্যতের দিনে এখনো কোনো বিক্রি বসেনি, তাই ভাজ্য (remaining) একই থাকে আর
+   * ভাজক প্রতিদিন এক করে কমে — ফলে প্রতিটি দিন আগের দিনের চেয়ে একটু বেশি।
+   * এটাই "আজ কম বিক্রি হলে পরের দিনগুলোর target দিন দিন বাড়বে" নিয়মটাকে
+   * ভবিষ্যতের দিকেও টেনে নেয়।
+   *
+   * আগে এখানে একটাই মান (remaining ÷ বাকি দিন) সব দিনে বসানো হতো, তাই chart-এ
+   * অতীতের বারগুলো ক্রমেই উঠত আর আগামীকাল থেকে হঠাৎ সমতল হয়ে যেত — একই মাসের
+   * ভিতরে দুই রকম নিয়ম, যা দেখে হিসাব ভুল মনে হতো।
+   *
+   * শেষ দিনটি গোটা বাকিটাই চায় (÷1)। সেটা ইচ্ছাকৃত: মাসের শেষ দিন পর্যন্ত
+   * কিছুই বিক্রি না হলে ওই দিনেই পুরোটা তুলতে হবে।
    */
   const lockedThroughDay = Math.max(
     settledThroughDay,
@@ -253,6 +271,7 @@ export function calculateRollingTargets(
   const remainingDays =
     totalDaysInMonth - lockedThroughDay;
 
+  /** প্রথম upcoming দিনের target — সবচেয়ে কাছের, কাজে লাগানোর মতো সংখ্যাটি। */
   const upcomingDailyTarget =
     remainingDays > 0
       ? remainingTarget / remainingDays
@@ -263,11 +282,19 @@ export function calculateRollingTargets(
     day <= totalDaysInMonth;
     day++
   ) {
+    const daysLeftFromThisDay =
+      totalDaysInMonth - day + 1;
+
+    const openingTarget =
+      daysLeftFromThisDay > 0
+        ? remainingTarget / daysLeftFromThisDay
+        : 0;
+
     dailyRecords.push({
       day,
       dateString: createDateString(year, month, day),
       status: "upcoming",
-      openingTarget: roundMoney(upcomingDailyTarget),
+      openingTarget: roundMoney(openingTarget),
       actualSales: roundMoney(salesOn(day)),
       remainingTargetAfterSales:
         roundMoney(remainingTarget),
