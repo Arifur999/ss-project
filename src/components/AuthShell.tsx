@@ -24,7 +24,7 @@ interface AuthShellProps {
 export default function AuthShell({ image, imageAlt, brandName, heading, subtitle, lang, setLang, children }: AuthShellProps) {
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#eef0f6] p-3 sm:p-6">
+    <div className="flex min-h-screen items-center justify-center bg-surface p-3 sm:p-6">
       <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-[0_24px_70px_-20px_rgba(15,23,42,0.30)] lg:min-h-[660px] lg:grid-cols-2">
         {/* Left: brand image + overlay copy (desktop only) */}
         <div className="relative hidden bg-slate-900 lg:block">
