@@ -305,92 +305,107 @@ export default function ExpenseDashboard() {
         ))}
       </div>
 
-      {/* Where the money went, as one ring: the percentage on the chart, the
-          taka on hover. */}
-      <section className="mb-5 overflow-hidden rounded-2xl border border-surface-border bg-surface">
-        <div className="bg-slate-800 px-4 py-3 text-center">
-          <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Expenses By Category</h2>
-        </div>
+      {/* Two panels side by side. The ring and its list answer how the money is
+          split; the panel beside it answers which single category took most of
+          it. They are separate sections because the card sat badly inside the
+          ring's box - floating in the middle of the list, under the ring's own
+          heading, as if it were another row of it.
 
-        {expenseShare.rows.length === 0 ? (
-          <p className="px-4 py-16 text-center text-xs font-medium text-slate-400">
-            Nothing spent yet. Every category you create appears here as soon as it has an expense against it.
-          </p>
-        ) : (
-          <div className="flex flex-col items-center gap-6 p-5 lg:flex-row lg:items-center">
-            <div className="relative w-full max-w-[380px] shrink-0 lg:w-[380px]">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={expenseShare.rows}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={70}
-                    outerRadius={100}
-                    startAngle={90}
-                    endAngle={-270}
-                    paddingAngle={expenseShare.rows.length > 1 ? 2 : 0}
-                    stroke="none"
-                    labelLine={false}
-                    label={ShareLabel}
-                    isAnimationActive={false}
-                  >
-                    {expenseShare.rows.map(row => <Cell key={row.id} fill={row.color} />)}
-                  </Pie>
-                  <Tooltip content={<ShareTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              {/* What the percentages are percentages of. */}
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-2xl font-black leading-none tracking-tight tabular-nums text-navy-900">{formatCurr(expenseShare.total)}</p>
-                <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Expenses</p>
-              </div>
-            </div>
-
-            {/* The eight biggest by name. The rest are in the ring and in the
-                boxes below; here they are one line, so the percentages still
-                add up to the total in the middle. */}
-            <div className="min-w-0 flex-1 divide-y divide-slate-200">
-              {expenseShare.listed.map(row => (
-                <div key={row.id} className="flex items-center gap-3 py-2.5">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700" title={row.name}>{row.name}</span>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(row.value)}</span>
-                  <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-navy-900">{row.share.toFixed(1)}%</span>
-                </div>
-              ))}
-              {expenseShare.restCount > 0 && (
-                <div className="flex items-center gap-3 py-2.5">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-slate-300 bg-white" />
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-500">
-                    {expenseShare.restCount} more {expenseShare.restCount === 1 ? 'category' : 'categories'}
-                  </span>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(expenseShare.restValue)}</span>
-                  <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-slate-500">{expenseShare.restShare.toFixed(1)}%</span>
-                </div>
-              )}
-            </div>
-
-            {/* The biggest spender, in full, beside the ring it dominates. It
-                is the one box worth reading before any of the others, so it is
-                lifted out of the grid below rather than shown twice. */}
-            {topCategory && (
-              <div className="w-full shrink-0 lg:w-[290px]">
-                <CategoryCard
-                  category={topCategory}
-                  totalSpent={allTimeTotals[topCategory.id] || 0}
-                  monthSpent={thisMonthTotals[topCategory.id] || 0}
-                  yearSpent={thisYearTotals[topCategory.id] || 0}
-                  formatCurr={formatCurr}
-                  t={t}
-                  onEdit={() => openModal(topCategory)}
-                  onDelete={() => deleteCategory(topCategory.id)}
-                />
-              </div>
-            )}
+          Side by side only from 2xl. Narrower than that, taking 380px off the
+          ring's section leaves its list about 190px, which is not enough for a
+          category name beside its taka and its percentage - so they stack. */}
+      <div className="mb-5 grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Where the money went, as one ring: the percentage on the chart, the
+            taka on hover. */}
+        <section className="overflow-hidden rounded-2xl border border-surface-border bg-surface">
+          <div className="bg-slate-800 px-4 py-3 text-center">
+            <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Expenses By Category</h2>
           </div>
+
+          {expenseShare.rows.length === 0 ? (
+            <p className="px-4 py-16 text-center text-xs font-medium text-slate-400">
+              Nothing spent yet. Every category you create appears here as soon as it has an expense against it.
+            </p>
+          ) : (
+            <div className="flex flex-col items-center gap-6 p-5 lg:flex-row lg:items-center">
+              <div className="relative w-full max-w-[380px] shrink-0 lg:w-[380px]">
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={expenseShare.rows}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={70}
+                      outerRadius={100}
+                      startAngle={90}
+                      endAngle={-270}
+                      paddingAngle={expenseShare.rows.length > 1 ? 2 : 0}
+                      stroke="none"
+                      labelLine={false}
+                      label={ShareLabel}
+                      isAnimationActive={false}
+                    >
+                      {expenseShare.rows.map(row => <Cell key={row.id} fill={row.color} />)}
+                    </Pie>
+                    <Tooltip content={<ShareTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* What the percentages are percentages of. */}
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <p className="text-2xl font-black leading-none tracking-tight tabular-nums text-navy-900">{formatCurr(expenseShare.total)}</p>
+                  <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Expenses</p>
+                </div>
+              </div>
+
+              {/* The eight biggest by name. The rest are in the ring and in the
+                  boxes below; here they are one line, so the percentages still
+                  add up to the total in the middle. */}
+              <div className="min-w-0 flex-1 divide-y divide-slate-200">
+                {expenseShare.listed.map(row => (
+                  <div key={row.id} className="flex items-center gap-3 py-2.5">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700" title={row.name}>{row.name}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(row.value)}</span>
+                    <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-navy-900">{row.share.toFixed(1)}%</span>
+                  </div>
+                ))}
+                {expenseShare.restCount > 0 && (
+                  <div className="flex items-center gap-3 py-2.5">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-slate-300 bg-white" />
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-500">
+                      {expenseShare.restCount} more {expenseShare.restCount === 1 ? 'category' : 'categories'}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-slate-500">{formatCurr(expenseShare.restValue)}</span>
+                    <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-slate-500">{expenseShare.restShare.toFixed(1)}%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* The one category the most has been spent on, in full. It is left
+            out of the grid below rather than shown twice on one screen. */}
+        {topCategory && (
+          <section className="flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface">
+            <div className="bg-slate-800 px-4 py-3 text-center">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Top Expense</h2>
+            </div>
+            <CategoryCard
+              variant="panel"
+              sharePct={totalExpenses > 0 ? ((allTimeTotals[topCategory.id] || 0) / totalExpenses) * 100 : 0}
+              category={topCategory}
+              totalSpent={allTimeTotals[topCategory.id] || 0}
+              monthSpent={thisMonthTotals[topCategory.id] || 0}
+              yearSpent={thisYearTotals[topCategory.id] || 0}
+              formatCurr={formatCurr}
+              t={t}
+              onEdit={() => openModal(topCategory)}
+              onDelete={() => deleteCategory(topCategory.id)}
+            />
+          </section>
         )}
-      </section>
+      </div>
 
       {/* Four across on a desktop. The grid stopped at three, so the row ended
           early and left a column of white beside it. At p-5 a quarter column is
@@ -446,67 +461,79 @@ type CategoryCardProps = {
   t: (key: string, fallback?: string) => string
   onEdit: () => void
   onDelete: () => void
+  /**
+   * 'grid' is the small box in the row below; 'panel' is the wider box in its
+   * own section, where there is room to lead with the figure and to let the
+   * rows breathe rather than squeezing the small box into a taller space.
+   */
+  variant?: 'grid' | 'panel'
+  /** Panel only: this category's slice of all expenses, as a percentage. */
+  sharePct?: number
 }
 
 /**
  * One category box.
  *
- * Lifted out of the grid so the biggest spender can be drawn beside the ring
- * with exactly the same markup - two copies of this would drift apart the
- * first time one of them was edited.
+ * Lifted out of the grid so the biggest spender can be drawn in its own panel
+ * from the same source - two copies of this would drift apart the first time
+ * one of them was edited.
  */
-function CategoryCard({ category: cat, totalSpent, monthSpent, yearSpent, formatCurr, t, onEdit, onDelete }: CategoryCardProps) {
+function CategoryCard({ category: cat, totalSpent, monthSpent, yearSpent, formatCurr, t, onEdit, onDelete, variant = 'grid', sharePct }: CategoryCardProps) {
   const budget = Number(cat.monthly_budget || 0)
   // rawPct is the true usage (can exceed 100%); pct is only used to cap
   // the progress-bar width so the bar never overflows its track.
   const rawPct = budget > 0 ? (monthSpent / budget) * 100 : 0
   const pct = Math.min(100, rawPct)
   const status = budget === 0 ? null : monthSpent > budget ? 'over' : monthSpent > budget * 0.8 ? 'warning' : 'ok'
+  const panel = variant === 'panel'
+
+  const rows = [
+    // The panel leads with the total as its headline, so it is not repeated here.
+    ...(panel ? [] : [{ label: 'Total', value: formatCurr(totalSpent), tone: 'font-semibold text-slate-900' }]),
+    { label: t('expenses_thisMonth'), value: formatCurr(monthSpent), tone: 'font-semibold text-slate-800' },
+    { label: t('expenses_thisYear'), value: formatCurr(yearSpent), tone: 'font-medium text-slate-600' },
+    ...(budget > 0
+      ? [
+          // Spelled out as monthly: the bar below measures only this month's
+          // spend against it.
+          { label: t('expenses_monthlyBudget'), value: formatCurr(budget), tone: 'font-medium text-slate-600' },
+          { label: 'Yearly Budget', value: formatCurr(budget * 12), tone: 'font-medium text-slate-600' },
+        ]
+      : []),
+    ...(panel && sharePct !== undefined ? [{ label: 'Share Of Total', value: `${sharePct.toFixed(1)}%`, tone: 'font-semibold text-navy-900' }] : []),
+  ]
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-          <h3 className="font-semibold text-slate-800">{cat.name}</h3>
+    <div className={panel ? 'flex flex-1 flex-col p-5' : 'card'}>
+      <div className={`flex items-start justify-between ${panel ? 'mb-4' : 'mb-3'}`}>
+        <div className="flex min-w-0 items-center gap-2">
+          <div className={`shrink-0 rounded-full ${panel ? 'h-3.5 w-3.5' : 'w-3 h-3'}`} style={{ backgroundColor: cat.color }} />
+          <h3 className={`truncate ${panel ? 'text-base font-bold text-slate-800' : 'font-semibold text-slate-800'}`} title={cat.name}>{cat.name}</h3>
         </div>
-        <div className="flex gap-1">
+        <div className="flex shrink-0 gap-1">
           <button onClick={onEdit} className="text-slate-400 hover:text-slate-600 p-1"><Pencil size={13} /></button>
           <button onClick={onDelete} className="text-slate-400 hover:text-brand-red p-1"><Trash2 size={13} /></button>
         </div>
       </div>
 
-      <div className="space-y-1.5 mb-3">
-        <div className="flex justify-between text-xs">
-          <span className="text-slate-500">Total</span>
-          <span className="font-semibold text-slate-900">{formatCurr(totalSpent)}</span>
+      {panel && (
+        <div className="mb-3">
+          <p className="text-3xl font-black leading-none tracking-tight tabular-nums text-navy-900">{formatCurr(totalSpent)}</p>
+          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Spent</p>
         </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-slate-500">{t('expenses_thisMonth')}</span>
-          <span className="font-semibold text-slate-800">{formatCurr(monthSpent)}</span>
-        </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-slate-500">{t('expenses_thisYear')}</span>
-          <span className="font-medium text-slate-600">{formatCurr(yearSpent)}</span>
-        </div>
-        {budget > 0 && (
-          <>
-            <div className="flex justify-between text-xs">
-              {/* Spelled out as monthly: the bar below measures only this
-                  month's spend against it. */}
-              <span className="text-slate-500">{t('expenses_monthlyBudget')}</span>
-              <span className="font-medium text-slate-600">{formatCurr(budget)}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-500">Yearly Budget</span>
-              <span className="font-medium text-slate-600">{formatCurr(budget * 12)}</span>
-            </div>
-          </>
-        )}
+      )}
+
+      <div className={panel ? 'divide-y divide-slate-100' : 'space-y-1.5 mb-3'}>
+        {rows.map(row => (
+          <div key={row.label} className={`flex justify-between text-xs ${panel ? 'py-2.5' : ''}`}>
+            <span className="text-slate-500">{row.label}</span>
+            <span className={`${row.tone}${panel ? ' tabular-nums' : ''}`}>{row.value}</span>
+          </div>
+        ))}
       </div>
 
       {budget > 0 && (
-        <>
+        <div className={panel ? 'mt-auto pt-4' : undefined}>
           <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
             <div
               className="h-2 rounded-full transition-all"
@@ -516,13 +543,16 @@ function CategoryCard({ category: cat, totalSpent, monthSpent, yearSpent, format
           <div className="flex justify-between items-center">
             {/* The locale string already carries the "%", so don't add another. */}
             <span className={`text-xs ${rawPct > 100 ? 'font-semibold text-brand-red' : 'text-slate-400'}`}>{Math.round(rawPct)}{t('expenses_pctUsed')}</span>
-            {status && (
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${status === 'over' ? 'badge-red' : status === 'warning' ? 'badge-orange' : 'badge-green'}`}>
-                {status === 'over' ? t('expenses_overBudget') : status === 'warning' ? t('expenses_warning') : t('expenses_ok')}
+            {/* Only the two badges that ask for attention. A green "OK" on
+                every category under budget said nothing the bar beside it did
+                not already say, and it read as a label rather than a warning. */}
+            {(status === 'over' || status === 'warning') && (
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${status === 'over' ? 'badge-red' : 'badge-orange'}`}>
+                {status === 'over' ? t('expenses_overBudget') : t('expenses_warning')}
               </span>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   )
