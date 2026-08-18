@@ -146,6 +146,16 @@ export default function ExpenseDashboard() {
     const totalDiff = (allTimeTotals[b.id] || 0) - (allTimeTotals[a.id] || 0)
     return totalDiff || String(a.name || '').localeCompare(String(b.name || ''))
   })
+
+  /**
+   * The category the most has been spent on, shown beside the chart.
+   *
+   * sortedCategories is already ordered by all-time spend, so it is simply the
+   * first - but only when something has actually been spent on it. A workspace
+   * with categories and no expenses would otherwise promote whichever name sorts
+   * first alphabetically and call it the biggest spender.
+   */
+  const topCategory = (allTimeTotals[sortedCategories[0]?.id] || 0) > 0 ? sortedCategories[0] : null
   const summaryCards = [
     {
       label: 'Total Expenses',
@@ -360,86 +370,47 @@ export default function ExpenseDashboard() {
                 </div>
               )}
             </div>
+
+            {/* The biggest spender, in full, beside the ring it dominates. It
+                is the one box worth reading before any of the others, so it is
+                lifted out of the grid below rather than shown twice. */}
+            {topCategory && (
+              <div className="w-full shrink-0 lg:w-[290px]">
+                <CategoryCard
+                  category={topCategory}
+                  totalSpent={allTimeTotals[topCategory.id] || 0}
+                  monthSpent={thisMonthTotals[topCategory.id] || 0}
+                  yearSpent={thisYearTotals[topCategory.id] || 0}
+                  formatCurr={formatCurr}
+                  t={t}
+                  onEdit={() => openModal(topCategory)}
+                  onDelete={() => deleteCategory(topCategory.id)}
+                />
+              </div>
+            )}
           </div>
         )}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-        {sortedCategories.map(cat => {
-          const totalSpent = allTimeTotals[cat.id] || 0
-          const monthSpent = thisMonthTotals[cat.id] || 0
-          const yearSpent = thisYearTotals[cat.id] || 0
-          const budget = Number(cat.monthly_budget || 0)
-          // rawPct is the true usage (can exceed 100%); pct is only used to cap
-          // the progress-bar width so the bar never overflows its track.
-          const rawPct = budget > 0 ? (monthSpent / budget) * 100 : 0
-          const pct = Math.min(100, rawPct)
-          const status = budget === 0 ? null : monthSpent > budget ? 'over' : monthSpent > budget * 0.8 ? 'warning' : 'ok'
-
-          return (
-            <div key={cat.id} className="card">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <h3 className="font-semibold text-slate-800">{cat.name}</h3>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => openModal(cat)} className="text-slate-400 hover:text-slate-600 p-1"><Pencil size={13} /></button>
-                  <button onClick={() => deleteCategory(cat.id)} className="text-slate-400 hover:text-brand-red p-1"><Trash2 size={13} /></button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 mb-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">Total</span>
-                  <span className="font-semibold text-slate-900">{formatCurr(totalSpent)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">{t('expenses_thisMonth')}</span>
-                  <span className="font-semibold text-slate-800">{formatCurr(monthSpent)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">{t('expenses_thisYear')}</span>
-                  <span className="font-medium text-slate-600">{formatCurr(yearSpent)}</span>
-                </div>
-                {budget > 0 && (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      {/* Spelled out as monthly: the bar below measures only this
-                          month's spend against it. */}
-                      <span className="text-slate-500">{t('expenses_monthlyBudget')}</span>
-                      <span className="font-medium text-slate-600">{formatCurr(budget)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Yearly Budget</span>
-                      <span className="font-medium text-slate-600">{formatCurr(budget * 12)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {budget > 0 && (
-                <>
-                  <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                    <div
-                      className="h-2 rounded-full transition-all"
-                      style={{ width: `${pct}%`, backgroundColor: status === 'over' ? '#E24B4A' : status === 'warning' ? '#f59e0b' : cat.color }}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    {/* The locale string already carries the "%", so don't add another. */}
-                    <span className={`text-xs ${rawPct > 100 ? 'font-semibold text-brand-red' : 'text-slate-400'}`}>{Math.round(rawPct)}{t('expenses_pctUsed')}</span>
-                    {status && (
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${status === 'over' ? 'badge-red' : status === 'warning' ? 'badge-orange' : 'badge-green'}`}>
-                        {status === 'over' ? t('expenses_overBudget') : status === 'warning' ? t('expenses_warning') : t('expenses_ok')}
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )
-        })}
+      {/* Four across, from large screens up. The grid stopped at three, so on a
+          wide monitor the row ended early and left a column of white beside it. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {/* The biggest spender is shown beside the chart above, so it is not
+            repeated here - seeing the same card twice on one screen reads as a
+            duplicate rather than as emphasis. */}
+        {sortedCategories.filter(cat => cat.id !== topCategory?.id).map(cat => (
+          <CategoryCard
+            key={cat.id}
+            category={cat}
+            totalSpent={allTimeTotals[cat.id] || 0}
+            monthSpent={thisMonthTotals[cat.id] || 0}
+            yearSpent={thisYearTotals[cat.id] || 0}
+            formatCurr={formatCurr}
+            t={t}
+            onEdit={() => openModal(cat)}
+            onDelete={() => deleteCategory(cat.id)}
+          />
+        ))}
       </div>
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editItem ? t('expenses_editCategory') : t('expenses_newCategoryTitle')}>
@@ -460,6 +431,97 @@ export default function ExpenseDashboard() {
           </div>
         </div>
       </Modal>
+    </div>
+  )
+}
+
+type CategoryCardProps = {
+  category: any
+  totalSpent: number
+  monthSpent: number
+  yearSpent: number
+  formatCurr: (n: number) => string
+  t: (key: string, fallback?: string) => string
+  onEdit: () => void
+  onDelete: () => void
+}
+
+/**
+ * One category box.
+ *
+ * Lifted out of the grid so the biggest spender can be drawn beside the ring
+ * with exactly the same markup - two copies of this would drift apart the
+ * first time one of them was edited.
+ */
+function CategoryCard({ category: cat, totalSpent, monthSpent, yearSpent, formatCurr, t, onEdit, onDelete }: CategoryCardProps) {
+  const budget = Number(cat.monthly_budget || 0)
+  // rawPct is the true usage (can exceed 100%); pct is only used to cap
+  // the progress-bar width so the bar never overflows its track.
+  const rawPct = budget > 0 ? (monthSpent / budget) * 100 : 0
+  const pct = Math.min(100, rawPct)
+  const status = budget === 0 ? null : monthSpent > budget ? 'over' : monthSpent > budget * 0.8 ? 'warning' : 'ok'
+
+  return (
+    <div className="card">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+          <h3 className="font-semibold text-slate-800">{cat.name}</h3>
+        </div>
+        <div className="flex gap-1">
+          <button onClick={onEdit} className="text-slate-400 hover:text-slate-600 p-1"><Pencil size={13} /></button>
+          <button onClick={onDelete} className="text-slate-400 hover:text-brand-red p-1"><Trash2 size={13} /></button>
+        </div>
+      </div>
+
+      <div className="space-y-1.5 mb-3">
+        <div className="flex justify-between text-xs">
+          <span className="text-slate-500">Total</span>
+          <span className="font-semibold text-slate-900">{formatCurr(totalSpent)}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-slate-500">{t('expenses_thisMonth')}</span>
+          <span className="font-semibold text-slate-800">{formatCurr(monthSpent)}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-slate-500">{t('expenses_thisYear')}</span>
+          <span className="font-medium text-slate-600">{formatCurr(yearSpent)}</span>
+        </div>
+        {budget > 0 && (
+          <>
+            <div className="flex justify-between text-xs">
+              {/* Spelled out as monthly: the bar below measures only this
+                  month's spend against it. */}
+              <span className="text-slate-500">{t('expenses_monthlyBudget')}</span>
+              <span className="font-medium text-slate-600">{formatCurr(budget)}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-500">Yearly Budget</span>
+              <span className="font-medium text-slate-600">{formatCurr(budget * 12)}</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {budget > 0 && (
+        <>
+          <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{ width: `${pct}%`, backgroundColor: status === 'over' ? '#E24B4A' : status === 'warning' ? '#f59e0b' : cat.color }}
+            />
+          </div>
+          <div className="flex justify-between items-center">
+            {/* The locale string already carries the "%", so don't add another. */}
+            <span className={`text-xs ${rawPct > 100 ? 'font-semibold text-brand-red' : 'text-slate-400'}`}>{Math.round(rawPct)}{t('expenses_pctUsed')}</span>
+            {status && (
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${status === 'over' ? 'badge-red' : status === 'warning' ? 'badge-orange' : 'badge-green'}`}>
+                {status === 'over' ? t('expenses_overBudget') : status === 'warning' ? t('expenses_warning') : t('expenses_ok')}
+              </span>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
