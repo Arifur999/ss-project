@@ -109,12 +109,22 @@ export type PurchaseCompanyRow = {
 }
 
 /**
+ * How many companies the card names.
+ *
+ * The list used to run to whatever length the period produced, behind a
+ * scrollbar, which made the card as tall as the report table beside it. Two is
+ * what the owner reads: the rest are summed on one line so nothing is silently
+ * dropped from a target report.
+ */
+const PURCHASE_COMPANY_LIMIT = 2
+
+/**
  * How the buying went, as one ring.
  *
+ * Top to bottom: who was bought from, then the ring, then the three figures.
  * The ring is capped at the target so a period that bought more than asked
  * still reads as a full circle rather than wrapping round - the percentage in
- * the middle is what carries "and then some". The list underneath answers the
- * follow-up question the ring cannot: which company is behind.
+ * the middle is what carries "and then some".
  */
 export function PurchaseTargetDonut({
   title,
@@ -137,6 +147,14 @@ export function PurchaseTargetDonut({
     { name: 'Remaining', value: remaining, fill: CHART_MUTED },
   ].filter(slice => slice.value > 0)
 
+  // Biggest buyers first, so the two that are named are the two worth naming.
+  const ranked = [...rows].sort((a, b) =>
+    (b.achieved - a.achieved) || String(a.company || '').localeCompare(String(b.company || ''))
+  )
+  const listed = ranked.slice(0, PURCHASE_COMPANY_LIMIT)
+  const rest = ranked.slice(PURCHASE_COMPANY_LIMIT)
+  const restAchieved = rest.reduce((sum, row) => sum + Number(row.achieved || 0), 0)
+
   return (
     <div className="overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
       <div className="bg-slate-800 px-4 py-3 text-center">
@@ -145,6 +163,41 @@ export function PurchaseTargetDonut({
 
       {target > 0 ? (
         <>
+          {/* Who the buying went to, above the ring: the ring says how much of
+              the target was met, this says by whom. */}
+          {listed.length > 0 && (
+            <div className="border-b border-slate-200">
+              {listed.map(row => {
+                const rowPct = row.target > 0 ? Math.round((row.achieved / row.target) * 100) : 0
+                return (
+                  <div
+                    key={row.company}
+                    className="flex items-center justify-between gap-2 px-4 py-2 text-[11px] hover:bg-white/70"
+                    // The company's own target is what the percentage is of, and
+                    // there is no room for it on the row - so it stays reachable
+                    // here rather than being dropped.
+                    title={`${row.company} · target ${formatCurr(row.target)}`}
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{row.company}</span>
+                    <span className="shrink-0 tabular-nums text-slate-500">{formatCurr(row.achieved)}</span>
+                    <span className={`w-9 shrink-0 text-right font-bold tabular-nums ${rowPct >= 100 ? 'text-brand-green' : 'text-slate-500'}`}>{rowPct}%</span>
+                  </div>
+                )
+              })}
+              {/* What is not named is still counted, so the card never reads as
+                  though these two were the whole month's buying. */}
+              {rest.length > 0 && (
+                <div className="flex items-center justify-between gap-2 px-4 py-2 text-[11px] text-slate-400">
+                  <span className="min-w-0 flex-1 truncate">
+                    {rest.length} more {rest.length === 1 ? 'company' : 'companies'}
+                  </span>
+                  <span className="shrink-0 tabular-nums">{formatCurr(restAchieved)}</span>
+                  <span className="w-9 shrink-0" />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="relative px-4 pt-5">
             <ResponsiveContainer width="100%" height={225}>
               <PieChart>
@@ -172,7 +225,7 @@ export function PurchaseTargetDonut({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 px-4 py-3 text-center">
+          <div className="grid grid-cols-3 gap-2 border-t border-slate-200 px-4 py-3 text-center">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Target</p>
               <p className="text-xs font-bold tabular-nums text-slate-800">{formatCurr(target)}</p>
@@ -185,26 +238,6 @@ export function PurchaseTargetDonut({
               <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Remaining</p>
               <p className={`text-xs font-bold tabular-nums ${remaining > 0 ? 'text-brand-orange' : 'text-brand-green'}`}>{formatCurr(remaining)}</p>
             </div>
-          </div>
-
-          <div className="max-h-[170px] overflow-y-auto border-t border-slate-200">
-            {rows.map(row => {
-              const rowPct = row.target > 0 ? Math.round((row.achieved / row.target) * 100) : 0
-              return (
-                <div
-                  key={row.company}
-                  className="flex items-center justify-between gap-2 px-4 py-2 text-[11px] hover:bg-white/70"
-                  // The company's own target is what the percentage is of, and
-                  // there is no room for it on the row - so it stays reachable
-                  // here rather than being dropped.
-                  title={`${row.company} · target ${formatCurr(row.target)}`}
-                >
-                  <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{row.company}</span>
-                  <span className="shrink-0 tabular-nums text-slate-500">{formatCurr(row.achieved)}</span>
-                  <span className={`w-9 shrink-0 text-right font-bold tabular-nums ${rowPct >= 100 ? 'text-brand-green' : 'text-slate-500'}`}>{rowPct}%</span>
-                </div>
-              )
-            })}
           </div>
         </>
       ) : (
