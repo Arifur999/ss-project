@@ -875,7 +875,7 @@ export default function ReportSummary() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              <tr className="table-total">
+              <tr className="bg-white font-black text-slate-900">
                 {columns.map(column => (
                   <td
                     key={column.label}

@@ -10,7 +10,7 @@
   }
   body {
     font-family: 'Inter', 'Noto Sans Bengali', system-ui, sans-serif;
-    /* White. #EEF0F6 is now what a card is painted with, and the page behind
+    /* White. #F4F4F4 is what a card is painted with, and the page behind
        the cards has to be the lighter of the two for them to read at all. */
     background-color: #ffffff;
     color: #0f172a;
@@ -168,10 +168,10 @@
   }
 
   /* The totals row, in the header's own near-black.
-     A total is the line people look for, and it was set apart only by a slight
-     grey and a bolder weight - on a long table it disappeared into the rows
-     above it. Reading the same as the header gives the table two fixed bars,
-     labels at one end and figures at the other.
+     Opt-in, one table at a time. It went on every totals row in the product
+     first, and on the report tables - where the total sits on the first row,
+     directly under the header - the two bars ran together into one thick black
+     block. It stays where the total closes a table off at the bottom.
 
      The paint goes on the cells for the same reason as .table-header: a
      background on the row loses to any cell that sets its own, and several of
