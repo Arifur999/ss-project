@@ -3,13 +3,15 @@ import { MagnifyingGlassIcon as Search, DownloadSimpleIcon as Download, ImageIco
 import { supabase } from '../lib/supabase'
 import { printTable } from '../lib/printTable'
 import TableScroller from '../components/TableScroller'
-import { getInventoryPage, setInventoryDpPrice } from '../services/product.services'
+import { adjustInventory, getInventoryHistory, getInventoryPage, setInventoryDpPrice } from '../services/product.services'
 import { usePagedList } from '../lib/usePagedList'
 import TableSkeleton from '../components/TableSkeleton'
 import PageHeader from '../components/PageHeader'
 import { useLang } from '../context/LanguageContext'
 import toast from 'react-hot-toast'
 import { NoValue } from '../components/CellValue'
+import Modal from '../components/Modal'
+import { amountClass, formatDate } from '../lib/utils'
 
 type InventoryRow = {
   id: string; product_id: string; available_qty: number; upcoming_qty: number; dp_price: number | null
@@ -194,6 +196,13 @@ export default function Inventory() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [dpEdits, setDpEdits] = useState<Record<string, string>>({})
   const [savingDp, setSavingDp] = useState<Record<string, boolean>>({})
+  // Manual stock correction: damage, loss, or a physical count that disagrees
+  // with the system. qtyChange is signed - what to ADD, so a loss is negative.
+  const [adjustRow, setAdjustRow] = useState<InventoryRow | null>(null)
+  const [adjustForm, setAdjustForm] = useState({ qty_change: '', notes: '' })
+  const [adjusting, setAdjusting] = useState(false)
+  const [history, setHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   // One request, already computed and paged. This used to fetch products,
   // inventory, inventory_history, purchase_items, purchase_receives,
@@ -263,6 +272,58 @@ export default function Inventory() {
         fifo_stock_value: Number(r.available_qty || 0) * dp,
       }
     }))
+  }
+
+  async function openAdjust(row: InventoryRow) {
+    setAdjustRow(row)
+    setAdjustForm({ qty_change: '', notes: '' })
+
+    // Every movement this product has had, from inventory_history - which the
+    // server has always written and nothing has ever shown. It answers the
+    // question the adjust box raises ("why is this number what it is?") right
+    // where it is asked, rather than on a separate screen nobody would open.
+    setHistory([])
+    setHistoryLoading(true)
+    try {
+      setHistory(await getInventoryHistory(row.product_id))
+    } catch {
+      // The adjustment itself must still work if the history cannot be read.
+      setHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  async function saveAdjust() {
+    if (!adjustRow) return
+    const change = Number(adjustForm.qty_change)
+    if (!Number.isFinite(change) || change === 0) {
+      return toast.error(t('inventory_adjustNeedQty', 'Enter how many to add or remove'))
+    }
+    if (!Number.isInteger(change)) {
+      return toast.error(t('inventory_adjustWholeOnly', 'Stock moves in whole units'))
+    }
+
+    setAdjusting(true)
+    try {
+      // The server writes the level, the history row and the FIFO batches in one
+      // transaction: an increase lays down a new batch at the product's cost, a
+      // decrease consumes the oldest ones - so the stock value stays honest
+      // instead of drifting away from what the goods cost.
+      await adjustInventory({
+        product_id: adjustRow.product_id,
+        product_name: adjustRow.products?.name || '',
+        qty_change: change,
+        notes: adjustForm.notes.trim() || 'Manual adjustment',
+      })
+      toast.success(t('inventory_adjustSaved', 'Stock adjusted'))
+      setAdjustRow(null)
+      paged.reload()
+    } catch (error: any) {
+      toast.error(error?.message || t('common_error'))
+    } finally {
+      setAdjusting(false)
+    }
   }
 
   function getStatus(row: InventoryRow): InventoryStatus {
@@ -436,7 +497,22 @@ export default function Inventory() {
                   <td className="py-2 px-3 text-right text-brand-green font-medium">{row.received_qty}</td>
                   <td className="py-2 px-3 text-right text-brand-blue font-medium">{row.upcoming_qty}</td>
                   <td className="py-2 px-3 text-right text-red-500 font-medium">{row.sales_qty}</td>
-                  <td className="py-2 px-3 text-right font-bold text-brand-green text-base">{row.available_qty}</td>
+                  {/* The stock figure itself opens the adjustment box.
+                      There was no way at all to record "five chairs were damaged"
+                      - POST /inventory/adjust existed, kept FIFO in step, and had
+                      no control anywhere in the app. A new column would have cost
+                      width this table does not have, so the number that is being
+                      corrected is the thing you click. */}
+                  <td className="py-2 px-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => openAdjust(row)}
+                      title={t('inventory_adjustHint', 'Adjust this stock (damage, loss, stock count)')}
+                      className="rounded px-1 text-base font-bold text-brand-green underline decoration-dotted underline-offset-4 hover:bg-emerald-50"
+                    >
+                      {row.available_qty}
+                    </button>
+                  </td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-1 justify-end">
                       <input
@@ -497,6 +573,108 @@ export default function Inventory() {
           </button>
         </div>
       )}
+
+      {/* Manual stock correction. Signed, because "adjust" is a movement, not a
+          new total: typing -5 records that five left, which is what the history
+          row and the FIFO consumption both need. Setting an absolute figure
+          would hide whether stock was lost or found. */}
+      <Modal
+        isOpen={Boolean(adjustRow)}
+        onClose={() => setAdjustRow(null)}
+        title={t('inventory_adjustTitle', 'Adjust stock')}
+        size="sm"
+      >
+        {adjustRow && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-slate-50 px-3 py-2.5">
+              <p className="text-sm font-semibold text-slate-800">{adjustRow.products?.name}</p>
+              <p className="text-xs text-slate-500">
+                {adjustRow.products?.product_code} · {t('inventory_colAvailableStock')}: <span className="font-bold text-brand-green">{adjustRow.available_qty}</span>
+              </p>
+            </div>
+
+            <div>
+              <label className="label" htmlFor="adjust-qty">
+                {t('inventory_adjustQty', 'Add (+) or remove (-)')}
+              </label>
+              <input
+                id="adjust-qty"
+                type="number"
+                step="1"
+                autoFocus
+                className="input"
+                placeholder="-5"
+                value={adjustForm.qty_change}
+                onChange={e => setAdjustForm(current => ({ ...current, qty_change: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') saveAdjust() }}
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                {t('inventory_adjustExample', 'Five chairs damaged: type -5. Five found in a stock count: type 5.')}
+              </p>
+              {Number(adjustForm.qty_change) !== 0 && Number.isFinite(Number(adjustForm.qty_change)) && (
+                <p className="mt-1.5 text-xs font-semibold text-slate-700">
+                  {adjustRow.available_qty} → <span className={amountClass(adjustRow.available_qty + Number(adjustForm.qty_change), 'text-brand-green')}>
+                    {adjustRow.available_qty + Number(adjustForm.qty_change)}
+                  </span>
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="label" htmlFor="adjust-notes">{t('common_notes', 'Reason')}</label>
+              <input
+                id="adjust-notes"
+                className="input"
+                placeholder={t('inventory_adjustReason', 'Damaged in transit')}
+                value={adjustForm.notes}
+                onChange={e => setAdjustForm(current => ({ ...current, notes: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') saveAdjust() }}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setAdjustRow(null)} className="btn-secondary flex-1 justify-center">
+                {t('common_cancel')}
+              </button>
+              <button onClick={saveAdjust} disabled={adjusting} className="btn-primary flex-1 justify-center disabled:opacity-60">
+                {adjusting ? t('common_saving') : t('common_save')}
+              </button>
+            </div>
+
+            {/* Every movement this product has had. The server has always written
+                inventory_history and nothing has ever shown it, so "why is this
+                number what it is?" had no answer anywhere in the app. It belongs
+                here rather than on a screen of its own, because here is where the
+                question gets asked. */}
+            <div className="border-t border-slate-100 pt-3">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                {t('inventory_history', 'Stock history')}
+              </p>
+              {historyLoading ? (
+                <p className="py-3 text-center text-xs text-slate-400">{t('common_loading', 'Loading...')}</p>
+              ) : history.length === 0 ? (
+                <p className="py-3 text-center text-xs text-slate-400">{t('inventory_noHistory', 'No movements recorded yet')}</p>
+              ) : (
+                <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+                  {history.map((entry: any) => (
+                    <div key={entry.id} className="flex items-start justify-between gap-2 rounded-md bg-slate-50 px-2.5 py-1.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-slate-700">
+                          {entry.notes || entry.reference_type || entry.change_type}
+                        </p>
+                        <p className="text-[11px] text-slate-400">{formatDate(entry.created_at)}</p>
+                      </div>
+                      <span className={`shrink-0 text-xs font-bold ${Number(entry.qty_change) < 0 ? 'text-brand-red' : 'text-brand-green'}`}>
+                        {Number(entry.qty_change) > 0 ? '+' : ''}{entry.qty_change}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

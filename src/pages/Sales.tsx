@@ -15,7 +15,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useProgressiveRows } from '../lib/useProgressiveRows'
 import { addRecycleItem } from '../lib/recycleBin'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
-import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
+import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, deleteSaleDelivery, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
 import { sendSms } from '../services/sms.services'
 import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
 import { NoValue, ZeroAmount } from '../components/CellValue'
@@ -1391,6 +1391,30 @@ export default function Sales() {
 
     if (statusError && !String(statusError.message || '').includes('delivery_status')) {
       throw statusError
+    }
+  }
+
+  /**
+   * Remove one delivery record.
+   *
+   * DELETE /sales/deliveries/:id has existed all along with nothing calling it,
+   * so a delivery entered with the wrong quantity could never be corrected and
+   * the sale's delivery status stayed wrong permanently. The server reverses the
+   * item's delivered_qty and recomputes the status.
+   */
+  async function removeDelivery(delivery: any) {
+    if (!delivery?.id) return
+    if (!(await confirmAction({
+      message: `Delete this delivery of ${delivery.delivered_qty} ${delivery.product_name || 'item'}?`,
+    }))) return
+
+    try {
+      await deleteSaleDelivery(delivery.id)
+      await touchOwnerActivity(true)
+      toast.success(t('common_deleted'))
+      await loadAll()
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not delete this delivery')
     }
   }
 
@@ -2786,6 +2810,7 @@ export default function Sales() {
                                       <th className="text-right py-3 px-4">Delivered Qty</th>
                                       <th className="text-left py-3 px-4">Delivered By</th>
                                       <th className="text-left py-3 px-4">Notes</th>
+                                      <th className="py-3 px-4"></th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2796,11 +2821,24 @@ export default function Sales() {
                                         <td className="py-3 px-4 text-right font-bold text-green-600">{delivery.delivered_qty}</td>
                                         <td className="py-3 px-4">{delivery.delivered_by || <NoValue />}</td>
                                         <td className="py-3 px-4 text-slate-500">{delivery.notes || <NoValue />}</td>
+                                        {/* A mistyped delivery quantity used to be permanent - the
+                                            endpoint existed, nothing called it, and delivery status
+                                            stayed wrong for good. */}
+                                        <td className="py-3 px-4 text-right">
+                                          <button
+                                            type="button"
+                                            onClick={() => removeDelivery(delivery)}
+                                            title="Delete this delivery record"
+                                            className="rounded-md border border-red-100 bg-red-50 p-1.5 text-brand-red hover:bg-red-100"
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </td>
                                       </tr>
                                     ))}
                                     {saleDeliveryRows(s).length === 0 && (
                                       <tr>
-                                        <td colSpan={5} className="py-10 text-center">
+                                        <td colSpan={6} className="py-10 text-center">
                                           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
                                             <Clipboard size={28} />
                                           </div>

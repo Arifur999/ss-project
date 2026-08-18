@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LanguageContext'
 import { RecycleBinItem } from '../lib/recycleBin'
 import { formatDate } from '../lib/utils'
-import { deleteRecycleBinItemPermanently, getRecycleBinItems, restoreRecycleBinItem } from '../services/admin.services'
+import { deleteRecycleBinItemPermanently, emptyRecycleBin, getRecycleBinItems, restoreRecycleBinItem } from '../services/admin.services'
 
 /**
  * One key per menu a deleted record can come back to.
@@ -83,6 +83,7 @@ export default function RecycleBin() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<RecycleBinItem[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [emptying, setEmptying] = useState(false)
 
   useEffect(() => {
     loadAll()
@@ -193,14 +194,50 @@ export default function RecycleBin() {
   const allVisibleSelected = visibleRows.length > 0 && visibleRows.every(row => selectedIds.includes(row.id))
   const activeLabel = tabs.find(tab => tab.key === activeTab)?.label || 'Records'
 
+  /**
+   * Permanently delete everything in the bin.
+   *
+   * Deliberately clears the WHOLE bin, not just the active tab: "empty" that
+   * leaves items behind under another tab is the more surprising behaviour, and
+   * the confirmation names the total so there is no ambiguity about it.
+   */
+  async function emptyBin() {
+    if (!(await confirmAction({
+      message: `Permanently delete all ${rows.length} item(s) in the recycle bin? This cannot be undone.`,
+    }))) return
+
+    setEmptying(true)
+    try {
+      await emptyRecycleBin()
+      toast.success('Recycle bin emptied')
+      setSelectedIds([])
+      await loadAll()
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not empty the recycle bin')
+    } finally {
+      setEmptying(false)
+    }
+  }
+
   return (
     <div className="p-6 space-y-4">
       <PageHeader
         title="Recycle Bin"
         actions={
-          <button onClick={loadAll} className="btn-secondary" disabled={loading}>
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
+          <div className="flex gap-2">
+            <button onClick={loadAll} className="btn-secondary" disabled={loading}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
+            {/* DELETE /recycle-bin/empty existed with nothing calling it, so the
+                only way to clear the bin was one row at a time. Hidden while the
+                bin is empty - a button that can only tell you there is nothing
+                to do is noise. */}
+            {rows.length > 0 && (
+              <button onClick={emptyBin} className="btn-secondary text-brand-red" disabled={emptying}>
+                <Trash2 size={16} /> {emptying ? 'Emptying...' : `Empty bin (${rows.length})`}
+              </button>
+            )}
+          </div>
         }
       />
 
