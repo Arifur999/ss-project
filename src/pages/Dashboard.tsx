@@ -56,10 +56,12 @@ type DashboardData = {
     totalCustomers: number
     netProfit: number
   }
-  monthlySales: { monthIndex: number; sales: number; profit: number }[]
+  // Keyed by year and month, not by month number: a window that crosses a year
+  // used to add last September into this September's bar.
+  monthlySales: { key: string; monthIndex: number; year: number; sales: number; profit: number }[]
   // Money in against money out, by month. Both sides come from figures already
   // fetched for the cards, so this costs no extra request.
-  monthlyCashflow: { monthIndex: number; moneyIn: number; moneyOut: number }[]
+  monthlyCashflow: { key: string; monthIndex: number; year: number; moneyIn: number; moneyOut: number }[]
   // Both sides of the money, split by month, for the Monthly Spendings card:
   // its tabs switch between them and its picker switches month.
   monthlyBreakdown: {
@@ -129,6 +131,29 @@ function getRange(type: RangeType, customStart: string, customEnd: string) {
   }
 
   return { start: toDateInputValue(currentMonthStart), end: toDateInputValue(today) }
+}
+
+/**
+ * The twelve months ending with the current one.
+ *
+ * The two month charts are titled "month by month", so they have to show the
+ * months - not whatever the range picker happens to be set to. Fed the selected
+ * range, "This Month" drew one bar and eleven empty ones, which reads as a
+ * business that stopped trading for eleven months.
+ */
+function getTrailingYear() {
+  const today = new Date()
+  const start = new Date(today.getFullYear(), today.getMonth() - 11, 1)
+  return { start: toDateInputValue(start), end: toDateInputValue(today) }
+}
+
+/** The twelve YYYY-MM keys that window covers, oldest first. */
+function trailingMonthKeys() {
+  const today = new Date()
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1)
+    return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, monthIndex: d.getMonth() + 1, year: d.getFullYear() }
+  })
 }
 
 function getPreviousRange(range: { start: string; end: string }) {
@@ -216,12 +241,15 @@ export default function Dashboard() {
   // Month names are applied at render, not at fetch, so switching language
   // renames every axis and picker immediately - and the cached data stays
   // language-agnostic instead of freezing whichever language loaded it.
+  // "Sep 25", not "Sep": these twelve months cross a new year, and a bare month
+  // name leaves the reader unable to tell which one they are looking at.
+  const monthLabel = (monthIndex: number, year: number) => `${monthShort(monthIndex)} ${String(year).slice(2)}`
   const salesSeries = useMemo(
-    () => (data.monthlySales || []).map(row => ({ ...row, month: monthShort(row.monthIndex) })),
+    () => (data.monthlySales || []).map(row => ({ ...row, month: monthLabel(row.monthIndex, row.year) })),
     [data.monthlySales, monthShort]
   )
   const cashflowSeries = useMemo(
-    () => (data.monthlyCashflow || []).map(row => ({ ...row, month: monthShort(row.monthIndex) })),
+    () => (data.monthlyCashflow || []).map(row => ({ ...row, month: monthLabel(row.monthIndex, row.year) })),
     [data.monthlyCashflow, monthShort]
   )
   const breakdownMonths = useMemo(
@@ -248,6 +276,20 @@ export default function Dashboard() {
     }
     const selectedRange = getRange(rangeType, customStart, customEnd)
     const previousRange = getPreviousRange(selectedRange)
+    const trailingYear = getTrailingYear()
+    // Started before the batch below so the two sets of queries overlap.
+    const trailingPromise = Promise.all([
+
+      // Just the columns the two month charts read, over the trailing year.
+      // They are titled "month by month" and must show the months whatever the
+      // range picker is set to.
+      supabase.from('sales').select('date, subtotal, discount_amount, net_amount, sale_items(selling_price, actual_price, cost_price, qty)').eq('status', 'completed').gte('date', trailingYear.start).lte('date', trailingYear.end),
+      supabase.from('other_incomes').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
+      supabase.from('purchases').select('date, net_amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
+      supabase.from('expenses').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
+      supabase.from('supplier_payments').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
+      supabase.from('customer_payments').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end)
+    ])
 
     const [
       salesRes,
@@ -323,33 +365,46 @@ export default function Dashboard() {
       sum + parseAmountText(parseMetaValue(payment.notes || '', 'Discount Amount')), 0)
     const previousTotalDiscountAllowed = previousInvoiceDiscountTotal + previousDueDiscountTotal
 
-    const monthlyMap: Record<number, { sales: number; profit: number }> = {}
-    sales.forEach((sale: any) => {
-      const month = new Date(sale.date).getMonth() + 1
-      if (!monthlyMap[month]) monthlyMap[month] = { sales: 0, profit: 0 }
-      monthlyMap[month].sales += getSaleAmount(sale)
-      monthlyMap[month].profit += getSaleProfit(sale)
-    })
-    otherIncomes.forEach((income: any) => {
-      const month = new Date(income.date).getMonth() + 1
-      if (!monthlyMap[month]) monthlyMap[month] = { sales: 0, profit: 0 }
-      monthlyMap[month].profit += Number(income.amount || 0)
-    })
-
-    // Cashflow: what came in against what went out, month by month. The same
-    // rows the cards are counted from, bucketed by month instead of summed.
-    const cashflowMap: Record<number, { moneyIn: number; moneyOut: number }> = {}
-    const bucket = (dateStr: string) => {
-      const month = new Date(dateStr).getMonth() + 1
-      if (!cashflowMap[month]) cashflowMap[month] = { moneyIn: 0, moneyOut: 0 }
-      return cashflowMap[month]
+    // Both month charts read the trailing year, not the selected range, and are
+    // bucketed by year-and-month so two Septembers never land in one bar.
+    const bucketKey = (dateStr: string) => {
+      const date = new Date(dateStr)
+      if (Number.isNaN(date.getTime())) return null
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     }
-    sales.forEach((sale: any) => { bucket(sale.date).moneyIn += getSaleAmount(sale) })
-    otherIncomes.forEach((income: any) => { bucket(income.date).moneyIn += Number(income.amount || 0) })
-    ;(dueCollectionsRes.data || []).forEach((payment: any) => { bucket(payment.date).moneyIn += Number(payment.amount || 0) })
-    ;(purchasesRes.data || []).forEach((purchase: any) => { bucket(purchase.date).moneyOut += Number(purchase.net_amount || 0) })
-    ;(expensesRes.data || []).forEach((expense: any) => { bucket(expense.date).moneyOut += Number(expense.amount || 0) })
-    ;(supplierPaymentsRes.data || []).forEach((payment: any) => { bucket(payment.date).moneyOut += Number(payment.amount || 0) })
+
+    const [
+      yearSalesRes, yearOtherIncomeRes, yearPurchasesRes,
+      yearExpensesRes, yearSupplierPaymentsRes, yearCollectionsRes,
+    ] = await trailingPromise
+
+    const monthlyMap: Record<string, { sales: number; profit: number }> = {}
+    const addSale = (key: string | null, sales: number, profit: number) => {
+      if (!key) return
+      if (!monthlyMap[key]) monthlyMap[key] = { sales: 0, profit: 0 }
+      monthlyMap[key].sales += sales
+      monthlyMap[key].profit += profit
+    }
+    ;(yearSalesRes?.data || []).forEach((sale: any) =>
+      addSale(bucketKey(sale.date), getSaleAmount(sale), getSaleProfit(sale)))
+    ;(yearOtherIncomeRes?.data || []).forEach((income: any) =>
+      addSale(bucketKey(income.date), 0, Number(income.amount || 0)))
+
+    // Cashflow: what came in against what went out, month by month, over the
+    // same trailing year.
+    const cashflowMap: Record<string, { moneyIn: number; moneyOut: number }> = {}
+    const bucket = (dateStr: string) => {
+      const key = bucketKey(dateStr)
+      if (!key) return null
+      if (!cashflowMap[key]) cashflowMap[key] = { moneyIn: 0, moneyOut: 0 }
+      return cashflowMap[key]
+    }
+    ;(yearSalesRes?.data || []).forEach((sale: any) => { const b = bucket(sale.date); if (b) b.moneyIn += getSaleAmount(sale) })
+    ;(yearOtherIncomeRes?.data || []).forEach((income: any) => { const b = bucket(income.date); if (b) b.moneyIn += Number(income.amount || 0) })
+    ;(yearCollectionsRes?.data || []).forEach((payment: any) => { const b = bucket(payment.date); if (b) b.moneyIn += Number(payment.amount || 0) })
+    ;(yearPurchasesRes?.data || []).forEach((purchase: any) => { const b = bucket(purchase.date); if (b) b.moneyOut += Number(purchase.net_amount || 0) })
+    ;(yearExpensesRes?.data || []).forEach((expense: any) => { const b = bucket(expense.date); if (b) b.moneyOut += Number(expense.amount || 0) })
+    ;(yearSupplierPaymentsRes?.data || []).forEach((payment: any) => { const b = bucket(payment.date); if (b) b.moneyOut += Number(payment.amount || 0) })
 
     // Money in and money out by month, each broken down by where it came from
     // or went. Expenses carry their own category; income is grouped by the
@@ -486,15 +541,15 @@ export default function Dashboard() {
         totalCustomers: customersRes.count || 0,
         netProfit: profitLoss(previousProfitInputs),
       },
-      monthlySales: Array.from({ length: 12 }, (_, i) => ({
-        monthIndex: i + 1,
-        sales: monthlyMap[i + 1]?.sales || 0,
-        profit: monthlyMap[i + 1]?.profit || 0,
+      monthlySales: trailingMonthKeys().map(m => ({
+        ...m,
+        sales: monthlyMap[m.key]?.sales || 0,
+        profit: monthlyMap[m.key]?.profit || 0,
       })),
-      monthlyCashflow: Array.from({ length: 12 }, (_, i) => ({
-        monthIndex: i + 1,
-        moneyIn: cashflowMap[i + 1]?.moneyIn || 0,
-        moneyOut: cashflowMap[i + 1]?.moneyOut || 0,
+      monthlyCashflow: trailingMonthKeys().map(m => ({
+        ...m,
+        moneyIn: cashflowMap[m.key]?.moneyIn || 0,
+        moneyOut: cashflowMap[m.key]?.moneyOut || 0,
       })),
       monthlyBreakdown,
       topCustomers: Object.values(customerMap).sort((a, b) => b.totalSales - a.totalSales).slice(0, 10),
@@ -588,7 +643,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={190}>
             <LineChart data={cashflowSeries}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#ffffff80" }} interval={0} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} width={38} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
               <Tooltip
 
@@ -624,7 +679,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={salesSeries} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#6B7280" }} interval={0} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
               <Tooltip
 
