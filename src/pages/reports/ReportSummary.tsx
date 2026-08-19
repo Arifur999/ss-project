@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
+import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards, WarningIcon as Warning } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
@@ -1010,6 +1010,23 @@ export default function ReportSummary() {
         </div>
       ) : (
         <div className="space-y-5">
+          {/* Every profit figure on this page - the card, Gross Profit, the
+              target achievement and the Sales Report's own column - counts a
+              line with no purchase rate as zero profit, because the profit on
+              it is unknowable. So they are all floors, and saying it once here
+              covers them all rather than caveating one card and leaving a
+              reader who looked at any of the others to assume the rest. */}
+          {data.uncostedSales > 0 && (
+            <p className="flex items-start gap-1.5 rounded-lg border border-surface-border bg-surface px-4 py-3 text-xs text-brand-red">
+              <Warning size={14} weight="duotone" className="mt-px shrink-0" />
+              <span>
+                {formatCurr(data.uncostedSales)} of sales have no purchase rate on them, so their profit counts as
+                zero. Every profit figure below is the least it can be, not the answer - add the purchase rates to
+                those products to close the gap.
+              </span>
+            </p>
+          )}
+
           {/* ── SECTION 01 — MONTHLY OVERVIEW ───────────────────────────── */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
             <PeriodCard
@@ -1055,11 +1072,12 @@ export default function ReportSummary() {
                 label="Profit / Loss"
                 icon={<CheckCircle2 size={17} weight="duotone" />}
                 value={formatCurr(data.profitLoss)}
-                // Sales with no purchase rate contribute nothing to profit, so
-                // the figure above is a floor, not the answer. Saying so on the
-                // card beats a reader taking it as final.
+                // The margin always shows - it is this card's own metric, and
+                // making the caveat replace it meant one Tk 1 line with no
+                // purchase rate hid it for good. The caveat rides alongside;
+                // the notice above the section carries the full explanation.
                 note={data.uncostedSales > 0
-                  ? `understated - ${formatCurr(data.uncostedSales)} of sales have no purchase rate`
+                  ? `${profitMargin.toFixed(2)}% margin · a floor, see above`
                   : `${profitMargin.toFixed(2)}% margin`}
                 valueClassName={data.profitLoss >= 0 ? 'text-navy-900' : 'text-brand-red'}
               />
