@@ -77,35 +77,49 @@ export function buildCustomerDashboard(
     const discount = Number(sale.discount_amount || 0)
     const netAmount = Number(sale.net_amount || 0)
     const paidAmount = Number(sale.paid_amount || 0)
-    const storedDue = Number(sale.due_amount || 0)
     customerMap[sale.customer_id].totalPurchase += Number(sale.subtotal || 0) || netAmount + discount
     customerMap[sale.customer_id].totalDiscount += discount
     customerMap[sale.customer_id].collectionsAmount += paidAmount
-    // Not clamped at zero, and not the largest of three. due_amount is the
-    // server's own figure and it is kept in step with paid_amount on every
-    // collection, so it is simply the answer; net - paid is the fallback for a
-    // row old enough not to carry it.
+    // Derived, not read from due_amount. That column is nullable in no sense -
+    // it is NOT NULL defaulting to 0 (prisma/schema/sales.prisma) and the sale
+    // API takes it as an optional field it never computes, so a row saved
+    // without one stores 0 and would have contributed nothing at all. net minus
+    // paid is always derivable and cannot go stale.
     //
-    // The clamp had to go with the double-subtraction below it. Between them,
-    // a customer who overpaid could never read as being in credit: the clamp
-    // threw the overpayment away per sale, and the only thing that could make
-    // the total negative was the second subtraction, which was the bug.
-    customerMap[sale.customer_id].invoiceDue += sale.due_amount == null ? netAmount - paidAmount : storedDue
+    // Not clamped at zero: a sale that was over-settled at the till is money we
+    // owe the customer, and the total below is meant to be able to say so.
+    customerMap[sale.customer_id].invoiceDue += netAmount - paidAmount
   })
 
-  // Recording a Due Received already increments the sale's paid_amount and
-  // decrements its due (customerPayment.service.ts), so both figures above have
-  // the collection in them. dueReceived is kept because the list shows it as a
-  // column of its own, but it must not be added to collections or taken off the
-  // due a second time - doing both is what made this page report Tk -14 lakh
-  // owing against the Sales ledger's Tk 1.53 crore, the gap being exactly the
-  // year's collections.
+  // Collections that no sale knows about, per customer.
+  //
+  // customerPayment.service.ts moves a sale's paid_amount and due_amount only
+  // when the payment carries a sale_id, and nothing in this app ever sets one -
+  // Due Received is collected against the customer's whole balance, not against
+  // one invoice, and an opening due has no invoice to attach to at all. So for
+  // every payment this app writes, the sale rows still show the full amount and
+  // the collection has to come off here.
+  //
+  // A payment that DOES carry a sale_id (older data, or a future screen that
+  // settles one invoice) is left out: that one already reduced its sale, and
+  // subtracting it again is what would double-count it.
+  const unlinkedReceived: Record<string, number> = {}
+
   payments.forEach((payment: any) => {
     if (!payment.customer_id || !customerMap[payment.customer_id]) return
 
     const dueDiscount = parseAmountText(parseMetaValue(payment.notes || '', 'Discount Amount'))
-    customerMap[payment.customer_id].dueReceived += Number(payment.amount || 0)
+    const amount = Number(payment.amount || 0)
+    customerMap[payment.customer_id].dueReceived += amount
     customerMap[payment.customer_id].extraDiscount += dueDiscount
+
+    if (!payment.sale_id) {
+      unlinkedReceived[payment.customer_id] = (unlinkedReceived[payment.customer_id] || 0) + amount
+      // Money that reached an account is a collection wherever it was recorded.
+      // Counting only paid_amount left the Collections column reading Tk 0 for a
+      // customer who had paid in full through Due Received.
+      customerMap[payment.customer_id].collectionsAmount += amount
+    }
   })
 
   // Not clamped at zero. It used to be Math.max(0, ...), which hid every credit
@@ -117,10 +131,14 @@ export function buildCustomerDashboard(
   // already render a negative in red site-wide, so it reads correctly on screen.
   const customerList = Object.values(customerMap).map(customer => ({
     ...customer,
-    // invoiceDue is already net of every collection; only the discount written
-    // off on a Due Received still has to come out, because that never reduced
-    // the sale.
-    currentDue: customer.openingDue + customer.invoiceDue - customer.extraDiscount,
+    // What they were billed, less what they have actually handed over: the
+    // opening balance plus the unpaid part of every invoice, less the
+    // collections no invoice absorbed, less anything written off on one.
+    currentDue:
+      customer.openingDue
+      + customer.invoiceDue
+      - (unlinkedReceived[customer.id] || 0)
+      - customer.extraDiscount,
   })).sort((a, b) => b.currentDue - a.currentDue)
 
   return {
@@ -160,7 +178,7 @@ export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardD
   const [custRes, salesRes, paymentsRes] = await Promise.all([
     supabase.from('customers').select('id, name, phone, address, opening_due').order('name'),
     supabase.from('sales').select('customer_id, customer_name, subtotal, net_amount, discount_amount, paid_amount, due_amount, date').eq('status', 'completed'),
-    supabase.from('customer_payments').select('customer_id, amount, date, notes'),
+    supabase.from('customer_payments').select('customer_id, sale_id, amount, date, notes'),
   ])
 
   if (custRes.error) throw custRes.error

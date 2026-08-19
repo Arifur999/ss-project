@@ -2,94 +2,110 @@ import { describe, expect, it } from 'vitest'
 import { buildCustomerDashboard } from './customerDashboardData'
 
 /**
- * Recording a Due Received already increments the sale's paid_amount and
- * decrements its due, server-side. Every case below turns on that: the page
- * must not take the same collection off a second time.
+ * A Due Received does NOT touch the sale it helps pay off.
+ *
+ * customerPayment.service.ts settles a sale only when the payment carries a
+ * sale_id, and CustomerDueReceived - the app's only writer of customer_payments
+ * - never sets one, because a collection is taken against the customer's whole
+ * balance rather than one invoice. So the sale rows keep showing the full due
+ * and the collection has to be taken off here.
+ *
+ * Every fixture below is written the way the API really returns it: paid_amount
+ * holds what was handed over AT THE TILL and nothing else.
  */
 
 const customer = { id: 'c1', name: 'Rahim', phone: '01711', address: 'Dhaka', opening_due: 0 }
 
-// A sale of 100,000 with 40,000 paid at the till: the row the API returns
-// afterwards, with the collection already folded in.
-const saleAfterCollection = (paid: number) => ({
+/** A Tk 100,000 sale with `paidAtTill` taken at the counter. */
+const sale = (paidAtTill: number) => ({
   customer_id: 'c1', customer_name: 'Rahim',
   subtotal: 100000, net_amount: 100000, discount_amount: 0,
-  paid_amount: paid, due_amount: 100000 - paid, date: '2026-08-01',
+  paid_amount: paidAtTill, due_amount: 100000 - paidAtTill, date: '2026-08-01',
+})
+
+/** A collection recorded on the Due Received page - no sale_id, as in production. */
+const collection = (amount: number, notes = '') => ({
+  customer_id: 'c1', amount, date: '2026-08-10', notes,
 })
 
 describe('what a customer still owes', () => {
-  it('is the sale, less what has been paid on it', () => {
-    const { stats } = buildCustomerDashboard([customer], [saleAfterCollection(40000)], [])
+  it('is the sale, less what was paid at the till', () => {
+    const { stats } = buildCustomerDashboard([customer], [sale(40000)], [])
     expect(stats.currentDue).toBe(60000)
   })
 
-  it('does not take a collection off twice', () => {
-    // 40,000 at the till, then 25,000 received against the due. The server has
-    // already moved the sale to paid 65,000 / due 35,000, and the payment row
-    // still exists. The answer is 35,000, not 10,000.
-    const { stats } = buildCustomerDashboard(
-      [customer],
-      [saleAfterCollection(65000)],
-      [{ customer_id: 'c1', amount: 25000, date: '2026-08-10', notes: '' }],
-    )
+  it('takes a Due Received off the balance', () => {
+    // 40,000 at the till, then 25,000 collected later. The sale row is
+    // untouched by that second payment, so 100,000 - 40,000 - 25,000 = 35,000.
+    const { stats } = buildCustomerDashboard([customer], [sale(40000)], [collection(25000)])
     expect(stats.currentDue).toBe(35000)
   })
 
-  it('never goes negative just because money was collected', () => {
-    // The bug this replaced: a fully settled sale with a payment row against it
-    // came out as the business owing the customer.
+  it('settles an account paid off entirely through Due Received', () => {
+    // The case the page got wrong: nothing paid at the till, the whole invoice
+    // collected afterwards. The sale still reads paid 0 / due 100,000.
+    const { stats } = buildCustomerDashboard([customer], [sale(0)], [collection(100000)])
+    expect(stats.currentDue).toBe(0)
+    expect(stats.outstandingDue).toBe(0)
+  })
+
+  it('clears an opening due that was paid off, with no sale in sight', () => {
+    // An opening balance has no invoice to attach a payment to, so this case
+    // can only ever be answered here.
     const { stats } = buildCustomerDashboard(
-      [customer],
-      [saleAfterCollection(100000)],
-      [{ customer_id: 'c1', amount: 60000, date: '2026-08-10', notes: '' }],
+      [{ ...customer, opening_due: 50000 }],
+      [],
+      [collection(50000)],
     )
     expect(stats.currentDue).toBe(0)
   })
 
-  it('counts collections once, not twice', () => {
+  it('carries an opening due through alongside a sale', () => {
+    const { stats } = buildCustomerDashboard([{ ...customer, opening_due: 12000 }], [sale(40000)], [])
+    expect(stats.currentDue).toBe(72000)
+  })
+
+  it('does not take a collection off twice when it was linked to a sale', () => {
+    // A payment carrying a sale_id HAS already been taken off its sale by the
+    // server, so it must not come off again here.
+    const settled = { ...sale(0), paid_amount: 100000, due_amount: 0 }
     const { stats } = buildCustomerDashboard(
       [customer],
-      [saleAfterCollection(65000)],
-      [{ customer_id: 'c1', amount: 25000, date: '2026-08-10', notes: '' }],
+      [settled],
+      [{ ...collection(100000), sale_id: 's1' }],
     )
-    expect(stats.collectionsAmount).toBe(65000)
+    expect(stats.currentDue).toBe(0)
   })
 
   it('still takes off a discount written off on a Due Received', () => {
-    // That discount never reduced the sale, so it is the one thing on a payment
-    // row that does still have to come out here.
+    // The discount never reduced the sale either, so it comes off here too.
     const { stats } = buildCustomerDashboard(
       [customer],
-      [saleAfterCollection(65000)],
-      [{ customer_id: 'c1', amount: 25000, date: '2026-08-10', notes: 'Discount Amount: 5000' }],
+      [sale(40000)],
+      [collection(25000, 'Discount Amount: 5000')],
     )
     expect(stats.extraDiscount).toBe(5000)
     expect(stats.currentDue).toBe(30000)
   })
 
-  it('carries an opening due through', () => {
-    const { stats } = buildCustomerDashboard(
-      [{ ...customer, opening_due: 12000 }],
-      [saleAfterCollection(40000)],
-      [],
-    )
-    expect(stats.currentDue).toBe(72000)
+  it('reports an overpayment as credit', () => {
+    const { stats } = buildCustomerDashboard([customer], [sale(40000)], [collection(75000)])
+    expect(stats.currentDue).toBe(-15000)
+    expect(stats.customerCredit).toBe(15000)
+    expect(stats.outstandingDue).toBe(0)
   })
 
-  it('still reports a genuine overpayment as credit', () => {
-    // Not the same thing as the bug: here the sale itself is over-settled, so
-    // the business really does owe the customer.
-    const { stats } = buildCustomerDashboard([customer], [saleAfterCollection(120000)], [])
+  it('reports an overpayment taken at the till as credit too', () => {
+    const { stats } = buildCustomerDashboard([customer], [sale(120000)], [])
     expect(stats.currentDue).toBe(-20000)
     expect(stats.customerCredit).toBe(20000)
-    expect(stats.outstandingDue).toBe(0)
   })
 
   it('keeps the two sides separate across customers', () => {
     const other = { id: 'c2', name: 'Karim', phone: '01811', address: 'Khulna', opening_due: 0 }
     const { stats } = buildCustomerDashboard(
       [customer, other],
-      [saleAfterCollection(40000), { ...saleAfterCollection(120000), customer_id: 'c2', customer_name: 'Karim' }],
+      [sale(40000), { ...sale(120000), customer_id: 'c2', customer_name: 'Karim' }],
       [],
     )
     expect(stats.currentDue).toBe(40000)      // 60,000 owed less 20,000 in credit
@@ -97,12 +113,46 @@ describe('what a customer still owes', () => {
     expect(stats.customerCredit).toBe(20000)
   })
 
+  it('counts a sale whose due_amount was never written', () => {
+    // due_amount is NOT NULL defaulting to 0 and the sale API never computes
+    // it, so a row saved without one reads 0. The figure has to be derived.
+    const noStoredDue = { ...sale(0), due_amount: 0 }
+    const { stats } = buildCustomerDashboard([customer], [noStoredDue], [])
+    expect(stats.currentDue).toBe(100000)
+  })
+
   it('ignores a payment belonging to nobody on the list', () => {
     const { stats } = buildCustomerDashboard(
       [customer],
-      [saleAfterCollection(40000)],
+      [sale(40000)],
       [{ customer_id: 'gone', amount: 9999, date: '2026-08-10', notes: '' }],
     )
     expect(stats.currentDue).toBe(60000)
+  })
+})
+
+describe('what has been collected', () => {
+  it('counts money taken at the till and money collected afterwards', () => {
+    const { stats } = buildCustomerDashboard([customer], [sale(40000)], [collection(25000)])
+    expect(stats.collectionsAmount).toBe(65000)
+  })
+
+  it('counts a collection that never reached the till at all', () => {
+    // The contradiction this fixes: Collections read Tk 0 on a row whose Due
+    // Received column beside it read Tk 100,000.
+    const { stats, customerList } = buildCustomerDashboard([customer], [sale(0)], [collection(100000)])
+    expect(stats.collectionsAmount).toBe(100000)
+    expect(customerList[0].dueReceived).toBe(100000)
+  })
+
+  it('does not count a sale-linked payment twice', () => {
+    // It is already inside that sale's paid_amount.
+    const settled = { ...sale(0), paid_amount: 100000, due_amount: 0 }
+    const { stats } = buildCustomerDashboard(
+      [customer],
+      [settled],
+      [{ ...collection(100000), sale_id: 's1' }],
+    )
+    expect(stats.collectionsAmount).toBe(100000)
   })
 })
