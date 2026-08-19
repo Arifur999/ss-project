@@ -327,14 +327,14 @@ export default function SubscriptionPlans() {
     // overflow:hidden on html, body and #root so the app shell can own its own
     // scrolling, and this page lives outside that shell. Left as min-h-screen
     // everything below the fold is in the DOM and unreachable.
-    <div className="h-screen overflow-y-auto bg-white px-4 py-8">
+    <div className="flex h-screen flex-col overflow-y-auto bg-white px-4 py-8">
       {/* The way back into the app. A plan page with no logo is a dead end -
           there is nothing on it that leads anywhere except a payment. */}
       <button
         type="button"
         onClick={handleLogoClick}
         title={hasWorkspaceAccess ? copy('goDashboard') : undefined}
-        className="fixed left-4 top-4 z-20 rounded-lg p-1 transition hover:opacity-80"
+        className="fixed left-6 top-6 z-20 rounded-lg p-1 transition hover:opacity-80 lg:left-36 lg:top-16"
       >
         <img src="/logo-dark.png" alt={t('appName')} className="h-8 w-auto object-contain" />
       </button>
@@ -345,7 +345,7 @@ export default function SubscriptionPlans() {
         <button onClick={() => setLang('bn')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'bn' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>বাংলা</button>
       </div>
 
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col justify-center">
         <header className="mx-auto mb-8 max-w-2xl text-center">
           <h1 className="text-3xl font-black text-slate-950 sm:text-4xl">{copy('title')}</h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">{copy('subtitle')}</p>
