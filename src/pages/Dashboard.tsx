@@ -56,12 +56,14 @@ type DashboardData = {
     totalCustomers: number
     netProfit: number
   }
-  // Keyed by year and month, not by month number: a window that crosses a year
-  // used to add last September into this September's bar.
-  monthlySales: { key: string; monthIndex: number; year: number; sales: number; profit: number }[]
+  /** Whether the two charts are drawing days or months for the chosen range. */
+  chartGranularity: 'day' | 'month'
+  // Keyed by the whole date or by year-and-month, never by month number alone:
+  // a window that crosses a year used to add last September into this one's bar.
+  monthlySales: { key: string; monthIndex: number; year: number; day: number; sales: number; profit: number }[]
   // Money in against money out, by month. Both sides come from figures already
   // fetched for the cards, so this costs no extra request.
-  monthlyCashflow: { key: string; monthIndex: number; year: number; moneyIn: number; moneyOut: number }[]
+  monthlyCashflow: { key: string; monthIndex: number; year: number; day: number; moneyIn: number; moneyOut: number }[]
   // Both sides of the money, split by month, for the Monthly Spendings card:
   // its tabs switch between them and its picker switches month.
   monthlyBreakdown: {
@@ -134,26 +136,55 @@ function getRange(type: RangeType, customStart: string, customEnd: string) {
 }
 
 /**
- * The twelve months ending with the current one.
+ * The buckets the two month charts draw, taken from the selected range.
  *
- * The two month charts are titled "month by month", so they have to show the
- * months - not whatever the range picker happens to be set to. Fed the selected
- * range, "This Month" drew one bar and eleven empty ones, which reads as a
- * business that stopped trading for eleven months.
+ * They follow the picker: Today is one day, This Month is the days so far,
+ * a custom span of a year is its months. Only periods inside the range get a
+ * bucket, which is the point - the charts used to draw a fixed Jan-Dec axis
+ * whatever was selected, so picking one month showed one bar and eleven empty
+ * ones, reading as a business that had stopped trading.
+ *
+ * Under about two months it buckets by day, above that by month: sixty-odd
+ * columns is the most an axis this size can carry, and a year of days would be
+ * unreadable.
  */
-function getTrailingYear() {
-  const today = new Date()
-  const start = new Date(today.getFullYear(), today.getMonth() - 11, 1)
-  return { start: toDateInputValue(start), end: toDateInputValue(today) }
+const DAILY_BUCKET_LIMIT = 62
+
+function getChartBuckets(range: { start: string; end: string }) {
+  const first = new Date(`${range.start}T12:00:00`)
+  const last = new Date(`${range.end}T12:00:00`)
+  if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || last < first) {
+    return { granularity: 'day' as const, buckets: [] as { key: string; monthIndex: number; year: number; day: number }[] }
+  }
+
+  const days = Math.round((last.getTime() - first.getTime()) / 86400000) + 1
+  if (days <= DAILY_BUCKET_LIMIT) {
+    const buckets = Array.from({ length: days }, (_, i) => {
+      const d = addDays(first, i)
+      return { key: toDateInputValue(d), monthIndex: d.getMonth() + 1, year: d.getFullYear(), day: d.getDate() }
+    })
+    return { granularity: 'day' as const, buckets }
+  }
+
+  const buckets: { key: string; monthIndex: number; year: number; day: number }[] = []
+  const cursor = new Date(first.getFullYear(), first.getMonth(), 1)
+  while (cursor <= last) {
+    buckets.push({
+      key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+      monthIndex: cursor.getMonth() + 1, year: cursor.getFullYear(), day: 0,
+    })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+  return { granularity: 'month' as const, buckets }
 }
 
-/** The twelve YYYY-MM keys that window covers, oldest first. */
-function trailingMonthKeys() {
-  const today = new Date()
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1)
-    return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, monthIndex: d.getMonth() + 1, year: d.getFullYear() }
-  })
+/** Which bucket a date falls in, at the granularity in use. */
+function bucketKeyFor(dateStr: string, granularity: 'day' | 'month') {
+  const date = new Date(dateStr)
+  if (Number.isNaN(date.getTime())) return null
+  return granularity === 'day'
+    ? toDateInputValue(date)
+    : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
 function getPreviousRange(range: { start: string; end: string }) {
@@ -214,6 +245,7 @@ const dashboardCacheKey = (rangeType: RangeType, customStart: string, customEnd:
 const emptyDashboardData: DashboardData = {
   ...emptyMetrics,
   previous: emptyMetrics,
+  chartGranularity: 'month',
   monthlySales: [],
   monthlyCashflow: [],
   monthlyBreakdown: [],
@@ -241,16 +273,20 @@ export default function Dashboard() {
   // Month names are applied at render, not at fetch, so switching language
   // renames every axis and picker immediately - and the cached data stays
   // language-agnostic instead of freezing whichever language loaded it.
-  // "Sep 25", not "Sep": these twelve months cross a new year, and a bare month
-  // name leaves the reader unable to tell which one they are looking at.
-  const monthLabel = (monthIndex: number, year: number) => `${monthShort(monthIndex)} ${String(year).slice(2)}`
+  // "5 Aug" for a run of days, "Sep 25" for a run of months. The year is on the
+  // month label because a twelve-month range crosses one, and a bare month name
+  // leaves the reader unable to tell which September they are looking at.
+  const bucketLabel = (row: { monthIndex: number; year: number; day: number }) =>
+    data.chartGranularity === 'day'
+      ? `${row.day} ${monthShort(row.monthIndex)}`
+      : `${monthShort(row.monthIndex)} ${String(row.year).slice(2)}`
   const salesSeries = useMemo(
-    () => (data.monthlySales || []).map(row => ({ ...row, month: monthLabel(row.monthIndex, row.year) })),
-    [data.monthlySales, monthShort]
+    () => (data.monthlySales || []).map(row => ({ ...row, month: bucketLabel(row) })),
+    [data.monthlySales, data.chartGranularity, monthShort]
   )
   const cashflowSeries = useMemo(
-    () => (data.monthlyCashflow || []).map(row => ({ ...row, month: monthLabel(row.monthIndex, row.year) })),
-    [data.monthlyCashflow, monthShort]
+    () => (data.monthlyCashflow || []).map(row => ({ ...row, month: bucketLabel(row) })),
+    [data.monthlyCashflow, data.chartGranularity, monthShort]
   )
   const breakdownMonths = useMemo(
     () => (data.monthlyBreakdown || []).map(row => ({ ...row, label: `${monthShort(row.monthIndex)} ${row.year}` })),
@@ -276,20 +312,6 @@ export default function Dashboard() {
     }
     const selectedRange = getRange(rangeType, customStart, customEnd)
     const previousRange = getPreviousRange(selectedRange)
-    const trailingYear = getTrailingYear()
-    // Started before the batch below so the two sets of queries overlap.
-    const trailingPromise = Promise.all([
-
-      // Just the columns the two month charts read, over the trailing year.
-      // They are titled "month by month" and must show the months whatever the
-      // range picker is set to.
-      supabase.from('sales').select('date, subtotal, discount_amount, net_amount, sale_items(selling_price, actual_price, cost_price, qty)').eq('status', 'completed').gte('date', trailingYear.start).lte('date', trailingYear.end),
-      supabase.from('other_incomes').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
-      supabase.from('purchases').select('date, net_amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
-      supabase.from('expenses').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
-      supabase.from('supplier_payments').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end),
-      supabase.from('customer_payments').select('date, amount').gte('date', trailingYear.start).lte('date', trailingYear.end)
-    ])
 
     const [
       salesRes,
@@ -365,18 +387,11 @@ export default function Dashboard() {
       sum + parseAmountText(parseMetaValue(payment.notes || '', 'Discount Amount')), 0)
     const previousTotalDiscountAllowed = previousInvoiceDiscountTotal + previousDueDiscountTotal
 
-    // Both month charts read the trailing year, not the selected range, and are
-    // bucketed by year-and-month so two Septembers never land in one bar.
-    const bucketKey = (dateStr: string) => {
-      const date = new Date(dateStr)
-      if (Number.isNaN(date.getTime())) return null
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    }
-
-    const [
-      yearSalesRes, yearOtherIncomeRes, yearPurchasesRes,
-      yearExpensesRes, yearSupplierPaymentsRes, yearCollectionsRes,
-    ] = await trailingPromise
+    // Both charts follow the range picker, at whatever granularity the range
+    // calls for - days for a week or a month, months for a year - so nothing is
+    // drawn for a period the reader did not ask about.
+    const { granularity, buckets } = getChartBuckets(selectedRange)
+    const keyOf = (dateStr: string) => bucketKeyFor(dateStr, granularity)
 
     const monthlyMap: Record<string, { sales: number; profit: number }> = {}
     const addSale = (key: string | null, sales: number, profit: number) => {
@@ -385,26 +400,23 @@ export default function Dashboard() {
       monthlyMap[key].sales += sales
       monthlyMap[key].profit += profit
     }
-    ;(yearSalesRes?.data || []).forEach((sale: any) =>
-      addSale(bucketKey(sale.date), getSaleAmount(sale), getSaleProfit(sale)))
-    ;(yearOtherIncomeRes?.data || []).forEach((income: any) =>
-      addSale(bucketKey(income.date), 0, Number(income.amount || 0)))
+    sales.forEach((sale: any) => addSale(keyOf(sale.date), getSaleAmount(sale), getSaleProfit(sale)))
+    otherIncomes.forEach((income: any) => addSale(keyOf(income.date), 0, Number(income.amount || 0)))
 
-    // Cashflow: what came in against what went out, month by month, over the
-    // same trailing year.
+    // Cashflow: what came in against what went out, over the same buckets.
     const cashflowMap: Record<string, { moneyIn: number; moneyOut: number }> = {}
     const bucket = (dateStr: string) => {
-      const key = bucketKey(dateStr)
+      const key = keyOf(dateStr)
       if (!key) return null
       if (!cashflowMap[key]) cashflowMap[key] = { moneyIn: 0, moneyOut: 0 }
       return cashflowMap[key]
     }
-    ;(yearSalesRes?.data || []).forEach((sale: any) => { const b = bucket(sale.date); if (b) b.moneyIn += getSaleAmount(sale) })
-    ;(yearOtherIncomeRes?.data || []).forEach((income: any) => { const b = bucket(income.date); if (b) b.moneyIn += Number(income.amount || 0) })
-    ;(yearCollectionsRes?.data || []).forEach((payment: any) => { const b = bucket(payment.date); if (b) b.moneyIn += Number(payment.amount || 0) })
-    ;(yearPurchasesRes?.data || []).forEach((purchase: any) => { const b = bucket(purchase.date); if (b) b.moneyOut += Number(purchase.net_amount || 0) })
-    ;(yearExpensesRes?.data || []).forEach((expense: any) => { const b = bucket(expense.date); if (b) b.moneyOut += Number(expense.amount || 0) })
-    ;(yearSupplierPaymentsRes?.data || []).forEach((payment: any) => { const b = bucket(payment.date); if (b) b.moneyOut += Number(payment.amount || 0) })
+    sales.forEach((sale: any) => { const b = bucket(sale.date); if (b) b.moneyIn += getSaleAmount(sale) })
+    otherIncomes.forEach((income: any) => { const b = bucket(income.date); if (b) b.moneyIn += Number(income.amount || 0) })
+    ;(dueCollectionsRes.data || []).forEach((payment: any) => { const b = bucket(payment.date); if (b) b.moneyIn += Number(payment.amount || 0) })
+    ;(purchasesRes.data || []).forEach((purchase: any) => { const b = bucket(purchase.date); if (b) b.moneyOut += Number(purchase.net_amount || 0) })
+    ;(expensesRes.data || []).forEach((expense: any) => { const b = bucket(expense.date); if (b) b.moneyOut += Number(expense.amount || 0) })
+    ;(supplierPaymentsRes.data || []).forEach((payment: any) => { const b = bucket(payment.date); if (b) b.moneyOut += Number(payment.amount || 0) })
 
     // Money in and money out by month, each broken down by where it came from
     // or went. Expenses carry their own category; income is grouped by the
@@ -541,15 +553,16 @@ export default function Dashboard() {
         totalCustomers: customersRes.count || 0,
         netProfit: profitLoss(previousProfitInputs),
       },
-      monthlySales: trailingMonthKeys().map(m => ({
-        ...m,
-        sales: monthlyMap[m.key]?.sales || 0,
-        profit: monthlyMap[m.key]?.profit || 0,
+      chartGranularity: granularity,
+      monthlySales: buckets.map(b => ({
+        ...b,
+        sales: monthlyMap[b.key]?.sales || 0,
+        profit: monthlyMap[b.key]?.profit || 0,
       })),
-      monthlyCashflow: trailingMonthKeys().map(m => ({
-        ...m,
-        moneyIn: cashflowMap[m.key]?.moneyIn || 0,
-        moneyOut: cashflowMap[m.key]?.moneyOut || 0,
+      monthlyCashflow: buckets.map(b => ({
+        ...b,
+        moneyIn: cashflowMap[b.key]?.moneyIn || 0,
+        moneyOut: cashflowMap[b.key]?.moneyOut || 0,
       })),
       monthlyBreakdown,
       topCustomers: Object.values(customerMap).sort((a, b) => b.totalSales - a.totalSales).slice(0, 10),
@@ -669,7 +682,7 @@ export default function Dashboard() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-navy-900">Purchase & Sales</h2>
-              <p className="text-xs text-neutral-500">Month by month</p>
+              <p className="text-xs text-neutral-500">{data.chartGranularity === 'day' ? 'Day by day' : 'Month by month'}</p>
             </div>
             <div className="flex items-center gap-3 text-[11px] font-semibold text-neutral-500">
               <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-navy-900" /> Sales</span>
