@@ -195,6 +195,7 @@
   "inventory_subtitle": "মজুদ ব্যবস্থাপনা",
   "inventory_csvDownload": "CSV ডাউনলোড",
   "inventory_totalValue": "মোট স্টক মূল্য (DP ভিত্তিক)",
+  "inventory_oversoldNote": "কিছু পণ্য যত কেনা হয়েছে বলে লেখা আছে তার চেয়ে বেশি বিক্রি হয়েছে, তাই ওগুলোর স্টক ঋণাত্মক এবং এই মোট থেকে বাদ যাচ্ছে। বাকি কেনাগুলো এন্ট্রি দিলে ঠিক হয়ে যাবে।",
   "inventory_searchPlaceholder": "পণ্যের নাম বা কোড দিয়ে খুঁজুন...",
   "inventory_totalCount": "মোট",
   "inventory_colCode": "পণ্য কোড",

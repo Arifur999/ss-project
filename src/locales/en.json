@@ -195,6 +195,7 @@
   "inventory_subtitle": "Stock Management",
   "inventory_csvDownload": "CSV Download",
   "inventory_totalValue": "Total Stock Value (DP Based)",
+  "inventory_oversoldNote": "Some products have sold more than was recorded as purchased, so their stock is negative and is subtracting from this total. Record the missing purchases to correct it.",
   "inventory_searchPlaceholder": "Search by name or code...",
   "inventory_totalCount": "Total",
   "inventory_colCode": "Product Code",

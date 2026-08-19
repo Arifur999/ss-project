@@ -229,9 +229,17 @@ export default function Inventory() {
   const setSearch = paged.setSearch
   const loading = paged.loading
   const totalValue = totalStockValue
-  // Counted off the loaded rows: enough to say the total is being dragged down
-  // and roughly by how many lines, without a second query.
-  const oversoldCount = rows.filter((row: any) => Number(row.available_qty || 0) < 0).length
+  // Whether to explain the total, not how many lines to blame.
+  //
+  // A count off the loaded rows cannot be stated: totalValue is computed over
+  // every matching row on the server while these are one page of forty, so on a
+  // large catalogue the oversold products routinely sort onto a page nobody has
+  // scrolled to - the negative total would render with no explanation at all,
+  // and the number would keep changing as pages loaded. A negative total is
+  // itself proof that something is oversold, so that is what asks the question;
+  // a negative row in view asks it too, even when the total is still positive.
+  const oversoldInView = rows.some((row: any) => Number(row.available_qty || 0) < 0)
+  const showOversoldNote = totalValue < 0 || oversoldInView
 
   useEffect(() => {
     searchRef.current = search
@@ -426,14 +434,10 @@ export default function Inventory() {
           <span className="text-sm text-slate-500">{t('inventory_totalValue')}</span>
           <span className={`text-xl font-bold ${totalValue < 0 ? 'text-brand-red' : 'text-brand-green'}`}>{formatCurr(totalValue)}</span>
         </div>
-        {oversoldCount > 0 && (
+        {showOversoldNote && (
           <p className="mt-2 flex items-start gap-1.5 text-xs text-brand-red">
             <Warning size={14} weight="duotone" className="mt-px shrink-0" />
-            <span>
-              {oversoldCount} {oversoldCount === 1 ? 'product has' : 'products have'} sold more than was recorded as
-              purchased, so their stock is negative and is subtracting from this total. Record the missing purchases
-              to correct it.
-            </span>
+            <span>{t('inventory_oversoldNote')}</span>
           </p>
         )}
       </div>
