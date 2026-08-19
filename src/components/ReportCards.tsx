@@ -156,7 +156,11 @@ export function PurchaseTargetDonut({
   const restAchieved = rest.reduce((sum, row) => sum + Number(row.achieved || 0), 0)
 
   return (
-    <div className="overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+    // self-start, so the card is only as tall as the ring and the list inside
+    // it. As a plain grid item it stretched to whatever sat beside it, and
+    // beside a 130-row report table that meant a 2,700px card with the ring in
+    // the top corner and nothing under it.
+    <div className="self-start overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
       <div className="bg-slate-800 px-4 py-3 text-center">
         <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">{title}</h2>
       </div>

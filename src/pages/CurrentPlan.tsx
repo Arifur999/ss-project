@@ -92,8 +92,10 @@ export default function CurrentPlan() {
         </div>
       </div>
 
-      {/* Three plan cards, always shown */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      {/* Three plan cards, always shown.
+          Held to 80% of the page and centred: at full width each card is wide
+          and squat, and a pricing card reads better tall. */}
+      <div className="mx-auto grid w-full grid-cols-1 gap-5 lg:w-4/5 lg:grid-cols-3">
         <PlanCard
           icon={<Sparkles size={22} weight="duotone" />}
           title={bn ? 'ফ্রি ট্রায়াল' : 'Free Trial'}
