@@ -45,21 +45,17 @@ export function parseAmountText(value: string) {
   return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0
 }
 
-export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardDataset> {
-  const [custRes, salesRes, paymentsRes] = await Promise.all([
-    supabase.from('customers').select('id, name, phone, address, opening_due').order('name'),
-    supabase.from('sales').select('customer_id, customer_name, subtotal, net_amount, discount_amount, paid_amount, due_amount, date').eq('status', 'completed'),
-    supabase.from('customer_payments').select('customer_id, amount, date, notes'),
-  ])
-
-  if (custRes.error) throw custRes.error
-  if (salesRes.error) throw salesRes.error
-  if (paymentsRes.error) throw paymentsRes.error
-
-  const customers = custRes.data || []
-  const sales = salesRes.data || []
-  const payments = paymentsRes.data || []
-
+/**
+ * The dashboard's figures, from the three lists it reads.
+ *
+ * Split out of the loader so the arithmetic can be tested without a database -
+ * this is where a customer's due is decided, and it was wrong for a year.
+ */
+export function buildCustomerDashboard(
+  customers: any[],
+  sales: any[],
+  payments: any[],
+): CustomerDashboardDataset {
   const customerMap: Record<string, CustomerDashboardRow> = {}
   customers.forEach((customer: any) => {
     customerMap[customer.id] = {
@@ -85,14 +81,29 @@ export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardD
     customerMap[sale.customer_id].totalPurchase += Number(sale.subtotal || 0) || netAmount + discount
     customerMap[sale.customer_id].totalDiscount += discount
     customerMap[sale.customer_id].collectionsAmount += paidAmount
-    customerMap[sale.customer_id].invoiceDue += Math.max(0, storedDue, netAmount - paidAmount)
+    // Not clamped at zero, and not the largest of three. due_amount is the
+    // server's own figure and it is kept in step with paid_amount on every
+    // collection, so it is simply the answer; net - paid is the fallback for a
+    // row old enough not to carry it.
+    //
+    // The clamp had to go with the double-subtraction below it. Between them,
+    // a customer who overpaid could never read as being in credit: the clamp
+    // threw the overpayment away per sale, and the only thing that could make
+    // the total negative was the second subtraction, which was the bug.
+    customerMap[sale.customer_id].invoiceDue += sale.due_amount == null ? netAmount - paidAmount : storedDue
   })
 
+  // Recording a Due Received already increments the sale's paid_amount and
+  // decrements its due (customerPayment.service.ts), so both figures above have
+  // the collection in them. dueReceived is kept because the list shows it as a
+  // column of its own, but it must not be added to collections or taken off the
+  // due a second time - doing both is what made this page report Tk -14 lakh
+  // owing against the Sales ledger's Tk 1.53 crore, the gap being exactly the
+  // year's collections.
   payments.forEach((payment: any) => {
     if (!payment.customer_id || !customerMap[payment.customer_id]) return
 
     const dueDiscount = parseAmountText(parseMetaValue(payment.notes || '', 'Discount Amount'))
-    customerMap[payment.customer_id].collectionsAmount += Number(payment.amount || 0)
     customerMap[payment.customer_id].dueReceived += Number(payment.amount || 0)
     customerMap[payment.customer_id].extraDiscount += dueDiscount
   })
@@ -106,7 +117,10 @@ export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardD
   // already render a negative in red site-wide, so it reads correctly on screen.
   const customerList = Object.values(customerMap).map(customer => ({
     ...customer,
-    currentDue: customer.openingDue + customer.invoiceDue - customer.dueReceived - customer.extraDiscount,
+    // invoiceDue is already net of every collection; only the discount written
+    // off on a Due Received still has to come out, because that never reduced
+    // the sale.
+    currentDue: customer.openingDue + customer.invoiceDue - customer.extraDiscount,
   })).sort((a, b) => b.currentDue - a.currentDue)
 
   return {
@@ -140,4 +154,21 @@ export function subscribeCustomerDashboardDataset(onChange: () => void) {
   return () => {
     supabase.removeChannel(channel)
   }
+}
+
+export async function loadCustomerDashboardDataset(): Promise<CustomerDashboardDataset> {
+  const [custRes, salesRes, paymentsRes] = await Promise.all([
+    supabase.from('customers').select('id, name, phone, address, opening_due').order('name'),
+    supabase.from('sales').select('customer_id, customer_name, subtotal, net_amount, discount_amount, paid_amount, due_amount, date').eq('status', 'completed'),
+    supabase.from('customer_payments').select('customer_id, amount, date, notes'),
+  ])
+
+  if (custRes.error) throw custRes.error
+  if (salesRes.error) throw salesRes.error
+  if (paymentsRes.error) throw paymentsRes.error
+
+  const customers = custRes.data || []
+  const sales = salesRes.data || []
+  const payments = paymentsRes.data || []
+  return buildCustomerDashboard(customers, sales, payments)
 }

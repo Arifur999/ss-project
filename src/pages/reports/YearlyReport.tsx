@@ -59,6 +59,21 @@ type Summary = {
  * than a second calculation - which is the point: the card, the margin and the
  * month rows all read the same four numbers.
  */
+/**
+ * One month's row in the shape the shared profit rules take.
+ *
+ * The same four terms as summaryProfitInputs, so a month row and the Total row
+ * above it are worked out the same way rather than by two hand-written sums.
+ */
+function monthProfitInputs(row: Pick<MonthRow, 'totalProfit' | 'purchaseIncentive' | 'otherIncome' | 'expenses'>): ProfitInputs {
+  return {
+    grossProfit: row.totalProfit,
+    purchaseIncentive: row.purchaseIncentive,
+    otherIncome: row.otherIncome,
+    expenses: row.expenses,
+  }
+}
+
 function summaryProfitInputs(totals: Pick<Summary, 'totalProfit' | 'purchaseIncentive' | 'totalOtherIncome' | 'totalExpenses'>): ProfitInputs {
   return {
     grossProfit: totals.totalProfit,
@@ -581,6 +596,7 @@ export default function YearlyReport() {
                       <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Profit Target</th>
                       <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Sales Profit</th>
                       <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Others Income</th>
+                      <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Incentive</th>
                       <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Total Profit</th>
                       <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Total Expense</th>
                       <th className="px-2 py-2.5 text-right text-[11px] tracking-normal">Profit and Loss</th>
@@ -599,7 +615,11 @@ export default function YearlyReport() {
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitGoal)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalProfit)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalOtherIncome)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalProfit + summary.totalOtherIncome)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.purchaseIncentive)}</td>
+                      {/* Everything earned: sales profit, other income and the
+                          supplier incentive - the same three businessEarnings
+                          adds, so this less Total Expense is Profit and Loss. */}
+                      <td className="px-2 py-2 text-right tabular-nums">{formatCurr(businessEarnings(summaryProfitInputs(summary)))}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.totalExpenses)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitLoss)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{formatCurr(summary.profitWithdraw)}</td>
@@ -613,7 +633,10 @@ export default function YearlyReport() {
                         <TableValue value={row.profitGoal} />
                         <TableValue value={row.totalProfit} tone="green" />
                         <TableValue value={row.otherIncome} tone="green" />
-                        <TableValue value={row.totalProfit + row.otherIncome} tone="green" strong />
+                        <TableValue value={row.purchaseIncentive} tone="green" />
+                        {/* Sales profit + other income + incentive, so this
+                            month's row subtracts to its own Profit and Loss. */}
+                        <TableValue value={businessEarnings(monthProfitInputs(row))} tone="green" strong />
                         <TableValue value={row.expenses} tone="red" />
                         <TableValue value={row.profitLoss} tone={row.profitLoss >= 0 ? 'green' : 'red'} />
                         <TableValue value={row.profitWithdraw} tone="red" />

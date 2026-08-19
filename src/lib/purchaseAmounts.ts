@@ -94,11 +94,27 @@ export function supplierBalance(input: {
   items: { total_amount?: unknown; sp_amount?: unknown }[]
   /** Every supplier_payments row belonging to this supplier. */
   payments: { amount?: unknown }[]
+  /**
+   * Every purchase belonging to this supplier, for the amount settled on the
+   * bill itself.
+   *
+   * Money reaches a supplier two ways and they do not overlap: paid_amount is
+   * what was handed over when the bill was entered, and supplier_payments are
+   * what was sent afterwards. Creating a purchase writes paid_amount and no
+   * payment row, so counting only the rows misses the rest.
+   *
+   * Left out, the Supplier Dashboard read the whole of it as still owing. On a
+   * year of trading that was Tk 8.7 crore against a real Tk 1.3 crore, and one
+   * bill with nothing paid on it and a payment recorded since still showed its
+   * full amount outstanding.
+   */
+  purchases?: { paid_amount?: unknown }[]
 }): number {
   const opening = supplierOpeningBalance(input.supplier)
-  const paid = input.payments.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
+  const paidLater = input.payments.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
+  const paidOnBill = (input.purchases || []).reduce((sum, purchase) => sum + roundTaka(purchase.paid_amount), 0)
   const owed = input.items.reduce((sum, item) => sum + purchaseItemDeposit(item), 0)
-  return opening + paid - owed
+  return opening + paidLater + paidOnBill - owed
 }
 
 /**

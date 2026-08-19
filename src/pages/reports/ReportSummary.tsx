@@ -39,6 +39,8 @@ type ReportData = {
   totalSales: number
   salesCost: number
   grossProfit: number
+  /** Revenue whose purchase rate is missing, so its profit reads as zero. */
+  uncostedSales: number
   purchaseValue: number
   purchaseIncentive: number
   purchaseDeposit: number
@@ -119,6 +121,7 @@ const emptyReport: ReportData = {
   totalSales: 0,
   salesCost: 0,
   grossProfit: 0,
+  uncostedSales: 0,
   purchaseValue: 0,
   purchaseIncentive: 0,
   purchaseDeposit: 0,
@@ -394,6 +397,10 @@ export default function ReportSummary() {
 
       const totalSales = sales.reduce((sum: number, sale: any) => sum + firstAmount(sale.net_amount, sale.subtotal), 0)
       const saleProductMap: Record<string, BreakdownRow> = {}
+      // Sales whose purchase rate was never entered. Their profit is unknowable
+      // so it counts as zero, which quietly understates every profit figure on
+      // the page - the card says so rather than leaving it to be assumed.
+      let uncostedSales = 0
       sales.forEach((sale: any) => {
         (sale.sale_items || []).forEach((item: any) => {
           const name = item.product_name || 'Unknown Product'
@@ -406,6 +413,7 @@ export default function ReportSummary() {
           // Monthly / Yearly reports.
           const cost = unitCost > 0 ? unitCost * qty : 0
           const profit = unitCost > 0 ? saleAmount - cost : 0
+          if (unitCost <= 0) uncostedSales += saleAmount
           const current = saleProductMap[name] || { name, qty: 0, amount: 0, cost: 0, profit: 0 }
           current.qty = amount(current.qty) + qty
           current.amount += saleAmount
@@ -741,6 +749,7 @@ export default function ReportSummary() {
         totalSales,
         salesCost,
         grossProfit,
+        uncostedSales,
         purchaseValue,
         purchaseIncentive,
         purchaseDeposit,
@@ -1046,7 +1055,12 @@ export default function ReportSummary() {
                 label="Profit / Loss"
                 icon={<CheckCircle2 size={17} weight="duotone" />}
                 value={formatCurr(data.profitLoss)}
-                note={`${profitMargin.toFixed(2)}% margin`}
+                // Sales with no purchase rate contribute nothing to profit, so
+                // the figure above is a floor, not the answer. Saying so on the
+                // card beats a reader taking it as final.
+                note={data.uncostedSales > 0
+                  ? `understated - ${formatCurr(data.uncostedSales)} of sales have no purchase rate`
+                  : `${profitMargin.toFixed(2)}% margin`}
                 valueClassName={data.profitLoss >= 0 ? 'text-navy-900' : 'text-brand-red'}
               />
             </div>

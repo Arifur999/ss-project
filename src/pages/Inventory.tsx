@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { MagnifyingGlassIcon as Search, DownloadSimpleIcon as Download, ImageIcon as Image, PrinterIcon as Printer, XIcon as X } from '@phosphor-icons/react'
+import { MagnifyingGlassIcon as Search, DownloadSimpleIcon as Download, ImageIcon as Image, PrinterIcon as Printer, WarningIcon as Warning, XIcon as X } from '@phosphor-icons/react'
 import { supabase } from '../lib/supabase'
 import { printTable } from '../lib/printTable'
 import TableScroller from '../components/TableScroller'
@@ -229,6 +229,9 @@ export default function Inventory() {
   const setSearch = paged.setSearch
   const loading = paged.loading
   const totalValue = totalStockValue
+  // Counted off the loaded rows: enough to say the total is being dragged down
+  // and roughly by how many lines, without a second query.
+  const oversoldCount = rows.filter((row: any) => Number(row.available_qty || 0) < 0).length
 
   useEffect(() => {
     searchRef.current = search
@@ -414,9 +417,25 @@ export default function Inventory() {
         }
       />
 
-      <div className="card mb-4 flex items-center justify-between py-3 px-5">
-        <span className="text-sm text-slate-500">{t('inventory_totalValue')}</span>
-        <span className="text-xl font-bold text-brand-green">{formatCurr(totalValue)}</span>
+      {/* A stock value can only go negative because more of something has been
+          sold than was ever recorded as bought. Shown on its own that reads as
+          the business owing seven crore of furniture; the line beneath says
+          what it actually means and how many products are behind it. */}
+      <div className="card mb-4 py-3 px-5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-500">{t('inventory_totalValue')}</span>
+          <span className={`text-xl font-bold ${totalValue < 0 ? 'text-brand-red' : 'text-brand-green'}`}>{formatCurr(totalValue)}</span>
+        </div>
+        {oversoldCount > 0 && (
+          <p className="mt-2 flex items-start gap-1.5 text-xs text-brand-red">
+            <Warning size={14} weight="duotone" className="mt-px shrink-0" />
+            <span>
+              {oversoldCount} {oversoldCount === 1 ? 'product has' : 'products have'} sold more than was recorded as
+              purchased, so their stock is negative and is subtracting from this total. Record the missing purchases
+              to correct it.
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="flex gap-3 mb-4">

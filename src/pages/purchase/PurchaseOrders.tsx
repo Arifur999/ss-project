@@ -203,6 +203,7 @@ export default function PlaceOrder() {
         supplier: sup,
         items: supplierItems,
         payments: payments.filter((payment: any) => payment.supplier_id === sup.id),
+        purchases: supplierPurchases,
       })
     })
     setSupplierBalanceById(balanceMap)

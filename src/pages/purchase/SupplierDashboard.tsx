@@ -48,12 +48,16 @@ export default function SupplierDashboard() {
       const orderAmount = totalDpAmount - regularDiscount
       const specialDiscount = supplierItems.reduce((sum: number, item: any) => sum + roundTaka(item.sp_amount), 0)
       const actualAmount = supplierItems.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
-      const paymentAmount = supplierPaymentRows.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
+      // Both channels, matching the balance beside it: what was settled on the
+      // bills plus what was sent afterwards.
+      const paidOnBills = supplierPurchases.reduce((sum: number, purchase: any) => sum + roundTaka(purchase.paid_amount), 0)
+      const paymentAmount = supplierPaymentRows.reduce((sum, payment) => sum + roundTaka(payment.amount), 0) + paidOnBills
 
       const availableBalance = supplierBalance({
         supplier: sup,
         items: supplierItems,
         payments: supplierPaymentRows,
+        purchases: supplierPurchases,
       })
 
       return {

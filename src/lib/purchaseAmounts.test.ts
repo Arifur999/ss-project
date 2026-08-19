@@ -190,3 +190,49 @@ describe('spAmountFor', () => {
     }
   })
 })
+
+describe('supplierBalance counts both ways money reaches a supplier', () => {
+  const supplier = { opening_due: 0, due_type: 'dena' }
+  // One bill: Tk 100,000 of goods, Tk 5,000 incentive back, so Tk 95,000 owed.
+  const items = [{ total_amount: 100000, sp_amount: 5000 }]
+
+  it('counts what was settled on the bill itself', () => {
+    // Nothing sent afterwards, the whole 95,000 paid when the bill was entered.
+    expect(supplierBalance({ supplier, items, payments: [], purchases: [{ paid_amount: 95000 }] })).toBe(0)
+  })
+
+  it('counts what was sent afterwards', () => {
+    expect(supplierBalance({ supplier, items, payments: [{ amount: 95000 }], purchases: [{ paid_amount: 0 }] })).toBe(0)
+  })
+
+  it('counts a bill part-paid on the day and settled later', () => {
+    // The case that was wrong: 40,000 on the bill, 55,000 sent since. The rule
+    // used to see only the 55,000 and report 40,000 still owing.
+    expect(supplierBalance({
+      supplier, items,
+      payments: [{ amount: 55000 }],
+      purchases: [{ paid_amount: 40000 }],
+    })).toBe(0)
+  })
+
+  it('still reports what is genuinely left', () => {
+    expect(supplierBalance({
+      supplier, items,
+      payments: [{ amount: 20000 }],
+      purchases: [{ paid_amount: 30000 }],
+    })).toBe(-45000)
+  })
+
+  it('does not count a bill twice when purchases are not passed', () => {
+    // Older callers pass no purchases; they get the previous behaviour rather
+    // than a crash, so nothing double-counts while they are updated.
+    expect(supplierBalance({ supplier, items, payments: [{ amount: 95000 }] })).toBe(0)
+  })
+
+  it('carries the opening position through', () => {
+    expect(supplierBalance({
+      supplier: { opening_due: 10000, due_type: 'dena' },
+      items, payments: [], purchases: [{ paid_amount: 95000 }],
+    })).toBe(-10000)
+  })
+})
