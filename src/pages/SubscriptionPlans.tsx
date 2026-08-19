@@ -64,26 +64,6 @@ const planCopy = {
     noPlanTitle: 'Your plan has expired',
     noPlanBody: 'There is no active plan on this workspace, so there is nothing to go back to yet. Choose a plan below and your data is waiting exactly as you left it.',
     noPlanAction: 'See the plans',
-    trustSecure: 'Your data stays exactly as you left it',
-    trustCancel: 'Cancel any time',
-    trustSupport: 'Support in Bangla, on WhatsApp',
-    whyTitle: 'What you get, on every plan',
-    why1Title: 'Your whole shop, in one place',
-    why1Body: 'Sales, purchases, stock, customer dues, supplier payments, staff salaries and expenses - all in one ledger that adds up.',
-    why2Title: 'Reports that answer questions',
-    why2Body: 'Monthly and yearly profit, targets against what you actually sold, and where every taka went - without a spreadsheet.',
-    why3Title: 'Dues chased by SMS',
-    why3Body: 'See who owes what, and send them a reminder from the same screen. Every plan comes with free SMS.',
-    faqTitle: 'Before you decide',
-    faq1Q: 'What happens to my data when a plan ends?',
-    faq1A: 'Nothing. It is all kept exactly as it was - you simply cannot open the workspace until a plan is active again.',
-    faq2Q: 'Do I lose the days left on my current plan if I upgrade?',
-    faq2A: 'No. A new plan is added on top of the time you have left, so nothing is wasted.',
-    faq3Q: 'How do I pay?',
-    faq3A: 'By bKash. Send the amount, submit the transaction ID, and your workspace opens as soon as it is checked.',
-    helpTitle: 'Not sure which one?',
-    helpBody: 'Tell us how your shop runs and we will say which plan fits. No obligation.',
-    helpAction: 'Talk to us on WhatsApp',
     freeUsedButton: 'Trial Already Used',
     freeUsedNote: "You've already used your free trial. Please ask your super admin to grant a trial extension.",
     // --- Free-trial info popup ---
@@ -133,26 +113,6 @@ const planCopy = {
     noPlanTitle: 'আপনার প্ল্যানের মেয়াদ শেষ',
     noPlanBody: 'এই ওয়ার্কস্পেসে এখন কোনো সচল প্ল্যান নেই, তাই ফিরে যাওয়ার মতো কিছু নেই। নিচ থেকে একটি প্ল্যান নিন — আপনার সব ডেটা যেমন ছিল তেমনই আছে।',
     noPlanAction: 'প্ল্যানগুলো দেখুন',
-    trustSecure: 'আপনার সব ডেটা যেমন ছিল তেমনই থাকে',
-    trustCancel: 'যেকোনো সময় বাতিল',
-    trustSupport: 'বাংলায় সাপোর্ট, হোয়াটসঅ্যাপে',
-    whyTitle: 'প্রতিটি প্ল্যানেই যা পাচ্ছেন',
-    why1Title: 'পুরো দোকান, এক জায়গায়',
-    why1Body: 'বিক্রি, ক্রয়, স্টক, কাস্টমারের বকেয়া, সাপ্লায়ারের পেমেন্ট, কর্মচারীর বেতন আর খরচ — সব এক খাতায়, যার হিসাব মেলে।',
-    why2Title: 'যে রিপোর্ট প্রশ্নের উত্তর দেয়',
-    why2Body: 'মাসিক ও বার্ষিক লাভ, টার্গেটের সাথে আসল বিক্রির তুলনা, আর কোন টাকা কোথায় গেল — এক্সেল ছাড়াই।',
-    why3Title: 'এসএমএসে বকেয়া আদায়',
-    why3Body: 'কার কত বকেয়া দেখুন, একই স্ক্রিন থেকেই তাগাদা পাঠান। প্রতিটি প্ল্যানেই ফ্রি এসএমএস আছে।',
-    faqTitle: 'সিদ্ধান্তের আগে',
-    faq1Q: 'প্ল্যান শেষ হলে আমার ডেটার কী হয়?',
-    faq1A: 'কিছুই হয় না। সব যেমন ছিল তেমনই থাকে — শুধু নতুন প্ল্যান সচল না হওয়া পর্যন্ত ওয়ার্কস্পেসে ঢোকা যায় না।',
-    faq2Q: 'আপগ্রেড করলে চলতি প্ল্যানের বাকি দিনগুলো কি নষ্ট হয়?',
-    faq2A: 'না। বাকি সময়ের উপরেই নতুন প্ল্যান যোগ হয়, তাই একটা দিনও নষ্ট হয় না।',
-    faq3Q: 'টাকা দেব কীভাবে?',
-    faq3A: 'বিকাশে। টাকা পাঠিয়ে ট্রানজেকশন আইডি জমা দিন — যাচাই হওয়ামাত্র ওয়ার্কস্পেস খুলে যাবে।',
-    helpTitle: 'কোনটা নেবেন বুঝতে পারছেন না?',
-    helpBody: 'আপনার দোকান কীভাবে চলে বলুন, আমরা বলে দেব কোন প্ল্যানে হবে। কোনো বাধ্যবাধকতা নেই।',
-    helpAction: 'হোয়াটসঅ্যাপে কথা বলুন',
     freeUsedButton: 'ট্রায়াল ব্যবহৃত হয়ে গেছে',
     freeUsedNote: 'আপনি ইতিমধ্যে আপনার ফ্রি ট্রায়াল ব্যবহার করে ফেলেছেন। ট্রায়াল বাড়ানোর জন্য আপনার সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।',
     trialPopupTitle: '৭ দিনের ফ্রি ট্রায়াল শুরু করুন',
@@ -386,22 +346,10 @@ export default function SubscriptionPlans() {
       </div>
 
       <div className="mx-auto max-w-5xl">
-        <header className="mx-auto mb-6 max-w-2xl text-center">
+        <header className="mx-auto mb-8 max-w-2xl text-center">
           <h1 className="text-3xl font-black text-slate-950 sm:text-4xl">{copy('title')}</h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">{copy('subtitle')}</p>
         </header>
-
-        {/* The three things people actually want to know before they read a
-            price. They sit above the cards because that is where the eye is
-            already going. */}
-        <div className="mb-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-slate-500">
-          {[copy('trustSecure'), copy('trustCancel'), copy('trustSupport')].map(line => (
-            <span key={line} className="flex items-center gap-1.5">
-              <ShieldCheck size={14} weight="duotone" className="text-slate-400" />
-              {line}
-            </span>
-          ))}
-        </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {plans.map(plan => (
@@ -425,58 +373,6 @@ export default function SubscriptionPlans() {
             />
           ))}
         </div>
-
-        {/* Below the cards the page used to stop, leaving most of the screen
-            blank. What follows is what somebody deciding actually needs: what
-            they are buying, the three questions they ask before paying, and a
-            way to ask a person. */}
-        <section className="mt-14">
-          <h2 className="text-center text-lg font-black text-slate-950 sm:text-xl">{copy('whyTitle')}</h2>
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
-            {[
-              { icon: <Sparkles size={20} weight="duotone" />, title: copy('why1Title'), body: copy('why1Body') },
-              { icon: <Timer size={20} weight="duotone" />, title: copy('why2Title'), body: copy('why2Body') },
-              { icon: <Smartphone size={20} weight="duotone" />, title: copy('why3Title'), body: copy('why3Body') },
-            ].map(item => (
-              <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700">
-                  {item.icon}
-                </span>
-                <h3 className="mt-3 text-sm font-black text-slate-900">{item.title}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-14">
-          <h2 className="text-center text-lg font-black text-slate-950 sm:text-xl">{copy('faqTitle')}</h2>
-          <div className="mx-auto mt-6 max-w-3xl divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
-            {[
-              { q: copy('faq1Q'), a: copy('faq1A') },
-              { q: copy('faq2Q'), a: copy('faq2A') },
-              { q: copy('faq3Q'), a: copy('faq3A') },
-            ].map(item => (
-              <div key={item.q} className="p-5">
-                <p className="text-sm font-black text-slate-900">{item.q}</p>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{item.a}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mx-auto mt-14 max-w-3xl rounded-2xl bg-slate-900 px-6 py-8 text-center">
-          <h2 className="text-lg font-black text-white sm:text-xl">{copy('helpTitle')}</h2>
-          <p className="mx-auto mt-2 max-w-lg text-xs leading-relaxed text-white/60">{copy('helpBody')}</p>
-          <a
-            href={whatsAppLink(supportNumber)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-100"
-          >
-            {copy('helpAction')}
-          </a>
-        </section>
       </div>
 
       {showTrialPopup && (
