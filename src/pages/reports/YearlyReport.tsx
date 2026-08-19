@@ -54,12 +54,6 @@ type Summary = {
 }
 
 /**
- * The year's totals, in the shape the shared profit rules take. The summary
- * carries the same four terms under longer names, so this is a rename rather
- * than a second calculation - which is the point: the card, the margin and the
- * month rows all read the same four numbers.
- */
-/**
  * One month's row in the shape the shared profit rules take.
  *
  * The same four terms as summaryProfitInputs, so a month row and the Total row
@@ -74,6 +68,12 @@ function monthProfitInputs(row: Pick<MonthRow, 'totalProfit' | 'purchaseIncentiv
   }
 }
 
+/**
+ * The year's totals, in the shape the shared profit rules take. The summary
+ * carries the same four terms under longer names, so this is a rename rather
+ * than a second calculation - which is the point: the card, the margin and the
+ * month rows all read the same four numbers.
+ */
 function summaryProfitInputs(totals: Pick<Summary, 'totalProfit' | 'purchaseIncentive' | 'totalOtherIncome' | 'totalExpenses'>): ProfitInputs {
   return {
     grossProfit: totals.totalProfit,
@@ -519,7 +519,7 @@ export default function YearlyReport() {
           {/* ── SECTION 02 — THE PURCHASE RING AND THE TWO CHARTS ───────── */}
           {/* The ring on the side, then the two charts at half the row each.
               The ring shares this row rather than the table's because the
-              table needs 1131px for its eleven columns and there is no width
+              table needs 1240px for its twelve columns and there is no width
               at which both it and a 370px card fit - beside the ring, the last
               two columns were only reachable by scrolling sideways. */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_repeat(2,minmax(0,1fr))]">
@@ -579,7 +579,7 @@ export default function YearlyReport() {
           {/* ── SECTION 03 — THE YEAR'S TABLE, FULL WIDTH ───────────────── */}
           {/* No tabs here: the Monthly report has five reports to choose
               between, this page has one table. It gets the whole width so all
-              eleven columns are on screen - Profit Withdraw and Available
+              twelve columns are on screen - Profit Withdraw and Available
               Profit were the two that fell off the end. */}
           <section>
             {/* No title bar over this one. The table's own header row is
@@ -587,7 +587,7 @@ export default function YearlyReport() {
                 above it only repeated what the columns say. */}
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
               <TableScroller className="overflow-x-auto">
-                <table className="w-full min-w-[1120px] text-[11px]">
+                <table className="w-full min-w-[1240px] text-[11px]">
                   <thead className="table-header">
                     <tr>
                       <th className="sticky left-0 z-10 px-2 py-2.5 text-left text-[11px] tracking-normal">Month</th>
