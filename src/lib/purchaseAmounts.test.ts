@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   actualDp,
+  paidOnPurchaseBills,
   purchaseDeposit,
   purchaseDueForPeriod,
   purchaseItemDeposit,
@@ -111,34 +112,34 @@ describe('supplierBalance', () => {
   const payments = [{ amount: 30_000 }]
 
   it('is opening plus paid less what is owed', () => {
-    expect(supplierBalance({ supplier: {}, items, payments })).toBe(-65_000)
+    expect(supplierBalance({ supplier: {}, items, payments, purchases: [] })).toBe(-65_000)
   })
 
   it('deducts the SP incentive, because the paperwork does', () => {
     // The Purchase Ledger prints Actual Deposit as total less SP. Without the
     // incentive this would be -70,000.
     const noIncentive = [{ total_amount: 100_000, sp_amount: 0 }]
-    expect(supplierBalance({ supplier: {}, items: noIncentive, payments })).toBe(-70_000)
+    expect(supplierBalance({ supplier: {}, items: noIncentive, payments, purchases: [] })).toBe(-70_000)
   })
 
   it('bills what was ordered, not what has been received', () => {
     // The Purchase Orders page used to bill received x actual_dp, which for 40
     // of 100 units received came to -10,000 - the figure on screen when the
     // owner decides how much to pay.
-    expect(supplierBalance({ supplier: {}, items, payments })).not.toBe(-10_000)
+    expect(supplierBalance({ supplier: {}, items, payments, purchases: [] })).not.toBe(-10_000)
   })
 
   it('carries the opening position', () => {
-    expect(supplierBalance({ supplier: { opening_due: 20_000, due_type: 'pawna' }, items, payments })).toBe(-45_000)
-    expect(supplierBalance({ supplier: { opening_due: 20_000, due_type: 'dena' }, items, payments })).toBe(-85_000)
+    expect(supplierBalance({ supplier: { opening_due: 20_000, due_type: 'pawna' }, items, payments, purchases: [] })).toBe(-45_000)
+    expect(supplierBalance({ supplier: { opening_due: 20_000, due_type: 'dena' }, items, payments, purchases: [] })).toBe(-85_000)
   })
 
   it('is positive when we have overpaid', () => {
-    expect(supplierBalance({ supplier: {}, items, payments: [{ amount: 120_000 }] })).toBe(25_000)
+    expect(supplierBalance({ supplier: {}, items, payments: [{ amount: 120_000 }], purchases: [] })).toBe(25_000)
   })
 
   it('is zero for a supplier with no history', () => {
-    expect(supplierBalance({ supplier: {}, items: [], payments: [] })).toBe(0)
+    expect(supplierBalance({ supplier: {}, items: [], payments: [], purchases: [] })).toBe(0)
   })
 
   it('sums many lines and many payments', () => {
@@ -149,6 +150,7 @@ describe('supplierBalance', () => {
         { total_amount: 30_000, sp_amount: 1_500 },
       ],
       payments: [{ amount: 10_000 }, { amount: 5_000 }],
+      purchases: [],
     })).toBe(15_000 - 76_000)
   })
 })
@@ -161,7 +163,7 @@ describe('purchaseDueForPeriod', () => {
   it('agrees in magnitude with supplierBalance when there is no opening due', () => {
     const items = [{ total_amount: 100_000, sp_amount: 5_000 }]
     const payments = [{ amount: 30_000 }]
-    expect(purchaseDueForPeriod(items, 30_000)).toBe(-supplierBalance({ supplier: {}, items, payments }))
+    expect(purchaseDueForPeriod(items, 30_000)).toBe(-supplierBalance({ supplier: {}, items, payments, purchases: [] }))
   })
 
   it('goes negative on an overpayment rather than clamping', () => {
@@ -223,10 +225,12 @@ describe('supplierBalance counts both ways money reaches a supplier', () => {
     })).toBe(-45000)
   })
 
-  it('does not count a bill twice when purchases are not passed', () => {
-    // Older callers pass no purchases; they get the previous behaviour rather
-    // than a crash, so nothing double-counts while they are updated.
-    expect(supplierBalance({ supplier, items, payments: [{ amount: 95000 }] })).toBe(0)
+  it('adds up what was settled on the bills themselves', () => {
+    // supplierBalance and the Supplier Dashboard's Payment column both read
+    // this, so the column and the balance beside it cannot disagree.
+    expect(paidOnPurchaseBills([{ paid_amount: 30000 }, { paid_amount: 65000 }])).toBe(95000)
+    expect(paidOnPurchaseBills([])).toBe(0)
+    expect(paidOnPurchaseBills([{ paid_amount: '30000.4' }, { paid_amount: null }])).toBe(30000)
   })
 
   it('carries the opening position through', () => {

@@ -172,7 +172,7 @@ export default function PlaceOrder() {
       supabase.from('products').select('id, product_code, name, cost_price, selling_price, image_url, discount, dp_discount').eq('is_active', true),
       supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
       supabase.from('inventory').select('product_id, available_qty'),
-      supabase.from('purchases').select('supplier_id, purchase_items(*, purchase_receives(received_qty))'),
+      supabase.from('purchases').select('supplier_id, paid_amount, purchase_items(*, purchase_receives(received_qty))'),
       supabase.from('supplier_payments').select('supplier_id, amount'),
     ])
     const pickerProducts = productsForPicker(proRes.data)

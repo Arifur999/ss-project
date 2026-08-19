@@ -98,23 +98,36 @@ export function supplierBalance(input: {
    * Every purchase belonging to this supplier, for the amount settled on the
    * bill itself.
    *
-   * Money reaches a supplier two ways and they do not overlap: paid_amount is
-   * what was handed over when the bill was entered, and supplier_payments are
-   * what was sent afterwards. Creating a purchase writes paid_amount and no
-   * payment row, so counting only the rows misses the rest.
-   *
-   * Left out, the Supplier Dashboard read the whole of it as still owing. On a
-   * year of trading that was Tk 8.7 crore against a real Tk 1.3 crore, and one
-   * bill with nothing paid on it and a payment recorded since still showed its
-   * full amount outstanding.
+   * Required, not optional. It was optional so existing callers kept compiling,
+   * which meant a caller that simply forgot it got a silently wrong balance -
+   * a fully settled supplier reading as owing the whole amount - instead of a
+   * compile error. There is no answer without it, so the type says so.
    */
-  purchases?: { paid_amount?: unknown }[]
+  purchases: { paid_amount?: unknown }[]
 }): number {
   const opening = supplierOpeningBalance(input.supplier)
   const paidLater = input.payments.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
-  const paidOnBill = (input.purchases || []).reduce((sum, purchase) => sum + roundTaka(purchase.paid_amount), 0)
   const owed = input.items.reduce((sum, item) => sum + purchaseItemDeposit(item), 0)
-  return opening + paidLater + paidOnBill - owed
+  return opening + paidLater + paidOnPurchaseBills(input.purchases) - owed
+}
+
+/**
+ * What has been settled on the bills themselves.
+ *
+ * Money reaches a supplier two ways and they do not overlap: paid_amount is
+ * what was handed over when the bill was entered, and supplier_payments are
+ * what was sent afterwards. Creating a purchase writes paid_amount and no
+ * payment row, so counting only the rows misses the rest.
+ *
+ * Left out, the Supplier Dashboard read the whole of it as still owing. On a
+ * year of trading that was Tk 8.7 crore against a real Tk 1.3 crore.
+ *
+ * Exported because the Supplier Dashboard shows this figure in its own Payment
+ * column beside the balance. Written twice, the column and the balance would
+ * drift apart the first time the rule changed.
+ */
+export function paidOnPurchaseBills(purchases: { paid_amount?: unknown }[]): number {
+  return purchases.reduce((sum, purchase) => sum + roundTaka(purchase.paid_amount), 0)
 }
 
 /**

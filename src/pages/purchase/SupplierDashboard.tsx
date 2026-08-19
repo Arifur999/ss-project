@@ -4,7 +4,7 @@ import TableScroller from '../../components/TableScroller'
 import PageHeader from '../../components/PageHeader'
 import { useLang } from '../../context/LanguageContext'
 import { NoValue } from '../../components/CellValue'
-import { purchaseItemDeposit, supplierBalance, supplierOpeningBalance } from '../../lib/purchaseAmounts'
+import { paidOnPurchaseBills, purchaseItemDeposit, supplierBalance, supplierOpeningBalance } from '../../lib/purchaseAmounts'
 import { firstAmount, roundTaka } from '../../lib/utils'
 
 export default function SupplierDashboard() {
@@ -18,7 +18,7 @@ export default function SupplierDashboard() {
     setLoading(true)
     const [supRes, poRes, payRes] = await Promise.all([
       supabase.from('suppliers').select('*').eq('is_active', true),
-      supabase.from('purchases').select('supplier_id, purchase_items(*, purchase_receives(received_qty))'),
+      supabase.from('purchases').select('supplier_id, paid_amount, purchase_items(*, purchase_receives(received_qty))'),
       supabase.from('supplier_payments').select('supplier_id, amount'),
     ])
 
@@ -49,9 +49,11 @@ export default function SupplierDashboard() {
       const specialDiscount = supplierItems.reduce((sum: number, item: any) => sum + roundTaka(item.sp_amount), 0)
       const actualAmount = supplierItems.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
       // Both channels, matching the balance beside it: what was settled on the
-      // bills plus what was sent afterwards.
-      const paidOnBills = supplierPurchases.reduce((sum: number, purchase: any) => sum + roundTaka(purchase.paid_amount), 0)
-      const paymentAmount = supplierPaymentRows.reduce((sum, payment) => sum + roundTaka(payment.amount), 0) + paidOnBills
+      // bills plus what was sent afterwards. The first term comes from the same
+      // helper supplierBalance uses, so this column cannot drift from it.
+      const paymentAmount =
+        supplierPaymentRows.reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
+        + paidOnPurchaseBills(supplierPurchases)
 
       const availableBalance = supplierBalance({
         supplier: sup,

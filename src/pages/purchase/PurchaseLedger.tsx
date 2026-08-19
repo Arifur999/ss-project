@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { deletePurchaseItem } from '../../services/purchase.services'
-import { actualDp, purchaseItemDeposit } from '../../lib/purchaseAmounts'
+import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
@@ -138,12 +138,19 @@ export default function PurchaseLedger() {
       const nextInvoices = (purchaseRes.data || []).map((purchase: any) => {
         const totalBill = purchaseTotal(purchase)
         const metrics = invoiceMetrics(purchase)
-        const paidAmount = payments
+        // Both channels, the same two the Supplier Dashboard adds: what was
+        // settled on the bill when it was entered, plus every payment sent
+        // afterwards. Counting only the payment rows left a bill that was paid
+        // in full at entry showing its whole amount still due here, while the
+        // Supplier Dashboard showed the supplier settled - the two screens
+        // disagreeing by exactly the paid_amount on the bill.
+        const paidLater = payments
           .filter((payment: any) =>
             (payment.purchase_id && payment.purchase_id === purchase.id) ||
             (!payment.purchase_id && payment.purchase_si_no && payment.purchase_si_no === purchase.si_no)
           )
           .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0)
+        const paidAmount = paidLater + paidOnPurchaseBills([purchase])
 
         return {
           id: purchase.id,
