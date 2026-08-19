@@ -10,6 +10,7 @@ import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE, DUPLICATE_PHONE_MESSAGE } from '../../lib/phone'
 import { phoneBelongsToAnotherCustomer } from '../../lib/customerPhone'
 import { usePagedList } from '../../lib/usePagedList'
+import { customerCurrentDue } from './customerDashboardData'
 import TableSkeleton from '../../components/TableSkeleton'
 import { getCustomersPage } from '../../services/admin.services'
 import ProgressDialog, { idleProgress, startProgress, type ProgressState } from '../../components/ProgressDialog'
@@ -87,8 +88,51 @@ export default function CustomerList() {
   const [importingCsv, setImportingCsv] = useState(false)
   const [progress, setProgress] = useState<ProgressState>(idleProgress)
   const csvInputRef = useRef<HTMLInputElement>(null)
+  // Every customer's sales and collections, so the balance beside their name
+  // is the one the Customer Dashboard and the Due Received modal show. null
+  // until it lands - a row must not read "Tk 0" while the answer is still on
+  // its way, because Tk 0 is a real answer here.
+  const [ledger, setLedger] = useState<{ sales: Record<string, any[]>; payments: Record<string, any[]> } | null>(null)
 
   useEffect(() => { loadAll() }, [])
+
+  // Not paged with the customers: a balance needs every sale and every
+  // collection belonging to a customer, not the ones on the current page. Two
+  // reads, once, for the whole screen - the same pair the Customer Dashboard
+  // already makes.
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadLedger() {
+      const [salesRes, paymentsRes] = await Promise.all([
+        supabase.from('sales').select('customer_id, net_amount, paid_amount').eq('status', 'completed'),
+        supabase.from('customer_payments').select('customer_id, sale_id, amount, notes'),
+      ])
+      if (cancelled) return
+
+      const sales: Record<string, any[]> = {}
+      ;(salesRes.data || []).forEach((sale: any) => {
+        if (!sale.customer_id) return
+        sales[sale.customer_id] = [...(sales[sale.customer_id] || []), sale]
+      })
+
+      const payments: Record<string, any[]> = {}
+      ;(paymentsRes.data || []).forEach((payment: any) => {
+        if (!payment.customer_id) return
+        payments[payment.customer_id] = [...(payments[payment.customer_id] || []), payment]
+      })
+
+      setLedger({ sales, payments })
+    }
+
+    loadLedger()
+    return () => { cancelled = true }
+  }, [])
+
+  const currentDueFor = (customer: any) =>
+    ledger
+      ? customerCurrentDue(customer.opening_due, ledger.sales[customer.id] || [], ledger.payments[customer.id] || [])
+      : null
 
   // The rows come from the paged hook; this just re-reads from page one after
   // a save or delete.
@@ -363,6 +407,7 @@ export default function CustomerList() {
               <th className="text-left py-2 px-4">{t('customers_colPhone')}</th>
               <th className="text-left py-2 px-4">{t('customers_colAddress')}</th>
               <th className="text-right py-2 px-4">Opening Due</th>
+              <th className="text-right py-2 px-4">Current Due</th>
               <th className="text-center py-2 px-4 w-24">Actions</th>
             </tr>
           </thead>
@@ -373,8 +418,23 @@ export default function CustomerList() {
                 <td className="py-2.5 px-4 font-medium">{c.name}</td>
                 <td className="py-2.5 px-4 text-slate-500">{c.phone || <NoValue />}</td>
                 <td className="py-2.5 px-4 text-slate-500">{c.address || <NoValue />}</td>
+                {/* What they started with. It is a fixed historical figure and
+                    never moves, however much they pay - which is why the
+                    balance sits beside it rather than instead of it. */}
                 <td className="py-2.5 px-4 text-right font-medium">
                   <span className={c.opening_due > 0 ? 'text-brand-red' : 'text-slate-500'}>{formatCurr(c.opening_due || 0)}</span>
+                </td>
+                {/* What they owe now. Negative is money owed back to them. */}
+                <td className="py-2.5 px-4 text-right font-semibold">
+                  {(() => {
+                    const due = currentDueFor(c)
+                    if (due === null) return <span className="text-slate-300">…</span>
+                    return (
+                      <span className={due > 0 ? 'text-brand-red' : due < 0 ? 'text-brand-green' : 'text-slate-500'}>
+                        {formatCurr(due)}
+                      </span>
+                    )
+                  })()}
                 </td>
                 <td className="py-2.5 px-4 text-center">
                   <div className="flex gap-2 justify-center">
@@ -384,11 +444,11 @@ export default function CustomerList() {
                 </td>
               </tr>
             ))}
-            {paged.loading && <TableSkeleton rows={8} cols={6} />}
-            {!paged.loading && filtered.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-slate-400">{t('customers_noCustomers')}</td></tr>}
+            {paged.loading && <TableSkeleton rows={8} cols={7} />}
+            {!paged.loading && filtered.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">{t('customers_noCustomers')}</td></tr>}
             {paged.hasMore && !paged.loading && (
               <tr ref={paged.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
-                <td colSpan={6} className="py-4 text-center text-sm text-slate-400">
+                <td colSpan={7} className="py-4 text-center text-sm text-slate-400">
                   {paged.loadingMore
                     ? `Loading more… ${customers.length.toLocaleString()} of ${paged.total.toLocaleString()}`
                     : `${customers.length.toLocaleString()} of ${paged.total.toLocaleString()} loaded`}
