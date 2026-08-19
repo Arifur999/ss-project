@@ -78,7 +78,7 @@ export default function EmployeeDashboard() {
 
       <TableScroller wrapClassName="card p-0" className="overflow-x-auto">
         <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">{t('employee_activeEmployeeList')}</div>
-        <table className="w-full min-w-[1600px] text-sm">
+        <table className="w-full min-w-[1250px] text-sm">
           <thead className="table-header">
             <tr>
               <th className="text-left py-2 px-4">#</th>
