@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCustomerDashboard } from './customerDashboardData'
+import { buildCustomerDashboard, customerCurrentDue } from './customerDashboardData'
 
 /**
  * A Due Received does NOT touch the sale it helps pay off.
@@ -154,5 +154,54 @@ describe('what has been collected', () => {
       [{ ...collection(100000), sale_id: 's1' }],
     )
     expect(stats.collectionsAmount).toBe(100000)
+  })
+})
+
+describe('customerCurrentDue', () => {
+  // The Due Received modal's "Previous Due" reads this. Anything it answers
+  // differently from the dashboard is a number the owner sees twice and is told
+  // twice about.
+  const agrees = (openingDue: number, sales: any[], payments: any[]) => {
+    const single = customerCurrentDue(openingDue, sales, payments)
+    const { stats } = buildCustomerDashboard([{ ...customer, opening_due: openingDue }], sales, payments)
+    expect(single).toBe(stats.currentDue)
+    return single
+  }
+
+  it('is the opening balance when there is nothing else', () => {
+    expect(agrees(5000, [], [])).toBe(5000)
+  })
+
+  it('clears an opening balance that was paid off', () => {
+    // The case on screen: opening Tk 5,000, one Due Received of Tk 5,000. The
+    // Customer List still shows Tk 5,000 because that column is the opening
+    // figure, which never moves - this is the balance, and it is nil.
+    expect(agrees(5000, [], [collection(5000)])).toBe(0)
+  })
+
+  it('takes off a discount written off on a Due Received', () => {
+    // The modal used to miss this: Tk 4,000 collected against Tk 5,000 with the
+    // last Tk 1,000 written off still showed Tk 1,000 owing there while the
+    // dashboard showed the account clear.
+    expect(agrees(5000, [], [collection(4000, 'Discount Amount: 1000')])).toBe(0)
+  })
+
+  it('does not take off a payment its own sale has already absorbed', () => {
+    const settled = { ...sale(0), paid_amount: 100000, due_amount: 0 }
+    expect(agrees(0, [settled], [{ ...collection(100000), sale_id: 's1' }])).toBe(0)
+  })
+
+  it('adds the unpaid part of every invoice', () => {
+    expect(agrees(5000, [sale(40000)], [])).toBe(65000)
+  })
+
+  it('reports a credit rather than clamping it away', () => {
+    expect(agrees(0, [sale(40000)], [collection(75000)])).toBe(-15000)
+  })
+
+  it('reads a missing opening balance as nil', () => {
+    expect(customerCurrentDue(null, [], [])).toBe(0)
+    expect(customerCurrentDue(undefined, [], [])).toBe(0)
+    expect(customerCurrentDue('', [], [])).toBe(0)
   })
 })

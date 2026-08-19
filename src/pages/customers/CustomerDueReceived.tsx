@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { buildDuePaymentSms } from '../../lib/smsTemplates'
+import { customerCurrentDue } from './customerDashboardData'
 import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
 import TableSkeleton from '../../components/TableSkeleton'
@@ -540,18 +541,15 @@ export default function CustomerDueReceived() {
   const shown = useProgressiveRows(groupedPayments, { initial: 40, step: 40 })
   const selectedCustomer = customers.find(customer => customer.id === form.customer_id)
   const currentPaymentTotal = paymentRows.reduce((sum, row) => sum + Number(row.amount || 0), 0)
-  const selectedCustomerSalesDue = sales
-    .filter(sale => sale.customer_id === form.customer_id)
-    .reduce((sum, sale) => {
-      const storedDue = Number(sale.due_amount || 0)
-      const fallbackDue = Math.max(0, Number(sale.net_amount || 0) - Number(sale.paid_amount || 0))
-      return sum + (storedDue || fallbackDue)
-    }, 0)
-  const selectedCustomerPayments = payments
-    .filter(payment => payment.customer_id === form.customer_id && payment.id !== editItem?.id)
-    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+  // The Customer Dashboard's own rule, so the two screens cannot disagree
+  // about what the same customer owes. The receipt being edited is left out -
+  // it is about to be replaced by what is on the form.
   const previousDue = form.customer_id
-    ? Math.max(0, Number(selectedCustomer?.opening_due || 0) + selectedCustomerSalesDue - selectedCustomerPayments)
+    ? Math.max(0, customerCurrentDue(
+      selectedCustomer?.opening_due,
+      sales.filter(sale => sale.customer_id === form.customer_id),
+      payments.filter(payment => payment.customer_id === form.customer_id && payment.id !== editItem?.id),
+    ))
     : 0
   const filteredCustomers = useMemo(() => {
     const query = customerSearch.trim().toLowerCase()

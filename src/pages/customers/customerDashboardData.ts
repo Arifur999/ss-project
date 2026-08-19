@@ -46,6 +46,44 @@ export function parseAmountText(value: string) {
 }
 
 /**
+ * What one customer owes right now.
+ *
+ * The same rule buildCustomerDashboard applies to the whole list, for callers
+ * that need it for a single customer - the Due Received modal's "Previous Due".
+ * It lived there as its own hand-written sum and had drifted on two points:
+ * it took every payment off, including one already taken off its own sale, and
+ * it never took off a discount written off on a Due Received - so a customer
+ * given one still showed a leftover due on the modal that the dashboard had
+ * already cleared.
+ *
+ * Not clamped at zero. A negative is money owed back to the customer; clamp it
+ * at the call site if the screen cannot show a credit.
+ */
+export function customerCurrentDue(
+  openingDue: unknown,
+  sales: { net_amount?: unknown; paid_amount?: unknown }[],
+  payments: { sale_id?: string | null; amount?: unknown; notes?: string }[],
+): number {
+  // Derived rather than read from due_amount: that column is NOT NULL
+  // defaulting to 0 and the sale API never computes it.
+  const invoiceDue = sales.reduce(
+    (sum, sale) => sum + (Number(sale.net_amount || 0) - Number(sale.paid_amount || 0)),
+    0,
+  )
+
+  let collected = 0
+  let writtenOff = 0
+  payments.forEach(payment => {
+    // A payment carrying a sale_id has already been taken off that sale by the
+    // server, so taking it off again here would count it twice.
+    if (!payment.sale_id) collected += Number(payment.amount || 0)
+    writtenOff += parseAmountText(parseMetaValue(payment.notes || '', 'Discount Amount'))
+  })
+
+  return Number(openingDue || 0) + invoiceDue - collected - writtenOff
+}
+
+/**
  * The dashboard's figures, from the three lists it reads.
  *
  * Split out of the loader so the arithmetic can be tested without a database -
