@@ -9,6 +9,8 @@ import PendingApproval from '../components/PendingApproval'
 import PlanCard from '../components/PlanCard'
 import { planFeatures } from '../lib/planFeatures'
 import { FALLBACK_PLAN_PRICES } from '../lib/planPricing'
+import { whatsAppLink } from '../lib/support'
+import Modal from '../components/Modal'
 
 type PlanId = 'free_trial' | 'monthly' | 'yearly'
 
@@ -59,6 +61,9 @@ const planCopy = {
     doneTitle: 'Payment Submitted!',
     doneSubtitle: 'Your payment is now waiting for super admin approval. You will get full access as soon as it is approved.',
     goDashboard: 'Go to workspace',
+    noPlanTitle: 'Your plan has expired',
+    noPlanBody: 'There is no active plan on this workspace, so there is nothing to go back to yet. Choose a plan below and your data is waiting exactly as you left it.',
+    noPlanAction: 'See the plans',
     freeUsedButton: 'Trial Already Used',
     freeUsedNote: "You've already used your free trial. Please ask your super admin to grant a trial extension.",
     // --- Free-trial info popup ---
@@ -105,6 +110,9 @@ const planCopy = {
     doneTitle: 'পেমেন্ট জমা হয়েছে!',
     doneSubtitle: 'আপনার পেমেন্ট এখন সুপার অ্যাডমিনের অনুমোদনের অপেক্ষায় আছে। অনুমোদন হলেই সম্পূর্ণ অ্যাক্সেস পাবেন।',
     goDashboard: 'ওয়ার্কস্পেসে যান',
+    noPlanTitle: 'আপনার প্ল্যানের মেয়াদ শেষ',
+    noPlanBody: 'এই ওয়ার্কস্পেসে এখন কোনো সচল প্ল্যান নেই, তাই ফিরে যাওয়ার মতো কিছু নেই। নিচ থেকে একটি প্ল্যান নিন — আপনার সব ডেটা যেমন ছিল তেমনই আছে।',
+    noPlanAction: 'প্ল্যানগুলো দেখুন',
     freeUsedButton: 'ট্রায়াল ব্যবহৃত হয়ে গেছে',
     freeUsedNote: 'আপনি ইতিমধ্যে আপনার ফ্রি ট্রায়াল ব্যবহার করে ফেলেছেন। ট্রায়াল বাড়ানোর জন্য আপনার সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।',
     trialPopupTitle: '৭ দিনের ফ্রি ট্রায়াল শুরু করুন',
@@ -126,7 +134,7 @@ const planCopy = {
 const CHECKOUT_STORAGE_KEY = 'subscription_checkout_plan'
 
 export default function SubscriptionPlans() {
-  const { user, profile, subscription, refreshAccount } = useAuth()
+  const { user, profile, subscription, subscriptionStatus, refreshAccount } = useAuth()
   const { lang, setLang, t } = useLang()
   const navigate = useNavigate()
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null)
@@ -142,6 +150,8 @@ export default function SubscriptionPlans() {
   const [yearlyOriginalPrice, setYearlyOriginalPrice] = useState<number | null>(null)
   const [monthlyPrice, setMonthlyPrice] = useState<number | null>(null)
   const [supportNumber, setSupportNumber] = useState('')
+  // Shown when the logo is clicked with no plan to go back to.
+  const [showNoPlanPrompt, setShowNoPlanPrompt] = useState(false)
   const copy = (key: keyof typeof planCopy.en) => t(`plans_${key}`, planCopy[lang][key])
   // Every owner's free trial is spent automatically at registration, so this
   // is true for essentially everyone who lands here - it only ever turns
@@ -214,6 +224,17 @@ export default function SubscriptionPlans() {
       popular: true,
     },
   ], [lang, t, yearlyPrice, yearlyOriginalPrice, monthlyPrice, discountPercent, trialUsed])
+
+  // The logo is the way back into the app. Whether there is an app to go back
+  // to is the same question App.tsx asks before it lets anyone past the router,
+  // so it is answered from the same value rather than by re-reading the
+  // subscription here and possibly disagreeing with it.
+  const hasWorkspaceAccess = subscriptionStatus === 'active' || subscriptionStatus === 'trial'
+
+  function handleLogoClick() {
+    if (hasWorkspaceAccess) navigate('/', { replace: true })
+    else setShowNoPlanPrompt(true)
+  }
 
   if (!user) return <Navigate to="/register" replace />
 
@@ -303,6 +324,17 @@ export default function SubscriptionPlans() {
 
   return (
     <div className="min-h-screen bg-white px-4 py-8">
+      {/* The way back into the app. A plan page with no logo is a dead end -
+          there is nothing on it that leads anywhere except a payment. */}
+      <button
+        type="button"
+        onClick={handleLogoClick}
+        title={hasWorkspaceAccess ? copy('goDashboard') : undefined}
+        className="fixed left-4 top-4 z-20 rounded-lg p-1 transition hover:opacity-80"
+      >
+        <img src="/logo-dark.png" alt={t('appName')} className="h-8 w-auto object-contain" />
+      </button>
+
       <div className="fixed right-4 top-4 z-20 flex items-center gap-1 rounded-lg bg-white p-0.5 shadow-sm">
         <Globe size={13} className="ml-1.5 text-slate-400" />
         <button onClick={() => setLang('en')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'en' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>EN</button>
@@ -402,6 +434,37 @@ export default function SubscriptionPlans() {
           </div>
         </div>
       )}
+
+      {/* Clicking the logo with an expired plan: say why there is nowhere to go
+          and point at the thing that fixes it, rather than silently doing
+          nothing. */}
+      <Modal isOpen={showNoPlanPrompt} onClose={() => setShowNoPlanPrompt(false)} title={copy('noPlanTitle')} size="sm">
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-slate-600">{copy('noPlanBody')}</p>
+          <button
+            type="button"
+            onClick={() => setShowNoPlanPrompt(false)}
+            className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-black"
+          >
+            {copy('noPlanAction')}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Support, in the same corner it sits in inside the app. This page is
+          where somebody is most likely to need it. */}
+      <a
+        href={whatsAppLink(supportNumber)}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Chat with support on WhatsApp"
+        aria-label="Chat with support on WhatsApp"
+        className="fixed bottom-5 right-5 z-40 flex items-center justify-center rounded-full bg-[#25D366] p-3 text-white shadow-lg shadow-green-600/30 transition hover:bg-[#20bd5a]"
+      >
+        <svg viewBox="0 0 32 32" width="24" height="24" fill="currentColor" aria-hidden="true">
+          <path d="M16.01 3C9.38 3 4 8.37 4 15c0 2.1.55 4.15 1.6 5.96L4 29l8.24-1.56A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.64 3 16.01 3zm0 21.8c-1.9 0-3.77-.5-5.4-1.46l-.39-.23-4.9.93.93-4.78-.25-.4A9.77 9.77 0 0 1 6.2 15c0-5.4 4.4-9.8 9.8-9.8 5.42 0 9.82 4.4 9.82 9.8s-4.4 9.8-9.81 9.8zm5.6-7.34c-.3-.15-1.8-.9-2.08-1-.28-.1-.48-.15-.68.15-.2.3-.78 1-.96 1.2-.18.2-.35.22-.65.08-.3-.15-1.28-.47-2.44-1.5-.9-.8-1.5-1.8-1.68-2.1-.18-.3-.02-.46.13-.6.13-.13.3-.34.45-.5.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.68-1.63-.93-2.23-.24-.58-.5-.5-.68-.5l-.58-.01c-.2 0-.52.07-.8.37-.28.3-1.05 1.02-1.05 2.5s1.08 2.9 1.23 3.1c.15.2 2.12 3.24 5.14 4.55.72.3 1.28.48 1.71.62.72.23 1.37.2 1.9.12.58-.09 1.8-.74 2.05-1.45.25-.72.25-1.33.18-1.46-.07-.13-.27-.2-.57-.35z" />
+        </svg>
+      </a>
     </div>
   )
 }
