@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { totalInvestment } from '../../lib/shareholderCapital'
 import { PencilSimpleIcon as Pencil, PlusIcon as Plus, FloppyDiskIcon as Save, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
@@ -44,13 +45,18 @@ function isMissingOpeningAmountColumn(error: any) {
 export default function ShareholderList() {
   const { t, formatCurr } = useLang()
   const [shareholders, setShareholders] = useState<any[]>([])
+  const [investments, setInvestments] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
 
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
-    const { data } = await supabase.from('shareholders').select('*').order('sort_order')
+    const [{ data }, investmentRes] = await Promise.all([
+      supabase.from('shareholders').select('*').order('sort_order'),
+      supabase.from('investments').select('shareholder_id, shareholder_name, invest_amount, withdraw_amount'),
+    ])
+    setInvestments(investmentRes.data || [])
     const openingAmountFallback = readShareholderOpeningAmountFallback()
     setShareholders((data || []).map((shareholder: any) => ({
       ...shareholder,
@@ -106,6 +112,7 @@ export default function ShareholderList() {
                 <th className="text-left py-2 px-3">{t('common_phone')}</th>
                 <th className="text-left py-2 px-3">{t('common_address')}</th>
                 <th className="text-right py-2 px-3">{t('invest_openingAmount')}</th>
+                <th className="text-right py-2 px-3">Total Investment</th>
                 <th className="text-right py-2 px-3">Action</th>
               </tr>
             </thead>
@@ -119,6 +126,12 @@ export default function ShareholderList() {
                     <td className="py-2 px-3 text-slate-500">{sh.phone || <NoValue />}</td>
                     <td className="py-2 px-3 text-slate-500">{sh.address || <NoValue />}</td>
                     <td className="py-2 px-3 text-right text-slate-500">{formatCurr(openingAmount)}</td>
+                    {/* Opening plus everything invested since, less anything
+                        withdrawn - the same value the Shareholder Dashboard
+                        splits the profit by. */}
+                    <td className="py-2 px-3 text-right font-semibold tabular-nums text-navy-900">
+                      {formatCurr(totalInvestment(investments, sh))}
+                    </td>
                     <td className="py-2 px-3 text-right">
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => openModal('shareholder', sh)} className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"><Pencil size={13} /></button>
