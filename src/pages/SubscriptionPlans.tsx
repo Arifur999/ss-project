@@ -339,7 +339,9 @@ export default function SubscriptionPlans() {
         <img src="/logo-dark.png" alt={t('appName')} className="h-8 w-auto object-contain" />
       </button>
 
-      <div className="fixed right-4 top-4 z-20 flex items-center gap-1 rounded-lg bg-white p-0.5 shadow-sm">
+      {/* Mirrors the logo opposite it, rather than sitting in the corner on
+          its own while the logo is set in. */}
+      <div className="fixed right-6 top-6 lg:right-36 lg:top-16 z-20 flex items-center gap-1 rounded-lg bg-white p-0.5 shadow-sm">
         <Globe size={13} className="ml-1.5 text-slate-400" />
         <button onClick={() => setLang('en')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'en' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>EN</button>
         <button onClick={() => setLang('bn')} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${lang === 'bn' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>বাংলা</button>
