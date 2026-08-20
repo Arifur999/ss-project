@@ -9,6 +9,7 @@ import { useLang } from '../context/LanguageContext'
 import { getMySubscriptionPayments } from '../services/admin.services'
 import { getMySmsPurchases, getSmsWallet } from '../services/sms.services'
 import { NoValue } from '../components/CellValue'
+import { smsPackageLabel } from '../lib/smsPackageLabel'
 
 type Kind = 'plan' | 'sms'
 
@@ -105,7 +106,13 @@ export default function BillingHistory() {
   const totalPlanSpend = paidRows.filter(r => r.kind === 'plan').reduce((s, r) => s + r.amount, 0)
   const totalSmsSpend = paidRows.filter(r => r.kind === 'sms').reduce((s, r) => s + r.amount, 0)
   // The SMS package they are actually on = their most recent approved purchase.
+  // Rows are sorted newest first, so the first match is the current one.
   const currentSmsPackage = paidRows.find(r => r.kind === 'sms')
+  const smsPackage = smsPackageLabel({
+    packageName: currentSmsPackage?.item,
+    balance: smsBalance,
+    hasPaidPlan: paidRows.some(r => r.kind === 'plan'),
+  }, bn)
 
   return (
     <div className="min-h-screen bg-white p-4 sm:p-6">
@@ -120,7 +127,8 @@ export default function BillingHistory() {
         <StatCard title={bn ? 'এসএমএসে মোট খরচ' : 'Spent on SMS'} value={formatCurr(totalSmsSpend)} icon={<MessageSquareText size={20} />} color="blue" />
         <StatCard
           title={bn ? 'বর্তমান এসএমএস প্যাকেজ' : 'Current SMS package'}
-          value={currentSmsPackage ? currentSmsPackage.item : (bn ? 'কোনোটি নয়' : 'None')}
+          value={smsPackage.value}
+          subtitle={smsPackage.subtitle}
           icon={<Package size={20} />}
           color="orange"
         />
