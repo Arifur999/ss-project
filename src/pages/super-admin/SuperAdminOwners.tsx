@@ -256,7 +256,7 @@ export default function SuperAdminOwners() {
 
       <div className="card overflow-hidden p-0">
         <TableScroller>
-          <table className="w-full min-w-[1720px] text-sm">
+          <table className="w-full min-w-[1500px] text-sm">
             <thead className="table-header">
               <tr>
                 <th className="px-4 py-3 text-left w-12">#</th>
@@ -280,8 +280,6 @@ export default function SuperAdminOwners() {
                     <td className="px-4 py-3 font-medium text-slate-500">{index + 1}</td>
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-800">{owner.business}</p>
-                      <p className="text-xs text-slate-500">{owner.name} - {owner.email}</p>
-                      <p className="text-xs text-slate-400">{owner.phone}</p>
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-700">Active: {registeredDays(owner.joinedAt)} Days</p>
