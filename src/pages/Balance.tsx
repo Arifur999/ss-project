@@ -34,26 +34,17 @@ function fallbackSalePayments() {
 }
 
 /**
- * The mark beside a figure: an arrow saying which way the money went, or - on
- * the figure that closes a tab - a dot coloured by whether it is in the black.
- *
- * A zero carries no arrow. "Nothing moved" is not a direction, and an arrow on
- * every empty cell is noise across a table where most cells are empty.
+ * The dot beside the figure that closes a tab, coloured by whether that account
+ * is in the black. Only the closing column carries one; the in and out columns
+ * are already told apart by their green and red.
  */
-function FlowMark({ column, value, onDark = false }: { column: BalanceColumn; value: number; onDark?: boolean }) {
-  if (column.closing) {
-    return (
-      <span
-        aria-hidden="true"
-        className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${value < 0 ? 'bg-brand-red' : onDark ? 'bg-emerald-400' : 'bg-brand-green'}`}
-      />
-    )
-  }
-  if (column.flow === 'none' || !value) return null
+function ClosingDot({ column, value, onDark = false }: { column: BalanceColumn; value: number; onDark?: boolean }) {
+  if (!column.closing) return null
   return (
-    <span aria-hidden="true" className={`shrink-0 text-[9px] leading-none ${onDark ? 'text-white/60' : 'text-slate-400'}`}>
-      {column.flow === 'in' ? '↑' : '↓'}
-    </span>
+    <span
+      aria-hidden="true"
+      className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${value < 0 ? 'bg-brand-red' : onDark ? 'bg-emerald-400' : 'bg-brand-green'}`}
+    />
   )
 }
 
@@ -258,7 +249,7 @@ export default function Balance() {
                         <td key={col.key} className={`py-2.5 px-3 text-right ${amountClass(val, col.color)}`}>
                           <span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">
                             {val === 0 ? <ZeroAmount /> : formatCurr(val)}
-                            <FlowMark column={col} value={val} />
+                            <ClosingDot column={col} value={val} />
                           </span>
                         </td>
                       )
@@ -276,7 +267,7 @@ export default function Balance() {
                       <td key={col.key} className={`py-2.5 px-3 text-right font-semibold ${total < 0 ? 'text-red-400' : ''}`}>
                         <span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">
                           {total === 0 ? <ZeroAmount /> : formatCurr(total)}
-                          <FlowMark column={col} value={total} onDark />
+                          <ClosingDot column={col} value={total} onDark />
                         </span>
                       </td>
                     )
