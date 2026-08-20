@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ArrowsClockwiseIcon as RefreshCw, CreditCardIcon as CreditCard, DownloadSimpleIcon as Download, HourglassIcon as Hourglass, SparkleIcon as Sparkles, TrendUpIcon as TrendingUp, UsersIcon as Users, WarningIcon as Warning } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
@@ -31,6 +31,7 @@ interface PlatformReport {
   granted_access: number
   churned: number
   never_started: number
+  unaccounted: number
   monthly: MonthlyPoint[]
 }
 
@@ -50,6 +51,7 @@ const EMPTY_REPORT: PlatformReport = {
   granted_access: 0,
   churned: 0,
   never_started: 0,
+  unaccounted: 0,
   monthly: [],
 }
 
@@ -83,6 +85,9 @@ function normalise(data: any): PlatformReport {
     granted_access: count(raw.granted_access),
     churned: count(raw.churned),
     never_started: count(raw.never_started),
+    // Not clamped at zero: a negative means the buckets overlap, and that is
+    // exactly what has to be visible rather than swallowed.
+    unaccounted: Math.trunc(Number(raw.unaccounted) || 0),
     monthly: monthly.map((point: any) => ({
       month: String(point?.month ?? ''),
       subscription: money(point?.subscription),
@@ -94,17 +99,21 @@ function normalise(data: any): PlatformReport {
 }
 
 /**
- * The axis label for a takings figure.
+ * One unit for the whole Y axis, chosen from the tallest bar on it.
  *
- * Not a hard divide by 1000. This page reports subscription income, which
- * starts at one Tk 599 payment - at that scale every tick rendered as "৳0k",
- * an axis that cannot be read for exactly the amounts it now shows. The
- * thousands suffix earns its place only once the numbers are in thousands.
+ * Deciding per tick put two units on one scale: an axis topping out at 150,000
+ * drew "৳75,000" and "৳113k" as neighbours. And a hard divide by 1000 - which
+ * is what this replaced - drew every tick as "৳0k" at the scale this page
+ * reports, where a single Tk 599 payment is a normal month. The suffix is
+ * earned once, by the axis, or not at all.
  */
-function axisTick(value: number) {
-  const amount = Number(value) || 0
-  if (Math.abs(amount) >= 100000) return `৳${Math.round(amount / 1000)}k`
-  return `৳${amount.toLocaleString('en-BD')}`
+function axisFormatter(peak: number) {
+  const useThousands = Math.abs(peak) >= 100000
+  return (value: number) => {
+    const amount = Number(value) || 0
+    if (useThousands) return `৳${Math.round(amount / 1000)}k`
+    return `৳${amount.toLocaleString('en-BD')}`
+  }
 }
 
 /** One line in the two breakdown panels. */
@@ -129,24 +138,33 @@ export default function SuperAdminReports() {
   // load or after a failure makes a broken endpoint read as a true nil.
   const [answered, setAnswered] = useState(false)
   const [failed, setFailed] = useState(false)
+  // Which request the page is showing. Clicking Try again on a flapping
+  // endpoint fires overlapping loads, and without this whichever finishes last
+  // wins - a stale failure arriving after a success would blank figures that
+  // had already loaded.
+  const requestRef = useRef(0)
 
   useEffect(() => {
     loadReport()
   }, [])
 
   async function loadReport() {
+    const request = requestRef.current + 1
+    requestRef.current = request
     setLoading(true)
     setFailed(false)
     try {
       const data = await getSuperAdminReports()
+      if (requestRef.current !== request) return
       setReport(normalise(data))
       setAnswered(true)
     } catch (error: any) {
+      if (requestRef.current !== request) return
       setAnswered(false)
       setFailed(true)
       toast.error(error.message || 'Failed to load reports')
     } finally {
-      setLoading(false)
+      if (requestRef.current === request) setLoading(false)
     }
   }
 
@@ -181,6 +199,8 @@ export default function SuperAdminReports() {
     URL.revokeObjectURL(url)
   }
 
+  // The tallest stack on the chart decides the axis unit.
+  const peakRevenue = report.monthly.reduce((top, point) => Math.max(top, point.revenue), 0)
   const paying = report.active_subscriptions
   // Of everyone who has ever signed up, how many ended up paying. The honest
   // denominator is every owner, not just the ones still around.
@@ -211,9 +231,9 @@ export default function SuperAdminReports() {
             <Warning size={16} weight="duotone" className="mt-px shrink-0" />
             <span>The report could not be loaded, so no figures are shown - none of these are zero, they are unknown.</span>
           </p>
-          <button className="btn-secondary" onClick={loadReport}>
+          <button className="btn-secondary" onClick={loadReport} disabled={loading}>
             <RefreshCw size={16} />
-            Try again
+            {loading ? 'Loading...' : 'Try again'}
           </button>
         </div>
       )}
@@ -247,7 +267,7 @@ export default function SuperAdminReports() {
               <BarChart data={report.monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} />
-                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={axisTick} width={72} />
+                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={axisFormatter(peakRevenue)} width={72} />
                 <Tooltip formatter={(value: number) => formatBDT(value)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {/* Stacked, because the two together are the month's income and
@@ -284,6 +304,16 @@ export default function SuperAdminReports() {
             <Row label="Access granted, unpaid" value={num(report.granted_access)} note={answered ? 'plan set by hand' : undefined} />
             <Row label="Churned" value={num(report.churned)} note={answered ? 'paid before, not active now' : undefined} />
             <Row label="Never started" value={num(report.never_started)} note={answered ? 'signed up, no trial, no payment' : undefined} />
+            {/* The five rows above are meant to be every business exactly once.
+                Shown only when they are not, so a miscount cannot hide behind a
+                panel that presents itself as a complete split. */}
+            {answered && report.unaccounted !== 0 && (
+              <Row
+                label="Unaccounted"
+                value={String(report.unaccounted)}
+                note="these five should add up to Signed up - please report this"
+              />
+            )}
           </div>
         </div>
       </div>

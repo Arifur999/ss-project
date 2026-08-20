@@ -29,6 +29,7 @@ import { NoValue } from '../../components/CellValue'
 const EMPTY_SUMMARY: PlatformFinanceSummary = {
   subscription_monthly: 0,
   subscription_yearly: 0,
+  subscription_other: 0,
   subscription_income: 0,
   sms_income: 0,
   total_income: 0,
@@ -229,7 +230,14 @@ export default function SuperAdminFinance() {
         <StatCard
           title="Subscription income"
           value={money(summary.subscription_income)}
-          subtitle={`Monthly ${money(summary.subscription_monthly)} · Yearly ${money(summary.subscription_yearly)}`}
+          // The split has to account for the figure above it. The total is
+          // every approved payment, and plan_type also permits free_trial, so
+          // naming only the two plans left a gap nothing on the page explained.
+          subtitle={
+            Number(summary.subscription_other || 0) !== 0
+              ? `Monthly ${money(summary.subscription_monthly)} · Yearly ${money(summary.subscription_yearly)} · Other ${money(summary.subscription_other)}`
+              : `Monthly ${money(summary.subscription_monthly)} · Yearly ${money(summary.subscription_yearly)}`
+          }
           icon={<Banknote size={20} />}
           color="blue"
         />

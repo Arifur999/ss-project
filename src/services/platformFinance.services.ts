@@ -24,6 +24,7 @@ export type PlatformWithdrawal = {
 export type PlatformFinanceSummary = {
   subscription_monthly: number
   subscription_yearly: number
+  subscription_other: number
   subscription_income: number
   sms_income: number
   total_income: number
