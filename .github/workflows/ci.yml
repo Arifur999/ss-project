@@ -92,20 +92,31 @@ jobs:
       # --delete removes what is no longer in dist, and re-sending an identical
       # file is a checksum comparison rather than a copy. ConnectTimeout keeps a
       # dead connection from burning the whole job's time budget.
+      # Backs off rather than giving up inside a minute. Three attempts 15s
+      # apart covered about 45 seconds, and the upload has now failed three
+      # times on days with a lot of pushes while the site itself stayed up -
+      # the shape of an SSH rate-limit or a short ban on the runner's address,
+      # which outlasts 45 seconds and not four minutes. Each attempt prints
+      # rsync's exit code, so a genuinely dead host is told apart from a
+      # refused connection next time instead of guessed at.
       - name: Upload the build
         run: |
-          for attempt in 1 2 3; do
-            if rsync -az --delete \
+          attempt=1
+          for delay in 15 30 60 120 end; do
+            rsync -az --delete \
                 -e "ssh -i ~/.ssh/id_ed25519 -o ConnectTimeout=20 -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
                 dist/ \
-                "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/Hatim/dist/"; then
-              echo "Uploaded on attempt $attempt"
-              exit 0
-            fi
-            echo "Upload attempt $attempt failed; retrying in 15s"
-            sleep 15
+                "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/Hatim/dist/" \
+              && { echo "Uploaded on attempt $attempt"; exit 0; }
+            code=$?
+            echo "Upload attempt $attempt failed (rsync exit $code)"
+            if [ "$delay" = "end" ]; then break; fi
+            echo "Retrying in ${delay}s"
+            sleep "$delay"
+            attempt=$((attempt + 1))
           done
-          echo "Upload failed three times - the VPS is unreachable, not the build"
+          echo "Upload failed $attempt times over about four minutes."
+          echo "quality-check passed, so this is the VPS refusing SSH, not the build."
           exit 1
 
       # Asked over the public address, the same way a customer reaches it, so
