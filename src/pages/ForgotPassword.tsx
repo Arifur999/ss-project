@@ -74,7 +74,7 @@ export default function ForgotPassword() {
   async function submitReset(e: React.FormEvent) {
     e.preventDefault()
     if (otp.trim().length !== 6) return toast.error(lang === 'bn' ? '৬-সংখ্যার কোড দিন' : 'Enter the 6-digit code')
-    if (password.length < 6) return toast.error(lang === 'bn' ? 'পাসওয়ার্ড অন্তত ৬ অক্ষর' : 'Password must be at least 6 characters')
+    if (password.length < 8) return toast.error(lang === 'bn' ? 'পাসওয়ার্ড অন্তত ৮ অক্ষর' : 'Password must be at least 8 characters')
     if (password !== confirm) return toast.error(lang === 'bn' ? 'পাসওয়ার্ড মিলছে না' : 'Passwords do not match')
     setLoading(true)
     try {

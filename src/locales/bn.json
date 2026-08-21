@@ -592,7 +592,7 @@
   "settings_fullNamePlaceholder": "যেমন: Ahmed Ali",
   "settings_emailStar": "ইমেইল *",
   "settings_emailPlaceholder": "user@example.com",
-  "settings_passwordStar": "পাসওয়ার্ড * (কমপক্ষে ৬ অক্ষর)",
+  "settings_passwordStar": "পাসওয়ার্ড * (কমপক্ষে ৮ অক্ষর)",
   "settings_phonePlaceholder": "01XXXXXXXXX",
   "settings_roleStar": "ভূমিকা *",
   "settings_rolePermissions": "এই ভূমিকায় যা করতে পারবে:",

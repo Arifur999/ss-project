@@ -102,8 +102,8 @@ export default function Register() {
       toast.error('This field is required!')
       return
     }
-    if (form.password.length < 6) {
-      toast.error('Password must be at least 6 characters')
+    if (form.password.length < 8) {
+      toast.error('Password must be at least 8 characters')
       return
     }
     if (form.password !== form.confirmPassword) {

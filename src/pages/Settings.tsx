@@ -339,7 +339,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
 
   async function save() {
     if (!form.full_name || !form.email || !form.password) return toast.error(t('common_fillAllFields'))
-    if (form.password.length < 6) return toast.error(t('settings_passwordStar'))
+    if (form.password.length < 8) return toast.error(t('settings_passwordStar'))
     if (form.password !== form.confirm_password) return toast.error('Passwords do not match')
     // Saving mid-upload would drop the photo silently.
     if (uploadingAvatar) return toast.error('Please wait for the photo to finish uploading')

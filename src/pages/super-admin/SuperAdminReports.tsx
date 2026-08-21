@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ArrowsClockwiseIcon as RefreshCw, CreditCardIcon as CreditCard, DownloadSimpleIcon as Download, HourglassIcon as Hourglass, SparkleIcon as Sparkles, TrendUpIcon as TrendingUp, UsersIcon as Users, WarningIcon as Warning } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
@@ -6,6 +6,7 @@ import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'
 import { formatBDT } from './superAdminLive'
 import { getSuperAdminReports } from '../../services/admin.services'
+import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
 
 interface MonthlyPoint {
   month: string
@@ -98,24 +99,6 @@ function normalise(data: any): PlatformReport {
   }
 }
 
-/**
- * One unit for the whole Y axis, chosen from the tallest bar on it.
- *
- * Deciding per tick put two units on one scale: an axis topping out at 150,000
- * drew "৳75,000" and "৳113k" as neighbours. And a hard divide by 1000 - which
- * is what this replaced - drew every tick as "৳0k" at the scale this page
- * reports, where a single Tk 599 payment is a normal month. The suffix is
- * earned once, by the axis, or not at all.
- */
-function axisFormatter(peak: number) {
-  const useThousands = Math.abs(peak) >= 100000
-  return (value: number) => {
-    const amount = Number(value) || 0
-    if (useThousands) return `৳${Math.round(amount / 1000)}k`
-    return `৳${amount.toLocaleString('en-BD')}`
-  }
-}
-
 /** One line in the two breakdown panels. */
 function Row({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
@@ -199,8 +182,11 @@ export default function SuperAdminReports() {
     URL.revokeObjectURL(url)
   }
 
-  // The tallest stack on the chart decides the axis unit.
-  const peakRevenue = report.monthly.reduce((top, point) => Math.max(top, point.revenue), 0)
+  // The tallest stack on the chart decides the axis unit. Memoised so the
+  // formatter keeps its identity between renders and Recharts does not redraw
+  // the axis every time an unrelated bit of state moves.
+  const peakRevenue = seriesPeak(report.monthly, point => point.revenue)
+  const revenueAxis = useMemo(() => moneyAxisFormatter(peakRevenue), [peakRevenue])
   const paying = report.active_subscriptions
   // Of everyone who has ever signed up, how many ended up paying. The honest
   // denominator is every owner, not just the ones still around.
@@ -267,7 +253,7 @@ export default function SuperAdminReports() {
               <BarChart data={report.monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} />
-                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={axisFormatter(peakRevenue)} width={72} />
+                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={revenueAxis} width={72} />
                 <Tooltip formatter={(value: number) => formatBDT(value)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {/* Stacked, because the two together are the month's income and
@@ -303,7 +289,7 @@ export default function SuperAdminReports() {
             <Row label="On free trial" value={num(report.on_trial)} />
             <Row label="Access granted, unpaid" value={num(report.granted_access)} note={answered ? 'plan set by hand' : undefined} />
             <Row label="Churned" value={num(report.churned)} note={answered ? 'paid before, not active now' : undefined} />
-            <Row label="Never started" value={num(report.never_started)} note={answered ? 'signed up, no trial, no payment' : undefined} />
+            <Row label="Never started" value={num(report.never_started)} note={answered ? 'no payment, and no live access now' : undefined} />
             {/* The five rows above are meant to be every business exactly once.
                 Shown only when they are not, so a miscount cannot hide behind a
                 panel that presents itself as a complete split. */}
@@ -353,12 +339,9 @@ export default function SuperAdminReports() {
         </div>
       </div>
 
-      {/* Said on the page, because the figure above cannot show it: the payment
-          rows these totals are built from are removed with their owner, so
-          deleting a customer takes their history out of the lifetime numbers. */}
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
-        Revenue counts approved payments from customers who are still on the system. Deleting a customer removes their
-        payment history with them, so these lifetime totals fall by whatever they had paid.
+        Revenue counts every approved payment, including those from customers who have since been deleted - their
+        payment history stays on the books even after the account goes.
       </p>
     </div>
   )

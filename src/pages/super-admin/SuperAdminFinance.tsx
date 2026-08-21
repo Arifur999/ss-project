@@ -25,6 +25,7 @@ import {
   type PlatformWithdrawal,
 } from '../../services/platformFinance.services'
 import { NoValue } from '../../components/CellValue'
+import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
 
 const EMPTY_SUMMARY: PlatformFinanceSummary = {
   subscription_monthly: 0,
@@ -199,6 +200,15 @@ export default function SuperAdminFinance() {
   }
 
   const profitIsNegative = summary.profit < 0
+  // One unit for the axis, from the tallest bar it has to draw - the same
+  // helper the Reports chart beside it uses. Dividing every tick by 1000 drew
+  // "0k, 0.15k, 0.3k" at the scale these pages report.
+  const chartPeak = Math.max(
+    seriesPeak(summary.monthly, row => row.income),
+    seriesPeak(summary.monthly, row => row.expense),
+    seriesPeak(summary.monthly, row => row.profit),
+  )
+  const moneyAxis = useMemo(() => moneyAxisFormatter(chartPeak), [chartPeak])
 
   return (
     <div className="p-4 sm:p-6 print:p-0">
@@ -292,7 +302,7 @@ export default function SuperAdminFinance() {
             <BarChart data={summary.monthly}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} />
-              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(v) => `${Number(v) / 1000}k`} />
+              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={moneyAxis} width={72} />
               <Tooltip formatter={(value: number) => money(value)} />
               <Legend />
               <Bar dataKey="income" name="Income" fill="#1D9E75" radius={[4, 4, 0, 0]} />

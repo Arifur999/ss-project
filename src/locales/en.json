@@ -592,7 +592,7 @@
   "settings_fullNamePlaceholder": "e.g. Ahmed Ali",
   "settings_emailStar": "Email *",
   "settings_emailPlaceholder": "user@example.com",
-  "settings_passwordStar": "Password * (minimum 6 characters)",
+  "settings_passwordStar": "Password * (minimum 8 characters)",
   "settings_phonePlaceholder": "01XXXXXXXXX",
   "settings_roleStar": "Role *",
   "settings_rolePermissions": "This role can do:",
