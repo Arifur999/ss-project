@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCustomerDashboard, customerCurrentDue } from './customerDashboardData'
+import { buildCustomerDashboard, customerCurrentDue, saleDue } from './customerDashboardData'
 
 /**
  * A Due Received does NOT touch the sale it helps pay off.
@@ -203,5 +203,33 @@ describe('customerCurrentDue', () => {
     expect(customerCurrentDue(null, [], [])).toBe(0)
     expect(customerCurrentDue(undefined, [], [])).toBe(0)
     expect(customerCurrentDue('', [], [])).toBe(0)
+  })
+})
+
+describe('saleDue', () => {
+  // Sales, the Customer Dashboard and the Due Received page all read this, so
+  // one sale cannot owe three different amounts.
+  it('is what is left on the sale', () => {
+    expect(saleDue({ net_amount: 100000, paid_amount: 40000 })).toBe(60000)
+  })
+
+  it('reports an over-settled sale as credit rather than nil', () => {
+    // The Sales page clamped this at zero, so a customer who paid Tk 120,000
+    // against Tk 100,000 read as owing nothing there and as Tk 20,000 in credit
+    // on the dashboard.
+    expect(saleDue({ net_amount: 100000, paid_amount: 120000 })).toBe(-20000)
+  })
+
+  it('ignores due_amount, however wrong it is', () => {
+    // NOT NULL defaulting to 0 and never computed by the sale API: a row saved
+    // without one says 0 while the whole amount is outstanding, and a stale one
+    // says more is owed than really is.
+    expect(saleDue({ net_amount: 100000, paid_amount: 0, due_amount: 0 } as any)).toBe(100000)
+    expect(saleDue({ net_amount: 100000, paid_amount: 100000, due_amount: 999999 } as any)).toBe(0)
+  })
+
+  it('reads a missing figure as nil', () => {
+    expect(saleDue({})).toBe(0)
+    expect(saleDue({ net_amount: null, paid_amount: undefined })).toBe(0)
   })
 })

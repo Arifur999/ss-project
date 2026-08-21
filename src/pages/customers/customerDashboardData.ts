@@ -46,6 +46,23 @@ export function parseAmountText(value: string) {
 }
 
 /**
+ * What one sale still has against it.
+ *
+ * net minus paid, and nothing else. Not `Math.max(0, storedDue, netMinusPaid)`,
+ * which is what the Sales page used: taking the largest of the three reads a
+ * stale due_amount as the truth, and clamping at zero throws away a sale the
+ * customer over-settled - so a customer who paid Tk 120,000 against Tk 100,000
+ * read as owing nothing on one screen and as Tk 20,000 in credit on another.
+ *
+ * due_amount is not consulted at all: it is NOT NULL defaulting to 0 and the
+ * sale API never computes it, so a row saved without one says 0 when the whole
+ * amount is outstanding.
+ */
+export function saleDue(sale: { net_amount?: unknown; paid_amount?: unknown }): number {
+  return Number(sale.net_amount || 0) - Number(sale.paid_amount || 0)
+}
+
+/**
  * What one customer owes right now.
  *
  * The same rule buildCustomerDashboard applies to the whole list, for callers

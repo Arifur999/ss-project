@@ -12,7 +12,7 @@ import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { buildDuePaymentSms } from '../../lib/smsTemplates'
-import { customerCurrentDue } from './customerDashboardData'
+import { customerCurrentDue, saleDue } from './customerDashboardData'
 import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
 import TableSkeleton from '../../components/TableSkeleton'
@@ -461,10 +461,11 @@ export default function CustomerDueReceived() {
   }, [customers])
   const groupedPayments = useMemo(() => {
     const groups = new Map<string, any>()
+    // The same rule the modal above uses. This block had its own - reading
+    // due_amount and clamping per sale - so the receipt list and the Previous
+    // Due box on the same page could disagree about the same customer.
     const salesDueByCustomer = sales.reduce((map, sale) => {
-      const storedDue = Number(sale.due_amount || 0)
-      const fallbackDue = Math.max(0, Number(sale.net_amount || 0) - Number(sale.paid_amount || 0))
-      map[sale.customer_id] = (map[sale.customer_id] || 0) + (storedDue || fallbackDue)
+      map[sale.customer_id] = (map[sale.customer_id] || 0) + saleDue(sale)
       return map
     }, {} as Record<string, number>)
 

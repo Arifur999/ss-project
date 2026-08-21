@@ -14,6 +14,7 @@ import { useLang } from '../context/LanguageContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useProgressiveRows } from '../lib/useProgressiveRows'
 import { addRecycleItem } from '../lib/recycleBin'
+import { customerCurrentDue, saleDue } from './customers/customerDashboardData'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
 import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, deleteSaleDelivery, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
 import { sendSms } from '../services/sms.services'
@@ -820,11 +821,8 @@ export default function Sales() {
   }
 
 
-  function saleOutstandingAmount(sale: any) {
-    const storedDue = Number(sale.due_amount || 0)
-    const calculatedDue = Number(sale.net_amount || 0) - Number(sale.paid_amount || 0)
-    return Math.max(0, storedDue, calculatedDue)
-  }
+  // The Customer Dashboard's rule, so a sale owes the same on every screen.
+  const saleOutstandingAmount = (sale: any) => saleDue(sale)
 
   async function applyFifoCostToSaleItem(row: any, source: SaleItem, qty: number) {
     if (!row?.id || !source?.product_id || !isUuid(source.product_id) || qty <= 0) return Number(source.cost_price || 0)
@@ -1776,16 +1774,20 @@ export default function Sales() {
   ) {
     if (!customerId) return 0
     const customer = customerOverride || customers.find(c => c.id === customerId)
-    const openingDue = Number(customer?.opening_due || 0)
-    const salesDue = customerSales
-      .filter(s => s.customer_id === customerId)
-      .filter(s => !editingSale || s.id !== editingSale.id)
-      .reduce((sum, s) => sum + saleOutstandingAmount(s), 0)
-    const payments = paymentsList
-      .filter(payment => payment.customer_id === customerId)
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
-
-    return Math.max(0, openingDue + salesDue - payments)
+    // The shared rule, so the figure printed on an invoice is the one the
+    // Customer Dashboard and the Due Received modal show. It also takes off a
+    // discount written off on a collection, which this sum never did, and
+    // leaves out a payment already settled against its own sale, which this sum
+    // counted twice.
+    //
+    // Still clamped at zero: a printed invoice has no line for the business
+    // owing the customer, so a credit reads as nothing owed rather than as a
+    // negative previous balance.
+    return Math.max(0, customerCurrentDue(
+      customer?.opening_due,
+      customerSales.filter(s => s.customer_id === customerId && (!editingSale || s.id !== editingSale.id)),
+      paymentsList.filter(payment => payment.customer_id === customerId),
+    ))
   }
 
   function currentCustomerPreviousDue(customerId: string) {
