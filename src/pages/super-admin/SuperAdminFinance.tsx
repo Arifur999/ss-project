@@ -25,7 +25,7 @@ import {
   type PlatformWithdrawal,
 } from '../../services/platformFinance.services'
 import { NoValue } from '../../components/CellValue'
-import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
+import { moneyAxisFormatter } from '../../lib/chartAxis'
 
 const EMPTY_SUMMARY: PlatformFinanceSummary = {
   subscription_monthly: 0,
@@ -48,8 +48,10 @@ const EMPTY_SUMMARY: PlatformFinanceSummary = {
 const CATEGORY_SUGGESTIONS = ['Server', 'Domain', 'Email service', 'SMS gateway', 'Marketing', 'Salary', 'Software', 'Other']
 
 // Tk 1,200 with a non-breaking space, so the amount never wraps away from
-// its currency label in a narrow stat card.
-const money = (value: number | string) => `Tk\u00A0${roundTaka(value).toLocaleString('en-US')}`
+// its currency label in a narrow stat card. Named because the chart axis has
+// to carry the same label as the cards and the tooltip beside it.
+const TAKA = 'Tk '
+const money = (value: number | string) => `${TAKA}${roundTaka(value).toLocaleString('en-US')}`
 // todayISO reads the local calendar. toISOString() converts to UTC first, and
 // Bangladesh is six hours ahead, so a payment recorded between midnight and 6am
 // was dated to the previous day.
@@ -200,15 +202,17 @@ export default function SuperAdminFinance() {
   }
 
   const profitIsNegative = summary.profit < 0
-  // One unit for the axis, from the tallest bar it has to draw - the same
-  // helper the Reports chart beside it uses. Dividing every tick by 1000 drew
-  // "0k, 0.15k, 0.3k" at the scale these pages report.
-  const chartPeak = Math.max(
-    seriesPeak(summary.monthly, row => row.income),
-    seriesPeak(summary.monthly, row => row.expense),
-    seriesPeak(summary.monthly, row => row.profit),
-  )
-  const moneyAxis = useMemo(() => moneyAxisFormatter(chartPeak), [chartPeak])
+  // One unit for the whole axis, from the tallest bar it has to draw.
+  // Dividing every tick by 1000 drew "0k, 0.15k, 0.3k" at the scale these
+  // pages report. Tk and en-US, not the Reports page's Taka sign: the tooltip
+  // and every card here are money(), and one chart must not carry two symbols.
+  const moneyAxis = useMemo(() => {
+    const peak = summary.monthly.reduce(
+      (top, row) => Math.max(top, Math.abs(row.income), Math.abs(row.expense), Math.abs(row.profit)),
+      0,
+    )
+    return moneyAxisFormatter(peak, { symbol: TAKA, locale: 'en-US' })
+  }, [summary.monthly])
 
   return (
     <div className="p-4 sm:p-6 print:p-0">

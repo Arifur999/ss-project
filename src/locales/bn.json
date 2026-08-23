@@ -768,5 +768,6 @@
   "balance_totalOut": "মোট খরচ",
   "balance_net": "নিট",
   "balance_netLoan": "নিট ঋণ",
-  "balance_netTrade": "নিট ব্যবসা"
+  "balance_netTrade": "নিট ব্যবসা",
+  "settings_passwordMin": "পাসওয়ার্ড অন্তত ৮ অক্ষরের হতে হবে"
 }

@@ -14,6 +14,7 @@ import { isMissingTableError } from '../../lib/supabaseErrors'
 import { firstAmount, roundTaka, saleItemAmount } from '../../lib/utils'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
+import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
 import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
 
 type BreakdownRow = {
@@ -778,6 +779,20 @@ export default function ReportSummary() {
     }
   }
 
+  // One unit for the whole axis, from the tallest bar it draws. Dividing every
+  // tick by 1000 drew "0k" down the length of it for a shop turning over a few
+  // thousand a day. No currency symbol: this axis has never carried one.
+  const performanceAxis = useMemo(() => {
+    const rows = data.dailyPerformance || []
+    const peak = Math.max(
+      seriesPeak(rows, r => r.target),
+      seriesPeak(rows, r => r.sales),
+      seriesPeak(rows, r => r.profit),
+      seriesPeak(rows, r => r.expense),
+    )
+    return moneyAxisFormatter(peak, { symbol: '', locale: 'en-US' })
+  }, [data.dailyPerformance])
+
   const monthlyPurchaseTotals = useMemo(() => (data.monthlyPurchaseRows || []).reduce((totals, row) => ({
     target: totals.target + row.target,
     achieved: totals.achieved + row.achieved,
@@ -1097,7 +1112,7 @@ export default function ReportSummary() {
                   <BarChart data={data.dailyPerformance} margin={{ top: 16, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={performanceAxis} axisLine={false} tickLine={false} width={46} />
                     <Tooltip content={<PerformanceTooltip />} cursor={{ fill: 'rgba(15,23,42,0.04)' }} />
                     <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingTop: 12 }} iconType="circle" iconSize={9} />
                     {/* Palette colours - profit and expense were still on the

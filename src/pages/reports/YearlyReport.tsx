@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
 import PageHeader from '../../components/PageHeader'
 import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
+import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
 
 type MonthRow = {
   month: string
@@ -392,6 +393,18 @@ export default function YearlyReport() {
     ...row,
     purchaseTrend: row.purchaseOrderValue,
   }))
+
+  // One unit for the whole axis, from the tallest bar it draws. Dividing every
+  // tick by 1000 drew "0k" down the length of it for a shop turning over a few
+  // thousand a day. No currency symbol: these axes have never carried one.
+  const profitAxis = moneyAxisFormatter(
+    Math.max(seriesPeak(chartRows, r => r.profitLoss), seriesPeak(chartRows, r => r.profitGoal)),
+    { symbol: '', locale: 'en-US' },
+  )
+  const salesAxis = moneyAxisFormatter(
+    Math.max(seriesPeak(chartRows, r => r.actualSales), seriesPeak(chartRows, r => r.salesGoal)),
+    { symbol: '', locale: 'en-US' },
+  )
   const purchaseTargetTotals = useMemo(() => purchaseTargetRows.reduce((totals, row) => ({
     target: totals.target + row.target,
     achieved: totals.achieved + row.achieved,
@@ -543,7 +556,7 @@ export default function YearlyReport() {
                   <LineChart data={chartRows} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={profitAxis} axisLine={false} tickLine={false} width={46} />
                     <Tooltip formatter={(value: number) => formatCurr(value)} contentStyle={tooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingTop: 12 }} iconType="circle" iconSize={9} />
                     <Line type="monotone" dataKey="profitLoss" name="Profit / Loss" stroke={CHART_GREEN} strokeWidth={3} dot={false} />
@@ -565,7 +578,7 @@ export default function YearlyReport() {
                   <BarChart data={chartRows} margin={{ top: 8, right: 8, left: 4, bottom: 4 }} barCategoryGap="18%" barGap={1}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#D8DEE9" vertical={false} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} axisLine={false} tickLine={false} width={46} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={salesAxis} axisLine={false} tickLine={false} width={46} />
                     <Tooltip formatter={(value: number) => formatCurr(value)} contentStyle={tooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingTop: 12 }} iconType="circle" iconSize={9} />
                     <Bar dataKey="actualSales" name="Sales Amount" fill="#0F1117" radius={[3, 3, 0, 0]} />

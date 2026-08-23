@@ -339,7 +339,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
 
   async function save() {
     if (!form.full_name || !form.email || !form.password) return toast.error(t('common_fillAllFields'))
-    if (form.password.length < 8) return toast.error(t('settings_passwordStar'))
+    if (form.password.length < 8) return toast.error(t('settings_passwordMin'))
     if (form.password !== form.confirm_password) return toast.error('Passwords do not match')
     // Saving mid-upload would drop the photo silently.
     if (uploadingAvatar) return toast.error('Please wait for the photo to finish uploading')
@@ -435,7 +435,7 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
                 <label><span className="label">Phone Number</span><input className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+880 1712-345678" /></label>
                 <label><span className="label">Username</span><input className="input" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="ahmed.rahman" /></label>
                 <label>
-                  <span className="label">Password *</span>
+                  <span className="label">{t('settings_passwordStar')}</span>
                   <div className="relative">
                     <input type={showPassword ? 'text' : 'password'} className="input pr-9" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button>

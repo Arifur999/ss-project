@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
 import { businessEarnings, profitLoss, type ProfitInputs } from '../lib/profit'
 import { firstAmount } from '../lib/utils'
+import { moneyAxisFormatter, seriesPeak } from '../lib/chartAxis'
 import {
   Bar,
   BarChart,
@@ -302,6 +303,27 @@ export default function Dashboard() {
   const cashflowSeries = useMemo(
     () => (data.monthlyCashflow || []).map(row => ({ ...row, month: `${row.day} ${monthShort(row.monthIndex)}` })),
     [data.monthlyCashflow, monthShort]
+  )
+  // One unit for a whole axis, from the tallest point it has to draw. Dividing
+  // every tick by 1000 drew "0k" the length of the axis for a shop turning over
+  // a few thousand a day. No currency symbol: these axes have never carried one.
+  const cashflowAxis = useMemo(
+    () => moneyAxisFormatter(
+      Math.max(seriesPeak(cashflowSeries, r => r.moneyIn), seriesPeak(cashflowSeries, r => r.moneyOut)),
+      { symbol: '', locale: 'en-US' },
+    ),
+    [cashflowSeries],
+  )
+  const salesAxis = useMemo(
+    () => moneyAxisFormatter(
+      Math.max(
+        seriesPeak(salesSeries, r => r.target),
+        seriesPeak(salesSeries, r => r.sales),
+        seriesPeak(salesSeries, r => r.profit),
+      ),
+      { symbol: '', locale: 'en-US' },
+    ),
+    [salesSeries],
   )
   const breakdownMonths = useMemo(
     () => (data.monthlyBreakdown || []).map(row => ({ ...row, label: `${monthShort(row.monthIndex)} ${row.year}` })),
@@ -696,7 +718,7 @@ export default function Dashboard() {
             <LineChart data={cashflowSeries}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#ffffff80" }} interval={0} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} width={38} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+              <YAxis tick={{ fontSize: 10, fill: "#ffffff80" }} axisLine={false} tickLine={false} width={38} tickFormatter={cashflowAxis} />
               <Tooltip
 
                 offset={28}
@@ -733,7 +755,7 @@ export default function Dashboard() {
             <BarChart data={salesSeries} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#6B7280" }} interval={0} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`} />
+              <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} axisLine={false} tickLine={false} tickFormatter={salesAxis} />
               <Tooltip
 
                 offset={28}

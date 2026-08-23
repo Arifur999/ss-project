@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { CalendarBlankIcon as Calendar, ClipboardTextIcon as ClipboardList, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import PageHeader from '../../components/PageHeader'
+import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
 import { supabase } from '../../lib/supabase'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
 import { profitLoss } from '../../lib/profit'
@@ -374,6 +375,21 @@ export default function MonthlyReport() {
     { name: 'Profit', Target: summary.profitTarget, Achieved: data.grossProfit + data.totalIncentiveProfit + data.totalOtherIncome },
   ] : []
 
+  // One unit for the whole axis, from the tallest bar it draws. Dividing every
+  // tick by 1000 drew "0k" down the length of it for a shop turning over a few
+  // thousand a day. No currency symbol: these axes have never carried one.
+  const targetAxis = moneyAxisFormatter(
+    Math.max(seriesPeak(targetChart, r => r.Target), seriesPeak(targetChart, r => r.Achieved)),
+    { symbol: '', locale: 'en-US' },
+  )
+  const dailyAxis = moneyAxisFormatter(
+    Math.max(
+      seriesPeak(data?.dailySales || [], r => r.sales),
+      seriesPeak(data?.dailySales || [], r => r.profit),
+    ),
+    { symbol: '', locale: 'en-US' },
+  )
+
   function BreakdownPie({ rows }: { rows: BreakdownRow[] }) {
     if (rows.length === 0) return <div className="flex h-[220px] items-center justify-center text-sm text-slate-400">No data</div>
     return (
@@ -466,7 +482,7 @@ export default function MonthlyReport() {
               <BarChart data={targetChart}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={targetAxis} />
                 <Tooltip formatter={(value: number) => formatCurr(value)} />
                 <Legend />
                 <Bar dataKey="Target" fill="#94a3b8" radius={[3, 3, 0, 0]} />
@@ -496,7 +512,7 @@ export default function MonthlyReport() {
               <BarChart data={data.dailySales}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={dailyAxis} />
                 <Tooltip formatter={(value: number) => formatCurr(value)} />
                 <Bar dataKey="sales" name="Sales" fill="#0b0b0f" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="profit" name="Profit" fill="#1D9E75" radius={[3, 3, 0, 0]} />

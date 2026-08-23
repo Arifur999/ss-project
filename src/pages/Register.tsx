@@ -99,15 +99,15 @@ export default function Register() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.fullName.trim() || !form.businessName.trim() || !form.phone.trim() || !form.email.trim() || !form.address.trim()) {
-      toast.error('This field is required!')
+      toast.error(lang === 'bn' ? 'এই ঘরটি পূরণ করুন!' : 'This field is required!')
       return
     }
     if (form.password.length < 8) {
-      toast.error('Password must be at least 8 characters')
+      toast.error(lang === 'bn' ? 'পাসওয়ার্ড অন্তত ৮ অক্ষর' : 'Password must be at least 8 characters')
       return
     }
     if (form.password !== form.confirmPassword) {
-      toast.error('Passwords do not match')
+      toast.error(lang === 'bn' ? 'পাসওয়ার্ড মিলছে না' : 'Passwords do not match')
       return
     }
 

@@ -63,9 +63,9 @@ export interface OwnerLoadResult {
   setupMissing: boolean
 }
 
-export function formatBDT(value: number) {
-  return `৳${value.toLocaleString('en-BD')}`
-}
+// One implementation, in lib/chartAxis, so the axis and the cards quoting the
+// same figure cannot drift onto two different formats.
+export { formatTaka as formatBDT } from '../../lib/chartAxis'
 
 export function formatDate(date?: string | null) {
   return formatDateUtil(date) || '-'
