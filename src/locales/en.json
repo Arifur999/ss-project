@@ -211,7 +211,6 @@
   "inventory_colDp": "Per Product DP",
   "inventory_colTotalValue": "Total Value",
   "inventory_colStatus": "Status",
-  "inventory_dpSaved": "DP saved",
   "inventory_statusAvailable": "Available",
   "inventory_statusUpcoming": "Upcoming",
   "inventory_statusLowStock": "Low Stock",

@@ -3,7 +3,7 @@ import { MagnifyingGlassIcon as Search, DownloadSimpleIcon as Download, ImageIco
 import { supabase } from '../lib/supabase'
 import { printTable } from '../lib/printTable'
 import TableScroller from '../components/TableScroller'
-import { adjustInventory, getInventoryHistory, getInventoryPage, setInventoryDpPrice } from '../services/product.services'
+import { adjustInventory, getInventoryHistory, getInventoryPage } from '../services/product.services'
 import { usePagedList } from '../lib/usePagedList'
 import TableSkeleton from '../components/TableSkeleton'
 import PageHeader from '../components/PageHeader'
@@ -194,8 +194,6 @@ export default function Inventory() {
   // scrolled into view would be worse than showing none.
   const [totalStockValue, setTotalStockValue] = useState(0)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
-  const [dpEdits, setDpEdits] = useState<Record<string, string>>({})
-  const [savingDp, setSavingDp] = useState<Record<string, boolean>>({})
   // Manual stock correction: damage, loss, or a physical count that disagrees
   // with the system. qtyChange is signed - what to ADD, so a loss is negative.
   const [adjustRow, setAdjustRow] = useState<InventoryRow | null>(null)
@@ -253,37 +251,6 @@ export default function Inventory() {
     if (firstStatusRender.current) { firstStatusRender.current = false; return }
     paged.reload()
   }, [statusFilter])
-
-  async function saveDp(row: InventoryRow) {
-    const val = dpEdits[row.id]
-    const num = val === '' ? null : Number(val)
-    setSavingDp(prev => ({ ...prev, [row.id]: true }))
-    try {
-      // Updates the inventory row + opening stock batches server-side.
-      await setInventoryDpPrice(row.product_id, num)
-      toast.success(t('inventory_dpSaved'))
-      paged.reload()
-    } catch (err: any) {
-      toast.error(err.message || t('common_error'))
-    } finally {
-      setSavingDp(prev => ({ ...prev, [row.id]: false }))
-    }
-  }
-
-  function handleDpChange(row: InventoryRow, value: string) {
-    const nextDp = value === '' ? null : Number(value)
-    setDpEdits(prev => ({ ...prev, [row.id]: value }))
-    paged.setItems(prev => prev.map(r => {
-      if (r.id !== row.id) return r
-      const dp = nextDp ?? Number(r.products?.cost_price || 0)
-      return {
-        ...r,
-        dp_price: nextDp,
-        fifo_average_dp: dp,
-        fifo_stock_value: Number(r.available_qty || 0) * dp,
-      }
-    }))
-  }
 
   async function openAdjust(row: InventoryRow) {
     setAdjustRow(row)
@@ -533,21 +500,7 @@ export default function Inventory() {
                       {row.available_qty}
                     </button>
                   </td>
-                  <td className="py-2 px-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <input
-                        type="number"
-                        min="0"
-                        className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
-                        value={dpEdits[row.id] ?? ''}
-                        placeholder={String(row.products?.cost_price || 0)}
-                        onChange={e => handleDpChange(row, e.target.value)}
-                        onBlur={() => saveDp(row)}
-                        onKeyDown={e => { if (e.key === 'Enter') saveDp(row) }}
-                      />
-                      {savingDp[row.id] && <span className="w-3 h-3 border-2 border-brand-green border-t-transparent rounded-full animate-spin" />}
-                    </div>
-                  </td>
+                  <td className="py-2 px-3 text-right font-medium text-slate-700">{formatCurr(dp)}</td>
                   <td className="py-2 px-3 text-right font-medium text-brand-green">{formatCurr(totalVal)}</td>
                   <td className="py-2 px-3 text-center"><span className={sc.cls}>{t(sc.labelKey)}</span></td>
                 </tr>

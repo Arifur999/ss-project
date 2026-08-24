@@ -211,7 +211,6 @@
   "inventory_colDp": "প্রতি পণ্য DP",
   "inventory_colTotalValue": "মোট মূল্য",
   "inventory_colStatus": "স্ট্যাটাস",
-  "inventory_dpSaved": "DP সংরক্ষিত",
   "inventory_statusAvailable": "পাওয়া যাচ্ছে",
   "inventory_statusUpcoming": "আসছে",
   "inventory_statusLowStock": "কম স্টক",
