@@ -9,9 +9,9 @@ import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'
 import { confirmAction } from '../../components/ConfirmDialog'
-import { NoValue } from '../../components/CellValue'
-import TypingBubble from '../../components/TypingBubble'
-import { useLiveTickets, useTypingHeartbeat } from '../../lib/useLiveTickets'
+import ChatThread from '../../components/ChatThread'
+import { useTypingHeartbeat } from '../../lib/useLiveTickets'
+import { TYPING_CLEAR_MS, useSupportStream } from '../../lib/useSupportStream'
 import { formatDate } from '../../lib/utils'
 import { askerName, awaitingCount, sortInbox, statusClass, statusLabel, waitedFor } from '../../lib/supportInbox'
 import {
@@ -45,9 +45,56 @@ export default function SuperAdminSupport() {
 
   useEffect(() => { load() }, [])
 
-  // The inbox is left open all day, so it keeps itself current while somebody
-  // is looking at it - a customer's reply should not need a button press.
-  useLiveTickets(() => load(true))
+  // Live, not polled. The stream pushes a reply the moment it is sent; a
+  // four-second poll could never make a typing bubble mean anything.
+  const [live, setLive] = useState(true)
+  const [typingOn, setTypingOn] = useState<Record<string, number>>({})
+  useSupportStream(event => {
+    if (event.type === 'new') {
+      setTickets(prev => (prev.some(t => t.id === event.ticket.id) ? prev : [event.ticket, ...prev]))
+      return
+    }
+    if (event.type === 'typing') {
+      setTypingOn(prev => ({ ...prev, [event.id]: Date.now() }))
+      return
+    }
+    setTickets(prev => prev.map(t => {
+      if (t.id !== event.id) return t
+      const merged = {
+        ...t,
+        status: event.status as SupportTicket['status'],
+        last_message_at: event.last_message_at,
+        solved_at: event.solved_at,
+        solved_by: event.solved_by,
+      }
+      // The sender already added their own message from the POST response, so
+      // a repeat would draw it twice.
+      if (event.message && !t.messages.some(m => m.id === event.message.id)) {
+        merged.messages = [...t.messages, event.message]
+      }
+      return merged
+    }))
+  }, setLive)
+
+  // The server pushes a keystroke, not a "stopped typing", so the bubble is
+  // forgotten on a timer here.
+  useEffect(() => {
+    if (!Object.keys(typingOn).length) return
+    const timer = setInterval(() => {
+      const now = Date.now()
+      setTypingOn(prev => {
+        const next: Record<string, number> = {}
+        let changed = false
+        for (const [id, at] of Object.entries(prev)) {
+          if (now - at < TYPING_CLEAR_MS) next[id] = at
+          else changed = true
+        }
+        return changed ? next : prev
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [typingOn])
+  const isTyping = (id: string | null) => !!id && Date.now() - (typingOn[id] || 0) < TYPING_CLEAR_MS
   const heartbeat = useTypingHeartbeat(selectedId)
 
   async function load(quiet = false) {
@@ -220,27 +267,18 @@ export default function SuperAdminSupport() {
                 )}
               </div>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                {selected.messages.length === 0 ? (
-                  <p className="text-center text-sm text-slate-400"><NoValue /></p>
-                ) : (
-                  selected.messages.map(message => (
-                    <div key={message.id} className={`flex ${message.from_admin ? 'justify-end' : 'justify-start'}`}>
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                          message.from_admin ? 'bg-slate-900 text-white' : 'border border-surface-border bg-white text-slate-800'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                        <p className={`mt-1 text-[11px] ${message.from_admin ? 'text-white/50' : 'text-slate-400'}`}>
-                          {message.from_admin ? 'Support' : message.author_name || 'Customer'} · {stamp(message.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-                {selected.other_typing && <TypingBubble label="The customer is typing" />}
-              </div>
+              {!live && (
+                <p className="border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-center text-[11px] font-semibold text-amber-700">
+                  Reconnecting…
+                </p>
+              )}
+              <ChatThread
+                messages={selected.messages}
+                mineIsAdmin
+                typing={isTyping(selected.id)}
+                typingLabel="The customer is typing"
+                emptyLabel="No messages in this ticket."
+              />
 
               <div className="border-t border-slate-100 p-3">
                 <div className="flex items-end gap-2">

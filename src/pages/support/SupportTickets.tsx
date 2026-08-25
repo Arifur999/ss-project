@@ -9,8 +9,9 @@ import {
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
-import TypingBubble from '../../components/TypingBubble'
-import { useLiveTickets, useTypingHeartbeat } from '../../lib/useLiveTickets'
+import ChatThread from '../../components/ChatThread'
+import { useTypingHeartbeat } from '../../lib/useLiveTickets'
+import { TYPING_CLEAR_MS, useSupportStream } from '../../lib/useSupportStream'
 import { useLang } from '../../context/LanguageContext'
 import { formatDate } from '../../lib/utils'
 import {
@@ -41,9 +42,56 @@ export default function SupportTickets() {
 
   useEffect(() => { load() }, [])
 
-  // Polls while the tab is visible, so a reply appears without anybody
-  // reaching for Refresh. Quiet: no spinner, or the list would flash.
-  useLiveTickets(() => load(true))
+  // Live, not polled. The stream pushes a reply the moment it is sent; a
+  // four-second poll could never make a typing bubble mean anything.
+  const [live, setLive] = useState(true)
+  const [typingOn, setTypingOn] = useState<Record<string, number>>({})
+  useSupportStream(event => {
+    if (event.type === 'new') {
+      // A customer already has the ticket they just opened, from the POST.
+      return
+    }
+    if (event.type === 'typing') {
+      setTypingOn(prev => ({ ...prev, [event.id]: Date.now() }))
+      return
+    }
+    setTickets(prev => prev.map(t => {
+      if (t.id !== event.id) return t
+      const merged = {
+        ...t,
+        status: event.status as SupportTicket['status'],
+        last_message_at: event.last_message_at,
+        solved_at: event.solved_at,
+        solved_by: event.solved_by,
+      }
+      // The sender already added their own message from the POST response, so
+      // a repeat would draw it twice.
+      if (event.message && !t.messages.some(m => m.id === event.message.id)) {
+        merged.messages = [...t.messages, event.message]
+      }
+      return merged
+    }))
+  }, setLive)
+
+  // The server pushes a keystroke, not a "stopped typing", so the bubble is
+  // forgotten on a timer here.
+  useEffect(() => {
+    if (!Object.keys(typingOn).length) return
+    const timer = setInterval(() => {
+      const now = Date.now()
+      setTypingOn(prev => {
+        const next: Record<string, number> = {}
+        let changed = false
+        for (const [id, at] of Object.entries(prev)) {
+          if (now - at < TYPING_CLEAR_MS) next[id] = at
+          else changed = true
+        }
+        return changed ? next : prev
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [typingOn])
+  const isTyping = (id: string | null) => !!id && Date.now() - (typingOn[id] || 0) < TYPING_CLEAR_MS
   const heartbeat = useTypingHeartbeat(selectedId)
 
   async function load(quiet = false) {
@@ -184,23 +232,20 @@ export default function SupportTickets() {
                   )}
                 </div>
 
-                <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                  {selected.messages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.from_admin ? 'justify-start' : 'justify-end'}`}>
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                          msg.from_admin ? 'border border-surface-border bg-white text-slate-800' : 'bg-slate-900 text-white'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap break-words">{msg.body}</p>
-                        <p className={`mt-1 text-[11px] ${msg.from_admin ? 'text-slate-400' : 'text-white/50'}`}>
-                          {msg.from_admin ? (bn ? 'সাপোর্ট' : 'Support') : (bn ? 'আপনি' : 'You')} · {stamp(msg.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {selected.other_typing && <TypingBubble label={bn ? 'সাপোর্ট লিখছে' : 'Support is typing'} />}
-                </div>
+                {/* The stream retries on its own; this only says why the page has
+                    gone quiet, so silence is not read as nothing happening. */}
+                {!live && (
+                  <p className="border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-center text-[11px] font-semibold text-amber-700">
+                    {bn ? 'সংযোগ ফিরে পাওয়ার চেষ্টা চলছে…' : 'Reconnecting…'}
+                  </p>
+                )}
+                <ChatThread
+                  messages={selected.messages}
+                  mineIsAdmin={false}
+                  typing={isTyping(selected.id)}
+                  typingLabel={bn ? 'সাপোর্ট লিখছে' : 'Support is typing'}
+                  bn={bn}
+                />
 
                 <div className="border-t border-slate-100 p-3">
                   <div className="flex items-end gap-2">

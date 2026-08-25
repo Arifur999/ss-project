@@ -6,7 +6,7 @@ import axios, { AxiosError, AxiosRequestConfig } from 'axios'
 // build works on any domain the server answers to. `npm run dev` has no such
 // proxy, so it falls back to the local API. VITE_API_BASE_URL still wins if
 // the API ever needs to live somewhere else.
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD ? '/api/v1' : 'http://localhost:5000/api/v1')
 
