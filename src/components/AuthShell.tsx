@@ -1,4 +1,5 @@
 import React from 'react'
+import WhatsAppSupport from './WhatsAppSupport'
 import { GlobeIcon as Globe } from '@phosphor-icons/react'
 import { Lang } from '../context/LanguageContext'
 
@@ -25,6 +26,8 @@ export default function AuthShell({ image, imageAlt, brandName, heading, subtitl
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface p-3 sm:p-6">
+      {/* Signed out, there is no ticket page to reach yet, so this is the way through. */}
+      <WhatsAppSupport />
       <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-[0_24px_70px_-20px_rgba(15,23,42,0.30)] lg:min-h-[660px] lg:grid-cols-2">
         {/* Left: brand image + overlay copy (desktop only) */}
         <div className="relative hidden bg-slate-900 lg:block">

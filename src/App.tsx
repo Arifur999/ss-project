@@ -83,6 +83,8 @@ const SuperAdminActivity = lazyWithReload(() => import('./pages/super-admin/Supe
 const SuperAdminSms = lazyWithReload(() => import('./pages/super-admin/SuperAdminSms'))
 const SuperAdminNotifications = lazyWithReload(() => import('./pages/super-admin/SuperAdminNotifications'))
 const SuperAdminSupport = lazyWithReload(() => import('./pages/super-admin/SuperAdminSupport'))
+const SupportTickets = lazyWithReload(() => import('./pages/support/SupportTickets'))
+const GuidelineVideos = lazyWithReload(() => import('./pages/support/GuidelineVideos'))
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -248,6 +250,8 @@ function AppRoutes() {
         <Route path="/reports/purchase-target" element={<PurchaseTarget />} />
         <Route path="/current-plan" element={<CurrentPlan />} />
         <Route path="/package/billing-history" element={<BillingHistory />} />
+        <Route path="/support/tickets" element={<SupportTickets />} />
+        <Route path="/support/guideline" element={<GuidelineVideos />} />
         <Route path="/marketing/buy-sms" element={<SmsPackages />} />
         <Route path="/package/sms" element={<Navigate to="/marketing/buy-sms" replace />} />
       </Route>
