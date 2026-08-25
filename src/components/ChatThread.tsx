@@ -53,14 +53,15 @@ export default function ChatThread({
   messages,
   /** Which side of the conversation the reader is on. */
   mineIsAdmin,
-  typing = false,
+  /** The side that is typing, or null for nobody. */
+  typingFrom = null,
   typingLabel,
   bn = false,
   emptyLabel,
 }: {
   messages: ChatMessage[]
   mineIsAdmin: boolean
-  typing?: boolean
+  typingFrom?: 'admin' | 'customer' | null
   typingLabel: string
   bn?: boolean
   emptyLabel?: string
@@ -76,7 +77,7 @@ export default function ChatThread({
     if (!box) return
     const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120
     if (nearBottom) endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [messages.length, typing])
+  }, [messages.length, typingFrom])
 
   if (messages.length === 0) {
     return (
@@ -144,9 +145,11 @@ export default function ChatThread({
           </React.Fragment>
         )
       })}
-      {typing && (
+      {typingFrom && (
         <div className="pt-2.5">
-          <TypingBubble label={typingLabel} />
+          {/* On the writer's own side of the thread, where their message is
+              about to appear - not always on the left. */}
+          <TypingBubble mine={(typingFrom === 'admin') === mineIsAdmin} label={typingLabel} />
         </div>
       )}
       <div ref={endRef} />

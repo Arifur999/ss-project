@@ -12,6 +12,7 @@ import Modal from '../../components/Modal'
 import ChatThread from '../../components/ChatThread'
 import { useTypingHeartbeat } from '../../lib/useLiveTickets'
 import { TYPING_CLEAR_MS, useSupportStream } from '../../lib/useSupportStream'
+import { bubbleFor, type TypingMark } from '../../lib/typingSide'
 import { useLang } from '../../context/LanguageContext'
 import { formatDate } from '../../lib/utils'
 import {
@@ -45,14 +46,14 @@ export default function SupportTickets() {
   // Live, not polled. The stream pushes a reply the moment it is sent; a
   // four-second poll could never make a typing bubble mean anything.
   const [live, setLive] = useState(true)
-  const [typingOn, setTypingOn] = useState<Record<string, number>>({})
+  const [typingOn, setTypingOn] = useState<Record<string, TypingMark>>({})
   useSupportStream(event => {
     if (event.type === 'new') {
       // A customer already has the ticket they just opened, from the POST.
       return
     }
     if (event.type === 'typing') {
-      setTypingOn(prev => ({ ...prev, [event.id]: Date.now() }))
+      setTypingOn(prev => ({ ...prev, [event.id]: { at: Date.now(), from: event.from } }))
       return
     }
     setTickets(prev => prev.map(t => {
@@ -80,10 +81,10 @@ export default function SupportTickets() {
     const timer = setInterval(() => {
       const now = Date.now()
       setTypingOn(prev => {
-        const next: Record<string, number> = {}
+        const next: Record<string, TypingMark> = {}
         let changed = false
-        for (const [id, at] of Object.entries(prev)) {
-          if (now - at < TYPING_CLEAR_MS) next[id] = at
+        for (const [id, mark] of Object.entries(prev)) {
+          if (now - mark.at < TYPING_CLEAR_MS) next[id] = mark
           else changed = true
         }
         return changed ? next : prev
@@ -91,7 +92,9 @@ export default function SupportTickets() {
     }, 1000)
     return () => clearInterval(timer)
   }, [typingOn])
-  const isTyping = (id: string | null) => !!id && Date.now() - (typingOn[id] || 0) < TYPING_CLEAR_MS
+  // Who is typing on this ticket, or null - never yourself, and never a
+  // mark that has gone stale.
+  const typingOnTicket = (id: string | null) => (id ? bubbleFor(typingOn[id], false, TYPING_CLEAR_MS) : null)
   const heartbeat = useTypingHeartbeat(selectedId)
 
   async function load(quiet = false) {
@@ -242,7 +245,7 @@ export default function SupportTickets() {
                 <ChatThread
                   messages={selected.messages}
                   mineIsAdmin={false}
-                  typing={isTyping(selected.id)}
+                  typingFrom={typingOnTicket(selected.id)}
                   typingLabel={bn ? 'সাপোর্ট লিখছে' : 'Support is typing'}
                   bn={bn}
                 />
