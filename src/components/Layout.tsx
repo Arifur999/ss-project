@@ -52,6 +52,7 @@ export default function Layout() {
     { key: 'superAdminFinance', label: 'Finance', icon: <Wallet size={18} />, path: '/super-admin/finance' },
     { key: 'superAdminSms', label: 'SMS', icon: <MessageSquareText size={18} />, path: '/super-admin/sms' },
     { key: 'superAdminNotifications', label: 'Notifications', icon: <Bell size={18} />, path: '/super-admin/notifications' },
+    { key: 'superAdminSupport', label: 'Support', icon: <MessageSquareText size={18} />, path: '/super-admin/support' },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },
     { key: 'superAdminActivity', label: t('nav_logsActivity'), icon: <Activity size={18} />, path: '/super-admin/activity' },
     { key: 'superAdminSettings', label: t('nav_settings'), icon: <Bell size={18} />, path: '/super-admin/settings' },

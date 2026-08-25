@@ -82,6 +82,7 @@ const SuperAdminSettings = lazyWithReload(() => import('./pages/super-admin/Supe
 const SuperAdminActivity = lazyWithReload(() => import('./pages/super-admin/SuperAdminActivity'))
 const SuperAdminSms = lazyWithReload(() => import('./pages/super-admin/SuperAdminSms'))
 const SuperAdminNotifications = lazyWithReload(() => import('./pages/super-admin/SuperAdminNotifications'))
+const SuperAdminSupport = lazyWithReload(() => import('./pages/super-admin/SuperAdminSupport'))
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -190,6 +191,7 @@ function AppRoutes() {
         <Route path="/super-admin/active-customers" element={<SuperAdminRoute><SuperAdminActiveCustomers /></SuperAdminRoute>} />
         <Route path="/super-admin/churned" element={<SuperAdminRoute><SuperAdminChurned /></SuperAdminRoute>} />
         <Route path="/super-admin/manage-owners" element={<SuperAdminRoute><SuperAdminManageOwners /></SuperAdminRoute>} />
+        <Route path="/super-admin/support" element={<SuperAdminRoute><SuperAdminSupport /></SuperAdminRoute>} />
         <Route path="/super-admin/payments" element={<SuperAdminRoute><SuperAdminPayments /></SuperAdminRoute>} />
         <Route path="/super-admin/finance" element={<SuperAdminRoute><SuperAdminFinance /></SuperAdminRoute>} />
         <Route path="/super-admin/sms" element={<SuperAdminRoute><SuperAdminSms /></SuperAdminRoute>} />
