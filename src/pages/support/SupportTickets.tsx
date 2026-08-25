@@ -9,6 +9,8 @@ import {
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
+import TypingBubble from '../../components/TypingBubble'
+import { useLiveTickets, useTypingHeartbeat } from '../../lib/useLiveTickets'
 import { useLang } from '../../context/LanguageContext'
 import { formatDate } from '../../lib/utils'
 import {
@@ -39,14 +41,19 @@ export default function SupportTickets() {
 
   useEffect(() => { load() }, [])
 
-  async function load() {
-    setLoading(true)
+  // Polls while the tab is visible, so a reply appears without anybody
+  // reaching for Refresh. Quiet: no spinner, or the list would flash.
+  useLiveTickets(() => load(true))
+  const heartbeat = useTypingHeartbeat(selectedId)
+
+  async function load(quiet = false) {
+    if (!quiet) setLoading(true)
     try {
       setTickets(await getMySupportTickets())
     } catch (error: any) {
-      toast.error(error.message || (bn ? 'টিকেট আনা যায়নি' : 'Failed to load your tickets'))
+      if (!quiet) toast.error(error.message || (bn ? 'টিকেট আনা যায়নি' : 'Failed to load your tickets'))
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }
 
@@ -114,7 +121,7 @@ export default function SupportTickets() {
         subtitle={bn ? 'সমস্যা জানান, উত্তর এখানেই পাবেন' : 'Ask us anything - the answer comes back here'}
         actions={
           <>
-            <button className="btn-secondary" onClick={load}><RefreshCcw size={16} /> {bn ? 'রিফ্রেশ' : 'Refresh'}</button>
+            <button className="btn-secondary" onClick={() => load()}><RefreshCcw size={16} /> {bn ? 'রিফ্রেশ' : 'Refresh'}</button>
             <button className="btn-primary" onClick={() => setComposing(true)}><Plus size={16} /> {bn ? 'নতুন টিকেট' : 'New ticket'}</button>
           </>
         }
@@ -182,7 +189,7 @@ export default function SupportTickets() {
                     <div key={msg.id} className={`flex ${msg.from_admin ? 'justify-start' : 'justify-end'}`}>
                       <div
                         className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                          msg.from_admin ? 'bg-neutral-100 text-slate-800' : 'bg-slate-900 text-white'
+                          msg.from_admin ? 'border border-surface-border bg-white text-slate-800' : 'bg-slate-900 text-white'
                         }`}
                       >
                         <p className="whitespace-pre-wrap break-words">{msg.body}</p>
@@ -192,6 +199,7 @@ export default function SupportTickets() {
                       </div>
                     </div>
                   ))}
+                  {selected.other_typing && <TypingBubble label={bn ? 'সাপোর্ট লিখছে' : 'Support is typing'} />}
                 </div>
 
                 <div className="border-t border-slate-100 p-3">
@@ -201,7 +209,7 @@ export default function SupportTickets() {
                       rows={2}
                       placeholder={bn ? 'উত্তর লিখুন…' : 'Write a message…'}
                       value={reply}
-                      onChange={e => setReply(e.target.value)}
+                      onChange={e => { setReply(e.target.value); heartbeat() }}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
                     />
                     <button className="btn-primary shrink-0" onClick={sendReply}>

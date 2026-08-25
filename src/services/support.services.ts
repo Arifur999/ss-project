@@ -25,6 +25,8 @@ export type SupportTicket = {
   solved_at: string | null
   solved_by: string | null
   messages: SupportMessage[]
+  /** Whether the other side is typing right now - set by the server. */
+  other_typing?: boolean
   // Only the platform's inbox gets this - it is who is asking.
   owner?: { id: string; full_name: string | null; email: string; phone: string | null }
 }
@@ -43,3 +45,7 @@ export const markSupportTicketSolved = (id: string) =>
 // ---- Both ----
 export const replyToSupportTicket = (id: string, message: string) =>
   http.post<SupportTicket>(`/support-tickets/${id}/reply`, { message })
+
+/** A keystroke heartbeat. Fire and forget - a dropped one costs a bubble. */
+export const noteTyping = (id: string) =>
+  http.post<{ ok: boolean }>(`/support-tickets/${id}/typing`)

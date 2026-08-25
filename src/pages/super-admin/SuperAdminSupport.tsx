@@ -10,6 +10,8 @@ import PageHeader from '../../components/PageHeader'
 import StatCard from '../../components/StatCard'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { NoValue } from '../../components/CellValue'
+import TypingBubble from '../../components/TypingBubble'
+import { useLiveTickets, useTypingHeartbeat } from '../../lib/useLiveTickets'
 import { formatDate } from '../../lib/utils'
 import { askerName, awaitingCount, sortInbox, statusClass, statusLabel, waitedFor } from '../../lib/supportInbox'
 import {
@@ -43,14 +45,19 @@ export default function SuperAdminSupport() {
 
   useEffect(() => { load() }, [])
 
-  async function load() {
-    setLoading(true)
+  // The inbox is left open all day, so it keeps itself current while somebody
+  // is looking at it - a customer's reply should not need a button press.
+  useLiveTickets(() => load(true))
+  const heartbeat = useTypingHeartbeat(selectedId)
+
+  async function load(quiet = false) {
+    if (!quiet) setLoading(true)
     try {
       setTickets(await getAllSupportTickets())
     } catch (error: any) {
-      toast.error(error.message || 'Failed to load support tickets')
+      if (!quiet) toast.error(error.message || 'Failed to load support tickets')
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }
 
@@ -111,7 +118,7 @@ export default function SuperAdminSupport() {
       <PageHeader
         title="Support"
         subtitle="Questions customers have sent from inside their workspace"
-        actions={<button className="btn-secondary" onClick={load}><RefreshCcw size={16} /> Refresh</button>}
+        actions={<button className="btn-secondary" onClick={() => load()}><RefreshCcw size={16} /> Refresh</button>}
       />
 
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -221,7 +228,7 @@ export default function SuperAdminSupport() {
                     <div key={message.id} className={`flex ${message.from_admin ? 'justify-end' : 'justify-start'}`}>
                       <div
                         className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                          message.from_admin ? 'bg-slate-900 text-white' : 'bg-neutral-100 text-slate-800'
+                          message.from_admin ? 'bg-slate-900 text-white' : 'border border-surface-border bg-white text-slate-800'
                         }`}
                       >
                         <p className="whitespace-pre-wrap break-words">{message.body}</p>
@@ -232,6 +239,7 @@ export default function SuperAdminSupport() {
                     </div>
                   ))
                 )}
+                {selected.other_typing && <TypingBubble label="The customer is typing" />}
               </div>
 
               <div className="border-t border-slate-100 p-3">
@@ -241,7 +249,7 @@ export default function SuperAdminSupport() {
                     rows={2}
                     placeholder="Write your reply…"
                     value={reply}
-                    onChange={e => setReply(e.target.value)}
+                    onChange={e => { setReply(e.target.value); heartbeat() }}
                     // Enter sends, Shift+Enter starts a line: a reply is
                     // usually one sentence, and reaching for the mouse each
                     // time is what makes an inbox slow to work through.
