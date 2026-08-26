@@ -606,30 +606,35 @@ export default function CustomerDueReceived() {
       />
 
       <div className="card flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-        <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
-          <span className="font-semibold text-slate-800">{t('customers_dueReceived', 'Due received')} List</span>
-          <div className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-            <input
-              className="input h-9 py-0 pl-9 pr-8 text-sm"
-              value={listSearch}
-              onChange={event => setListSearch(event.target.value)}
-              placeholder={t('dueReceived_searchPlaceholder', 'Search name, phone or amount')}
-              aria-label={t('common_search', 'Search')}
-            />
-            {listSearch && (
-              <button
-                type="button"
-                onClick={() => setListSearch('')}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:bg-neutral-100 hover:text-slate-600"
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
+        <div className="flex-shrink-0 border-b border-slate-100 p-4 font-semibold text-slate-800">
+          {t('customers_dueReceived', 'Due received')} List
         </div>
-        <TableScroller wrapClassName="flex min-h-0 flex-1 flex-col" className="min-h-0 flex-1 overflow-auto">
+        <TableScroller
+          wrapClassName="flex min-h-0 flex-1 flex-col"
+          className="min-h-0 flex-1 overflow-auto"
+          toolbar={
+            <div className="relative w-full sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+              <input
+                className="input h-9 py-0 pl-9 pr-8 text-sm"
+                value={listSearch}
+                onChange={event => setListSearch(event.target.value)}
+                placeholder={t('dueReceived_searchPlaceholder', 'Search name, phone or amount')}
+                aria-label={t('common_search', 'Search')}
+              />
+              {listSearch && (
+                <button
+                  type="button"
+                  onClick={() => setListSearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:bg-neutral-100 hover:text-slate-600"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          }
+        >
           <table className="w-full min-w-[1500px] text-sm">
             <thead className="table-header">
               <tr>

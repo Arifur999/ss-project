@@ -10,7 +10,18 @@ import { CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight } from '@p
  * with `<TableScroller className="...same scroll classes...">…</TableScroller>`.
  * If no className is given it defaults to `overflow-x-auto`.
  */
-export default function TableScroller({ children, className = '', wrapClassName = '' }: { children: React.ReactNode; className?: string; wrapClassName?: string }) {
+export default function TableScroller({
+  children,
+  className = '',
+  wrapClassName = '',
+  /**
+   * Anything that belongs on the control row above the table - a search box,
+   * a filter. It shares the row with the scroll arrows rather than claiming a
+   * band of its own, because a strip holding two buttons and nothing else was
+   * already wasted height.
+   */
+  toolbar,
+}: { children: React.ReactNode; className?: string; wrapClassName?: string; toolbar?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const [canLeft, setCanLeft] = useState(false)
   const [canRight, setCanRight] = useState(false)
@@ -44,8 +55,11 @@ export default function TableScroller({ children, className = '', wrapClassName 
 
   return (
     <div className={wrapClassName}>
-      {overflowing && (
-        <div className="mb-1.5 flex shrink-0 justify-end gap-1 px-1">
+      {(toolbar || overflowing) && (
+        <div className="mb-1.5 flex shrink-0 items-center justify-end gap-2 px-1">
+          {toolbar}
+          {overflowing && (
+            <>
           <button
             type="button"
             onClick={() => scrollBy(-1)}
@@ -64,6 +78,8 @@ export default function TableScroller({ children, className = '', wrapClassName 
           >
             <ChevronRight size={16} />
           </button>
+            </>
+          )}
         </div>
       )}
       <div ref={ref} className={className || 'overflow-x-auto'}>
