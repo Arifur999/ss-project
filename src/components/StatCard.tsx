@@ -18,7 +18,6 @@ interface StatCardProps {
   // "no value" marker in place of the number.
   value: React.ReactNode
   icon?: React.ReactNode
-  trend?: number
   color?: 'green' | 'red' | 'blue' | 'orange' | 'default'
   subtitle?: string
   /** Colours the figure itself; the default near-black suits most cards. */
@@ -45,7 +44,6 @@ export default function StatCard({
   title,
   value,
   icon,
-  trend,
   color = 'default',
   subtitle,
   valueClassName = 'text-navy-900',
@@ -72,11 +70,6 @@ export default function StatCard({
         {progress !== undefined && (
           <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200">
             <div className="h-full rounded-full bg-navy-900" style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
-          </div>
-        )}
-        {trend !== undefined && (
-          <div className={cn('flex items-center gap-1 text-xs font-semibold', trend >= 0 ? 'text-brand-green' : 'text-brand-red')}>
-            <span>{trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}%</span>
           </div>
         )}
         {footer}

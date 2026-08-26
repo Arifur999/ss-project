@@ -253,12 +253,6 @@ function parseAmountText(value: string) {
   return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0
 }
 
-function pctChange(current: number, previous: number) {
-  if (!previous && !current) return 0
-  if (!previous) return current > 0 ? 100 : 0
-  return ((current - previous) / Math.abs(previous)) * 100
-}
-
 const dashboardCacheKey = (rangeType: RangeType, customStart: string, customEnd: string) =>
   `dashboard:${rangeType}:${customStart}:${customEnd}`
 
@@ -691,16 +685,15 @@ export default function Dashboard() {
         <HeroCard
           label="Net Profit"
           value={formatCurr(data.netProfit)}
-          trend={pctChange(data.netProfit, data.previous.netProfit)}
           onWithdraw={() => navigate("/transactions/profit")}
           onSavings={() => navigate("/balance")}
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="Total Purchase" icon={<Truck size={17} weight="duotone" />} value={formatCurr(data.totalPurchases)} trend={pctChange(data.totalPurchases, data.previous.totalPurchases)} inverted />
-          <StatCard label="Total Sales" icon={<CashRegister size={17} weight="duotone" />} value={formatCurr(data.totalSales)} trend={pctChange(data.totalSales, data.previous.totalSales)} />
-          <StatCard label="Total Profit" icon={<Coins size={17} weight="duotone" />} value={formatCurr(data.totalProfit)} trend={pctChange(data.totalProfit, data.previous.totalProfit)} />
-          <StatCard label="Total Expenses" icon={<CreditCard size={17} weight="duotone" />} value={formatCurr(data.totalExpenses)} trend={pctChange(data.totalExpenses, data.previous.totalExpenses)} inverted />
+          <StatCard label="Total Purchase" icon={<Truck size={17} weight="duotone" />} value={formatCurr(data.totalPurchases)} />
+          <StatCard label="Total Sales" icon={<CashRegister size={17} weight="duotone" />} value={formatCurr(data.totalSales)} />
+          <StatCard label="Total Profit" icon={<Coins size={17} weight="duotone" />} value={formatCurr(data.totalProfit)} />
+          <StatCard label="Total Expenses" icon={<CreditCard size={17} weight="duotone" />} value={formatCurr(data.totalExpenses)} />
         </div>
 
         <section className="card border-navy-900 bg-navy-900 p-5">
@@ -810,26 +803,11 @@ export default function Dashboard() {
 }
 
 
-// A trend that says "+100.0%" because last period was zero tells the reader
-// nothing, so it is only drawn when there is a real previous figure to compare
-// against.
-function TrendLine({ trend, inverted = false }: { trend: number; inverted?: boolean }) {
-  // A trend of exactly 100% means last period was zero, which compares
-  // nothing; showing it on almost every card taught the eye to skip the line.
-  if (!Number.isFinite(trend) || Math.abs(trend) < 0.05 || Math.abs(trend) === 100) return null
-  const good = inverted ? trend <= 0 : trend >= 0
-  return (
-    <span className={`text-xs font-semibold ${good ? "text-brand-green" : "text-brand-red"}`}>
-      {trend >= 0 ? "↑" : "↓"} {Math.abs(trend).toFixed(2)}%
-    </span>
-  )
-}
-
 // The one figure the owner is looking for. The sweep across the black is two
 // soft light streaks laid over the gradient - the flat two-stop version read
 // as a grey rectangle next to the white cards.
-function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
-  label: string; value: string; trend: number; onWithdraw: () => void; onSavings: () => void
+function HeroCard({ label, value, onWithdraw, onSavings }: {
+  label: string; value: string; onWithdraw: () => void; onSavings: () => void
 }) {
   return (
     <section
@@ -856,7 +834,6 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
         <p className={`mt-4 text-[42px] font-normal tracking-tight tabular-nums leading-none ${value.includes("-") ? "text-brand-red" : "text-white"}`}>
           {value}
         </p>
-        <div className="mt-2 h-4"><TrendLine trend={trend} /></div>
       </div>
 
       <div className="flex gap-3">
@@ -883,18 +860,11 @@ function HeroCard({ label, value, trend, onWithdraw, onSavings }: {
 // below, and the change under that - nothing else. Anything more competed
 // with the number the card exists to show.
 // The card this page used to define is now the site's shared one - this is the
-// same shape it always was, with the trend line passed in as its footer.
-function StatCard({ label, icon, value, trend, inverted = false }: {
-  label: string; icon: React.ReactNode; value: string; trend: number; inverted?: boolean
+// same shape it always was.
+function StatCard({ label, icon, value }: {
+  label: string; icon: React.ReactNode; value: string
 }) {
-  return (
-    <SharedStatCard
-      title={label}
-      icon={icon}
-      value={value}
-      footer={<div className="h-4"><TrendLine trend={trend} inverted={inverted} /></div>}
-    />
-  )
+  return <SharedStatCard title={label} icon={icon} value={value} />
 }
 
 // Slice colours are a grey ramp with the largest share in near-black, so the
