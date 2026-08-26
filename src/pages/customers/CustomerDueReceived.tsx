@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
+import { filterRows } from '../../lib/searchRows'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { useAuth } from '../../context/AuthContext'
@@ -52,6 +53,7 @@ export default function CustomerDueReceived() {
   const [expenseCategories, setExpenseCategories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
+  const [listSearch, setListSearch] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [showCustomerOptions, setShowCustomerOptions] = useState(false)
   const [showReceiverOptions, setShowReceiverOptions] = useState(false)
@@ -539,7 +541,25 @@ export default function CustomerDueReceived() {
 
   // Draws a slice at a time as the reader scrolls. Every row stays in
   // memory, so totals, filters and exports above are untouched.
-  const shown = useProgressiveRows(groupedPayments, { initial: 40, step: 40 })
+  // Searched across every column somebody might arrive knowing - a name, a
+  // phone, who took the money, the amount - because they never know which
+  // column it is in. Filtered before the progressive window, so it narrows the
+  // whole list rather than only the rows already drawn.
+  const searchedPayments = useMemo(
+    () => filterRows(groupedPayments, [
+      (row: any) => row.customer_name,
+      (row: any) => row.customer_phone,
+      (row: any) => row.payment_receiver,
+      (row: any) => row.discount_category,
+      (row: any) => row.invoice_no,
+      (row: any) => row.display_notes,
+      (row: any) => row.payment_methods?.map((m: any) => m.account_name).join(' '),
+      (row: any) => Number(row.total_received || 0).toLocaleString('en-US'),
+      (row: any) => row.date,
+    ], listSearch),
+    [groupedPayments, listSearch],
+  )
+  const shown = useProgressiveRows(searchedPayments, { initial: 40, step: 40 })
   const selectedCustomer = customers.find(customer => customer.id === form.customer_id)
   const currentPaymentTotal = paymentRows.reduce((sum, row) => sum + Number(row.amount || 0), 0)
   // The Customer Dashboard's own rule, so the two screens cannot disagree
@@ -578,7 +598,6 @@ export default function CustomerDueReceived() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
       <PageHeader
         title={t('customers_dueReceived', 'Due received')}
-        subtitle={t('customers_dueReceived', 'Due received')}
         actions={
           <button onClick={() => openModal()} className="btn-primary">
             <Plus size={16} /> {t('customers_dueReceived', 'Due received')}
@@ -587,8 +606,28 @@ export default function CustomerDueReceived() {
       />
 
       <div className="card flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-        <div className="flex-shrink-0 border-b border-slate-100 p-4 font-semibold text-slate-800">
-          {t('customers_dueReceived', 'Due received')} List
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
+          <span className="font-semibold text-slate-800">{t('customers_dueReceived', 'Due received')} List</span>
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+            <input
+              className="input h-9 py-0 pl-9 pr-8 text-sm"
+              value={listSearch}
+              onChange={event => setListSearch(event.target.value)}
+              placeholder={t('dueReceived_searchPlaceholder', 'Search name, phone or amount')}
+              aria-label={t('common_search', 'Search')}
+            />
+            {listSearch && (
+              <button
+                type="button"
+                onClick={() => setListSearch('')}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:bg-neutral-100 hover:text-slate-600"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
         </div>
         <TableScroller wrapClassName="flex min-h-0 flex-1 flex-col" className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[1500px] text-sm">
@@ -656,11 +695,13 @@ export default function CustomerDueReceived() {
                 </tr>
               ))}
               {loading && <TableSkeleton rows={6} cols={14} />}
-            {!loading && groupedPayments.length === 0 && (
+            {!loading && searchedPayments.length === 0 && (
                 <tr>
                   <td colSpan={14} className="text-center py-10 text-slate-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
-                    No due received entries
+                    {listSearch.trim()
+                      ? <>Nothing matches &ldquo;{listSearch.trim()}&rdquo;</>
+                      : 'No due received entries'}
                   </td>
                 </tr>
               )}

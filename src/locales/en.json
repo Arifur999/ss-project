@@ -768,5 +768,6 @@
   "balance_net": "Net",
   "balance_netLoan": "Net Loan",
   "balance_netTrade": "Net Trade",
-  "settings_passwordMin": "Password must be at least 8 characters"
+  "settings_passwordMin": "Password must be at least 8 characters",
+  "dueReceived_searchPlaceholder": "Search name, phone or amount"
 }
