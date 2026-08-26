@@ -13,6 +13,9 @@ import ChatThread from '../../components/ChatThread'
 import { useTypingHeartbeat } from '../../lib/useLiveTickets'
 import { TYPING_CLEAR_MS, useSupportStream } from '../../lib/useSupportStream'
 import { bubbleFor, type TypingMark } from '../../lib/typingSide'
+import { markSeen } from '../../lib/supportUnread'
+import { announceSeen } from '../../lib/useSupportBadge'
+import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { formatDate } from '../../lib/utils'
 import {
@@ -31,6 +34,7 @@ import {
  */
 export default function SupportTickets() {
   const { lang } = useLang()
+  const { profile } = useAuth()
   const bn = lang === 'bn'
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [loading, setLoading] = useState(true)
@@ -132,6 +136,12 @@ export default function SupportTickets() {
   useEffect(() => {
     if (!selectedId && ordered.length) setSelectedId(ordered[0].id)
   }, [ordered, selectedId])
+
+  useEffect(() => {
+    if (!selected || !profile?.id) return
+    markSeen(profile.id, selected.id)
+    announceSeen()
+  }, [selected?.id, selected?.last_message_at, profile?.id])
 
   async function submit() {
     const body = message.trim()

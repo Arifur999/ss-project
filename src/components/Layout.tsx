@@ -6,6 +6,7 @@ import { GaugeIcon as Gauge, BankIcon as Bank, HandshakeIcon as Handshake, HandC
   IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck, TagIcon as Tag, PlayCircleIcon as PlayCircle } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { ROUTE_PERMISSIONS, hasPermission } from '../lib/permissions'
+import { useSupportBadge } from '../lib/useSupportBadge'
 import { useLang } from '../context/LanguageContext'
 import NotificationBell from './NotificationBell'
 import ProfileMenu from './ProfileMenu'
@@ -40,6 +41,10 @@ export default function Layout() {
     navigate('/login')
   }
 
+  // Unanswered tickets for the platform, unread replies for a customer -
+  // see lib/supportUnread for why those are two different questions.
+  const supportBadge = useSupportBadge()
+
   const superAdminNavGroups = [
     { key: 'superAdminDashboard', label: t('nav_superAdmin'), icon: <ShieldCheck size={18} />, path: '/super-admin' },
     { key: 'superAdminOwners', label: t('nav_owners'), icon: <Users size={18} />, path: '/super-admin/owners' },
@@ -51,7 +56,7 @@ export default function Layout() {
     { key: 'superAdminFinance', label: 'Finance', icon: <Wallet size={18} />, path: '/super-admin/finance' },
     { key: 'superAdminSms', label: 'SMS', icon: <MessageSquareText size={18} />, path: '/super-admin/sms' },
     { key: 'superAdminNotifications', label: 'Notifications', icon: <Bell size={18} />, path: '/super-admin/notifications' },
-    { key: 'superAdminSupport', label: 'Support', icon: <MessageSquareText size={18} />, path: '/super-admin/support' },
+    { key: 'superAdminSupport', label: 'Support', icon: <MessageSquareText size={18} />, path: '/super-admin/support', badge: supportBadge },
     { key: 'superAdminReports', label: t('nav_reports'), icon: <BarChart3 size={18} />, path: '/super-admin/reports' },
     { key: 'superAdminActivity', label: t('nav_logsActivity'), icon: <Activity size={18} />, path: '/super-admin/activity' },
     { key: 'superAdminSettings', label: t('nav_settings'), icon: <Bell size={18} />, path: '/super-admin/settings' },
@@ -173,7 +178,7 @@ export default function Layout() {
   // Support sits above Admin: it is the thing somebody reaches for when the
   // rest of the menu has stopped making sense.
   businessNavGroups.push({
-    key: 'support', label: t('nav_support', 'Support'), icon: <MessageSquareText size={18} weight="duotone" />,
+    key: 'support', label: t('nav_support', 'Support'), icon: <MessageSquareText size={18} weight="duotone" />, badge: supportBadge,
     children: [
       { key: 'supportTickets', label: t('nav_supportTicket', 'Support Ticket'), icon: <MessageSquareText size={16} />, path: '/support/tickets' },
       { key: 'supportGuideline', label: t('nav_guidelineVideo', 'Guideline Video'), icon: <PlayCircle size={16} />, path: '/support/guideline' },
@@ -241,6 +246,18 @@ export default function Layout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
+  // Red, because it is asking to be dealt with rather than merely reporting.
+  // Absent at zero: a nav item wearing a permanent "0" teaches the eye to
+  // ignore the spot the number will one day appear in.
+  function NavBadge({ count }: { count?: number }) {
+    if (!count) return null
+    return (
+      <span className="ml-auto min-w-[18px] rounded-full bg-brand-red px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white">
+        {count > 99 ? '99+' : count}
+      </span>
+    )
+  }
+
   function renderItem(item: any, depth = 0): React.ReactNode {
     if (item.children) {
       const isExpanded = expandedGroup === item.key
@@ -248,14 +265,20 @@ export default function Layout() {
         <div key={item.key}>
           <button
             onClick={() => toggleGroup(item.key)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all text-white/85 hover:bg-white/10 hover:text-white"
+            className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all text-white/85 hover:bg-white/10 hover:text-white"
           >
             {item.icon}
             {!collapsed && (
               <>
                 <span className="flex-1 text-left">{item.label}</span>
+                <NavBadge count={item.badge} />
                 {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </>
+            )}
+            {/* Collapsed to icons there is no room for a number, but a dot
+                still says "something is here". */}
+            {collapsed && item.badge > 0 && (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-red" />
             )}
           </button>
           {isExpanded && !collapsed && (
@@ -272,10 +295,14 @@ export default function Layout() {
         key={item.path}
         to={item.path}
         end
-        className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        className={({ isActive }) => `sidebar-link relative ${isActive ? 'active' : ''}`}
       >
         {item.icon}
-        {!collapsed && <span>{item.label}</span>}
+        {!collapsed && <span className="flex-1">{item.label}</span>}
+        {!collapsed && <NavBadge count={item.badge} />}
+        {collapsed && item.badge > 0 && (
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-red" />
+        )}
       </NavLink>
     )
   }
