@@ -22,6 +22,7 @@ import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
 import { NoValue, ZeroAmount } from '../components/CellValue'
 import { DUPLICATE_PHONE_MESSAGE, INVALID_PHONE_MESSAGE, isValidBdPhone } from '../lib/phone'
 import { phoneBelongsToAnotherCustomer } from '../lib/customerPhone'
+import { actualDp } from '../lib/purchaseAmounts'
 
 const smsInvoiceKey = 'sales_sms_invoice_v1'
 
@@ -316,7 +317,7 @@ export default function Sales() {
           .order('date', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(100),
-        supabase.from('products').select('id, product_code, name, selling_price, cost_price, image_url').eq('is_active', true),
+        supabase.from('products').select('id, product_code, name, selling_price, cost_price, dp_discount, discount, image_url').eq('is_active', true),
         supabase
           .from('customers')
           .select('id, name, phone, address, opening_due, created_at')
@@ -545,6 +546,21 @@ export default function Sales() {
     }))
   }
 
+  /**
+   * What a unit of this product actually costs us.
+   *
+   * cost_price is the LIST DP; the discount that was negotiated on it lives in
+   * dp_discount (older rows call it discount). Sending the list rate as the
+   * cost made the Sales Ledger's Purchase Amount read Tk 11,400 on goods
+   * bought at Tk 10,260, and shrank the profit by the difference.
+   *
+   * This is the fallback for a line with no stock behind it - a preorder.
+   * Anything sold out of real stock is costed server-side from its FIFO batch.
+   */
+  function productUnitCost(product: any) {
+    return actualDp(product?.cost_price, product?.dp_discount ?? product?.discount ?? 0)
+  }
+
   function addProductToCart(product: any) {
     const existingIndex = items.findIndex(item => item.product_id === product.id)
     if (existingIndex > -1) {
@@ -566,7 +582,7 @@ export default function Sales() {
         actual_price: Number(product.selling_price || 0),
         qty: 1,
         total_amount: Number(product.selling_price || 0),
-        cost_price: Number(product.cost_price || 0),
+        cost_price: productUnitCost(product),
         delivery_status: 'delivered',
         image_url: product.image_url
       }
@@ -587,7 +603,7 @@ export default function Sales() {
       const p = products.find(p => p.name.toLowerCase() === String(value).trim().toLowerCase())
       newItems[idx].product_id = p?.id || ''
       newItems[idx].product_code = p?.product_code || ''
-      newItems[idx].cost_price = Number(p?.cost_price || 0)
+      newItems[idx].cost_price = p ? productUnitCost(p) : 0
       if (p) {
         newItems[idx].selling_price = Number(p.selling_price || 0)
         newItems[idx].image_url = p.image_url

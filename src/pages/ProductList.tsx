@@ -1298,10 +1298,15 @@ export default function ProductList() {
       ) : (
         <div className="card overflow-hidden p-0">
           <TableScroller className="max-h-[calc(100vh-220px)] overflow-auto">
-          <table className="w-full min-w-[1180px]">
+          {/* px-4 rather than px-6 is what paid for the Final DP column:
+              thirteen columns of the tighter padding need 1,039px of content
+              where twelve of the old one needed 1,155px. The floor comes down
+              with it - at 1,180px the table scrolled sideways on a 1366-wide
+              laptop before the column was even added. */}
+          <table className="w-full min-w-[1100px]">
             <thead className="table-header">
               <tr className="border-b border-slate-200">
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   <input
                     type="checkbox"
                     checked={allFilteredSelected}
@@ -1312,17 +1317,18 @@ export default function ProductList() {
                     aria-label={allFilteredSelected ? 'Clear selection' : 'Select all matching products'}
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">#</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Product Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Category</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600">Image</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600">Supplier</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">Opening QTY</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">DP Rate</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600">MRP</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600">Print Tag</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">#</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Code</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Product Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Category</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Image</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Supplier</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Opening QTY</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">DP Rate</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Final DP</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">MRP</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Print Tag</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1330,7 +1336,7 @@ export default function ProductList() {
                 const supplier = (product as any).suppliers?.company_name || (product as any).suppliers?.name || ''
                 return (
                   <tr key={product.id} className="border-b border-slate-200 hover:bg-neutral-100 transition">
-                    <td className="px-6 py-4 text-sm text-slate-600">
+                    <td className="px-4 py-4 text-sm text-slate-600">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(product.id)}
@@ -1339,11 +1345,11 @@ export default function ProductList() {
                         aria-label={`Select product ${product.product_code}`}
                       />
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{index + 1}</td>
-                    <td className="px-6 py-4 text-sm font-mono text-slate-700 font-medium">{product.product_code}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700 font-medium">{product.name}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{product.category || <NoValue />}</td>
-                    <td className="px-6 py-4 text-sm text-center">
+                    <td className="px-4 py-4 text-sm text-slate-600">{index + 1}</td>
+                    <td className="px-4 py-4 text-sm font-mono text-slate-700 font-medium">{product.product_code}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700 font-medium">{product.name}</td>
+                    <td className="px-4 py-4 text-sm text-slate-600">{product.category || <NoValue />}</td>
+                    <td className="px-4 py-4 text-sm text-center">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -1363,21 +1369,24 @@ export default function ProductList() {
                         <NoValue />
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{supplier || <NoValue />}</td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-700">{openingQtyForProduct(product)}</td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">
+                    <td className="px-4 py-4 text-sm text-slate-600">{supplier || <NoValue />}</td>
+                    <td className="px-4 py-4 text-sm text-right text-slate-700">{openingQtyForProduct(product)}</td>
+                    <td className="px-4 py-4 text-sm text-right text-slate-700 font-semibold">
                       {formatCurr(product.cost_price || 0)}
                       {Number(product.dp_discount || 0) > 0 && (
                         <span className="ml-1 text-xs font-normal text-brand-red">-{Number(product.dp_discount)}%</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-700 font-semibold">
+                    <td className="px-4 py-4 text-sm text-right text-slate-700 font-semibold">
+                      {formatCurr(afterDiscount(Number(product.cost_price || 0), Number(product.dp_discount || 0)))}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-right text-slate-700 font-semibold">
                       {formatCurr(product.selling_price || 0)}
                       {Number(product.mrp_discount || 0) > 0 && (
                         <span className="ml-1 text-xs font-normal text-brand-red">-{Number(product.mrp_discount)}%</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-4 text-center">
                       <button
                         onClick={() => openTagPrint(product)}
                         className="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-navy-900"
@@ -1387,7 +1396,7 @@ export default function ProductList() {
                         <Printer size={15} />
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-4 text-center">
                       <div className="flex flex-row items-center justify-center gap-2 whitespace-nowrap">
                         <button
                           onClick={() => handleEdit(product)}
@@ -1412,13 +1421,13 @@ export default function ProductList() {
               })}
               {/* First page, or a fresh search: skeleton rows rather than an
                   empty table, so the reader sees it filling in. */}
-              {paged.loading && <TableSkeleton rows={10} cols={12} />}
+              {paged.loading && <TableSkeleton rows={10} cols={13} />}
               {/* The sentinel sits after the last row. The observer watching
                   it has a 600px margin, so the next page starts loading well
                   before the reader reaches the bottom. */}
               {paged.hasMore && !paged.loading && (
                 <tr ref={paged.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
-                  <td colSpan={12} className="py-4 text-center text-sm text-slate-400">
+                  <td colSpan={13} className="py-4 text-center text-sm text-slate-400">
                     {paged.loadingMore
                       ? `Loading more… ${products.length.toLocaleString()} of ${paged.total.toLocaleString()}`
                       : `${products.length.toLocaleString()} of ${paged.total.toLocaleString()} loaded`}
