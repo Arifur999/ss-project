@@ -12,7 +12,7 @@ import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 import { NoValue } from '../../components/CellValue'
 
-type LenderValidationErrors = Partial<Record<'name' | 'lender_type' | 'phone', string>>
+type LenderValidationErrors = Partial<Record<'name' | 'phone', string>>
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required!'
 const LINKED_LENDER_DELETE_MESSAGE = 'This profile cannot be deleted because they have existing transaction history. Please clear or void the transactions first!'
@@ -28,7 +28,6 @@ export default function LoanLenderList() {
   const [errors, setErrors] = useState<LenderValidationErrors>({})
   const [form, setForm] = useState({
     name: '',
-    lender_type: '',
     phone: '',
     address: '',
     opening_balance: 0,
@@ -72,7 +71,6 @@ export default function LoanLenderList() {
     setEditItem(item || null)
     setForm(item ? {
       name: item.name || '',
-      lender_type: item.lender_type || '',
       phone: item.phone || '',
       address: item.address || '',
       opening_balance: Math.abs(Number(item.opening_balance || 0)),
@@ -81,7 +79,6 @@ export default function LoanLenderList() {
       is_active: item.is_active !== false,
     } : {
       name: '',
-      lender_type: '',
       phone: '',
       address: '',
       opening_balance: 0,
@@ -97,7 +94,7 @@ export default function LoanLenderList() {
     setShowModal(false)
     setEditItem(null)
     setErrors({})
-    setForm({ name: '', lender_type: '', phone: '', address: '', opening_balance: 0, opening_balance_direction: 'receivable', notes: '', is_active: true })
+    setForm({ name: '', phone: '', address: '', opening_balance: 0, opening_balance_direction: 'receivable', notes: '', is_active: true })
   }
 
   const requiredLabel = (label: string) => (
@@ -116,13 +113,6 @@ export default function LoanLenderList() {
       delete next[field]
       return next
     })
-  }
-
-  function normalizeLenderType(value: string) {
-    const trimmed = value.trim()
-    const lower = trimmed.toLowerCase()
-    if (['bank', 'person', 'boss'].includes(lower)) return lower
-    return trimmed
   }
 
   function removeMissingColumn(payload: any, error?: { message?: string } | null) {
@@ -179,12 +169,10 @@ export default function LoanLenderList() {
     const openingBalance = Math.abs(rawOpeningBalance)
     const openingDirection = rawOpeningBalance < 0 ? 'payable' : form.opening_balance_direction
     const name = form.name.trim()
-    const lenderType = normalizeLenderType(form.lender_type)
     const phone = form.phone.trim()
     const nextErrors: LenderValidationErrors = {}
 
     if (!name) nextErrors.name = REQUIRED_FIELD_MESSAGE
-    if (!lenderType) nextErrors.lender_type = REQUIRED_FIELD_MESSAGE
     if (!phone) nextErrors.phone = REQUIRED_FIELD_MESSAGE
     else if ((!editItem || phone !== String(editItem.phone || '').trim()) && !isValidBdPhone(phone)) nextErrors.phone = INVALID_PHONE_MESSAGE
 
@@ -194,7 +182,6 @@ export default function LoanLenderList() {
     const payload = {
       ...form,
       name,
-      lender_type: lenderType,
       phone,
       address: form.address.trim(),
       notes: form.notes.trim(),
@@ -333,10 +320,6 @@ export default function LoanLenderList() {
     loadAll()
   }
 
-  function lenderTypeLabel(type: string) {
-    return type || '-'
-  }
-
   return (
     <div className="p-6">
       <PageHeader
@@ -352,7 +335,6 @@ export default function LoanLenderList() {
             <tr>
               <th className="text-left py-2 px-4 w-12">#</th>
               <th className="text-left py-2 px-4">Name</th>
-              <th className="text-left py-2 px-4">Type</th>
               <th className="text-left py-2 px-4">Phone</th>
               <th className="text-right py-2 px-4">Opening Balance</th>
               <th className="text-left py-2 px-4">Status</th>
@@ -372,7 +354,6 @@ export default function LoanLenderList() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-2.5 px-4">{lenderTypeLabel(lender.lender_type)}</td>
                   <td className="py-2.5 px-4 text-slate-500">{lender.phone || <NoValue />}</td>
                   <td className={`py-2.5 px-4 text-right font-semibold ${Number(lender.opening_balance || 0) < 0 ? 'text-brand-red' : 'text-brand-green'}`}>
                     {formatCurr(Number(lender.opening_balance || 0))}
@@ -386,7 +367,7 @@ export default function LoanLenderList() {
                   </td>
                 </tr>
             ))}
-            {lenders.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">No bank/person added</td></tr>}
+            {lenders.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-slate-400">No bank/person added</td></tr>}
           </tbody>
         </table>
       </div>
@@ -406,21 +387,6 @@ export default function LoanLenderList() {
               }}
             />
             {errors.name && <p className="mt-1 text-xs font-medium text-red-600">{errors.name}</p>}
-          </div>
-          <div>
-            <label className="label" htmlFor="loan-lender-list-f2">{requiredLabel('Type')}</label>
-            <input id="loan-lender-list-f2"
-              className={inputClass('lender_type')}
-              value={form.lender_type}
-              required
-              aria-invalid={!!errors.lender_type}
-              onChange={e => {
-                clearError('lender_type')
-                setForm({ ...form, lender_type: e.target.value })
-              }}
-              placeholder="Type manually"
-            />
-            {errors.lender_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_type}</p>}
           </div>
           <div>
             <label className="label" htmlFor="loan-lender-list-f3">{requiredLabel('Phone')}</label>

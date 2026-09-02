@@ -59,7 +59,10 @@ export function saveStoredLoanLender(form: any, editItem?: any) {
   const lender = {
     ...form,
     id: editItem?.id?.startsWith?.('local:') ? editItem.id : `local:${Date.now()}`,
-    lender_type: form.lender_type || 'boss',
+    // The form no longer asks for a type. "person" is what the database
+    // column defaults to, so a lender saved offline reads back the same as one
+    // saved through the API.
+    lender_type: form.lender_type || 'person',
     created_at: editItem?.created_at || now,
   }
   const exists = stored.some((item: any) => item.id === editItem?.id || item.name.trim().toLowerCase() === key)
