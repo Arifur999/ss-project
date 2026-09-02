@@ -80,8 +80,10 @@ export default function SmsPackages() {
     .filter(p => p.status === 'paid')
     .reduce((sum, p) => sum + Number(p.amount || 0), 0)
 
-  // What one SMS works out to on this package - the only honest way to compare
-  // two packages of different sizes side by side.
+  // What one SMS works out to on this package. Not shown any more - rounded to
+  // the taka it read "Per SMS Tk 1" on three packages and "Tk 0" on the fourth,
+  // which compares nothing. It still decides which card wears the Best rate
+  // badge, where only the ordering matters.
   const perSmsRate = (pkg: SmsPackage) => {
     const count = Number(pkg.sms_count || 0)
     if (!count) return null
@@ -238,12 +240,6 @@ export default function SmsPackages() {
                   </p>
 
                   <p className="mt-1 text-lg font-bold text-brand-green">{formatCurr(Number(pkg.price || 0))}</p>
-
-                  {rate !== null && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      {bn ? 'প্রতি এসএমএস' : 'Per SMS'} {formatCurr(rate)}
-                    </p>
-                  )}
 
                   <button className="btn-primary mt-4 w-full justify-center" onClick={() => openCheckout(pkg)}>
                     <Send size={16} /> {bn ? 'কিনুন' : 'Buy now'}

@@ -62,6 +62,8 @@ export default function Layout() {
     { key: 'superAdminSettings', label: t('nav_settings'), icon: <Bell size={18} />, path: '/super-admin/settings' },
   ]
 
+  // Every group that has a dashboard lists it first: it is the page you want on
+  // the way in, and hunting for it at the bottom of four items was backwards.
   const businessNavGroups = [
     { key: 'dashboard', label: t('nav_dashboard'), icon: <Gauge size={18} weight="duotone" />, path: '/' },
     {
@@ -84,10 +86,10 @@ export default function Layout() {
     {
       key: 'loanManagement', label: t('nav_loanManagement'), icon: <HandCoins size={18} weight="duotone" />,
       children: [
+        { key: 'loanDashboard', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/loan-management/dashboard' },
         { key: 'loanLenders', label: t('nav_bankPersonList'), icon: <Building2 size={16} />, path: '/loan-management/lenders' },
         { key: 'loanTransactions', label: t('nav_transaction'), icon: <FileText size={16} />, path: '/loan-management/transactions' },
         { key: 'loanLedger', label: t('nav_ledger'), icon: <BookOpen size={16} />, path: '/loan-management/ledger' },
-        { key: 'loanDashboard', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/loan-management/dashboard' },
       ],
     },
     {
@@ -107,11 +109,11 @@ export default function Layout() {
     {
       key: 'purchase', label: 'Supplier', icon: <Truck size={18} weight="duotone" />,
       children: [
+        { key: 'suppDash', label: t('nav_supplierDashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
         { key: 'purchOrders', label: t('nav_purchaseOrders'), icon: <ShoppingCart size={16} />, path: '/purchase/orders' },
         { key: 'purchaseLedger', label: t('nav_purchaseLedger', 'Purchase Ledger'), icon: <FileText size={16} />, path: '/purchase/ledger' },
         { key: 'productReceived', label: t('nav_productReceived'), icon: <Package size={16} />, path: '/purchase/product-received' },
         { key: 'purchPayments', label: t('nav_supplierPayments'), icon: <CreditCard size={16} />, path: '/purchase/payments' },
-        { key: 'suppDash', label: t('nav_supplierDashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
         { key: 'purchaseHistory', label: t('nav_purchaseHistory'), icon: <BookOpen size={16} />, path: '/purchase/history' },
         { key: 'otherIncome', label: t('nav_otherIncome', 'Others Income'), icon: <FileText size={16} />, path: '/purchase/other-income' },
         { key: 'supplierList', label: t('settings_supplierList', 'Suppliers list'), icon: <Truck size={16} />, path: '/purchase/suppliers-list' },
@@ -129,10 +131,10 @@ export default function Layout() {
     {
       key: 'customers', label: t('nav_customers'), icon: <UsersThree size={18} weight="duotone" />,
       children: [
+        { key: 'custDash', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/customers/dashboard' },
         { key: 'custList', label: t('nav_customerList'), icon: <Users size={16} />, path: '/customers' },
         { key: 'custDueReceived', label: t('customers_dueReceived', 'Due received'), icon: <FileText size={16} />, path: '/customers/due-received' },
         { key: 'custLedger', label: t('nav_ledger'), icon: <FileText size={16} />, path: '/customers/ledger' },
-        { key: 'custDash', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/customers/dashboard' },
       ],
     },
     {

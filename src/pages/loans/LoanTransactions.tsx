@@ -9,16 +9,23 @@ import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { confirmAction } from '../../components/ConfirmDialog'
-import { loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
+import { buildLoanSummary, lenderKey, loanBalanceColor, loanBalanceLabel, loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
+import { buildLoanTransactionSms } from '../../lib/smsTemplates'
+import { sendSms } from '../../services/sms.services'
+import { isValidBdPhone } from '../../lib/phone'
 
 type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id', string>>
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required!'
+
+// Remembered per browser: an owner who texts every receipt should not have to
+// flip the switch on every transaction. Same key shape as the due-received one.
+const SMS_RECEIPT_KEY = 'loan_transaction_sms_v1'
 
 function escapeHtml(value: string) {
   return String(value || '')
@@ -55,6 +62,8 @@ export default function LoanTransactions() {
   const [filterLenderName, setFilterLenderName] = useState('')
   const [errors, setErrors] = useState<LoanTransactionValidationErrors>({})
   const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', amount: 0, account_id: '', notes: '' })
+  const [business, setBusiness] = useState<any>(null)
+  const [smsReceipt, setSmsReceipt] = useState(() => localStorage.getItem(SMS_RECEIPT_KEY) === '1')
 
   useEffect(() => {
     loadAll().finally(() => setLoading(false))
@@ -72,11 +81,13 @@ export default function LoanTransactions() {
   }
 
   async function loadAll() {
-    const [loanRes, lenderRes, accountRes] = await Promise.all([
+    const [loanRes, lenderRes, accountRes, businessRes] = await Promise.all([
       supabase.from('loans').select('*, loan_lenders(*)').order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('loan_lenders').select('*').eq('is_active', true).order('name'),
       supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
+      supabase.from('business_settings').select('name_bn, name_en, phone').maybeSingle(),
     ])
+    setBusiness(businessRes.data || null)
     if (isLoanLenderTableMissing(loanRes.error) || isLoanLenderTableMissing(lenderRes.error)) {
       const legacyLoanRes = await supabase.from('loans').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })
       const legacyLoans = legacyLoanRes.data || []
@@ -131,6 +142,42 @@ export default function LoanTransactions() {
       delete next[field]
       return next
     })
+  }
+
+  /**
+   * Where this lender's account stands BEFORE the transaction being entered.
+   *
+   * The record under edit is deliberately left out: its effect is already in
+   * `records`, so counting it would make the projected balance wrong by twice
+   * the amount being changed.
+   *
+   * Signed the way the loan pages sign it - positive is pawna (they owe us),
+   * negative is dena (we owe them).
+   */
+  const balanceBeforeFor = useMemo(() => {
+    const others = editingId ? records.filter(record => record.id !== editingId) : records
+    const summary = buildLoanSummary(lenders, others) as any[]
+    const byKey = new Map(summary.map(row => [row.key, Number(row.balance || 0)]))
+    return (lenderId: string) => {
+      const lender = lenders.find(item => item.id === lenderId)
+      if (!lender) return null
+      return byKey.get(lenderKey(lender)) ?? Number(lender.opening_balance || 0)
+    }
+  }, [lenders, records, editingId])
+
+  const selectedLender = lenders.find(lender => lender.id === form.lender_id) || null
+  const balanceBefore = form.lender_id ? balanceBeforeFor(form.lender_id) : null
+  // Paying them moves the balance up toward zero; taking money from them moves
+  // it down. The same arithmetic transactionAmounts does on a saved record.
+  const pendingEffect =
+    form.transaction_type === 'payment' ? Number(form.amount || 0)
+      : form.transaction_type === 'receive' ? -Number(form.amount || 0)
+        : 0
+  const balanceAfter = balanceBefore === null ? null : balanceBefore + pendingEffect
+
+  function balanceText(amount: number) {
+    const label = loanBalanceLabel(amount)
+    return label === 'Balanced' ? 'Balanced' : `${label} ${formatCurr(Math.abs(amount))}`
   }
 
   function buildPayload() {
@@ -188,9 +235,39 @@ export default function LoanTransactions() {
       ? await supabase.from('loans').update(payload).eq('id', editingId)
       : await supabase.from('loans').insert(payload)
     if (error) return toast.error(error.message)
+
+    // Before resetForm() clears the lender and the amount.
+    await textReceiptToLender(selectedLender, Number(form.amount || 0), balanceAfter)
+
     toast.success(editingId ? 'Transaction updated' : 'Transaction saved')
     resetForm()
     loadAll()
+  }
+
+  async function textReceiptToLender(lender: any, amount: number, newBalance: number | null) {
+    if (!smsReceipt || amount <= 0 || newBalance === null) return
+
+    const phone = String(lender?.phone || '').trim()
+    if (!isValidBdPhone(phone)) {
+      toast.error('Receipt SMS skipped - this bank/person has no valid phone number')
+      return
+    }
+
+    try {
+      await sendSms({
+        recipients: [phone],
+        message: buildLoanTransactionSms({
+          businessName: business?.name_en || business?.name_bn || 'Furniture Management',
+          businessPhone: business?.phone || '',
+          type: form.transaction_type === 'payment' ? 'payment' : 'receive',
+          amount,
+          balanceAfter: newBalance,
+        }),
+      })
+      toast.success('Receipt sent by SMS')
+    } catch (smsError: any) {
+      toast.error(smsError?.message || 'Saved, but the receipt SMS could not be sent')
+    }
   }
 
   async function deleteRecord(record: any) {
@@ -443,6 +520,73 @@ export default function LoanTransactions() {
       <Modal isOpen={showModal} onClose={resetForm} title={editingId ? 'Edit Loan Transaction' : 'New Loan Transaction'}>
         <form className="space-y-3" onSubmit={event => { event.preventDefault(); save() }} noValidate>
           <div>
+            <label className="label" htmlFor="loan-transactions-f2">{requiredLabel('Date')}</label>
+            <input id="loan-transactions-f2"
+              type="date"
+              className={inputClass('date')}
+              value={form.date}
+              required
+              aria-invalid={!!errors.date}
+              onChange={e => {
+                clearError('date')
+                setForm({ ...form, date: e.target.value })
+              }}
+            />
+            {errors.date && <p className="mt-1 text-xs font-medium text-red-600">{errors.date}</p>}
+          </div>
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <label className="label">{requiredLabel('Bank / Person')}</label>
+              {/* Text them a receipt for what was just paid or received. */}
+              <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                <span>SMS receipt</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={smsReceipt}
+                  onClick={() => setSmsReceipt(prev => {
+                    localStorage.setItem(SMS_RECEIPT_KEY, prev ? '0' : '1')
+                    return !prev
+                  })}
+                  className={`relative h-5 w-9 rounded-full transition-colors ${smsReceipt ? 'bg-brand-green' : 'bg-slate-300'}`}
+                >
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${smsReceipt ? 'left-[1.125rem]' : 'left-0.5'}`} />
+                </button>
+              </label>
+            </div>
+            <SearchableSelect
+              value={form.lender_id}
+              onChange={val => {
+                clearError('lender_id')
+                setForm({ ...form, lender_id: val })
+              }}
+              options={lenders.map(lender => ({ value: lender.id, label: lender.name }))}
+              placeholder="Select Bank / Person"
+            />
+            {errors.lender_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_id}</p>}
+          </div>
+
+          {/* Where this account stands, and where the amount being typed leaves
+              it - so nobody has to open the ledger in another tab to find out
+              whether they are clearing a due or creating one. */}
+          {selectedLender && balanceBefore !== null && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Current balance</span>
+                <span className={`font-semibold ${loanBalanceColor(balanceBefore)}`}>{balanceText(balanceBefore)}</span>
+              </div>
+              {pendingEffect !== 0 && balanceAfter !== null && (
+                <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
+                  <span className="text-slate-500">
+                    After this {form.transaction_type === 'payment' ? 'payment' : 'receive'}
+                  </span>
+                  <span className={`font-semibold ${loanBalanceColor(balanceAfter)}`}>{balanceText(balanceAfter)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
             <label className="label" htmlFor="loan-transactions-f1">{requiredLabel('Transaction Type')}</label>
             <select id="loan-transactions-f1"
               className={inputClass('transaction_type')}
@@ -461,21 +605,6 @@ export default function LoanTransactions() {
             {errors.transaction_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.transaction_type}</p>}
           </div>
           <div>
-            <label className="label" htmlFor="loan-transactions-f2">{requiredLabel('Date')}</label>
-            <input id="loan-transactions-f2"
-              type="date"
-              className={inputClass('date')}
-              value={form.date}
-              required
-              aria-invalid={!!errors.date}
-              onChange={e => {
-                clearError('date')
-                setForm({ ...form, date: e.target.value })
-              }}
-            />
-            {errors.date && <p className="mt-1 text-xs font-medium text-red-600">{errors.date}</p>}
-          </div>
-          <div>
             <label className="label">{requiredLabel('Account')}</label>
             <SearchableSelect
               value={form.account_id}
@@ -487,19 +616,6 @@ export default function LoanTransactions() {
               placeholder="Select Account"
             />
             {errors.account_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.account_id}</p>}
-          </div>
-          <div>
-            <label className="label">{requiredLabel('Bank / Person')}</label>
-            <SearchableSelect
-              value={form.lender_id}
-              onChange={val => {
-                clearError('lender_id')
-                setForm({ ...form, lender_id: val })
-              }}
-              options={lenders.map(lender => ({ value: lender.id, label: lender.name }))}
-              placeholder="Select Bank / Person"
-            />
-            {errors.lender_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.lender_id}</p>}
           </div>
           <div>
             <label className="label" htmlFor="loan-transactions-f3">{requiredLabel('Amount')}</label>

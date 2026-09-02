@@ -94,6 +94,50 @@ export function buildDuePaymentSms(input: DuePaymentSmsInput): string {
   ].filter(Boolean).join('\n')
 }
 
+export type LoanTransactionSmsInput = {
+  businessName: string
+  businessPhone?: string
+  /** "payment" - we handed money over; "receive" - we took money from them. */
+  type: 'payment' | 'receive'
+  amount: number
+  /**
+   * Where the account stands AFTER this transaction, signed the way the loan
+   * pages sign it: positive means they owe us, negative means we owe them.
+   */
+  balanceAfter: number
+}
+
+// Receipt for a loan payment or receipt, sent to the bank/person on the other
+// side of it. English like buildDuePaymentSms, and for the same reason: plain
+// ASCII bills at 160 characters a segment where Bangla bills at 70.
+//
+// The balance line is the part worth getting right - a sign error here tells
+// somebody they owe money they are in fact owed.
+export function buildLoanTransactionSms(input: LoanTransactionSmsInput): string {
+  const helpline = helplineNumber(input.businessPhone)
+  const balance = roundedBalance(input.balanceAfter)
+
+  return [
+    'Assalamu Alaikum,',
+    input.type === 'payment'
+      ? `${input.businessName} has paid you Tk ${smsAmount(input.amount)}.`
+      : `${input.businessName} has received Tk ${smsAmount(input.amount)} from you.`,
+    balance === 0
+      ? 'Balance: settled in full'
+      : balance < 0
+        ? `Our due to you: Tk ${smsAmount(Math.abs(balance))}`
+        : `Your due to us: Tk ${smsAmount(balance)}`,
+    helpline ? `Helpline: ${helpline}` : '',
+    'Thank you.',
+  ].filter(Boolean).join('\n')
+}
+
+// Rounded before the sign is read, so a balance of a few paisa either way
+// reads as settled rather than as a due of Tk 0.
+function roundedBalance(value: number) {
+  return Math.round(Number(value) || 0)
+}
+
 export type DueSmsInput = {
   businessName: string
   /** Both business numbers, exactly as Settings stores them. */
