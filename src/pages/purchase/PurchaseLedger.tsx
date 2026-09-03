@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import TableScroller from '../../components/TableScroller'
-import { PencilSimpleIcon as Pencil, PrinterIcon as Printer, MagnifyingGlassIcon as Search, TrashIcon as Trash2 } from '@phosphor-icons/react'
+import { PencilSimpleIcon as Pencil, PlusIcon as Plus, PrinterIcon as Printer, MagnifyingGlassIcon as Search, TrashIcon as Trash2 } from '@phosphor-icons/react'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
-import { deletePurchase, deletePurchaseItem } from '../../services/purchase.services'
+import { addPurchaseItem, deletePurchase, deletePurchaseItem } from '../../services/purchase.services'
 import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
@@ -36,7 +36,9 @@ type LedgerInvoice = {
 }
 
 type EditablePurchaseItem = {
+  /** Empty on a row added in this session: it has no database row yet. */
   id: string
+  product_id: string
   product_code: string
   product_name: string
   dp_price: number
@@ -111,6 +113,7 @@ export default function PurchaseLedger() {
   const [editItems, setEditItems] = useState<EditablePurchaseItem[]>([])
   const [savingEdit, setSavingEdit] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [products, setProducts] = useState<any[]>([])
   const invoiceRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({ content: () => invoiceRef.current })
 
@@ -121,7 +124,7 @@ export default function PurchaseLedger() {
   async function loadLedger() {
     try {
       setLoading(true)
-      const [purchaseRes, paymentRes] = await Promise.all([
+      const [purchaseRes, paymentRes, productRes] = await Promise.all([
         supabase
           .from('purchases')
           .select('*, purchase_items(*, purchase_receives(*))')
@@ -130,10 +133,17 @@ export default function PurchaseLedger() {
         supabase
           .from('supplier_payments')
           .select('id, purchase_id, purchase_si_no, amount'),
+        supabase
+          .from('products')
+          .select('id, product_code, name, cost_price, dp_discount, discount')
+          .eq('is_active', true),
       ])
 
       if (purchaseRes.error) throw purchaseRes.error
       if (paymentRes.error) throw paymentRes.error
+      // Not fatal: without these the ledger still lists and prints, only the
+      // product picker on a new line comes up empty.
+      setProducts(productRes.data || [])
 
       const payments = paymentRes.data || []
       const nextInvoices = (purchaseRes.data || []).map((purchase: any) => {
@@ -204,6 +214,7 @@ export default function PurchaseLedger() {
       date: invoice.order_date,
     })
     setEditItems(invoice.items.map((item: any) => ({
+      product_id: item.product_id || '',
       id: item.id,
       product_code: item.product_code || '',
       product_name: item.product_name || '',
@@ -225,6 +236,13 @@ export default function PurchaseLedger() {
 
   async function removeEditItem(index: number) {
     const item = editItems[index]
+
+    // Never saved, so there is nothing to delete - drop it and say nothing.
+    if (!item.id) {
+      setEditItems(current => current.filter((_, itemIndex) => itemIndex !== index))
+      return
+    }
+
     if (Number(item.received_qty || 0) > 0) {
       toast.error('This product is already received and cannot be deleted.')
       return
@@ -292,10 +310,49 @@ export default function PurchaseLedger() {
     }
   }
 
+  /**
+   * Start a new line on this invoice.
+   *
+   * It exists in the form only until Update is pressed - no id, which is what
+   * saveEditedInvoice reads to tell a line that needs creating from one that
+   * needs updating.
+   */
+  function addEditItem() {
+    setEditItems(current => [...current, {
+      id: '',
+      product_id: '',
+      product_code: '',
+      product_name: '',
+      dp_price: 0,
+      discount_pct: 0,
+      actual_dp: 0,
+      qty: 1,
+      total_amount: 0,
+      sp_amount: 0,
+      received_qty: 0,
+    }])
+  }
+
   function updateEditItem(index: number, field: keyof EditablePurchaseItem, value: string | number) {
     setEditItems(current => current.map((item, itemIndex) => {
       if (itemIndex !== index) return item
       const next = { ...item, [field]: value }
+
+      // Same auto-fill the Purchase Orders page does: a code that matches a
+      // product brings its name and its rate with it, so a new line does not
+      // have to be typed out by hand - and carries the product_id the server
+      // needs to link the line to real stock.
+      if (field === 'product_code') {
+        const product = products.find(row =>
+          String(row.product_code || '').toLowerCase() === String(value).trim().toLowerCase())
+        if (product) {
+          next.product_id = product.id
+          next.product_name = product.name || ''
+          next.dp_price = Number(product.cost_price || 0)
+          next.discount_pct = Number(product.dp_discount ?? product.discount ?? 0)
+        }
+      }
+
       const qty = Number(next.qty || 0)
       // Same shared rule as the Purchase Orders page, so editing an invoice here
       // cannot produce a different unit price from the one that created it.
@@ -318,24 +375,41 @@ export default function PurchaseLedger() {
       return
     }
 
+    // A new line has to name a real product: the server links it to stock by
+    // id, and a typed-over code that matches nothing would be rejected there
+    // with a less useful message than this one.
+    const unmatchedItem = editItems.find(item => !item.id && !item.product_id)
+    if (unmatchedItem) {
+      toast.error('Pick a product from the list for every new line - the product code has to match one')
+      return
+    }
+
+    const newItems = editItems.filter(item => !item.id)
+    const existingItems = editItems.filter(item => item.id)
+
     try {
       setSavingEdit(true)
-      const { error: purchaseError } = await supabase
-        .from('purchases')
-        .update({
-          si_no: editForm.si_no.trim(),
-          supplier_name: editForm.supplier_name.trim() || editingInvoice.supplier_name,
-          date: editForm.date,
-          total_amount: editTotal,
-          net_amount: editTotal,
-          due_amount: editDue,
-          updated_at: new Date().toISOString(),
+
+      // Lines first, header last. Adding a line makes the server re-total the
+      // purchase from its own rows, so a header written beforehand gets
+      // overwritten by a figure counting only the lines added so far. This way
+      // editTotal is the last word, and the due amount - which the server does
+      // not recompute - survives.
+      for (const item of newItems) {
+        await addPurchaseItem(editingInvoice.id, {
+          product_id: item.product_id,
+          product_code: item.product_code,
+          product_name: item.product_name,
+          dp_price: item.dp_price,
+          discount_pct: item.discount_pct,
+          actual_dp: item.actual_dp,
+          qty: item.qty,
+          total_amount: item.total_amount,
+          sp_amount: item.sp_amount,
         })
-        .eq('id', editingInvoice.id)
+      }
 
-      if (purchaseError) throw purchaseError
-
-      for (const item of editItems) {
+      for (const item of existingItems) {
         const { error: itemError } = await supabase
           .from('purchase_items')
           .update({
@@ -352,6 +426,21 @@ export default function PurchaseLedger() {
 
         if (itemError) throw itemError
       }
+
+      const { error: purchaseError } = await supabase
+        .from('purchases')
+        .update({
+          si_no: editForm.si_no.trim(),
+          supplier_name: editForm.supplier_name.trim() || editingInvoice.supplier_name,
+          date: editForm.date,
+          total_amount: editTotal,
+          net_amount: editTotal,
+          due_amount: editDue,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingInvoice.id)
+
+      if (purchaseError) throw purchaseError
 
       await touchOwnerActivity(true)
       toast.success('Purchase invoice updated')
@@ -579,10 +668,10 @@ export default function PurchaseLedger() {
                 </thead>
                 <tbody>
                   {editItems.map((item, index) => (
-                    <tr key={item.id} className="border-t border-slate-100 bg-white">
+                    <tr key={item.id || `new-${index}`} className="border-t border-slate-100 bg-white">
                       <td className="px-3 py-3 font-semibold text-slate-500">{index + 1}</td>
                       <td className="px-3 py-3">
-                        <input className="input h-10 w-28 text-xs font-mono" value={item.product_code} onChange={event => updateEditItem(index, 'product_code', event.target.value)} />
+                        <input className="input h-10 w-28 text-xs font-mono" list="purchase-ledger-product-codes" value={item.product_code} onChange={event => updateEditItem(index, 'product_code', event.target.value)} />
                       </td>
                       <td className="px-3 py-3">
                         <input className="input h-10 min-w-[220px] text-xs" value={item.product_name} onChange={event => updateEditItem(index, 'product_name', event.target.value)} />
@@ -614,6 +703,22 @@ export default function PurchaseLedger() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* One list for every row's code box, rather than a copy per row. */}
+            <datalist id="purchase-ledger-product-codes">
+              {products.map(product => (
+                <option key={product.id} value={product.product_code || ''}>{product.name}</option>
+              ))}
+            </datalist>
+
+            <div className="flex items-center justify-between gap-3">
+              <button type="button" onClick={addEditItem} className="btn-secondary text-xs">
+                <Plus size={14} /> Add Product
+              </button>
+              <p className="text-xs text-slate-500">
+                Pick a product code from the list - the name and rate fill in from it.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

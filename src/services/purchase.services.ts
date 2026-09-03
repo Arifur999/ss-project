@@ -25,6 +25,15 @@ export const setPurchaseItemReceivedQty = (itemId: string, receivedQty: number) 
   http.patch<any>(`/purchases/items/${itemId}/received-qty`, { received_qty: receivedQty })
 export const deletePurchase = (id: string, recycle?: RecycleMeta) => http.delete<any>(`/purchases/${id}`, { recycle })
 export const deletePurchaseItem = (itemId: string) => http.delete<any>(`/purchases/items/${itemId}`)
+/**
+ * Add a line to a purchase that already exists.
+ *
+ * The server re-totals the purchase and refreshes its shipping status - a new
+ * line has received nothing, so a fully-received invoice drops back to partial
+ * and the Product Received page will offer the line.
+ */
+export const addPurchaseItem = (purchaseId: string, payload: any) =>
+  http.post<any>(`/purchases/${purchaseId}/items`, payload)
 
 // ---------- Supplier payments ----------
 export const getSupplierPayments = () => http.get<any[]>('/supplier-payments')
