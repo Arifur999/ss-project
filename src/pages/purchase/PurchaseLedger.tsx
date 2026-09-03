@@ -6,7 +6,7 @@ import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
-import { deletePurchaseItem } from '../../services/purchase.services'
+import { deletePurchase, deletePurchaseItem } from '../../services/purchase.services'
 import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
@@ -110,6 +110,7 @@ export default function PurchaseLedger() {
   const [editForm, setEditForm] = useState({ si_no: '', supplier_name: '', date: '' })
   const [editItems, setEditItems] = useState<EditablePurchaseItem[]>([])
   const [savingEdit, setSavingEdit] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const invoiceRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({ content: () => invoiceRef.current })
 
@@ -246,6 +247,48 @@ export default function PurchaseLedger() {
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete product')
+    }
+  }
+
+  /**
+   * Delete a whole received purchase invoice.
+   *
+   * The server does the work in one transaction: it takes the received stock
+   * back out of inventory, removes the FIFO batches the goods were costed
+   * from, and files a snapshot in the recycle bin. It REFUSES outright when
+   * any of that stock has already been sold - deleting then would leave the
+   * Inventory page, the Sales page and FIFO each holding a different number.
+   * That refusal arrives as a plain sentence naming how many units, so it is
+   * shown as-is rather than replaced with a generic failure.
+   */
+  async function deleteInvoice(invoice: LedgerInvoice) {
+    if (deletingId) return
+
+    if (!(await confirmAction({
+      title: 'Delete this purchase invoice?',
+      message:
+        `Invoice ${invoice.si_no} from ${invoice.supplier_name} will be moved to the recycle bin. ` +
+        'The stock received against it is taken back out of inventory and the supplier balance is recalculated. ' +
+        'This is refused if any of those goods have already been sold.',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel',
+    }))) return
+
+    try {
+      setDeletingId(invoice.id)
+      await deletePurchase(invoice.id, {
+        type: 'purchases',
+        title: invoice.supplier_name,
+        subtitle: invoice.si_no,
+        amount: invoice.grand_total,
+      })
+      await touchOwnerActivity(true)
+      toast.success('Purchase invoice moved to recycle bin')
+      await loadLedger()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete purchase invoice')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -386,6 +429,15 @@ export default function PurchaseLedger() {
                       title="Print invoice"
                     >
                       <Printer size={15} />
+                    </button>
+                    <button
+                      onClick={() => deleteInvoice(invoice)}
+                      disabled={deletingId === invoice.id}
+                      className="rounded p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-40"
+                      title="Delete purchase invoice"
+                      aria-label={`Delete purchase invoice ${invoice.si_no}`}
+                    >
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </td>
