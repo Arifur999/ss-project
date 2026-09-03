@@ -2541,7 +2541,7 @@ export default function Sales() {
                   className={`min-w-[76px] rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                     deliveryFilter === option.key
                       ? option.key === 'pending'
-                        ? 'bg-brand-blue-soft text-brand-blue'
+                        ? 'bg-brand-orange-soft text-brand-orange'
                         : option.key === 'partial'
                           ? 'bg-slate-100 text-slate-700'
                           : option.key === 'delivered'
@@ -2641,10 +2641,15 @@ export default function Sales() {
                     <td className="py-2 px-2 text-slate-500 truncate" title={saleAccountDisplay(s)}>{saleAccountDisplay(s)}</td>
                     <td className="py-2 px-2 text-right text-brand-red font-semibold">{s.due_amount > 0 ? formatCurr(s.due_amount) : <ZeroAmount />}</td>
                     <td className="py-2 px-2 text-center">
+                      {/* Amber is the app's "still waiting" colour - see the
+                          brand palette and .badge-orange, which every other
+                          pending badge goes through. This one was left on Info
+                          blue, so the same word was a different colour here
+                          than three hundred lines below on the item rows. */}
                       <span className={`text-xs px-2 py-1 rounded font-medium ${
                         status === 'delivered' ? 'bg-green-100 text-green-700' :
                         status === 'partial' ? 'bg-slate-100 text-slate-700' :
-                        'bg-brand-blue-soft text-brand-blue'
+                        'bg-brand-orange-soft text-brand-orange'
                       }`}>
                         {status === 'delivered' ? 'Delivered' : status === 'partial' ? 'Partial' : 'Pending'}
                       </span>

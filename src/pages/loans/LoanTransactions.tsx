@@ -177,7 +177,10 @@ export default function LoanTransactions() {
 
   function balanceText(amount: number) {
     const label = loanBalanceLabel(amount)
-    return label === 'Balanced' ? 'Balanced' : `${label} ${formatCurr(Math.abs(amount))}`
+    // Nothing owed either way shows the figure, not the word "Balanced" - a
+    // bank/person with no history behind them has a balance of Tk 0, and the
+    // amount is what the reader is looking for in a row labelled "balance".
+    return label === 'Balanced' ? formatCurr(0) : `${label} ${formatCurr(Math.abs(amount))}`
   }
 
   function buildPayload() {
