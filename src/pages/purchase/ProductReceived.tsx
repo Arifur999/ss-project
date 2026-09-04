@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react'
+import { TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
 import TableScroller from '../../components/TableScroller'
+import Modal from '../../components/Modal'
+import { confirmAction } from '../../components/ConfirmDialog'
+import { deletePurchaseItem, deletePurchaseReceive, receivePurchaseItem, setPurchaseItemReceivedQty } from '../../services/purchase.services'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
@@ -43,7 +46,18 @@ export default function ReceiveProduct() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'partial' | 'received'>('all')
-  const { user } = useAuth()
+  const [showReceiveModal, setShowReceiveModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<PendingProduct | null>(null)
+  const [receiveQty, setReceiveQty] = useState(0)
+  const [receiverName, setReceiverName] = useState('')
+  const [receiveNote, setReceiveNote] = useState('')
+  const [receiveDate, setReceiveDate] = useState(todayISO())
+  const [submitting, setSubmitting] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editQty, setEditQty] = useState(0)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const { user, touchOwnerActivity } = useAuth()
 
   useEffect(() => {
     loadPendingItems()
@@ -190,6 +204,101 @@ export default function ReceiveProduct() {
 
 
 
+  // Receiving a line is done from this page again. It was taken out on the
+  // grounds that Purchase Orders can do it too, but this is the page that
+  // lists what is still outstanding, so it is where the job gets noticed.
+  async function handleReceive() {
+    if (!selectedItem || receiveQty <= 0) {
+      toast.error('Please enter valid quantity')
+      return
+    }
+
+    if (receiveQty > selectedItem.undelivered_qty) {
+      toast.error(`Cannot receive more than ${selectedItem.undelivered_qty}`)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      // The backend records the receive, updates the item/inventory/FIFO batch
+      // and refreshes the purchase shipping status in one transaction.
+      await receivePurchaseItem(selectedItem.purchase_id, {
+        purchase_item_id: selectedItem.id,
+        receive_date: receiveDate,
+        received_qty: receiveQty,
+        receiver_name: receiverName,
+        condition: 'good',
+        notes: receiveNote,
+      })
+
+      await touchOwnerActivity(true)
+      toast.success('Product received successfully')
+      setShowReceiveModal(false)
+      setReceiveQty(0)
+      setReceiverName('')
+      setReceiveNote('')
+      setReceiveDate(todayISO())
+      loadPendingItems()
+    } catch (error: any) {
+      // Say what the server said. A generic message with the reason only in the
+      // console is why a refused receive looked like a broken app rather than an
+      // input that needed fixing.
+      toast.error(error?.message || 'Failed to receive product')
+      console.error(error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function deleteReceive(itemId: string) {
+    setDeletingId(itemId)
+    try {
+      // Reverse any received rows first - the server undoes inventory and FIFO
+      // per receive - then delete the purchase line itself. Without the second
+      // step a fully pending item (no receives at all) would say "deleted" and
+      // stay in the list.
+      const { data: receives } = await supabase
+        .from('purchase_receives')
+        .select('id')
+        .eq('purchase_item_id', itemId)
+
+      for (const receive of receives || []) {
+        await deletePurchaseReceive(receive.id)
+      }
+
+      await deletePurchaseItem(itemId)
+
+      await touchOwnerActivity(true)
+      toast.success('Record deleted successfully')
+      loadPendingItems()
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete record')
+      console.error(error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function handleEditReceive() {
+    if (!editingId || editQty < 0) return
+
+    setSubmitting(true)
+    try {
+      await setPurchaseItemReceivedQty(editingId, editQty)
+
+      await touchOwnerActivity(true)
+      toast.success('Updated successfully')
+      setShowEditModal(false)
+      setEditingId(null)
+      loadPendingItems()
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update the received quantity')
+      console.error(error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   function receiveStatus(item: PendingProduct) {
     if (Number(item.undelivered_qty || 0) <= 0) return 'received'
     if (Number(item.received_qty || 0) > 0) return 'partial'
@@ -281,10 +390,11 @@ export default function ReceiveProduct() {
               <th className="text-left py-2 px-3">Receiver Name</th>
               <th className="text-left py-2 px-3">Note</th>
               <th className="text-center py-2 px-3">Duration (Days)</th>
+              <th className="sticky right-0 min-w-[150px] bg-white px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <TableSkeleton rows={8} cols={14} />}
+            {loading && <TableSkeleton rows={8} cols={15} />}
             {shown.visible.map((item, index) => (
               <tr key={item.id} className="table-row">
                 <td className="px-3 py-2.5 text-slate-400">{index + 1}</td>
@@ -301,8 +411,11 @@ export default function ReceiveProduct() {
                   </span>
                 </td>
                 <td className="py-2.5 px-3 text-center">
+                  {/* Amber is the app's "still waiting" colour - see the brand
+                      palette and .badge-orange. This badge was left on Info
+                      blue, the same miss the Sales Ledger's had. */}
                   <span className={`text-xs px-2 py-1 rounded font-medium ${
-                    item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'bg-slate-100 text-slate-700' : 'bg-brand-blue-soft text-brand-blue') : 'bg-green-100 text-green-700'
+                    item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'bg-slate-100 text-slate-700' : 'bg-brand-orange-soft text-brand-orange') : 'bg-green-100 text-green-700'
                   }`}>
                     {item.undelivered_qty > 0 ? (item.received_qty > 0 ? 'Partial' : 'Pending') : 'Received'}
                   </span>
@@ -311,11 +424,57 @@ export default function ReceiveProduct() {
                 <td className="py-2.5 px-3">{item.receiver_name || <NoValue />}</td>
                 <td className="py-2.5 px-3 max-w-[220px] truncate" title={item.receive_note || ''}>{item.receive_note || <NoValue />}</td>
                 <td className="py-2.5 px-3 text-center text-slate-600">{item.durationLabel}</td>
+                <td className="sticky right-0 bg-white px-3 py-2.5 text-right">
+                  <div className="flex min-w-[126px] items-center justify-end gap-1">
+                    {/* Nothing left outstanding, nothing to receive. */}
+                    {item.undelivered_qty > 0 && (
+                      <button
+                        onClick={() => {
+                          setSelectedItem(item)
+                          setReceiveQty(Math.min(item.undelivered_qty, 1))
+                          setReceiverName('')
+                          setReceiveNote('')
+                          setReceiveDate(todayISO())
+                          setShowReceiveModal(true)
+                        }}
+                        className="btn-secondary text-xs py-1 px-2 inline-flex items-center gap-1"
+                        title="Receive product"
+                      >
+                        <Truck size={12} /> Receive
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setEditingId(item.id)
+                        setEditQty(item.received_qty)
+                        setShowEditModal(true)
+                      }}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-1 px-2 rounded inline-flex items-center gap-1"
+                      title="Edit received quantity"
+                      aria-label={`Edit received quantity for ${item.product_name}`}
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (await confirmAction({ message: 'Delete this received record?' })) {
+                          deleteReceive(item.id)
+                        }
+                      }}
+                      disabled={deletingId === item.id}
+                      className="bg-red-100 hover:bg-red-200 text-red-700 text-xs py-1 px-2 rounded inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
+                      title="Delete received record"
+                      aria-label={`Delete received record for ${item.product_name}`}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {filteredItems.length === 0 && (
               <tr>
-                <td colSpan={14} className="text-center py-8 text-slate-400">
+                <td colSpan={15} className="text-center py-8 text-slate-400">
                   No products found
                 </td>
               </tr>
@@ -324,7 +483,7 @@ export default function ReceiveProduct() {
                 row stays loaded, so the totals above are untouched. */}
             {shown.hasMore && (
               <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
-                <td colSpan={14} className="py-4 text-center text-sm text-slate-400">
+                <td colSpan={15} className="py-4 text-center text-sm text-slate-400">
                   {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
                 </td>
               </tr>
@@ -334,6 +493,142 @@ export default function ReceiveProduct() {
         </TableScroller>
       </div>
 
+      <Modal
+        isOpen={showReceiveModal}
+        onClose={() => {
+          setShowReceiveModal(false)
+          setReceiveNote('')
+        }}
+        title="Receive Product"
+        size="sm"
+      >
+        {selectedItem && (
+          <div className="space-y-4">
+            <div className="bg-white p-3 rounded-lg text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xs text-slate-500">Product</p>
+                  <p className="font-medium text-slate-700">{selectedItem.product_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Pending Qty</p>
+                  <p className="font-medium text-brand-orange">{selectedItem.undelivered_qty}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Unit Price</p>
+                  <p className="font-medium text-slate-700">{formatCurr(selectedItem.actual_dp)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">SI No</p>
+                  <p className="font-medium text-slate-700">{selectedItem.si_no}</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="label" htmlFor="product-received-f1">Received Quantity</label>
+              <input id="product-received-f1"
+                type="number"
+                min="1"
+                max={selectedItem.undelivered_qty}
+                value={receiveQty}
+                onChange={e => setReceiveQty(Number(e.target.value))}
+                className="input"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Max: {selectedItem.undelivered_qty}
+              </p>
+            </div>
+
+            <div>
+              <label className="label" htmlFor="product-received-f2">Receiving Date</label>
+              <input id="product-received-f2"
+                type="date"
+                value={receiveDate}
+                onChange={e => setReceiveDate(e.target.value)}
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="product-received-f3">Receiver Name</label>
+              <input id="product-received-f3"
+                type="text"
+                value={receiverName}
+                onChange={e => setReceiverName(e.target.value)}
+                placeholder="Name"
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="product-received-f4">Note</label>
+              <textarea id="product-received-f4"
+                value={receiveNote}
+                onChange={e => setReceiveNote(e.target.value)}
+                placeholder="Note"
+                className="input"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleReceive}
+                disabled={submitting}
+                className="btn-primary flex-1"
+              >
+                {submitting ? 'Receiving...' : 'Confirm Receive'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowReceiveModal(false)
+                  setReceiveNote('')
+                }}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Received Quantity"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="label" htmlFor="product-received-f5">Received Quantity</label>
+            <input id="product-received-f5"
+              type="number"
+              min="0"
+              value={editQty}
+              onChange={e => setEditQty(Number(e.target.value))}
+              className="input"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={handleEditReceive}
+              disabled={submitting}
+              className="btn-primary flex-1"
+            >
+              {submitting ? 'Updating...' : 'Update'}
+            </button>
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="btn-secondary flex-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
