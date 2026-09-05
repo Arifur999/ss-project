@@ -259,13 +259,16 @@ export default function PurchaseHistory() {
                   <td className="py-3 px-4 text-right font-semibold text-brand-green">{formatCurr(row.deposit_amount)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-green">{formatNum(row.received_qty)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-brand-orange">{formatNum(pendingQty)}</td>
+                  {/* Amber is the app's "still waiting" colour: the brand palette
+                      says so and .badge-orange compiles to it. This was the last
+                      Pending badge left on Info blue. */}
                   <td className="py-3 px-4 text-center">
                     <span className={`rounded px-2 py-1 text-xs font-semibold ${
                       status === 'received'
                         ? 'bg-green-100 text-green-700'
                         : status === 'partial'
                           ? 'bg-slate-100 text-slate-700'
-                          : 'bg-brand-blue-soft text-brand-blue'
+                          : 'bg-brand-orange-soft text-brand-orange'
                     }`}>
                       {status === 'received' ? 'Received' : status === 'partial' ? 'Partial' : 'Pending'}
                     </span>
