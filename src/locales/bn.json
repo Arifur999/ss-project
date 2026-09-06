@@ -791,5 +791,7 @@
   "cash_sent": "রিপোর্ট পাঠানো হয়েছে",
   "cash_sendFailed": "রিপোর্ট পাঠানো গেল না",
   "cash_nothingToSend": "আগে কিছু গুনুন",
-  "cash_date": "তারিখ"
+  "cash_date": "তারিখ",
+  "nav_draftPurchaseOrder": "খসড়া ক্রয় অর্ডার",
+  "nav_draftSales": "খসড়া বিক্রয়"
 }

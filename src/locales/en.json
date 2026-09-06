@@ -791,5 +791,7 @@
   "cash_sent": "Report sent to",
   "cash_sendFailed": "Could not send the report",
   "cash_nothingToSend": "Count something first",
-  "cash_date": "Date"
+  "cash_date": "Date",
+  "nav_draftPurchaseOrder": "Draft Purchase Order",
+  "nav_draftSales": "Draft Sales"
 }

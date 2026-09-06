@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, PaperPlaneTiltIcon as PaperPlane, ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards, WarningIcon as Warning } from '@phosphor-icons/react'
+import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList,  ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards, WarningIcon as Warning } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
-import { emailReport, type EmailReportPayload } from '../../services/report.services'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { readOtherIncomeFallbackRows } from '../../lib/otherIncomeFallback'
@@ -220,7 +219,6 @@ export default function ReportSummary() {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [reportTab, setReportTab] = useState<ReportTabKey>(REPORT_TABS[0].key)
-  const [sendingReport, setSendingReport] = useState(false)
 
   const range = useMemo(() => {
     if (filterMode === 'custom') {
@@ -806,71 +804,6 @@ export default function ReportSummary() {
   const profitAchievedPct = pct(achievedProfit, data.profitTarget)
   const profitMargin = data.totalSales > 0 ? (data.profitLoss / data.totalSales) * 100 : 0
 
-  /**
-   * The report as an email, built from the figures already on screen.
-   *
-   * Formatted here rather than on the server: formatCurr is what the page
-   * prints, down to the Bangla digits when that is the language in use, so the
-   * email reads exactly like the screen it was sent from. Recomputing it server
-   * side would be a second copy of this page's arithmetic, and two copies of a
-   * profit figure is one too many.
-   */
-  function buildReportPayload(): EmailReportPayload {
-    const breakdownTable = (title: string, rows: BreakdownRow[]) => ({
-      title,
-      columns: ['Name', 'Amount', 'Share'],
-      rows: rows.map(row => [
-        String(row.name || '-'),
-        formatCurr(row.amount),
-        row.percent === undefined ? '-' : percentText(row.percent),
-      ]),
-    })
-
-    return {
-      title: t('nav_monthly', 'Report'),
-      period: range.label,
-      summary: [
-        { label: 'Sales Target', value: formatCurr(data.salesTarget) },
-        { label: 'Total Sales', value: formatCurr(data.totalSales) },
-        { label: 'Sales Achieved', value: percentText(salesAchievedPct) },
-        { label: 'Profit Target', value: formatCurr(data.profitTarget) },
-        { label: 'Achieved Profit', value: formatCurr(achievedProfit) },
-        { label: 'Profit Achieved', value: percentText(profitAchievedPct) },
-        { label: 'Purchase Value', value: formatCurr(data.purchaseValue) },
-        { label: 'Purchase Incentive', value: formatCurr(data.purchaseIncentive) },
-        { label: 'Other Income', value: formatCurr(data.totalOtherIncome) },
-        { label: 'Total Expenses', value: formatCurr(data.totalExpenses) },
-        { label: 'Supplier Payments', value: formatCurr(data.supplierPayments) },
-        { label: 'Profit Withdrawn', value: formatCurr(data.profitWithdraw) },
-        { label: 'Profit / Loss', value: formatCurr(data.profitLoss) },
-        { label: 'Available Profit', value: formatCurr(data.availableProfit) },
-      ],
-      tables: [
-        breakdownTable('Sales', data.salesBreakdown),
-        breakdownTable('Purchases', data.purchaseBreakdown),
-        breakdownTable('Expenses', data.expenseBreakdown),
-        breakdownTable('Supplier Payments', data.supplierPaymentBreakdown),
-        breakdownTable('Other Income', data.otherIncomeBreakdown),
-        // A table with no rows is dropped by the server, so an empty section
-        // costs nothing and a business with no other income is not sent a
-        // heading over blank space.
-      ],
-    }
-  }
-
-  async function sendReportToOwner() {
-    if (sendingReport) return
-    setSendingReport(true)
-    try {
-      const result = await emailReport(buildReportPayload())
-      toast.success(`Report sent to ${result.email}`)
-    } catch (error: any) {
-      toast.error(error?.message || 'Could not send the report')
-    } finally {
-      setSendingReport(false)
-    }
-  }
-
   // Width so 4 bars per day stay readable; scrolls horizontally when the month
   // has many days on a narrow screen.
   const chartInnerWidth = Math.max(680, data.dailyPerformance.length * 42)
@@ -1081,17 +1014,6 @@ export default function ReportSummary() {
             <button onClick={loadReport} className="btn-secondary h-10">
               <RefreshCw size={16} />
               Refresh
-            </button>
-            {/* Goes to the owner's own address, looked up server side - there
-                is no field here to point it anywhere else. */}
-            <button
-              onClick={sendReportToOwner}
-              disabled={loading || sendingReport}
-              className="btn-primary h-10 disabled:cursor-not-allowed disabled:opacity-50"
-              title="Email this report to the business owner"
-            >
-              <PaperPlane size={16} />
-              {sendingReport ? 'Sending...' : 'Send Report'}
             </button>
           </div>
         )}

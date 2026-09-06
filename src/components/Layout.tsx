@@ -112,6 +112,7 @@ export default function Layout() {
       children: [
         { key: 'suppDash', label: t('nav_supplierDashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
         { key: 'purchOrders', label: t('nav_purchaseOrders'), icon: <ShoppingCart size={16} />, path: '/purchase/orders' },
+        { key: 'purchDrafts', label: t('nav_draftPurchaseOrder', 'Draft Purchase Order'), icon: <FileText size={16} />, path: '/purchase/drafts' },
         { key: 'purchaseLedger', label: t('nav_purchaseLedger', 'Purchase Ledger'), icon: <FileText size={16} />, path: '/purchase/ledger' },
         { key: 'productReceived', label: t('nav_productReceived'), icon: <Package size={16} />, path: '/purchase/product-received' },
         { key: 'purchPayments', label: t('nav_supplierPayments'), icon: <CreditCard size={16} />, path: '/purchase/payments' },
@@ -125,6 +126,7 @@ export default function Layout() {
       key: 'sales', label: t('nav_sales'), icon: <ShoppingBag size={18} weight="duotone" />,
       children: [
         { key: 'salesNew', label: t('sales_newEntry'), icon: <Plus size={16} />, path: '/sales' },
+        { key: 'salesDrafts', label: t('nav_draftSales', 'Draft Sales'), icon: <FileText size={16} />, path: '/sales/drafts' },
         { key: 'salesLedger', label: t('sales_ledger', 'Sales Ledger'), icon: <FileText size={16} />, path: '/sales/ledger' },
         { key: 'salesHistory', label: t('nav_salesHistory'), icon: <BookOpen size={16} />, path: '/sales/history' },
       ],

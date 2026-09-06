@@ -79,9 +79,11 @@ export const PERMISSION_TEMPLATES: Record<string, string[]> = {
  */
 export const ROUTE_PERMISSIONS: Record<string, string> = {
   '/sales': 'New Sale',
+  '/sales/drafts': 'New Sale',
   '/sales/ledger': 'View Sales',
   '/purchase': 'View Purchase',
   '/purchase/orders': 'Add Purchase',
+  '/purchase/drafts': 'Add Purchase',
   '/purchase/received': 'Receive Stock',
   '/purchase/ledger': 'View Purchase',
   '/purchase/history': 'View Purchase',

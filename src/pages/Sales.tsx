@@ -23,6 +23,10 @@ import { NoValue, ZeroAmount } from '../components/CellValue'
 import { DUPLICATE_PHONE_MESSAGE, INVALID_PHONE_MESSAGE, isValidBdPhone } from '../lib/phone'
 import { phoneBelongsToAnotherCustomer } from '../lib/customerPhone'
 import { actualDp } from '../lib/purchaseAmounts'
+import { useSearchParams } from 'react-router-dom'
+import { deleteDraft, getDraft, saveDraft as saveDraftRequest, updateDraft } from '../services/draft.services'
+import { SALE_DRAFT_VERSION, STALE_DRAFT_MESSAGE, isSaleDraftPayload } from '../lib/draftPayload'
+import { ApiError } from '../lib/httpClient'
 
 const smsInvoiceKey = 'sales_sms_invoice_v1'
 
@@ -190,6 +194,10 @@ export default function Sales() {
   // but it is never billed as goods - see save(), which books it as a customer
   // payment against the previous dues instead.
   const [previousDuePay, setPreviousDuePay] = useState(0)
+  // Set while this form stands in for a parked draft, so saving again overwrites
+  // it rather than parking a second copy, and saving the sale knows what to clear.
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [savingDraft, setSavingDraft] = useState(false)
   const [quickCustomerForm, setQuickCustomerForm] = useState({ name: '', phone: '', address: '' })
   const [quickCustomerErrors, setQuickCustomerErrors] = useState<QuickCustomerValidationErrors>({})
   const [quickProductForm, setQuickProductForm] = useState({
@@ -213,6 +221,20 @@ export default function Sales() {
   const deliveryFallbackKey = 'sales_delivery_fallback_v1'
   const costFallbackKey = 'sales_item_cost_fallback_v1'
   const salePaymentsFallbackKey = 'sales_split_payment_fallback_v1'
+
+  const [searchParams] = useSearchParams()
+
+  // Opening a draft is a one-shot: the id arrives on the query string and is
+  // stripped straight away. Leaving it there would reopen the draft on every
+  // refresh - including after it had been published and deleted, so a
+  // successful sale would be met with "Draft not found".
+  useEffect(() => {
+    const id = searchParams.get('draft')
+    if (!id) return
+    navigate('/sales', { replace: true })
+    void openDraft(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   useEffect(() => {
     loadAll()
@@ -1127,6 +1149,8 @@ export default function Sales() {
         }
       }
 
+      await clearPublishedDraft()
+
       if (editingSale) {
         await touchOwnerActivity(true)
         toast.success(t('common_updated'))
@@ -1191,8 +1215,105 @@ export default function Sales() {
     saveStorageRows(salePaymentsFallbackKey, saleId, [])
   }
 
+  /**
+   * Park the invoice as it stands.
+   *
+   * No validation, deliberately: an invoice with no customer yet and one blank
+   * line is exactly what this button is for, and save() would refuse it.
+   */
+  async function saveAsDraft() {
+    if (savingDraft) return
+
+    const body = {
+      kind: 'sale' as const,
+      title: form.customer_name || form.customer_phone || 'No customer chosen',
+      subtitle: form.invoice_no || '',
+      amount: grandTotal,
+      payload_version: SALE_DRAFT_VERSION,
+      data: {
+        v: SALE_DRAFT_VERSION, form, items, paymentRows, previousDuePay,
+      } as unknown as Record<string, unknown>,
+    }
+
+    try {
+      setSavingDraft(true)
+      if (draftId) {
+        await updateDraft(draftId, body)
+      } else {
+        const created = await saveDraftRequest(body)
+        setDraftId(created.id)
+      }
+      void touchOwnerActivity(true)
+      toast.success('Saved to Draft Sales')
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not save this draft')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  async function openDraft(id: string) {
+    try {
+      const draft = await getDraft(id)
+      const payload = draft.data
+      if (!isSaleDraftPayload(payload)) {
+        toast.error(STALE_DRAFT_MESSAGE)
+        return
+      }
+
+      const savedForm = payload.form
+      setForm({ ...savedForm })
+      setCustomerSearch(`${savedForm.customer_name || ''}${savedForm.customer_phone ? ` (${savedForm.customer_phone})` : ''}`)
+      setShowCustomerSuggestions(false)
+      setItems(payload.items as unknown as SaleItem[])
+      setPaymentRows((payload.paymentRows as unknown as PaymentRow[]).length > 0
+        ? (payload.paymentRows as unknown as PaymentRow[])
+        : [emptyPaymentRow()])
+
+      // The one figure in a draft that goes stale dangerously. Previous due is
+      // not part of the invoice - at save time it becomes a separate payment
+      // against the customer's OLD balance - and that balance moves. A draft
+      // written on Monday may claim 5,000 the customer settled on Tuesday, and
+      // publishing it unclamped books a payment against a due that no longer
+      // exists, pushing their ledger negative. The live figure always wins.
+      const liveDue = currentCustomerPreviousDue(savedForm.customer_id || '')
+      const wanted = Number(payload.previousDuePay || 0)
+      const clamped = Math.max(0, Math.min(wanted, liveDue))
+      setPreviousDuePay(clamped)
+
+      setDraftId(draft.id)
+      toast.success(clamped < wanted
+        ? 'Draft loaded. The previous due has changed since it was saved, so that amount was reduced.'
+        : 'Draft loaded')
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not open that draft')
+    }
+  }
+
+  /**
+   * The invoice is saved; the draft that became it is no longer wanted.
+   *
+   * Never rolls the sale back and never reports the save as failed. A 404 means
+   * somebody else already cleared it, which is the outcome anyway. Anything
+   * else leaves a draft that outlived its invoice - untidy, and the draft page
+   * has a Delete button - whereas calling the save a failure would have the
+   * operator write the same invoice twice.
+   */
+  async function clearPublishedDraft() {
+    if (!draftId) return
+    try {
+      await deleteDraft(draftId)
+    } catch (error: any) {
+      if (!(error instanceof ApiError && error.status === 404)) {
+        toast('Invoice saved. The draft could not be removed - delete it from Draft Sales.')
+      }
+    }
+    setDraftId(null)
+  }
+
   function resetForm() {
     setEditingSale(null)
+    setDraftId(null)
     setForm({
       invoice_no: generateInvoiceNo(),
       date: todayISO(),
@@ -2466,13 +2587,27 @@ export default function Sales() {
                   </div>
                 </div>
 
-                <div className="pt-3">
+                <div className="space-y-2 pt-3">
                   <button
                     onClick={() => save(false)}
                     className="btn-primary w-full justify-center py-2.5"
                   >
                     <Save size={16} /> {editingSale ? t('common_update') : 'Sale'}
                   </button>
+                  {/* Parks the invoice as it stands - no validation, because an
+                      unfinished invoice is the whole point of the button. It is
+                      hidden while editing a real sale: that one is already
+                      saved, and a draft of it would be a second copy. */}
+                  {!editingSale && (
+                    <button
+                      onClick={saveAsDraft}
+                      disabled={savingDraft}
+                      className="btn-secondary w-full justify-center py-2.5 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Save this invoice and finish it later"
+                    >
+                      <Save size={16} /> {savingDraft ? 'Saving...' : draftId ? 'Update Draft' : 'Draft Invoice'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

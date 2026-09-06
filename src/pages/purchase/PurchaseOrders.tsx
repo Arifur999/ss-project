@@ -9,6 +9,10 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { deleteDraft, getDraft, saveDraft as saveDraftRequest, updateDraft } from '../../services/draft.services'
+import { PURCHASE_DRAFT_VERSION, STALE_DRAFT_MESSAGE, isPurchaseDraftPayload } from '../../lib/draftPayload'
+import { ApiError } from '../../lib/httpClient'
 import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { createPurchase as createPurchaseRequest, deletePurchaseReceive, receiveAllPurchaseItems, receivePurchaseItem, updatePurchaseReceive } from '../../services/purchase.services'
@@ -124,6 +128,11 @@ export default function PlaceOrder() {
   const [editingPOId, setEditingPOId] = useState<string | null>(null)
   const [showEditPOModal, setShowEditPOModal] = useState(false)
   const [editPOForm, setEditPOForm] = useState({ si_no: '', date: '', supplier_id: '' })
+  // Set while this form is standing in for a parked draft, so saving again
+  // overwrites it instead of parking a second copy, and publishing knows which
+  // row to clear.
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [savingDraft, setSavingDraft] = useState(false)
   const { user, touchOwnerActivity } = useAuth()
 
   // shipping_status is typed as the union, not inferred from the initial value:
@@ -164,6 +173,112 @@ export default function PlaceOrder() {
   })
 
   useEffect(() => { loadAll() }, [])
+
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  // Opening a draft is a one-shot: the id comes in on the query string and is
+  // stripped straight away. Leaving it there would reopen the draft on every
+  // refresh - including after it had been published and deleted, which would
+  // greet a successful order with "Draft not found".
+  useEffect(() => {
+    const id = searchParams.get('draft')
+    if (!id) return
+    navigate('/purchase/orders', { replace: true })
+    void openDraft(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  async function openDraft(id: string) {
+    try {
+      const draft = await getDraft(id)
+      const payload = draft.data
+      if (!isPurchaseDraftPayload(payload)) {
+        toast.error(STALE_DRAFT_MESSAGE)
+        return
+      }
+
+      // A draft can outlive what it points at - a supplier removed, a product
+      // deleted - and the server would refuse the publish with "Supplier not
+      // found" only after the whole form had been checked over again. Drop the
+      // dead reference now and say so.
+      const supplierGone = payload.form.supplier_id
+        && !suppliers.some(supplier => supplier.id === payload.form.supplier_id)
+
+      setForm({
+        ...payload.form,
+        supplier_id: supplierGone ? '' : payload.form.supplier_id,
+        shipping_status: (payload.form.shipping_status || 'pending') as OrderStatus,
+      })
+      setItems(payload.items as unknown as PurchaseItem[])
+      setSpPercent(Number(payload.spPercent || 0))
+      setDraftId(draft.id)
+
+      toast.success(supplierGone
+        ? 'Draft loaded. Its supplier no longer exists - please pick another.'
+        : 'Draft loaded')
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not open that draft')
+    }
+  }
+
+  /**
+   * Park the order as it stands.
+   *
+   * No validation, deliberately: a half-finished order is exactly what this
+   * button is for, and the checks save() runs would refuse it.
+   */
+  async function saveAsDraft() {
+    if (savingDraft) return
+
+    const supplier = suppliers.find(item => item.id === form.supplier_id)
+    const body = {
+      kind: 'purchase_order' as const,
+      title: supplier?.name || supplier?.company_name || 'No supplier chosen',
+      subtitle: form.si_no || '',
+      amount: totalAmount,
+      payload_version: PURCHASE_DRAFT_VERSION,
+      data: { v: PURCHASE_DRAFT_VERSION, form, items, spPercent } as unknown as Record<string, unknown>,
+    }
+
+    try {
+      setSavingDraft(true)
+      if (draftId) {
+        await updateDraft(draftId, body)
+      } else {
+        const created = await saveDraftRequest(body)
+        setDraftId(created.id)
+      }
+      // Twenty minutes building a draft is not idle time.
+      void touchOwnerActivity(true)
+      toast.success('Saved to Draft Purchase Order')
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not save this draft')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  /**
+   * The order is saved; the draft that became it is no longer wanted.
+   *
+   * Never rolls the order back and never reports the save as failed. A 404
+   * means somebody else already cleared it, which is the outcome anyway.
+   * Anything else leaves a draft that outlived its order - untidy, and the
+   * draft page has a Delete button - whereas saying the save failed would have
+   * the operator enter the same order twice.
+   */
+  async function clearPublishedDraft() {
+    if (!draftId) return
+    try {
+      await deleteDraft(draftId)
+    } catch (error: any) {
+      if (!(error instanceof ApiError && error.status === 404)) {
+        toast('Order saved. The draft could not be removed - delete it from Draft Purchase Order.')
+      }
+    }
+    setDraftId(null)
+  }
 
   async function loadAll() {
     const [poRes, supRes, proRes, accRes, invRes, balancePoRes, payRes] = await Promise.all([
@@ -480,6 +595,8 @@ export default function PlaceOrder() {
           notes: 'Received on order creation',
         })
       }
+
+      await clearPublishedDraft()
 
       await touchOwnerActivity(true)
       toast.success(receiveNow ? 'Purchase order saved and received into stock' : t('common_saved'))
@@ -936,9 +1053,21 @@ export default function PlaceOrder() {
                 <span className="text-navy-800">Grand Total</span>
                 <span className="text-brand-green">{formatCurr(totalActualDeposit || totalAmount)}</span>
               </div>
-              <button onClick={save} className="btn-primary mt-6 h-14 w-full justify-center text-base">
-                <ShoppingCart size={18} /> Submit Purchase Order
-              </button>
+              <div className="mt-6 flex gap-2">
+                <button onClick={save} className="btn-primary h-14 flex-1 justify-center text-base">
+                  <ShoppingCart size={18} /> Submit Purchase Order
+                </button>
+                {/* Parks the order as it stands - no validation, because a
+                    half-finished order is the whole point of the button. */}
+                <button
+                  onClick={saveAsDraft}
+                  disabled={savingDraft}
+                  className="btn-secondary h-14 justify-center px-5 text-base disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Save this order and finish it later"
+                >
+                  <Save size={18} /> {savingDraft ? 'Saving...' : draftId ? 'Update Draft' : 'Draft Order'}
+                </button>
+              </div>
             </section>
           </div>
 
