@@ -784,6 +784,6 @@
   "cash_clearTitle": "হিসাব মুছে ফেলবেন?",
   "cash_clearMessage": "এখানে লেখা প্রতিটি সংখ্যা মুছে যাবে। এটি আর ফেরানো যাবে না।",
   "cash_clearConfirm": "হ্যাঁ, মুছুন",
-  "cash_remark": "মন্তব্য",
-  "cash_remarkPlaceholder": "যেমন: দিন শেষের ক্যাশ, গুনেছে রাকিব"
+  "cash_countedBy": "গুনেছেন",
+  "cash_countedByPlaceholder": "নাম লিখুন"
 }

@@ -784,6 +784,6 @@
   "cash_clearTitle": "Clear the count?",
   "cash_clearMessage": "Every quantity typed here will be cleared. This cannot be undone.",
   "cash_clearConfirm": "Yes, Clear",
-  "cash_remark": "Remark",
-  "cash_remarkPlaceholder": "e.g. Day-end drawer, counted by Rakib"
+  "cash_countedBy": "Counted by",
+  "cash_countedByPlaceholder": "Type the name"
 }

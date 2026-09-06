@@ -23,20 +23,20 @@ const STORAGE_KEY = 'cash_counter_v1'
 
 type Counts = Record<number, number>
 
-function readStored(): { note: string; counts: Counts } {
+function readStored(): { countedBy: string; counts: Counts } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { note: '', counts: {} }
+    if (!raw) return { countedBy: '', counts: {} }
     const parsed = JSON.parse(raw)
-    return { note: String(parsed?.note || ''), counts: parsed?.counts || {} }
+    return { countedBy: String(parsed?.countedBy || ''), counts: parsed?.counts || {} }
   } catch {
-    return { note: '', counts: {} }
+    return { countedBy: '', counts: {} }
   }
 }
 
-function writeStored(note: string, counts: Counts) {
+function writeStored(countedBy: string, counts: Counts) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ note, counts }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ countedBy, counts }))
   } catch {
     // A full quota must never stop somebody counting money.
   }
@@ -46,7 +46,7 @@ export default function CashCounter() {
   const { t, formatCurr, formatNum } = useLang()
   const [open, setOpen] = useState(false)
   const stored = useMemo(readStored, [])
-  const [note, setNote] = useState(stored.note)
+  const [countedBy, setCountedBy] = useState(stored.countedBy)
   const [counts, setCounts] = useState<Counts>(stored.counts)
   const [copied, setCopied] = useState(false)
 
@@ -57,7 +57,7 @@ export default function CashCounter() {
 
   const totalNotes = rows.reduce((sum, row) => sum + row.qty, 0)
   const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0)
-  const hasAnything = totalNotes > 0 || note.trim().length > 0
+  const hasAnything = totalNotes > 0 || countedBy.trim().length > 0
 
   function setCount(value: number, raw: string) {
     // Blank clears the row rather than storing 0, so the cell reads empty
@@ -65,11 +65,11 @@ export default function CashCounter() {
     const qty = raw === '' ? 0 : Math.max(0, Math.floor(Number(raw) || 0))
     const next = { ...counts, [value]: qty }
     setCounts(next)
-    writeStored(note, next)
+    writeStored(countedBy, next)
   }
 
-  function changeNote(value: string) {
-    setNote(value)
+  function changeCountedBy(value: string) {
+    setCountedBy(value)
     writeStored(value, counts)
   }
 
@@ -82,7 +82,7 @@ export default function CashCounter() {
       cancelText: t('common_cancel', 'Cancel'),
     }))) return
 
-    setNote('')
+    setCountedBy('')
     setCounts({})
     writeStored('', {})
   }
@@ -95,7 +95,7 @@ export default function CashCounter() {
   function summaryText() {
     const lines = [
       `${t('cash_title', 'Cash Counter')} - ${formatDate(new Date())}`,
-      note.trim(),
+      countedBy.trim() ? `${t('cash_countedBy', 'Counted by')}: ${countedBy.trim()}` : '',
       '',
       ...rows.filter(row => row.qty > 0).map(row =>
         `${formatNum(row.value)} x ${formatNum(row.qty)} = ${formatNum(row.amount)}`
@@ -136,15 +136,18 @@ export default function CashCounter() {
       <Modal isOpen={open} onClose={() => setOpen(false)} title={t('cash_title', 'Cash Counter')} size="md">
         <div className="space-y-4">
           <div>
-            <label className="label" htmlFor="cash-counter-note">
-              {t('cash_remark', 'Remark')}
+            <label className="label" htmlFor="cash-counter-counted-by">
+              {t('cash_countedBy', 'Counted by')}
             </label>
+            {/* Typed, not picked. Whoever counts the till is often a shop hand
+                who is not in the employee list, so a lookup would ask for a
+                record that does not exist to write down a name. */}
             <input
-              id="cash-counter-note"
+              id="cash-counter-counted-by"
               className="input"
-              value={note}
-              onChange={event => changeNote(event.target.value)}
-              placeholder={t('cash_remarkPlaceholder', 'e.g. Day-end drawer, counted by Rakib')}
+              value={countedBy}
+              onChange={event => changeCountedBy(event.target.value)}
+              placeholder={t('cash_countedByPlaceholder', 'Type the name')}
             />
           </div>
 
