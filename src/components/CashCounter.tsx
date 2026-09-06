@@ -12,8 +12,11 @@ import { formatDate } from '../lib/utils'
  * Bangladeshi notes, largest first. Tk 1,000 is the biggest in circulation -
  * the 2,000 on the app this was modelled on is an Indian note and has no place
  * in a Bangladeshi till.
+ *
+ * Stops at Tk 5. The two and the one are coins in a shop till, not notes worth
+ * counting one by one, and two rows nobody fills are two rows in the way.
  */
-const DENOMINATIONS = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1] as const
+const DENOMINATIONS = [1000, 500, 200, 100, 50, 20, 10, 5] as const
 
 /**
  * Kept per browser so a half-finished count survives a reload or an accidental
