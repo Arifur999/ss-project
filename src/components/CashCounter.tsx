@@ -5,7 +5,7 @@ import Modal from './Modal'
 import { confirmAction } from './ConfirmDialog'
 import { useLang } from '../context/LanguageContext'
 import { emailReport } from '../services/report.services'
-import { formatDate } from '../lib/utils'
+import { formatDate, todayISO } from '../lib/utils'
 
 /**
  * Counting the drawer at day end: how many of each note, what that comes to.
@@ -27,20 +27,30 @@ const STORAGE_KEY = 'cash_counter_v1'
 
 type Counts = Record<number, number>
 
-function readStored(): { countedBy: string; counts: Counts } {
+type Stored = { countedBy: string; date: string; counts: Counts }
+
+function readStored(): Stored {
+  const empty = { countedBy: '', date: todayISO(), counts: {} }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { countedBy: '', counts: {} }
+    if (!raw) return empty
     const parsed = JSON.parse(raw)
-    return { countedBy: String(parsed?.countedBy || ''), counts: parsed?.counts || {} }
+    return {
+      countedBy: String(parsed?.countedBy || ''),
+      // A count left open overnight reopens dated today, not yesterday: the
+      // date is what the report is filed under, and a stale one is worse than
+      // no memory of it at all.
+      date: String(parsed?.date || '') || todayISO(),
+      counts: parsed?.counts || {},
+    }
   } catch {
-    return { countedBy: '', counts: {} }
+    return empty
   }
 }
 
-function writeStored(countedBy: string, counts: Counts) {
+function writeStored(next: Stored) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ countedBy, counts }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   } catch {
     // A full quota must never stop somebody counting money.
   }
@@ -51,6 +61,7 @@ export default function CashCounter() {
   const [open, setOpen] = useState(false)
   const stored = useMemo(readStored, [])
   const [countedBy, setCountedBy] = useState(stored.countedBy)
+  const [date, setDate] = useState(stored.date)
   const [counts, setCounts] = useState<Counts>(stored.counts)
   const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState(false)
@@ -70,12 +81,17 @@ export default function CashCounter() {
     const qty = raw === '' ? 0 : Math.max(0, Math.floor(Number(raw) || 0))
     const next = { ...counts, [value]: qty }
     setCounts(next)
-    writeStored(countedBy, next)
+    writeStored({ countedBy, date, counts: next })
   }
 
   function changeCountedBy(value: string) {
     setCountedBy(value)
-    writeStored(value, counts)
+    writeStored({ countedBy: value, date, counts })
+  }
+
+  function changeDate(value: string) {
+    setDate(value)
+    writeStored({ countedBy, date: value, counts })
   }
 
   async function clearAll() {
@@ -88,8 +104,9 @@ export default function CashCounter() {
     }))) return
 
     setCountedBy('')
+    setDate(todayISO())
     setCounts({})
-    writeStored('', {})
+    writeStored({ countedBy: '', date: todayISO(), counts: {} })
   }
 
   /**
@@ -99,7 +116,7 @@ export default function CashCounter() {
    */
   function summaryText() {
     const lines = [
-      `${t('cash_title', 'Cash Counter')} - ${formatDate(new Date())}`,
+      `${t('cash_title', 'Cash Counter')} - ${formatDate(date)}`,
       countedBy.trim() ? `${t('cash_countedBy', 'Counted by')}: ${countedBy.trim()}` : '',
       '',
       ...countedRows.map(row =>
@@ -133,7 +150,7 @@ export default function CashCounter() {
     try {
       const result = await emailReport({
         title: t('cash_title', 'Cash Counter'),
-        period: formatDate(new Date()),
+        period: formatDate(date),
         summary: [
           ...(countedBy.trim() ? [{ label: t('cash_countedBy', 'Counted by'), value: countedBy.trim() }] : []),
           { label: t('cash_totalNotes', 'Total notes'), value: formatNum(totalNotes) },
@@ -181,20 +198,37 @@ export default function CashCounter() {
 
       <Modal isOpen={open} onClose={() => setOpen(false)} title={t('cash_title', 'Cash Counter')} size="md">
         <div className="space-y-4">
-          <div>
-            <label className="label" htmlFor="cash-counter-counted-by">
-              {t('cash_countedBy', 'Counted by')}
-            </label>
-            {/* Typed, not picked. Whoever counts the till is often a shop hand
-                who is not in the employee list, so a lookup would ask for a
-                record that does not exist to write down a name. */}
-            <input
-              id="cash-counter-counted-by"
-              className="input"
-              value={countedBy}
-              onChange={event => changeCountedBy(event.target.value)}
-              placeholder={t('cash_countedByPlaceholder', 'Type the name')}
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="cash-counter-counted-by">
+                {t('cash_countedBy', 'Counted by')}
+              </label>
+              {/* Typed, not picked. Whoever counts the till is often a shop hand
+                  who is not in the employee list, so a lookup would ask for a
+                  record that does not exist to write down a name. */}
+              <input
+                id="cash-counter-counted-by"
+                className="input"
+                value={countedBy}
+                onChange={event => changeCountedBy(event.target.value)}
+                placeholder={t('cash_countedByPlaceholder', 'Type the name')}
+              />
+            </div>
+            <div>
+              <label className="label" htmlFor="cash-counter-date">
+                {t('cash_date', 'Date')}
+              </label>
+              {/* Editable, because a drawer counted after closing is often
+                  entered the next morning and belongs to the day it was
+                  counted, not the day it was typed. */}
+              <input
+                id="cash-counter-date"
+                type="date"
+                className="input"
+                value={date}
+                onChange={event => changeDate(event.target.value)}
+              />
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-xl border border-neutral-200">

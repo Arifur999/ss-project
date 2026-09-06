@@ -790,5 +790,6 @@
   "cash_sending": "Sending...",
   "cash_sent": "Report sent to",
   "cash_sendFailed": "Could not send the report",
-  "cash_nothingToSend": "Count something first"
+  "cash_nothingToSend": "Count something first",
+  "cash_date": "Date"
 }

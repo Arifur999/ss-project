@@ -790,5 +790,6 @@
   "cash_sending": "পাঠানো হচ্ছে...",
   "cash_sent": "রিপোর্ট পাঠানো হয়েছে",
   "cash_sendFailed": "রিপোর্ট পাঠানো গেল না",
-  "cash_nothingToSend": "আগে কিছু গুনুন"
+  "cash_nothingToSend": "আগে কিছু গুনুন",
+  "cash_date": "তারিখ"
 }
