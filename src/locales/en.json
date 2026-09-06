@@ -769,5 +769,21 @@
   "balance_netLoan": "Net Loan",
   "balance_netTrade": "Net Trade",
   "settings_passwordMin": "Password must be at least 8 characters",
-  "dueReceived_searchPlaceholder": "Search name, phone or amount"
+  "dueReceived_searchPlaceholder": "Search name, phone or amount",
+  "cash_title": "Cash Counter",
+  "cash_note": "Note",
+  "cash_qty": "Qty",
+  "cash_amount": "Amount",
+  "cash_totalNotes": "Total notes",
+  "cash_total": "Total",
+  "cash_copy": "Copy breakdown",
+  "cash_copied": "Breakdown copied",
+  "cash_copyFailed": "Could not copy - your browser refused clipboard access",
+  "cash_nothingToCopy": "Nothing counted yet",
+  "cash_clear": "Clear",
+  "cash_clearTitle": "Clear the count?",
+  "cash_clearMessage": "Every quantity typed here will be cleared. This cannot be undone.",
+  "cash_clearConfirm": "Yes, Clear",
+  "cash_remark": "Remark",
+  "cash_remarkPlaceholder": "e.g. Day-end drawer, counted by Rakib"
 }

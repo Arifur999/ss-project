@@ -9,6 +9,7 @@ import { ROUTE_PERMISSIONS, hasPermission } from '../lib/permissions'
 import { useSupportBadge } from '../lib/useSupportBadge'
 import { useLang } from '../context/LanguageContext'
 import NotificationBell from './NotificationBell'
+import CashCounter from './CashCounter'
 import ProfileMenu from './ProfileMenu'
 import ErrorBoundary from './ErrorBoundary'
 import ExpiryReminder from './ExpiryReminder'
@@ -351,6 +352,7 @@ export default function Layout() {
         {/* The bar was 48px tall, which left the bell and the avatar pressed
             against the top edge of the sheet. */}
         <div className="flex h-16 flex-shrink-0 items-center justify-end gap-3 rounded-t-2xl border-b border-neutral-200 bg-white px-6">
+          <CashCounter />
           <NotificationBell />
           <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-0.5">
             <Globe size={13} className="text-neutral-500 ml-1.5" />

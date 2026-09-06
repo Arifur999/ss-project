@@ -769,5 +769,21 @@
   "balance_netLoan": "নিট ঋণ",
   "balance_netTrade": "নিট ব্যবসা",
   "settings_passwordMin": "পাসওয়ার্ড অন্তত ৮ অক্ষরের হতে হবে",
-  "dueReceived_searchPlaceholder": "নাম, ফোন বা টাকার অঙ্ক খুঁজুন"
+  "dueReceived_searchPlaceholder": "নাম, ফোন বা টাকার অঙ্ক খুঁজুন",
+  "cash_title": "ক্যাশ কাউন্টার",
+  "cash_note": "নোট",
+  "cash_qty": "সংখ্যা",
+  "cash_amount": "পরিমাণ",
+  "cash_totalNotes": "মোট নোট",
+  "cash_total": "সর্বমোট",
+  "cash_copy": "হিসাব কপি করুন",
+  "cash_copied": "হিসাব কপি হয়েছে",
+  "cash_copyFailed": "কপি করা গেল না - ব্রাউজার ক্লিপবোর্ডে যেতে দেয়নি",
+  "cash_nothingToCopy": "এখনো কিছু গোনা হয়নি",
+  "cash_clear": "মুছুন",
+  "cash_clearTitle": "হিসাব মুছে ফেলবেন?",
+  "cash_clearMessage": "এখানে লেখা প্রতিটি সংখ্যা মুছে যাবে। এটি আর ফেরানো যাবে না।",
+  "cash_clearConfirm": "হ্যাঁ, মুছুন",
+  "cash_remark": "মন্তব্য",
+  "cash_remarkPlaceholder": "যেমন: দিন শেষের ক্যাশ, গুনেছে রাকিব"
 }
