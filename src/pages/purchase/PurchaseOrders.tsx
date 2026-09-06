@@ -1054,7 +1054,9 @@ export default function PlaceOrder() {
                 <span className="text-brand-green">{formatCurr(totalActualDeposit || totalAmount)}</span>
               </div>
               <div className="mt-6 flex gap-2">
-                <button onClick={save} className="btn-primary h-14 flex-1 justify-center text-base">
+                {/* text-sm, not text-base: side by side the longer label
+                    wrapped onto two lines and the pair stopped matching. */}
+                <button onClick={save} className="btn-primary h-14 flex-1 justify-center whitespace-nowrap text-sm">
                   <ShoppingCart size={18} /> Submit Purchase Order
                 </button>
                 {/* Parks the order as it stands - no validation, because a
@@ -1062,7 +1064,7 @@ export default function PlaceOrder() {
                 <button
                   onClick={saveAsDraft}
                   disabled={savingDraft}
-                  className="btn-secondary h-14 justify-center px-5 text-base disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn-secondary h-14 justify-center whitespace-nowrap px-4 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                   title="Save this order and finish it later"
                 >
                   <Save size={18} /> {savingDraft ? 'Saving...' : draftId ? 'Update Draft' : 'Draft Order'}

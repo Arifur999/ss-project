@@ -776,10 +776,6 @@
   "cash_amount": "পরিমাণ",
   "cash_totalNotes": "মোট নোট",
   "cash_total": "সর্বমোট",
-  "cash_copy": "হিসাব কপি করুন",
-  "cash_copied": "হিসাব কপি হয়েছে",
-  "cash_copyFailed": "কপি করা গেল না - ব্রাউজার ক্লিপবোর্ডে যেতে দেয়নি",
-  "cash_nothingToCopy": "এখনো কিছু গোনা হয়নি",
   "cash_clear": "মুছুন",
   "cash_clearTitle": "হিসাব মুছে ফেলবেন?",
   "cash_clearMessage": "এখানে লেখা প্রতিটি সংখ্যা মুছে যাবে। এটি আর ফেরানো যাবে না।",
@@ -793,5 +789,7 @@
   "cash_nothingToSend": "আগে কিছু গুনুন",
   "cash_date": "তারিখ",
   "nav_draftPurchaseOrder": "খসড়া ক্রয় অর্ডার",
-  "nav_draftSales": "খসড়া বিক্রয়"
+  "nav_draftSales": "খসড়া বিক্রয়",
+  "cash_download": "রিপোর্ট ডাউনলোড",
+  "cash_downloaded": "রিপোর্ট ডাউনলোড হয়েছে"
 }

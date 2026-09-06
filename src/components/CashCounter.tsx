@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react'
-import { CalculatorIcon as Calculator, CopyIcon as Copy, EraserIcon as Eraser, CheckIcon as Check, PaperPlaneTiltIcon as PaperPlane } from '@phosphor-icons/react'
+import { CalculatorIcon as Calculator, DownloadSimpleIcon as Download, EraserIcon as Eraser, PaperPlaneTiltIcon as PaperPlane } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import Modal from './Modal'
 import { confirmAction } from './ConfirmDialog'
 import { useLang } from '../context/LanguageContext'
 import { emailReport } from '../services/report.services'
 import { formatDate, todayISO } from '../lib/utils'
+import { downloadCsv } from '../lib/spreadsheet'
 
 /**
  * Counting the drawer at day end: how many of each note, what that comes to.
@@ -63,7 +64,6 @@ export default function CashCounter() {
   const [countedBy, setCountedBy] = useState(stored.countedBy)
   const [date, setDate] = useState(stored.date)
   const [counts, setCounts] = useState<Counts>(stored.counts)
-  const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState(false)
 
   const rows = DENOMINATIONS.map(value => {
@@ -109,26 +109,6 @@ export default function CashCounter() {
     writeStored({ countedBy: '', date: todayISO(), counts: {} })
   }
 
-  /**
-   * A plain-text breakdown for pasting into WhatsApp or a message - what the
-   * phone app this was modelled on called "Share". Only the rows that were
-   * actually counted, so a count of three notes is three lines.
-   */
-  function summaryText() {
-    const lines = [
-      `${t('cash_title', 'Cash Counter')} - ${formatDate(date)}`,
-      countedBy.trim() ? `${t('cash_countedBy', 'Counted by')}: ${countedBy.trim()}` : '',
-      '',
-      ...countedRows.map(row =>
-        `${formatNum(row.value)} x ${formatNum(row.qty)} = ${formatNum(row.amount)}`
-      ),
-      '',
-      `${t('cash_totalNotes', 'Total notes')}: ${formatNum(totalNotes)}`,
-      `${t('cash_total', 'Total')}: ${formatCurr(totalAmount)}`,
-    ]
-    return lines.filter((line, index) => line !== '' || index > 0).join('\n')
-  }
-
   const countedRows = rows.filter(row => row.qty > 0)
 
   /**
@@ -158,7 +138,7 @@ export default function CashCounter() {
         ],
         tables: [{
           title: t('cash_title', 'Cash Counter'),
-          columns: [t('cash_note', 'Note'), t('cash_qty', 'Qty'), t('cash_amount', 'Amount')],
+          columns: [t('cash_note', 'Currency'), t('cash_qty', 'Qty'), t('cash_amount', 'Amount')],
           rows: countedRows.map(row => [formatCurr(row.value), formatNum(row.qty), formatCurr(row.amount)]),
         }],
       })
@@ -170,19 +150,35 @@ export default function CashCounter() {
     }
   }
 
-  async function copySummary() {
+  /**
+   * The count as a file, through the same downloadCsv every export on the site
+   * uses - so it opens in Excel like the rest of them rather than being a
+   * second, private idea of what a download is.
+   *
+   * Only the denominations actually counted: a row nobody filled is a blank
+   * line in a document somebody is going to file.
+   */
+  function downloadReport() {
     if (totalNotes === 0) {
-      toast.error(t('cash_nothingToCopy', 'Nothing counted yet'))
+      toast.error(t('cash_nothingToSend', 'Count something first'))
       return
     }
-    try {
-      await navigator.clipboard.writeText(summaryText())
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-      toast.success(t('cash_copied', 'Breakdown copied'))
-    } catch {
-      toast.error(t('cash_copyFailed', 'Could not copy - your browser refused clipboard access'))
-    }
+
+    const rows: (string | number)[][] = [
+      [t('cash_title', 'Cash Counter')],
+      [t('cash_date', 'Date'), formatDate(date)],
+      ...(countedBy.trim() ? [[t('cash_countedBy', 'Counted by'), countedBy.trim()]] : []),
+      [],
+      [t('cash_note', 'Currency'), t('cash_qty', 'Qty'), t('cash_amount', 'Amount')],
+      ...countedRows.map(row => [row.value, row.qty, row.amount]),
+      [],
+      [t('cash_totalNotes', 'Total notes'), totalNotes],
+      [t('cash_total', 'Total'), totalAmount],
+    ]
+
+    // Dated, so a folder of these sorts itself.
+    downloadCsv(`cash-count-${date}.csv`, rows)
+    toast.success(t('cash_downloaded', 'Report downloaded'))
   }
 
   return (
@@ -235,7 +231,7 @@ export default function CashCounter() {
             <table className="w-full text-sm">
               <thead className="table-header">
                 <tr>
-                  <th className="px-4 py-2.5 text-left">{t('cash_note', 'Note')}</th>
+                  <th className="px-4 py-2.5 text-left">{t('cash_note', 'Currency')}</th>
                   <th className="px-4 py-2.5 text-center">{t('cash_qty', 'Qty')}</th>
                   <th className="px-4 py-2.5 text-right">{t('cash_amount', 'Amount')}</th>
                 </tr>
@@ -293,9 +289,12 @@ export default function CashCounter() {
           </button>
 
           <div className="flex gap-2">
-            <button onClick={copySummary} className="btn-secondary flex-1 justify-center">
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? t('cash_copied', 'Breakdown copied') : t('cash_copy', 'Copy breakdown')}
+            <button
+              onClick={downloadReport}
+              disabled={totalNotes === 0}
+              className="btn-secondary flex-1 justify-center disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={16} /> {t('cash_download', 'Download report')}
             </button>
             <button
               onClick={clearAll}

@@ -771,15 +771,11 @@
   "settings_passwordMin": "Password must be at least 8 characters",
   "dueReceived_searchPlaceholder": "Search name, phone or amount",
   "cash_title": "Cash Counter",
-  "cash_note": "Note",
+  "cash_note": "Currency",
   "cash_qty": "Qty",
   "cash_amount": "Amount",
   "cash_totalNotes": "Total notes",
   "cash_total": "Total",
-  "cash_copy": "Copy breakdown",
-  "cash_copied": "Breakdown copied",
-  "cash_copyFailed": "Could not copy - your browser refused clipboard access",
-  "cash_nothingToCopy": "Nothing counted yet",
   "cash_clear": "Clear",
   "cash_clearTitle": "Clear the count?",
   "cash_clearMessage": "Every quantity typed here will be cleared. This cannot be undone.",
@@ -793,5 +789,7 @@
   "cash_nothingToSend": "Count something first",
   "cash_date": "Date",
   "nav_draftPurchaseOrder": "Draft Purchase Order",
-  "nav_draftSales": "Draft Sales"
+  "nav_draftSales": "Draft Sales",
+  "cash_download": "Download report",
+  "cash_downloaded": "Report downloaded"
 }
