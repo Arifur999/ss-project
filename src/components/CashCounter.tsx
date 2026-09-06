@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react'
-import { CalculatorIcon as Calculator, CopyIcon as Copy, EraserIcon as Eraser, CheckIcon as Check } from '@phosphor-icons/react'
+import { CalculatorIcon as Calculator, CopyIcon as Copy, EraserIcon as Eraser, CheckIcon as Check, PaperPlaneTiltIcon as PaperPlane } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import Modal from './Modal'
 import { confirmAction } from './ConfirmDialog'
 import { useLang } from '../context/LanguageContext'
+import { emailReport } from '../services/report.services'
 import { formatDate } from '../lib/utils'
 
 /**
@@ -52,6 +53,7 @@ export default function CashCounter() {
   const [countedBy, setCountedBy] = useState(stored.countedBy)
   const [counts, setCounts] = useState<Counts>(stored.counts)
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
 
   const rows = DENOMINATIONS.map(value => {
     const qty = Math.max(0, Math.floor(Number(counts[value] || 0)))
@@ -100,7 +102,7 @@ export default function CashCounter() {
       `${t('cash_title', 'Cash Counter')} - ${formatDate(new Date())}`,
       countedBy.trim() ? `${t('cash_countedBy', 'Counted by')}: ${countedBy.trim()}` : '',
       '',
-      ...rows.filter(row => row.qty > 0).map(row =>
+      ...countedRows.map(row =>
         `${formatNum(row.value)} x ${formatNum(row.qty)} = ${formatNum(row.amount)}`
       ),
       '',
@@ -108,6 +110,47 @@ export default function CashCounter() {
       `${t('cash_total', 'Total')}: ${formatCurr(totalAmount)}`,
     ]
     return lines.filter((line, index) => line !== '' || index > 0).join('\n')
+  }
+
+  const countedRows = rows.filter(row => row.qty > 0)
+
+  /**
+   * Mail the count to the business address.
+   *
+   * The server looks that address up itself - Settings first, the owner's login
+   * email if Settings has none - so there is nothing here to point it anywhere
+   * else. The figures go over already formatted, so the email reads exactly
+   * like this dialog.
+   */
+  async function sendReport() {
+    if (sending) return
+    if (totalNotes === 0) {
+      toast.error(t('cash_nothingToSend', 'Count something first'))
+      return
+    }
+
+    setSending(true)
+    try {
+      const result = await emailReport({
+        title: t('cash_title', 'Cash Counter'),
+        period: formatDate(new Date()),
+        summary: [
+          ...(countedBy.trim() ? [{ label: t('cash_countedBy', 'Counted by'), value: countedBy.trim() }] : []),
+          { label: t('cash_totalNotes', 'Total notes'), value: formatNum(totalNotes) },
+          { label: t('cash_total', 'Total'), value: formatCurr(totalAmount) },
+        ],
+        tables: [{
+          title: t('cash_title', 'Cash Counter'),
+          columns: [t('cash_note', 'Note'), t('cash_qty', 'Qty'), t('cash_amount', 'Amount')],
+          rows: countedRows.map(row => [formatCurr(row.value), formatNum(row.qty), formatCurr(row.amount)]),
+        }],
+      })
+      toast.success(`${t('cash_sent', 'Report sent to')} ${result.email}`)
+    } catch (error: any) {
+      toast.error(error?.message || t('cash_sendFailed', 'Could not send the report'))
+    } finally {
+      setSending(false)
+    }
   }
 
   async function copySummary() {
@@ -206,8 +249,17 @@ export default function CashCounter() {
             </div>
           </div>
 
+          <button
+            onClick={sendReport}
+            disabled={sending || totalNotes === 0}
+            className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <PaperPlane size={16} />
+            {sending ? t('cash_sending', 'Sending...') : t('cash_sendReport', 'Send report')}
+          </button>
+
           <div className="flex gap-2">
-            <button onClick={copySummary} className="btn-primary flex-1 justify-center">
+            <button onClick={copySummary} className="btn-secondary flex-1 justify-center">
               {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? t('cash_copied', 'Breakdown copied') : t('cash_copy', 'Copy breakdown')}
             </button>

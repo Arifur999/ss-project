@@ -785,5 +785,10 @@
   "cash_clearMessage": "Every quantity typed here will be cleared. This cannot be undone.",
   "cash_clearConfirm": "Yes, Clear",
   "cash_countedBy": "Counted by",
-  "cash_countedByPlaceholder": "Type the name"
+  "cash_countedByPlaceholder": "Type the name",
+  "cash_sendReport": "Send report",
+  "cash_sending": "Sending...",
+  "cash_sent": "Report sent to",
+  "cash_sendFailed": "Could not send the report",
+  "cash_nothingToSend": "Count something first"
 }
