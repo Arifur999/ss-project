@@ -790,6 +790,5 @@
   "cash_date": "Date",
   "nav_draftPurchaseOrder": "Draft Purchase Order",
   "nav_draftSales": "Draft Sales",
-  "cash_download": "Download report",
-  "cash_downloaded": "Report downloaded"
+  "cash_download": "Download PDF"
 }

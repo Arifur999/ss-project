@@ -790,6 +790,5 @@
   "cash_date": "তারিখ",
   "nav_draftPurchaseOrder": "খসড়া ক্রয় অর্ডার",
   "nav_draftSales": "খসড়া বিক্রয়",
-  "cash_download": "রিপোর্ট ডাউনলোড",
-  "cash_downloaded": "রিপোর্ট ডাউনলোড হয়েছে"
+  "cash_download": "PDF ডাউনলোড"
 }

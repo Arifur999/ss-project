@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import { CalculatorIcon as Calculator, DownloadSimpleIcon as Download, EraserIcon as Eraser, PaperPlaneTiltIcon as PaperPlane } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import Modal from './Modal'
@@ -6,7 +7,6 @@ import { confirmAction } from './ConfirmDialog'
 import { useLang } from '../context/LanguageContext'
 import { emailReport } from '../services/report.services'
 import { formatDate, todayISO } from '../lib/utils'
-import { downloadCsv } from '../lib/spreadsheet'
 
 /**
  * Counting the drawer at day end: how many of each note, what that comes to.
@@ -150,35 +150,29 @@ export default function CashCounter() {
     }
   }
 
+  const printRef = useRef<HTMLDivElement>(null)
+
   /**
-   * The count as a file, through the same downloadCsv every export on the site
-   * uses - so it opens in Excel like the rest of them rather than being a
-   * second, private idea of what a download is.
+   * The count as a PDF.
    *
-   * Only the denominations actually counted: a row nobody filled is a blank
-   * line in a document somebody is going to file.
+   * Through the browser's own print, the way every invoice in this app is
+   * already turned into a PDF - not a PDF library. jsPDF's built-in fonts are
+   * Latin-1, so a counter named in Bangla would come out as boxes; rendering
+   * the real page means the real font, and Bangla prints as Bangla. The
+   * document title becomes the suggested filename, dated so a folder of them
+   * sorts itself.
    */
+  const printReport = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `cash-count-${date}`,
+  })
+
   function downloadReport() {
     if (totalNotes === 0) {
       toast.error(t('cash_nothingToSend', 'Count something first'))
       return
     }
-
-    const rows: (string | number)[][] = [
-      [t('cash_title', 'Cash Counter')],
-      [t('cash_date', 'Date'), formatDate(date)],
-      ...(countedBy.trim() ? [[t('cash_countedBy', 'Counted by'), countedBy.trim()]] : []),
-      [],
-      [t('cash_note', 'Currency'), t('cash_qty', 'Qty'), t('cash_amount', 'Amount')],
-      ...countedRows.map(row => [row.value, row.qty, row.amount]),
-      [],
-      [t('cash_totalNotes', 'Total notes'), totalNotes],
-      [t('cash_total', 'Total'), totalAmount],
-    ]
-
-    // Dated, so a folder of these sorts itself.
-    downloadCsv(`cash-count-${date}.csv`, rows)
-    toast.success(t('cash_downloaded', 'Report downloaded'))
+    printReport()
   }
 
   return (
@@ -294,7 +288,7 @@ export default function CashCounter() {
               disabled={totalNotes === 0}
               className="btn-secondary flex-1 justify-center disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download size={16} /> {t('cash_download', 'Download report')}
+              <Download size={16} /> {t('cash_download', 'Download PDF')}
             </button>
             <button
               onClick={clearAll}
@@ -307,6 +301,59 @@ export default function CashCounter() {
           </div>
         </div>
       </Modal>
+
+      {/* Parked off screen rather than display:none - a node with no layout
+          can be copied into the print frame empty. .invoice-print-page is the
+          class the app's print stylesheet already knows: it hides everything
+          else on the page and lays this out on A4, the same way every invoice
+          here is printed. */}
+      <div aria-hidden className="pointer-events-none fixed -left-[9999px] top-0">
+        <div ref={printRef} className="invoice-print-page" style={{ padding: '8mm', fontFamily: 'inherit', color: '#000' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700 }}>
+            {t('cash_title', 'Cash Counter')}
+          </h1>
+          <p style={{ margin: '0 0 2px', fontSize: '12px' }}>
+            {t('cash_date', 'Date')}: {formatDate(date)}
+          </p>
+          {countedBy.trim() && (
+            <p style={{ margin: '0 0 2px', fontSize: '12px' }}>
+              {t('cash_countedBy', 'Counted by')}: {countedBy.trim()}
+            </p>
+          )}
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '14px', fontSize: '12px' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '6px 4px', borderBottom: '1.5px solid #000' }}>{t('cash_note', 'Currency')}</th>
+                <th style={{ textAlign: 'right', padding: '6px 4px', borderBottom: '1.5px solid #000' }}>{t('cash_qty', 'Qty')}</th>
+                <th style={{ textAlign: 'right', padding: '6px 4px', borderBottom: '1.5px solid #000' }}>{t('cash_amount', 'Amount')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Only what was counted - a row nobody filled is a blank line in
+                  a document somebody is going to keep. */}
+              {countedRows.map(row => (
+                <tr key={row.value}>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{formatCurr(row.value)}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatNum(row.qty)}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurr(row.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td style={{ padding: '8px 4px', fontWeight: 700, borderTop: '1.5px solid #000' }}>{t('cash_totalNotes', 'Total notes')}</td>
+                <td style={{ padding: '8px 4px', fontWeight: 700, borderTop: '1.5px solid #000', textAlign: 'right' }}>{formatNum(totalNotes)}</td>
+                <td style={{ padding: '8px 4px', fontWeight: 700, borderTop: '1.5px solid #000', textAlign: 'right' }}>{formatCurr(totalAmount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <p style={{ marginTop: '18px', fontSize: '16px', fontWeight: 700, textAlign: 'right' }}>
+            {t('cash_total', 'Total')}: {formatCurr(totalAmount)}
+          </p>
+        </div>
+      </div>
     </>
   )
 }

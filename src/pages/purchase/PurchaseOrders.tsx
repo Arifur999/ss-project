@@ -231,10 +231,19 @@ export default function PlaceOrder() {
   async function saveAsDraft() {
     if (savingDraft) return
 
+    // The one thing a draft cannot do without. Everything else on this form can
+    // be filled in later, but a purchase order with no supplier is not an order
+    // anybody could pick up and finish - and the draft list is indexed by who
+    // it is for.
+    if (!form.supplier_id) {
+      toast.error('Choose a supplier before saving this as a draft')
+      return
+    }
+
     const supplier = suppliers.find(item => item.id === form.supplier_id)
     const body = {
       kind: 'purchase_order' as const,
-      title: supplier?.name || supplier?.company_name || 'No supplier chosen',
+      title: supplier?.name || supplier?.company_name || '',
       subtitle: form.si_no || '',
       amount: totalAmount,
       payload_version: PURCHASE_DRAFT_VERSION,
