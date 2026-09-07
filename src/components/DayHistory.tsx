@@ -27,7 +27,6 @@ export default function DayHistory() {
   useEffect(() => {
     if (!open) return
     void load(date)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, date])
 
   async function load(day: string) {
