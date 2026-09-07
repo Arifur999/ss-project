@@ -790,5 +790,16 @@
   "cash_date": "Date",
   "nav_draftPurchaseOrder": "Draft Purchase Order",
   "nav_draftSales": "Draft Sales",
-  "cash_download": "Download PDF"
+  "cash_download": "Download PDF",
+  "history_title": "Today's history",
+  "history_date": "Date",
+  "history_download": "Download PDF",
+  "history_entries": "Entries",
+  "history_moneyIn": "Money in",
+  "history_moneyOut": "Money out",
+  "history_time": "Time",
+  "history_what": "What",
+  "history_who": "Who / Detail",
+  "history_amount": "Amount",
+  "history_empty": "Nothing was entered on this day."
 }

@@ -790,5 +790,16 @@
   "cash_date": "তারিখ",
   "nav_draftPurchaseOrder": "খসড়া ক্রয় অর্ডার",
   "nav_draftSales": "খসড়া বিক্রয়",
-  "cash_download": "PDF ডাউনলোড"
+  "cash_download": "PDF ডাউনলোড",
+  "history_title": "আজকের হিসাব",
+  "history_date": "তারিখ",
+  "history_download": "PDF ডাউনলোড",
+  "history_entries": "এন্ট্রি",
+  "history_moneyIn": "জমা",
+  "history_moneyOut": "খরচ",
+  "history_time": "সময়",
+  "history_what": "কী",
+  "history_who": "কে / বিবরণ",
+  "history_amount": "পরিমাণ",
+  "history_empty": "এই দিনে কিছু এন্ট্রি হয়নি।"
 }
