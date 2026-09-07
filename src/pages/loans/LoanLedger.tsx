@@ -1,36 +1,45 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpenIcon as BookOpen, CaretDownIcon as ChevronDown, MagnifyingGlassIcon as Search, XIcon as X } from '@phosphor-icons/react'
+import React, { useEffect, useRef, useState } from 'react'
+import { useReactToPrint } from 'react-to-print'
+import { PrinterIcon as Printer, MagnifyingGlassIcon as Search } from '@phosphor-icons/react'
+import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'
-import { formatDate } from '../../lib/utils'
+import { formatDate, todayISO } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
-import { lenderKey, lenderKeyFromLoan, loanBalanceColor, loanBalanceLabel, loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
+import { loanBalanceColor, loanBalanceLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import TableSkeleton from '../../components/TableSkeleton'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
+import { getLenderStatement, type LenderStatement } from '../../services/finance.services'
 
+/**
+ * One account, one window, read like a passbook.
+ *
+ * The opening balance is the whole point of the date filter: everything before
+ * the from-date is folded into a single carried-forward figure server-side, so
+ * a September statement starts exactly where August closed. Computing that here
+ * would mean downloading every transaction the business has ever made to show
+ * one month.
+ *
+ * The rule the columns exist for: a PROFIT row shows in Debit or Credit like
+ * any other movement, because the cash really moved - but it leaves the running
+ * principal exactly where it was, because what is owed did not change.
+ */
 export default function LoanLedger() {
   const { formatCurr } = useLang()
   const [lenders, setLenders] = useState<any[]>([])
-  // Starts true so the table shows skeleton rows on the first paint. It
-  // used to render the empty state instead, which reads as "there is
-  // nothing here" rather than "this is still loading".
-  const [loading, setLoading] = useState(true)
-  const [loans, setLoans] = useState<any[]>([])
-  const [selectedKey, setSelectedKey] = useState('')
+  const [lenderId, setLenderId] = useState('')
   const [lenderSearch, setLenderSearch] = useState('')
   const [showLenderOptions, setShowLenderOptions] = useState(false)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState(todayISO())
+  const [statement, setStatement] = useState<LenderStatement | null>(null)
+  const [loading, setLoading] = useState(false)
   const lenderBoxRef = useRef<HTMLDivElement>(null)
+  const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadAll().finally(() => setLoading(false))
-    const channel = supabase
-      .channel('loan-ledger-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_lenders' }, loadAll)
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    void loadLenders()
   }, [])
 
   useEffect(() => {
@@ -39,190 +48,318 @@ export default function LoanLedger() {
         setShowLenderOptions(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  async function loadAll() {
-    const [lenderRes, loanRes] = await Promise.all([
-      supabase.from('loan_lenders').select('*').order('name'),
-      supabase.from('loans').select('*, loan_lenders(*)').order('date', { ascending: true }).order('created_at', { ascending: true }),
-    ])
-    if (isLoanLenderTableMissing(lenderRes.error) || isLoanLenderTableMissing(loanRes.error)) {
-      const legacyLoanRes = await supabase.from('loans').select('*').order('date', { ascending: true }).order('created_at', { ascending: true })
-      const legacyLoans = legacyLoanRes.data || []
-      setLoans(legacyLoans)
-      setLenders(mergeStoredAndLegacyLoanLenders(legacyLoans))
+  async function loadLenders() {
+    const lenderRes = await supabase.from('loan_lenders').select('*').order('name')
+    if (isLoanLenderTableMissing(lenderRes.error)) {
+      const legacy = await supabase.from('loans').select('*')
+      setLenders(mergeStoredAndLegacyLoanLenders(legacy.data || []))
       return
     }
     setLenders(mergeStoredAndLoanLenders(lenderRes.data || []))
-    setLoans(loanRes.data || [])
   }
 
-  const lenderOptionKeys = new Set(lenders.map(lender => lenderKey(lender)))
-  const legacyOptions = loans
-    .filter(loan => !loan.lender_id)
-    .reduce((map: Record<string, any>, loan) => {
-      const key = lenderKeyFromLoan(loan)
-      if (!lenderOptionKeys.has(key)) {
-        map[key] = { key, name: loanDisplayName(loan), opening_balance: 0 }
-      }
-      return map
-    }, {})
+  async function generate() {
+    if (!lenderId) {
+      toast.error('Choose a bank / person first')
+      return
+    }
 
-  const options = [
-    ...lenders.map(lender => ({ key: lenderKey(lender), name: lender.name, opening_balance: Number(lender.opening_balance || 0), lender })),
-    ...Object.values(legacyOptions),
-  ] as any[]
-
-  const filteredOptions = useMemo(() => {
-    const query = lenderSearch.trim().toLowerCase()
-    return options.filter(option => {
-      if (!query) return true
-      return String(option.name || '').toLowerCase().includes(query)
-    })
-  }, [lenderSearch, options])
-
-  const selected = options.find(option => option.key === selectedKey)
-  const selectedLoans = loans.filter(loan => lenderKeyFromLoan(loan) === selectedKey)
-  let runningBalance = Number(selected?.opening_balance || 0)
-  const ledger = selectedLoans.map(loan => {
-    const amounts = transactionAmounts(loan)
-    runningBalance += amounts.balanceEffect
-    return { ...loan, amounts, running_balance: runningBalance }
-  }).reverse()
-
-  const totalReceived = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).received, 0)
-  const totalPaid = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).paid, 0)
-  const totalInterest = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).profit, 0)
-  const currentBalance = Number(selected?.opening_balance || 0) - totalReceived + totalInterest + totalPaid
-
-  function selectLender(option: any) {
-    setSelectedKey(option.key)
-    setLenderSearch(option.name || '')
-    setShowLenderOptions(false)
+    try {
+      setLoading(true)
+      setStatement(await getLenderStatement(lenderId, fromDate || undefined, toDate || undefined))
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not build the statement')
+      setStatement(null)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function clearLender() {
-    setSelectedKey('')
-    setLenderSearch('')
-    setShowLenderOptions(true)
+  // The house print pattern, so this comes out on A4 like every invoice.
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `statement-${statement?.lender.name || 'account'}-${toDate}`,
+  })
+
+  const filteredLenders = lenders.filter(lender =>
+    !lenderSearch.trim() ||
+    String(lender.name || '').toLowerCase().includes(lenderSearch.trim().toLowerCase()) ||
+    String(lender.phone || '').includes(lenderSearch.trim())
+  )
+
+  const selectedLender = lenders.find(lender => lender.id === lenderId)
+  const rows = statement?.rows ?? []
+
+  const balanceText = (amount: number) => {
+    const label = loanBalanceLabel(amount)
+    return label === 'Balanced' ? formatCurr(0) : `${label} ${formatCurr(Math.abs(amount))}`
   }
+
+  // The window as a sentence, for the printed header.
+  const periodText = statement
+    ? `${statement.from ? formatDate(statement.from) : 'the beginning'} to ${statement.to ? formatDate(statement.to) : formatDate(todayISO())}`
+    : ''
 
   return (
-    <div className="p-6">
-      <PageHeader title="Loan Ledger" subtitle="Complete statement by bank/person" />
+    <div className="p-6 space-y-5">
+      <PageHeader
+        title="Loan Statement"
+        subtitle="One account, one date range, with the balance carried forward"
+        actions={
+          <button
+            onClick={() => handlePrint()}
+            disabled={!statement || rows.length === 0}
+            className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Printer size={16} /> Print / PDF
+          </button>
+        }
+      />
 
-      <div className="w-full max-w-sm mb-6">
-        <label className="label" htmlFor="loan-ledger-f1">Select Bank / Person</label>
+      <div className="card grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))_auto] md:items-end">
         <div ref={lenderBoxRef} className="relative">
-          <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={17} />
-          <input id="loan-ledger-f1"
-            type="text"
-            className="input h-10 pl-10 pr-20"
-            value={lenderSearch}
-            onFocus={() => setShowLenderOptions(true)}
-            onChange={event => {
-              setLenderSearch(event.target.value)
-              setSelectedKey('')
-              setShowLenderOptions(true)
-            }}
-            placeholder="-- Select Bank / Person --"
-            autoComplete="off"
-            role="combobox"
-            aria-expanded={showLenderOptions}
-            aria-controls="loan-lender-options"
-          />
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 text-slate-500" size={17} />
-          {lenderSearch && (
-            <button
-              type="button"
-              onClick={clearLender}
-              className="absolute right-9 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-brand-red"
-              aria-label="Clear bank/person"
-            >
-              <X size={14} />
-            </button>
-          )}
-
+          <label className="label">Bank / Person</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              className="input pl-9"
+              placeholder="Search by name or phone..."
+              value={selectedLender && !showLenderOptions ? selectedLender.name : lenderSearch}
+              onFocus={() => { setShowLenderOptions(true); setLenderSearch('') }}
+              onChange={event => { setLenderSearch(event.target.value); setShowLenderOptions(true) }}
+            />
+          </div>
           {showLenderOptions && (
-            <div id="loan-lender-options" className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map(option => (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onMouseDown={event => event.preventDefault()}
-                    onClick={() => selectLender(option)}
-                    className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-neutral-100 ${
-                      selectedKey === option.key ? 'bg-neutral-100 text-navy-900' : 'text-slate-700'
-                    }`}
-                  >
-                    <span className="min-w-0 truncate font-medium">{option.name}</span>
-                    {selectedKey === option.key && <span className="shrink-0 text-xs font-bold">Selected</span>}
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-5 text-center text-sm text-slate-400">No bank/person found</div>
+            <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-neutral-200 bg-white shadow-lg">
+              {filteredLenders.length === 0 && (
+                <p className="px-3 py-3 text-sm text-neutral-400">No match</p>
               )}
+              {filteredLenders.map(lender => (
+                <button
+                  key={lender.id}
+                  type="button"
+                  onClick={() => {
+                    setLenderId(lender.id)
+                    setLenderSearch('')
+                    setShowLenderOptions(false)
+                    // The old statement belongs to the old account.
+                    setStatement(null)
+                  }}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                >
+                  <span className="font-medium text-navy-900">{lender.name}</span>
+                  <span className="text-xs text-neutral-400">{lender.phone || ''}</span>
+                </button>
+              ))}
             </div>
           )}
         </div>
+
+        <div>
+          <label className="label" htmlFor="loan-ledger-from">From Date</label>
+          {/* Blank means from the very beginning - the opening balance is then
+              simply the account's own, with nothing folded into it. */}
+          <input id="loan-ledger-from" type="date" className="input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="label" htmlFor="loan-ledger-to">To Date</label>
+          <input id="loan-ledger-to" type="date" className="input" value={toDate} onChange={e => setToDate(e.target.value)} />
+        </div>
+
+        <button onClick={generate} disabled={loading} className="btn-primary h-11 justify-center disabled:opacity-60">
+          {loading ? 'Generating...' : 'Generate'}
+        </button>
       </div>
 
-      {!selectedKey && (
-        <div className="card text-center py-12 text-slate-400">
-          <BookOpen size={46} className="mx-auto mb-3 opacity-30" />
-          Select a bank/person to view loan statement
+      {statement && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <div className="card">
+            <p className="text-xs text-neutral-500">Opening Balance</p>
+            <p className={`mt-1 text-lg font-bold tabular-nums ${loanBalanceColor(statement.opening_principal)}`}>
+              {balanceText(statement.opening_principal)}
+            </p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-neutral-500">Total Paid</p>
+            <p className="mt-1 text-lg font-bold tabular-nums text-brand-red">{formatCurr(statement.total_paid)}</p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-neutral-500">Total Received</p>
+            <p className="mt-1 text-lg font-bold tabular-nums text-brand-green">{formatCurr(statement.total_received)}</p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-neutral-500">Total Profit</p>
+            <p className="mt-1 text-lg font-bold tabular-nums text-brand-orange">{formatCurr(statement.total_profit)}</p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-neutral-500">Net Closing Balance</p>
+            <p className={`mt-1 text-lg font-bold tabular-nums ${loanBalanceColor(statement.closing_principal)}`}>
+              {balanceText(statement.closing_principal)}
+            </p>
+          </div>
         </div>
       )}
 
-      {selectedKey && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <div className="card"><p className="text-xs text-slate-500">Opening Balance</p><p className={`text-xl font-bold mt-1 ${loanBalanceColor(Number(selected?.opening_balance || 0))}`}>{formatCurr(Number(selected?.opening_balance || 0))}</p></div>
-            <div className="card"><p className="text-xs text-slate-500">Receive</p><p className="text-xl font-bold text-brand-green mt-1">{formatCurr(totalReceived)}</p></div>
-            <div className="card"><p className="text-xs text-slate-500">Payment</p><p className="text-xl font-bold text-brand-red mt-1">{formatCurr(totalPaid)}</p></div>
-            <div className="card"><p className="text-xs text-slate-500">Interest</p><p className="text-xl font-bold text-brand-blue mt-1">{formatCurr(totalInterest)}</p></div>
-            <div className="card"><p className="text-xs text-slate-500">Current Balance</p><p className={`text-xl font-bold mt-1 ${loanBalanceColor(currentBalance)}`}>{formatCurr(currentBalance)} <span className="text-xs">({loanBalanceLabel(currentBalance)})</span></p></div>
-          </div>
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead className="table-header">
+            <tr>
+              <th className="text-left py-2.5 px-4">Date</th>
+              <th className="text-left py-2.5 px-4">Ref</th>
+              <th className="text-left py-2.5 px-4">Description</th>
+              <th className="text-left py-2.5 px-4">Category</th>
+              <th className="text-right py-2.5 px-4">Debit (Paid)</th>
+              <th className="text-right py-2.5 px-4">Credit (Received)</th>
+              <th className="text-right py-2.5 px-4">Running Principal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <TableSkeleton rows={6} cols={7} />}
 
-          <div className="card overflow-x-auto p-0">
-            <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">Transaction History</div>
-            <table className="w-full text-sm">
-              <thead className="table-header">
-                <tr>
-                  <th className="text-left py-2 px-4">Date</th>
-                  <th className="text-left py-2 px-4">Type</th>
-                  <th className="text-right py-2 px-4">Receive</th>
-                  <th className="text-right py-2 px-4">Payment</th>
-                  <th className="text-right py-2 px-4">Interest</th>
-                  <th className="text-right py-2 px-4">Current Balance</th>
-                  <th className="text-left py-2 px-4">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ledger.map(entry => (
-                  <tr key={entry.id} className="table-row">
-                    <td className="py-2.5 px-4">{formatDate(entry.date)}</td>
-                    <td className="py-2.5 px-4"><span className="badge-blue">{transactionLabel(entry.amounts.type)}</span></td>
-                    <td className="py-2.5 px-4 text-right text-brand-green">{entry.amounts.received ? formatCurr(entry.amounts.received) : <ZeroAmount />}</td>
-                    <td className="py-2.5 px-4 text-right text-brand-red">{entry.amounts.paid ? formatCurr(entry.amounts.paid) : <ZeroAmount />}</td>
-                    <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.profit ? formatCurr(entry.amounts.profit) : <ZeroAmount />}</td>
-                    <td className={`whitespace-nowrap py-2.5 px-4 text-right font-semibold ${loanBalanceColor(entry.running_balance)}`}>
-                      {formatCurr(entry.running_balance)} <span className="text-xs font-medium">({loanBalanceLabel(entry.running_balance)})</span>
-                    </td>
-                    <td className="py-2.5 px-4 text-slate-500">{entry.notes || <NoValue />}</td>
-                  </tr>
+            {!loading && statement && (
+              <tr className="border-t border-neutral-100 bg-neutral-50">
+                <td className="py-2.5 px-4 text-neutral-500">
+                  {statement.from ? formatDate(statement.from) : ''}
+                </td>
+                <td className="py-2.5 px-4" />
+                <td className="py-2.5 px-4 font-semibold text-navy-900" colSpan={4}>Opening Balance</td>
+                <td className={`py-2.5 px-4 text-right font-bold tabular-nums ${loanBalanceColor(statement.opening_principal)}`}>
+                  {formatCurr(statement.opening_principal)}
+                </td>
+              </tr>
+            )}
+
+            {!loading && rows.map((entry, index) => (
+              <tr key={entry.row.id || index} className="border-t border-neutral-100">
+                <td className="py-2.5 px-4">{formatDate(entry.row.date)}</td>
+                <td className="py-2.5 px-4 font-mono text-xs text-neutral-500">
+                  {String(entry.row.id || '').slice(0, 8) || <NoValue />}
+                </td>
+                <td className="py-2.5 px-4 text-neutral-600">
+                  {entry.row.notes || entry.row.account_name || <NoValue />}
+                </td>
+                <td className="py-2.5 px-4">
+                  {entry.is_profit
+                    ? <span className="rounded bg-brand-orange-soft px-2 py-0.5 text-xs font-medium text-brand-orange">Profit</span>
+                    : <span className="text-neutral-500">Principal</span>}
+                </td>
+                <td className="py-2.5 px-4 text-right tabular-nums text-brand-red">
+                  {entry.debit ? formatCurr(entry.debit) : <ZeroAmount />}
+                </td>
+                <td className="py-2.5 px-4 text-right tabular-nums text-brand-green">
+                  {entry.credit ? formatCurr(entry.credit) : <ZeroAmount />}
+                </td>
+                {/* Held still by a profit row - greyed so an unchanged number
+                    reads as deliberate rather than as a figure that failed to
+                    update. */}
+                <td className={`py-2.5 px-4 text-right font-semibold tabular-nums ${entry.is_profit ? 'text-neutral-400' : ''}`}>
+                  {formatCurr(entry.running_principal)}
+                </td>
+              </tr>
+            ))}
+
+            {!loading && statement && rows.length > 0 && (
+              <tr className="table-total border-t-2 border-navy-900">
+                <td className="py-3 px-4 font-bold" colSpan={4}>Closing Balance</td>
+                <td className="py-3 px-4 text-right font-bold tabular-nums">{formatCurr(statement.total_paid)}</td>
+                <td className="py-3 px-4 text-right font-bold tabular-nums">{formatCurr(statement.total_received)}</td>
+                <td className="py-3 px-4 text-right font-bold tabular-nums">{formatCurr(statement.closing_principal)}</td>
+              </tr>
+            )}
+
+            {!loading && !statement && (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-neutral-400">
+                  Choose an account and a date range, then press Generate.
+                </td>
+              </tr>
+            )}
+
+            {!loading && statement && rows.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-neutral-400">
+                  Nothing moved on this account in that range.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Parked off screen rather than display:none - a node with no layout can
+          be copied into the print frame empty. */}
+      <div aria-hidden className="pointer-events-none fixed -left-[9999px] top-0">
+        <div ref={printRef} className="invoice-print-page" style={{ padding: '8mm', color: '#000' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700 }}>Loan Statement</h1>
+          <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 700 }}>{statement?.lender.name}</p>
+          {statement?.lender.phone && (
+            <p style={{ margin: '0 0 2px', fontSize: '12px' }}>{statement.lender.phone}</p>
+          )}
+          <p style={{ margin: '0 0 14px', fontSize: '12px' }}>{periodText}</p>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            <thead>
+              <tr>
+                {['Date', 'Ref', 'Description', 'Category', 'Debit', 'Credit', 'Running Principal'].map((column, index) => (
+                  <th
+                    key={column}
+                    style={{
+                      textAlign: index >= 4 ? 'right' : 'left',
+                      padding: '6px 4px', borderBottom: '1.5px solid #000',
+                    }}
+                  >
+                    {column}
+                  </th>
                 ))}
-                {loading && <TableSkeleton rows={6} cols={7} />}
-            {!loading && ledger.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-400">No transactions</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>
+                  {statement?.from ? formatDate(statement.from) : ''}
+                </td>
+                <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }} />
+                <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', fontWeight: 700 }} colSpan={4}>
+                  Opening Balance
+                </td>
+                <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right', fontWeight: 700 }}>
+                  {formatCurr(statement?.opening_principal ?? 0)}
+                </td>
+              </tr>
+              {rows.map((entry, index) => (
+                <tr key={`print-${entry.row.id || index}`}>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{formatDate(entry.row.date)}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{String(entry.row.id || '').slice(0, 8)}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{entry.row.notes || entry.row.account_name || '-'}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{entry.is_profit ? 'Profit' : 'Principal'}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{entry.debit ? formatCurr(entry.debit) : '-'}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{entry.credit ? formatCurr(entry.credit) : '-'}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurr(entry.running_principal)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <table style={{ width: '100%', marginTop: '16px', fontSize: '12px' }}>
+            <tbody>
+              <tr><td style={{ fontWeight: 700 }}>Total Paid</td><td style={{ textAlign: 'right' }}>{formatCurr(statement?.total_paid ?? 0)}</td></tr>
+              <tr><td style={{ fontWeight: 700 }}>Total Received</td><td style={{ textAlign: 'right' }}>{formatCurr(statement?.total_received ?? 0)}</td></tr>
+              <tr><td style={{ fontWeight: 700 }}>Total Profit</td><td style={{ textAlign: 'right' }}>{formatCurr(statement?.total_profit ?? 0)}</td></tr>
+              <tr>
+                <td style={{ fontWeight: 700, paddingTop: '6px', borderTop: '1.5px solid #000' }}>Net Closing Balance</td>
+                <td style={{ textAlign: 'right', fontWeight: 700, paddingTop: '6px', borderTop: '1.5px solid #000' }}>
+                  {balanceText(statement?.closing_principal ?? 0)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

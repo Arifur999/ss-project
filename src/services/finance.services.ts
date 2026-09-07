@@ -32,6 +32,44 @@ export const createLoan = (payload: any) => http.post<any>('/loans', payload)
 export const updateLoan = (id: string, payload: any) => http.patch<any>(`/loans/${id}`, payload)
 export const deleteLoan = (id: string, recycle?: RecycleMeta) => http.delete<any>(`/loans/${id}`, { recycle })
 
+/** One row of a lender statement, as the server builds it. */
+export type StatementRow = {
+  row: any
+  /** Money out of our pocket. */
+  debit: number
+  /** Money into our pocket. */
+  credit: number
+  is_profit: boolean
+  /** Unchanged by a profit row, which is what the statement exists to show. */
+  running_principal: number
+}
+
+export type LenderStatement = {
+  lender: { id: string; name: string; phone: string; address: string; opening_balance: number; key: string }
+  from: string | null
+  to: string | null
+  opening_principal: number
+  rows: StatementRow[]
+  total_paid: number
+  total_received: number
+  total_profit: number
+  closing_principal: number
+}
+
+/**
+ * A passbook for one lender over one window.
+ *
+ * The opening balance is folded server-side from everything before the
+ * from-date, so a September statement starts where August closed without the
+ * browser downloading every transaction ever made.
+ */
+export const getLenderStatement = (lenderId: string, from?: string, to?: string) => {
+  const query = new URLSearchParams({ lender_id: lenderId })
+  if (from) query.set('from', from)
+  if (to) query.set('to', to)
+  return http.get<LenderStatement>(`/loans/statement?${query.toString()}`)
+}
+
 // ---------- Expenses ----------
 export const getExpenses = () => http.get<any[]>('/expenses')
 export const createExpense = (payload: any) => http.post<any>('/expenses', payload)

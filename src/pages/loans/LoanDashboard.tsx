@@ -94,6 +94,9 @@ export default function LoanDashboard() {
   const shownOpening = displayed.reduce((s: number, i: any) => s + i.opening, 0)
   const shownReceived = displayed.reduce((s: number, i: any) => s + i.received, 0)
   const shownPaid = displayed.reduce((s: number, i: any) => s + i.paid, 0)
+  // Earned, net of profit handed back. Its own column now: folding it into
+  // Receive was exactly the conflation the principal/profit split undoes.
+  const shownProfit = displayed.reduce((s: number, i: any) => s + (i.profit || 0), 0)
   const shownBalance = displayed.reduce((s: number, i: any) => s + i.balance, 0)
 
   function openSmsForPerson(item: any) {
@@ -235,6 +238,7 @@ export default function LoanDashboard() {
                 <th className="px-4 py-3 text-right">Opening Balance</th>
                 <th className="px-4 py-3 text-right">Receive</th>
                 <th className="px-4 py-3 text-right">Payment</th>
+                <th className="px-4 py-3 text-right">Profit</th>
                 <th className="px-4 py-3 text-right">Current Dena/Pawna</th>
                 <th className="px-4 py-3 text-center">Action</th>
               </tr>
@@ -252,6 +256,7 @@ export default function LoanDashboard() {
                     <td className="px-4 py-5 text-right">{signedAmount(item.opening)}</td>
                     <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(item.received)}</td>
                     <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(item.paid)}</td>
+                    <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-orange">{formatCurr(item.profit || 0)}</td>
                     <td className="px-4 py-5 text-right">{signedAmount(item.balance)}</td>
                     <td className="px-4 py-5 text-center">
                       <button
@@ -273,13 +278,14 @@ export default function LoanDashboard() {
                   <td className="px-4 py-5 text-right">{signedAmount(shownOpening)}</td>
                   <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(shownReceived)}</td>
                   <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(shownPaid)}</td>
+                  <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-orange">{formatCurr(shownProfit)}</td>
                   <td className="px-4 py-5 text-right">{signedAmount(shownBalance)}</td>
                   <td className="px-4 py-5" />
                 </tr>
               )}
               {displayed.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">{search ? 'No matching accounts' : 'No loan accounts'}</td>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">{search ? 'No matching accounts' : 'No loan accounts'}</td>
                 </tr>
               )}
             </tbody>
