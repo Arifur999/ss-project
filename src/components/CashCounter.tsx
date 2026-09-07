@@ -76,10 +76,17 @@ export default function CashCounter() {
   const hasAnything = totalNotes > 0 || countedBy.trim().length > 0
 
   function setCount(value: number, raw: string) {
-    // Blank clears the row rather than storing 0, so the cell reads empty
-    // instead of a zero somebody has to select and delete.
-    const qty = raw === '' ? 0 : Math.max(0, Math.floor(Number(raw) || 0))
-    const next = { ...counts, [value]: qty }
+    // An empty box removes the row from counts; a typed 0 stores a 0. The two
+    // are not the same thing and the difference is visible: a row nobody has
+    // touched stays blank, and a row somebody deliberately marked as none
+    // shows the 0 they typed. Storing 0 for both - which is what `qty || ''`
+    // did - made typing 0 look like the keystroke had been swallowed.
+    const next = { ...counts }
+    if (raw === '') {
+      delete next[value]
+    } else {
+      next[value] = Math.max(0, Math.floor(Number(raw) || 0))
+    }
     setCounts(next)
     writeStored({ countedBy, date, counts: next })
   }
@@ -109,7 +116,9 @@ export default function CashCounter() {
     writeStored({ countedBy: '', date: todayISO(), counts: {} })
   }
 
-  const countedRows = rows.filter(row => row.qty > 0)
+  // A cash count sheet lists every denomination, including the ones that came
+  // to nothing: the zeros are what show the count was complete rather than
+  // abandoned half way.
 
   /**
    * Mail the count to the business address.
@@ -139,7 +148,7 @@ export default function CashCounter() {
         tables: [{
           title: t('cash_title', 'Cash Counter'),
           columns: [t('cash_note', 'Currency'), t('cash_qty', 'Qty'), t('cash_amount', 'Amount')],
-          rows: countedRows.map(row => [formatCurr(row.value), formatNum(row.qty), formatCurr(row.amount)]),
+          rows: rows.map(row => [formatCurr(row.value), formatNum(row.qty), formatCurr(row.amount)]),
         }],
       })
       toast.success(`${t('cash_sent', 'Report sent to')} ${result.email}`)
@@ -244,7 +253,7 @@ export default function CashCounter() {
                           min="0"
                           inputMode="numeric"
                           className="input h-8 w-20 text-center tabular-nums"
-                          value={row.qty || ''}
+                          value={counts[row.value] === undefined ? '' : counts[row.value]}
                           onChange={event => setCount(row.value, event.target.value)}
                           aria-label={`${formatCurr(row.value)} ${t('cash_qty', 'Qty')}`}
                         />
@@ -330,9 +339,7 @@ export default function CashCounter() {
               </tr>
             </thead>
             <tbody>
-              {/* Only what was counted - a row nobody filled is a blank line in
-                  a document somebody is going to keep. */}
-              {countedRows.map(row => (
+              {rows.map(row => (
                 <tr key={row.value}>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{formatCurr(row.value)}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatNum(row.qty)}</td>
