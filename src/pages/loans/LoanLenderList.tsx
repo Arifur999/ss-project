@@ -10,6 +10,7 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { deleteStoredLoanLender, isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders, migrateStoredLoanLenders, saveStoredLoanLender } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
+import { todayISO } from '../../lib/utils'
 import { NoValue } from '../../components/CellValue'
 
 type LenderValidationErrors = Partial<Record<'name' | 'phone', string>>
@@ -30,7 +31,10 @@ export default function LoanLenderList() {
     name: '',
     phone: '',
     address: '',
+    opening_date: todayISO(),
     opening_balance: 0,
+    // 'receivable' = they owe us (stored positive), 'payable' = we owe them
+    // (stored negative), 'zero' = nothing outstanding either way.
     opening_balance_direction: 'receivable',
     notes: '',
     is_active: true,
@@ -72,6 +76,7 @@ export default function LoanLenderList() {
     setForm(item ? {
       name: item.name || '',
       phone: item.phone || '',
+      opening_date: item.opening_date ? String(item.opening_date).slice(0, 10) : todayISO(),
       address: item.address || '',
       opening_balance: Math.abs(Number(item.opening_balance || 0)),
       opening_balance_direction: Number(item.opening_balance || 0) < 0 ? 'payable' : 'receivable',
@@ -81,6 +86,7 @@ export default function LoanLenderList() {
       name: '',
       phone: '',
       address: '',
+      opening_date: todayISO(),
       opening_balance: 0,
       opening_balance_direction: 'receivable',
       notes: '',
@@ -94,7 +100,7 @@ export default function LoanLenderList() {
     setShowModal(false)
     setEditItem(null)
     setErrors({})
-    setForm({ name: '', phone: '', address: '', opening_balance: 0, opening_balance_direction: 'receivable', notes: '', is_active: true })
+    setForm({ name: '', phone: '', address: '', opening_date: todayISO(), opening_balance: 0, opening_balance_direction: 'receivable', notes: '', is_active: true })
   }
 
   const requiredLabel = (label: string) => (
@@ -166,7 +172,9 @@ export default function LoanLenderList() {
     if (saving) return
     const ownerId = profile?.owner_id || user?.id
     const rawOpeningBalance = Number(form.opening_balance || 0)
-    const openingBalance = Math.abs(rawOpeningBalance)
+    // "Zero balance" means zero whatever was typed in the amount box - it is a
+    // statement about the account, not a direction for an amount.
+    const openingBalance = form.opening_balance_direction === 'zero' ? 0 : Math.abs(rawOpeningBalance)
     const openingDirection = rawOpeningBalance < 0 ? 'payable' : form.opening_balance_direction
     const name = form.name.trim()
     const phone = form.phone.trim()
@@ -186,6 +194,7 @@ export default function LoanLenderList() {
       address: form.address.trim(),
       notes: form.notes.trim(),
       opening_balance: openingDirection === 'payable' ? -openingBalance : openingBalance,
+      opening_date: form.opening_date || null,
       owner_id: ownerId,
       created_by: user?.id,
     }
@@ -404,12 +413,25 @@ export default function LoanLenderList() {
           </div>
           <div><label className="label" htmlFor="loan-lender-list-f4">Address</label><input id="loan-lender-list-f4" className="input" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
           <div>
+            <label className="label" htmlFor="loan-lender-list-f7">Date</label>
+            {/* The day this opening balance is as of - the first line of the
+                statement. Editable, because an account is often entered days
+                after the balance it starts from was agreed. */}
+            <input id="loan-lender-list-f7"
+              type="date"
+              className="input"
+              value={form.opening_date}
+              onChange={e => setForm({ ...form, opening_date: e.target.value })}
+            />
+          </div>
+          <div>
             <label className="label" htmlFor="loan-lender-list-f5">Opening Balance</label>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <input id="loan-lender-list-f5"
                 type="number"
-                className="input"
-                value={form.opening_balance || ''}
+                className="input disabled:cursor-not-allowed disabled:bg-neutral-100"
+                disabled={form.opening_balance_direction === 'zero'}
+                value={form.opening_balance_direction === 'zero' ? '' : (form.opening_balance || '')}
                 onChange={e => {
                   const openingBalance = Number(e.target.value)
                   setForm({
@@ -419,10 +441,39 @@ export default function LoanLenderList() {
                   })
                 }}
               />
-              <select className="input" value={form.opening_balance_direction} onChange={e => setForm({ ...form, opening_balance_direction: e.target.value })}>
-                <option value="receivable">Ami pabo</option>
-                <option value="payable">Ami debo</option>
-              </select>
+            </div>
+
+            {/* Which way the account leans, said in words rather than by a
+                minus sign somebody has to remember to type. Positive is stored
+                for "they owe us" and negative for "we owe them", which is the
+                convention every loan screen and every SMS reads. */}
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {([
+                { key: 'receivable', label: 'Customer Dena', hint: 'They owe us', dot: 'bg-brand-green' },
+                { key: 'payable', label: 'Customer Pawna', hint: 'We owe them', dot: 'bg-brand-red' },
+                { key: 'zero', label: 'Zero Balance', hint: 'Nothing outstanding', dot: 'bg-neutral-300' },
+              ] as const).map(option => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setForm({ ...form, opening_balance_direction: option.key })}
+                  className={`rounded-xl border px-3 py-2 text-left transition ${
+                    form.opening_balance_direction === option.key
+                      ? 'border-navy-900 bg-navy-900 text-white'
+                      : 'border-neutral-200 bg-white hover:bg-neutral-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 text-xs font-semibold">
+                    <span className={`h-2 w-2 rounded-full ${option.dot}`} />
+                    {option.label}
+                  </span>
+                  <span className={`mt-0.5 block text-[11px] ${
+                    form.opening_balance_direction === option.key ? 'text-white/60' : 'text-neutral-500'
+                  }`}>
+                    {option.hint}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
           <div><label className="label" htmlFor="loan-lender-list-f6">Notes</label><textarea id="loan-lender-list-f6" className="input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>

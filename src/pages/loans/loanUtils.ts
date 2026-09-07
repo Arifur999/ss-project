@@ -17,33 +17,42 @@ export function loanDisplayType(loan: any) {
   return loan.loan_lenders?.lender_type || (loan.loan_type === 'personal' ? 'person' : loan.loan_type) || 'person'
 }
 
+/**
+ * What one row moved, and which way.
+ *
+ * Mirrors shared/loanBalance.ts on the server - the two have to agree, because
+ * this is what the transaction form previews before saving and that is what
+ * the server will then compute. A row is profit or it is principal; the old
+ * `interest` type and the never-finished `adjustment_*` pair are gone, and
+ * with them a bug where interest was added with the SAME sign as a repayment,
+ * so earning interest made a debt look smaller.
+ */
 export function transactionAmounts(loan: any) {
   const received = Number(loan.received_amount || 0)
   const paid = Number(loan.payment_amount || 0)
-  const interest = Number(loan.interest_amount || 0)
-  const type = loan.transaction_type || (received > 0 ? 'receive' : paid > 0 ? 'payment' : interest > 0 ? 'interest' : 'receive')
+  const isProfit = String(loan.payment_category || 'principal') === 'profit'
+  const type = loan.transaction_type || (received > 0 ? 'receive' : 'payment')
 
   return {
     type,
-    received: type === 'receive' || type === 'adjustment_add' ? received : 0,
-    paid: type === 'payment' || type === 'adjustment_deduct' ? paid : 0,
-    interest: type === 'interest' ? interest : 0,
-    balanceEffect:
-      (type === 'payment' || type === 'adjustment_add' ? paid : 0) +
-      (type === 'interest' ? interest : 0) -
-      (type === 'receive' || type === 'adjustment_deduct' ? received : 0),
+    isProfit,
+    received: type === 'receive' ? received : 0,
+    paid: type === 'payment' ? paid : 0,
+    // What was earned, kept apart from what was lent. Signed the way the money
+    // went: taking profit in is positive.
+    profit: isProfit ? received - paid : 0,
+    // Profit moves what is owed by nothing at all.
+    balanceEffect: isProfit ? 0 : paid - received,
   }
 }
 
 export function transactionLabel(type: string) {
-  const labels: Record<string, string> = {
-    receive: 'Receive',
-    payment: 'Payment',
-    interest: 'Interest',
-    adjustment_add: 'Adjustment (+)',
-    adjustment_deduct: 'Adjustment (-)',
-  }
-  return labels[type] || 'Receive'
+  return type === 'payment' ? 'Paid' : 'Received'
+}
+
+/** Principal or Profit, for a column that has to say which. */
+export function categoryLabel(category: string) {
+  return String(category || 'principal') === 'profit' ? 'Profit' : 'Principal'
 }
 
 export function loanBalanceLabel(amount: number) {
@@ -71,7 +80,7 @@ export function buildLoanSummary(lenders: any[], loans: any[]) {
       opening: Number(lender.opening_balance || 0),
       received: 0,
       paid: 0,
-      interest: 0,
+      profit: 0,
       balance: Number(lender.opening_balance || 0),
       transactions: 0,
     }
@@ -88,7 +97,7 @@ export function buildLoanSummary(lenders: any[], loans: any[]) {
         opening: 0,
         received: 0,
         paid: 0,
-        interest: 0,
+        profit: 0,
         balance: 0,
         transactions: 0,
       }
@@ -97,7 +106,7 @@ export function buildLoanSummary(lenders: any[], loans: any[]) {
     const amounts = transactionAmounts(loan)
     summary[key].received += amounts.received
     summary[key].paid += amounts.paid
-    summary[key].interest += amounts.interest
+    summary[key].profit += amounts.profit
     summary[key].balance += amounts.balanceEffect
     summary[key].transactions += 1
   })

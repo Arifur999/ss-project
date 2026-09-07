@@ -61,7 +61,7 @@ export default function LoanTransactions() {
   const [toDate, setToDate] = useState('')
   const [filterLenderName, setFilterLenderName] = useState('')
   const [errors, setErrors] = useState<LoanTransactionValidationErrors>({})
-  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', amount: 0, account_id: '', notes: '' })
+  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', amount: 0, account_id: '', notes: '' })
   const [business, setBusiness] = useState<any>(null)
   const [smsReceipt, setSmsReceipt] = useState(() => localStorage.getItem(SMS_RECEIPT_KEY) === '1')
 
@@ -107,7 +107,7 @@ export default function LoanTransactions() {
     setEditingId(null)
     setShowModal(false)
     setErrors({})
-    setForm({ date: todayISO(), lender_id: '', transaction_type: '', amount: 0, account_id: '', notes: '' })
+    setForm({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', amount: 0, account_id: '', notes: '' })
   }
 
   function editRecord(record: any) {
@@ -118,6 +118,10 @@ export default function LoanTransactions() {
       date: record.date,
       lender_id: record.lender_id || fallbackLender?.id || '',
       transaction_type: amounts.type === 'payment' ? 'payment' : 'receive',
+      // Carried through, not defaulted: reopening a profit row and saving it
+      // would otherwise turn it into principal and move a balance that should
+      // not have moved.
+      payment_category: record.payment_category === 'profit' ? 'profit' : 'principal',
       amount: amounts.received || amounts.paid,
       account_id: record.account_id || '',
       notes: record.notes || '',
@@ -169,10 +173,12 @@ export default function LoanTransactions() {
   const balanceBefore = form.lender_id ? balanceBeforeFor(form.lender_id) : null
   // Paying them moves the balance up toward zero; taking money from them moves
   // it down. The same arithmetic transactionAmounts does on a saved record.
+  // Profit moves the balance by nothing, the same rule the server applies.
   const pendingEffect =
-    form.transaction_type === 'payment' ? Number(form.amount || 0)
-      : form.transaction_type === 'receive' ? -Number(form.amount || 0)
-        : 0
+    form.payment_category === 'profit' ? 0
+      : form.transaction_type === 'payment' ? Number(form.amount || 0)
+        : form.transaction_type === 'receive' ? -Number(form.amount || 0)
+          : 0
   const balanceAfter = balanceBefore === null ? null : balanceBefore + pendingEffect
 
   function balanceText(amount: number) {
@@ -211,6 +217,10 @@ export default function LoanTransactions() {
       lender_name: lender?.name || '',
       loan_type: loanTypeFromLender(lender),
       transaction_type: form.transaction_type,
+      // The money goes in the same two columns whatever it was for - a profit
+      // payment is still cash leaving the drawer, and the Balance Dashboard
+      // reads these two. The category is what tells the principal apart.
+      payment_category: form.payment_category,
       received_amount: form.transaction_type === 'receive' ? amount : 0,
       payment_amount: form.transaction_type === 'payment' ? amount : 0,
       interest_amount: 0,
@@ -338,7 +348,8 @@ export default function LoanTransactions() {
           <td>${index + 1}</td>
           <td>${escapeHtml(formatDate(record.date))}</td>
           <td>${escapeHtml(loanDisplayName(record))}</td>
-          <td class="${isPayment ? 'payment' : 'receive'}">${isPayment ? 'Payment' : 'Receive'}</td>
+          <td class="${isPayment ? 'payment' : 'receive'}">${isPayment ? 'Paid' : 'Received'}</td>
+          <td>${amounts.isProfit ? 'Profit' : 'Principal'}</td>
           <td>${escapeHtml(record.account_name || '-')}</td>
           <td class="amount receive">${formatPrintAmount(amounts.received || 0)}</td>
           <td class="amount payment">${formatPrintAmount(amounts.paid || 0)}</td>
@@ -402,6 +413,7 @@ export default function LoanTransactions() {
                 <th>Date</th>
                 <th>Bank / Person</th>
                 <th>Type</th>
+                <th>Category</th>
                 <th>Account</th>
                 <th style="text-align:right">Receive</th>
                 <th style="text-align:right">Payment</th>
@@ -473,6 +485,7 @@ export default function LoanTransactions() {
               <th className="text-left py-2 px-4">Date</th>
               <th className="text-left py-2 px-4">Bank / Person</th>
               <th className="text-left py-2 px-4">Type</th>
+              <th className="text-left py-2 px-4">Category</th>
               <th className="text-left py-2 px-4">Account</th>
               <th className="text-right py-2 px-4">Receive</th>
               <th className="text-right py-2 px-4">Payment</th>
@@ -484,13 +497,21 @@ export default function LoanTransactions() {
             {shown.visible.map((record, index) => {
               const amounts = transactionAmounts(record)
               const isPayment = amounts.type === 'payment'
-              const typeText = isPayment ? 'Payment' : 'Receive'
+              const typeText = isPayment ? 'Paid' : 'Received'
               return (
                 <tr key={record.id} className="table-row">
                   <td className="py-2.5 px-4 text-slate-500">{index + 1}</td>
                   <td className="py-2.5 px-4">{formatDate(record.date)}</td>
                   <td className="py-2.5 px-4 font-medium">{loanDisplayName(record)}</td>
                   <td className={`py-2.5 px-4 font-medium ${isPayment ? 'text-red-600' : 'text-green-600'}`}>{typeText}</td>
+                  {/* Profit is called out, principal is not: the ordinary case
+                      should not shout, and a profit row is the one whose
+                      absence from the running balance needs explaining. */}
+                  <td className="py-2.5 px-4">
+                    {amounts.isProfit
+                      ? <span className="rounded bg-brand-orange-soft px-2 py-0.5 text-xs font-medium text-brand-orange">Profit</span>
+                      : <span className="text-slate-500">Principal</span>}
+                  </td>
                   <td className="py-2.5 px-4 text-slate-500">{record.account_name || <NoValue />}</td>
                   <td className="py-2.5 px-4 text-right text-brand-green">{amounts.received ? formatCurr(amounts.received) : <ZeroAmount />}</td>
                   <td className="py-2.5 px-4 text-right text-brand-red">{amounts.paid ? formatCurr(amounts.paid) : <ZeroAmount />}</td>
@@ -505,13 +526,13 @@ export default function LoanTransactions() {
               )
             })}
             {loading && <TableSkeleton rows={6} cols={9} />}
-            {!loading && filteredRecords.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-slate-400">No loan transactions</td></tr>}
+            {!loading && filteredRecords.length === 0 && <tr><td colSpan={10} className="text-center py-8 text-slate-400">No loan transactions</td></tr>}
           {/* Draws the next slice 600px before the reader reaches the end.
               Every row is already loaded - this only limits how many the
               browser lays out at once, so no total or filter is affected. */}
           {shown.hasMore && (
             <tr ref={shown.sentinelRef as unknown as React.Ref<HTMLTableRowElement>}>
-              <td colSpan={9} className="py-4 text-center text-sm text-slate-400">
+              <td colSpan={10} className="py-4 text-center text-sm text-slate-400">
                 {shown.visibleCount.toLocaleString()} of {shown.total.toLocaleString()} shown
               </td>
             </tr>
@@ -575,7 +596,7 @@ export default function LoanTransactions() {
           {selectedLender && balanceBefore !== null && (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500">Current balance</span>
+                <span className="text-slate-500">Current principal</span>
                 <span className={`font-semibold ${loanBalanceColor(balanceBefore)}`}>{balanceText(balanceBefore)}</span>
               </div>
               {pendingEffect !== 0 && balanceAfter !== null && (
@@ -586,25 +607,75 @@ export default function LoanTransactions() {
                   <span className={`font-semibold ${loanBalanceColor(balanceAfter)}`}>{balanceText(balanceAfter)}</span>
                 </div>
               )}
+              {/* Said out loud, because an unchanged number is otherwise hard to
+                  tell from a form that has not registered the amount typed. */}
+              {form.payment_category === 'profit' && Number(form.amount || 0) > 0 && (
+                <p className="mt-1.5 border-t border-slate-200 pt-1.5 text-xs text-neutral-500">
+                  Profit does not change what is owed - only the cash account moves.
+                </p>
+              )}
             </div>
           )}
 
           <div>
-            <label className="label" htmlFor="loan-transactions-f1">{requiredLabel('Transaction Type')}</label>
-            <select id="loan-transactions-f1"
-              className={inputClass('transaction_type')}
-              value={form.transaction_type}
-              required
-              aria-invalid={!!errors.transaction_type}
-              onChange={e => {
-                clearError('transaction_type')
-                setForm({ ...form, transaction_type: e.target.value })
-              }}
-            >
-              <option value="">Select Type</option>
-              <option value="receive">Receive</option>
-              <option value="payment">Payment</option>
-            </select>
+            <label className="label">{requiredLabel('Category')}</label>
+            {/* Principal moves what is owed. Profit does not - it is what the
+                money earned, and the debt behind it stays exactly where it was. */}
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { key: 'principal', label: 'Principal', hint: 'Moves the balance' },
+                { key: 'profit', label: 'Profit', hint: 'Balance unchanged' },
+              ] as const).map(option => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setForm({ ...form, payment_category: option.key })}
+                  className={`rounded-xl border px-3 py-2 text-left transition ${
+                    form.payment_category === option.key
+                      ? 'border-navy-900 bg-navy-900 text-white'
+                      : 'border-neutral-200 bg-white hover:bg-neutral-50'
+                  }`}
+                >
+                  <span className="block text-xs font-semibold">{option.label}</span>
+                  <span className={`mt-0.5 block text-[11px] ${
+                    form.payment_category === option.key ? 'text-white/60' : 'text-neutral-500'
+                  }`}>
+                    {option.hint}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="label">{requiredLabel('Type')}</label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { key: 'receive', label: 'Received', hint: 'Money came in', active: 'border-brand-green bg-brand-green text-white' },
+                { key: 'payment', label: 'Paid', hint: 'Money went out', active: 'border-brand-red bg-brand-red text-white' },
+              ] as const).map(option => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => {
+                    clearError('transaction_type')
+                    setForm({ ...form, transaction_type: option.key })
+                  }}
+                  className={`rounded-xl border px-3 py-2 text-left transition ${
+                    form.transaction_type === option.key
+                      ? option.active
+                      : 'border-neutral-200 bg-white hover:bg-neutral-50'
+                  }`}
+                >
+                  <span className="block text-xs font-semibold">{option.label}</span>
+                  <span className={`mt-0.5 block text-[11px] ${
+                    form.transaction_type === option.key ? 'text-white/70' : 'text-neutral-500'
+                  }`}>
+                    {option.hint}
+                  </span>
+                </button>
+              ))}
+            </div>
             {errors.transaction_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.transaction_type}</p>}
           </div>
           <div>

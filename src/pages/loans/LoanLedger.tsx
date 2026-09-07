@@ -95,7 +95,7 @@ export default function LoanLedger() {
 
   const totalReceived = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).received, 0)
   const totalPaid = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).paid, 0)
-  const totalInterest = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).interest, 0)
+  const totalInterest = selectedLoans.reduce((s, loan) => s + transactionAmounts(loan).profit, 0)
   const currentBalance = Number(selected?.opening_balance || 0) - totalReceived + totalInterest + totalPaid
 
   function selectLender(option: any) {
@@ -209,7 +209,7 @@ export default function LoanLedger() {
                     <td className="py-2.5 px-4"><span className="badge-blue">{transactionLabel(entry.amounts.type)}</span></td>
                     <td className="py-2.5 px-4 text-right text-brand-green">{entry.amounts.received ? formatCurr(entry.amounts.received) : <ZeroAmount />}</td>
                     <td className="py-2.5 px-4 text-right text-brand-red">{entry.amounts.paid ? formatCurr(entry.amounts.paid) : <ZeroAmount />}</td>
-                    <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.interest ? formatCurr(entry.amounts.interest) : <ZeroAmount />}</td>
+                    <td className="py-2.5 px-4 text-right text-brand-blue">{entry.amounts.profit ? formatCurr(entry.amounts.profit) : <ZeroAmount />}</td>
                     <td className={`whitespace-nowrap py-2.5 px-4 text-right font-semibold ${loanBalanceColor(entry.running_balance)}`}>
                       {formatCurr(entry.running_balance)} <span className="text-xs font-medium">({loanBalanceLabel(entry.running_balance)})</span>
                     </td>

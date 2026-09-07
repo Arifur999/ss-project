@@ -92,7 +92,7 @@ export default function LoanDashboard() {
 
   // Displayed-row totals (reflect the current search filter).
   const shownOpening = displayed.reduce((s: number, i: any) => s + i.opening, 0)
-  const shownReceived = displayed.reduce((s: number, i: any) => s + i.received + i.interest, 0)
+  const shownReceived = displayed.reduce((s: number, i: any) => s + i.received, 0)
   const shownPaid = displayed.reduce((s: number, i: any) => s + i.paid, 0)
   const shownBalance = displayed.reduce((s: number, i: any) => s + i.balance, 0)
 
@@ -250,7 +250,7 @@ export default function LoanDashboard() {
                       {phone && <div className="text-xs text-slate-400">{phone}</div>}
                     </td>
                     <td className="px-4 py-5 text-right">{signedAmount(item.opening)}</td>
-                    <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(item.received + item.interest)}</td>
+                    <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-green">{formatCurr(item.received)}</td>
                     <td className="px-4 py-5 text-right font-semibold tabular-nums text-brand-red">{formatCurr(item.paid)}</td>
                     <td className="px-4 py-5 text-right">{signedAmount(item.balance)}</td>
                     <td className="px-4 py-5 text-center">
