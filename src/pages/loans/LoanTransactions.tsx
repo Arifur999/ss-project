@@ -270,11 +270,16 @@ export default function LoanTransactions() {
       await sendSms({
         recipients: [phone],
         message: buildLoanTransactionSms({
-          businessName: business?.name_en || business?.name_bn || 'Furniture Management',
+          // The shop's own name, not the software's: this lands on a customer's
+          // phone and they know who they borrowed from.
+          businessName: business?.name_en || business?.name_bn || 'Furnify',
           businessPhone: business?.phone || '',
-          type: form.transaction_type === 'payment' ? 'payment' : 'receive',
+          customerName: String(lender?.name || '').trim() || 'Customer',
           amount,
-          balanceAfter: newBalance,
+          // The PRINCIPAL, which a profit entry leaves exactly where it was.
+          // Sending a figure that moved on a profit payment would tell somebody
+          // their debt changed when it did not.
+          principalAfter: newBalance,
         }),
       })
       toast.success('Receipt sent by SMS')

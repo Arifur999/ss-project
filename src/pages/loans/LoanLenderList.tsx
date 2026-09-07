@@ -11,11 +11,18 @@ import { deleteStoredLoanLender, isLoanLenderTableMissing, mergeStoredAndLegacyL
 import { addRecycleItem } from '../../lib/recycleBin'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 import { todayISO } from '../../lib/utils'
+import { buildLoanAccountSms } from '../../lib/smsTemplates'
+import { sendSms } from '../../services/sms.services'
 import { NoValue } from '../../components/CellValue'
 
 type LenderValidationErrors = Partial<Record<'name' | 'phone', string>>
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required!'
+// Remembered per browser, like the other two SMS switches. Default off: every
+// message costs credits, and a shop that texts nobody should not have to turn
+// it off on each account.
+const SMS_ACCOUNT_KEY = 'loan_account_sms_v1'
+
 const LINKED_LENDER_DELETE_MESSAGE = 'This profile cannot be deleted because they have existing transaction history. Please clear or void the transactions first!'
 
 export default function LoanLenderList() {
@@ -27,6 +34,8 @@ export default function LoanLenderList() {
   const [editItem, setEditItem] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<LenderValidationErrors>({})
+  const [business, setBusiness] = useState<any>(null)
+  const [smsWelcome, setSmsWelcome] = useState(() => localStorage.getItem(SMS_ACCOUNT_KEY) === '1')
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -44,6 +53,11 @@ export default function LoanLenderList() {
 
   async function loadAll() {
     const ownerId = profile?.owner_id || user?.id
+    // The name and helpline the welcome SMS carries. Awaited with the rest
+    // rather than raced: a lender saved in the first second after the page
+    // opens would otherwise text out the fallback name.
+    const businessRes = await supabase.from('business_settings').select('name_bn, name_en, phone').maybeSingle()
+    setBusiness(businessRes.data || null)
     const lenderRes = await supabase.from('loan_lenders').select('*').order('created_at', { ascending: false })
     if (isLoanLenderTableMissing(lenderRes.error)) {
       const legacyLoanRes = await supabase.from('loans').select('*').order('created_at', { ascending: false })
@@ -101,6 +115,41 @@ export default function LoanLenderList() {
     setEditItem(null)
     setErrors({})
     setForm({ name: '', phone: '', address: '', opening_date: todayISO(), opening_balance: 0, opening_balance_direction: 'receivable', notes: '', is_active: true })
+  }
+
+  /**
+   * Text a new account holder the balance it opens on.
+   *
+   * Only on creation: an edit is bookkeeping, and texting somebody every time
+   * their address is corrected would be noise they pay for. Fired after the
+   * save, and a failure here never reports the save as failed - the account is
+   * on the books either way.
+   */
+  async function textWelcome(lender: any, principal: number) {
+    if (!smsWelcome || editItem) return
+
+    const phone = String(lender?.phone || '').trim()
+    if (!isValidBdPhone(phone)) {
+      toast.error('Welcome SMS skipped - no valid phone number on this account')
+      return
+    }
+
+    try {
+      await sendSms({
+        recipients: [phone],
+        message: buildLoanAccountSms({
+          // The shop's own name, not the software's: this lands on a customer's
+          // phone and they know who they deal with.
+          businessName: business?.name_en || business?.name_bn || 'Furnify',
+          businessPhone: business?.phone || '',
+          customerName: String(lender?.name || '').trim() || 'Customer',
+          principal,
+        }),
+      })
+      toast.success('Welcome SMS sent')
+    } catch (error: any) {
+      toast.error(error?.message || 'Saved, but the welcome SMS could not be sent')
+    }
   }
 
   const requiredLabel = (label: string) => (
@@ -227,6 +276,10 @@ export default function LoanLenderList() {
     setLenders(current => editItem
       ? current.map(item => item.id === data.id ? data : item)
       : [data, ...current.filter(item => item.id !== data.id)])
+
+    // Before resetForm() clears the name and the amount.
+    await textWelcome(data, Number(data.opening_balance || 0))
+
     toast.success(editItem ? 'Bank / Person updated' : 'Bank / Person saved')
     resetForm()
     loadAll()
@@ -384,7 +437,28 @@ export default function LoanLenderList() {
       <Modal isOpen={showModal} onClose={resetForm} title={editItem ? 'Edit Bank / Person' : 'Add Bank / Person'}>
         <form className="space-y-3" onSubmit={event => { event.preventDefault(); save() }} noValidate>
           <div>
-            <label className="label" htmlFor="loan-lender-list-f1">{requiredLabel('Name')}</label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="label" htmlFor="loan-lender-list-f1">{requiredLabel('Name')}</label>
+              {/* Text them the balance their account opens on. Only shown when
+                  creating - there is nothing to welcome somebody to on an edit. */}
+              {!editItem && (
+                <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                  <span>Welcome SMS</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={smsWelcome}
+                    onClick={() => setSmsWelcome(prev => {
+                      localStorage.setItem(SMS_ACCOUNT_KEY, prev ? '0' : '1')
+                      return !prev
+                    })}
+                    className={`relative h-5 w-9 rounded-full transition-colors ${smsWelcome ? 'bg-brand-green' : 'bg-slate-300'}`}
+                  >
+                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${smsWelcome ? 'left-[1.125rem]' : 'left-0.5'}`} />
+                  </button>
+                </label>
+              )}
+            </div>
             <input id="loan-lender-list-f1"
               className={inputClass('name')}
               value={form.name}

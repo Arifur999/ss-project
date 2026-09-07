@@ -94,46 +94,80 @@ export function buildDuePaymentSms(input: DuePaymentSmsInput): string {
   ].filter(Boolean).join('\n')
 }
 
-export type LoanTransactionSmsInput = {
-  businessName: string
-  businessPhone?: string
-  /** "payment" - we handed money over; "receive" - we took money from them. */
-  type: 'payment' | 'receive'
-  amount: number
-  /**
-   * Where the account stands AFTER this transaction, signed the way the loan
-   * pages sign it: positive means they owe us, negative means we owe them.
-   */
-  balanceAfter: number
+// ---------------------------------------------------------------------------
+// Loan account messages.
+//
+// One rule drives the wording, and getting it wrong tells somebody they owe
+// money they are in fact owed: the balance is signed the way every loan screen
+// signs it - POSITIVE means they owe us, NEGATIVE means we owe them.
+//
+//   they owe us   -> "Your Due Balance"      (money we are waiting on)
+//   we owe them   -> "Your Current Balance"  (money of theirs we are holding)
+//
+// The figure is always the PRINCIPAL. Profit is what the money earned; it is
+// not part of what is owed, and putting it in this line would tell a customer
+// their debt grew when it did not.
+//
+// A note on cost: the card emoji makes the whole message unicode, which bills
+// at 70 characters a segment instead of 160 - so one of these costs two
+// credits a recipient where the plain-ASCII version would cost one. That is
+// the shape the owner asked for; dropping the emoji halves the bill.
+// ---------------------------------------------------------------------------
+
+/** The balance line, and the only place the owe/owed wording is decided. */
+function balanceLine(principalAfter: number): string {
+  const balance = roundedBalance(principalAfter)
+  const label = balance > 0 ? 'Your Due Balance' : 'Your Current Balance'
+  return `\u{1F4B3} ${label}: Tk ${smsAmount(Math.abs(balance))}`
 }
 
-// Receipt for a loan payment or receipt, sent to the bank/person on the other
-// side of it. English like buildDuePaymentSms, and for the same reason: plain
-// ASCII bills at 160 characters a segment where Bangla bills at 70.
-//
-// The balance line is the part worth getting right - a sign error here tells
-// somebody they owe money they are in fact owed.
-export function buildLoanTransactionSms(input: LoanTransactionSmsInput): string {
-  const helpline = helplineNumber(input.businessPhone)
-  const balance = roundedBalance(input.balanceAfter)
+export type LoanAccountSmsInput = {
+  /** The shop's own name from Settings, not the software's. */
+  businessName: string
+  businessPhone?: string
+  customerName: string
+  /** Opening principal, signed: positive they owe us, negative we owe them. */
+  principal: number
+}
 
+/** Sent when a bank/person account is opened, so they have the number in writing. */
+export function buildLoanAccountSms(input: LoanAccountSmsInput): string {
+  const helpline = helplineNumber(input.businessPhone)
   return [
-    'Assalamu Alaikum,',
-    input.type === 'payment'
-      ? `${input.businessName} has paid you Tk ${smsAmount(input.amount)}.`
-      : `${input.businessName} has received Tk ${smsAmount(input.amount)} from you.`,
-    balance === 0
-      ? 'Balance: settled in full'
-      : balance < 0
-        ? `Our due to you: Tk ${smsAmount(Math.abs(balance))}`
-        : `Your due to us: Tk ${smsAmount(balance)}`,
+    input.businessName,
+    `Dear ${input.customerName}, your account has been created successfully.`,
+    balanceLine(input.principal),
     helpline ? `Helpline: ${helpline}` : '',
-    'Thank you.',
   ].filter(Boolean).join('\n')
 }
 
-// Rounded before the sign is read, so a balance of a few paisa either way
-// reads as settled rather than as a due of Tk 0.
+export type LoanTransactionSmsInput = {
+  businessName: string
+  businessPhone?: string
+  customerName: string
+  /** What just moved, whether it was principal or profit. */
+  amount: number
+  /**
+   * The PRINCIPAL after this transaction, signed the way the loan pages sign
+   * it. A profit entry leaves this exactly where it was, which is the point of
+   * separating the two.
+   */
+  principalAfter: number
+}
+
+/** Sent after a loan transaction is saved. */
+export function buildLoanTransactionSms(input: LoanTransactionSmsInput): string {
+  const helpline = helplineNumber(input.businessPhone)
+  return [
+    input.businessName,
+    `Dear ${input.customerName}, your transaction of Tk ${smsAmount(input.amount)} has been processed.`,
+    balanceLine(input.principalAfter),
+    helpline ? `Helpline: ${helpline}` : '',
+  ].filter(Boolean).join('\n')
+}
+
+// Rounded before the sign is read, so a balance a few paisa either side of
+// zero does not flip the wording between due and held.
 function roundedBalance(value: number) {
   return Math.round(Number(value) || 0)
 }
