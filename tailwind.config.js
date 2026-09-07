@@ -80,6 +80,25 @@ export default {
         sans: ['Inter', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
         bengali: ['Noto Sans Bengali', 'Inter', 'system-ui', 'sans-serif'],
         numeric: ['Inter', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
+        // Product codes, invoice numbers, transaction ids - everything read
+        // digit by digit, and the reason this is not a monospace stack.
+        //
+        // `font-mono` had no entry here, so it fell through to Tailwind's
+        // default: ui-monospace, SFMono-Regular, Menlo, Consolas, Courier New.
+        // Which of those actually rendered depended entirely on the machine,
+        // and the one Windows picks - Consolas - draws a SLASHED zero. On a
+        // small code that reads as an 8, so 840050 and 848858 looked alike,
+        // and the same invoice looked different on two devices.
+        //
+        // Inter is the webfont this app already loads, so every device gets
+        // the same glyphs, and its zero carries no slash. tnum keeps the
+        // digits fixed-width, which is the only thing the monospace was
+        // buying - letters in a code do not need to line up, columns of
+        // digits do.
+        mono: [
+          ['Inter', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
+          { fontFeatureSettings: '"tnum"' },
+        ],
       }
     },
   },
