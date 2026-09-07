@@ -11,6 +11,7 @@ import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredA
 import TableSkeleton from '../../components/TableSkeleton'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
 import { getLenderStatement, type LenderStatement } from '../../services/finance.services'
+import { resolveBusinessName } from '../../lib/businessBrand'
 
 /**
  * One account, one window, read like a passbook.
@@ -34,13 +35,22 @@ export default function LoanLedger() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState(todayISO())
   const [statement, setStatement] = useState<LenderStatement | null>(null)
+  const [business, setBusiness] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const lenderBoxRef = useRef<HTMLDivElement>(null)
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     void loadLenders()
+    void loadBusiness()
   }, [])
+
+  // Whose statement this is. A printed page that leaves the shop off is a page
+  // the person receiving it cannot file.
+  async function loadBusiness() {
+    const { data } = await supabase.from('business_settings').select('name_bn, name_en, phone, email, address').maybeSingle()
+    setBusiness(data || null)
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -97,6 +107,15 @@ export default function LoanLedger() {
   const balanceText = (amount: number) => {
     const label = loanBalanceLabel(amount)
     return label === 'Balanced' ? formatCurr(0) : `${label} ${formatCurr(Math.abs(amount))}`
+  }
+
+  // Phone and email on one line, and nothing at all when Settings holds
+  // neither - an empty "Phone:  Email:" is worse than no line.
+  function businessContactLine() {
+    return [
+      business?.phone ? `Phone: ${business.phone}` : '',
+      business?.email ? `Email: ${business.email}` : '',
+    ].filter(Boolean).join('  |  ')
   }
 
   // The window as a sentence, for the printed header.
@@ -295,7 +314,19 @@ export default function LoanLedger() {
           be copied into the print frame empty. */}
       <div aria-hidden className="pointer-events-none fixed -left-[9999px] top-0">
         <div ref={printRef} className="invoice-print-page" style={{ padding: '8mm', color: '#000' }}>
-          <h1 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700 }}>Loan Statement</h1>
+          {/* The shop first, the way a letterhead reads - this page goes out to
+              somebody who needs to know who sent it. */}
+          <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '12px' }}>
+            <p style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{resolveBusinessName(business)}</p>
+            {businessContactLine() && (
+              <p style={{ margin: '2px 0 0', fontSize: '11px' }}>{businessContactLine()}</p>
+            )}
+            {business?.address && (
+              <p style={{ margin: '1px 0 0', fontSize: '11px' }}>{business.address}</p>
+            )}
+          </div>
+
+          <h1 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: 700 }}>Loan Statement</h1>
           <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 700 }}>{statement?.lender.name}</p>
           {statement?.lender.phone && (
             <p style={{ margin: '0 0 2px', fontSize: '12px' }}>{statement.lender.phone}</p>
