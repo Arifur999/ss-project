@@ -142,7 +142,7 @@ export default function LoanLenderList() {
           // phone and they know who they deal with.
           businessName: business?.name_en || business?.name_bn || 'Furnify',
           businessPhone: business?.phone || '',
-          customerName: String(lender?.name || '').trim() || 'Customer',
+          customerName: String(lender?.name || '').trim() || 'Client',
           principal,
         }),
       })
@@ -523,8 +523,8 @@ export default function LoanLenderList() {
                 convention every loan screen and every SMS reads. */}
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               {([
-                { key: 'receivable', label: 'Customer Dena', hint: 'They owe us', dot: 'bg-brand-green' },
-                { key: 'payable', label: 'Customer Pawna', hint: 'We owe them', dot: 'bg-brand-red' },
+                { key: 'receivable', label: 'Client Dena', hint: 'They owe us', dot: 'bg-brand-green' },
+                { key: 'payable', label: 'Client Pawna', hint: 'We owe them', dot: 'bg-brand-red' },
                 { key: 'zero', label: 'Zero Balance', hint: 'Nothing outstanding', dot: 'bg-neutral-300' },
               ] as const).map(option => (
                 <button

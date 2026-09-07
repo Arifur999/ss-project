@@ -274,7 +274,7 @@ export default function LoanTransactions() {
           // phone and they know who they borrowed from.
           businessName: business?.name_en || business?.name_bn || 'Furnify',
           businessPhone: business?.phone || '',
-          customerName: String(lender?.name || '').trim() || 'Customer',
+          customerName: String(lender?.name || '').trim() || 'Client',
           amount,
           // The PRINCIPAL, which a profit entry leaves exactly where it was.
           // Sending a figure that moved on a profit payment would tell somebody
