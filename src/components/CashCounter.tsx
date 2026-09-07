@@ -139,9 +139,12 @@ export default function CashCounter() {
     try {
       const result = await emailReport({
         title: t('cash_title', 'Cash Counter'),
-        period: formatDate(date),
+        // Who counted it belongs beside the date, not in the totals block -
+        // that block now sits under the table and holds only what was summed.
+        period: countedBy.trim()
+          ? `${formatDate(date)} - ${t('cash_countedBy', 'Counted by')} ${countedBy.trim()}`
+          : formatDate(date),
         summary: [
-          ...(countedBy.trim() ? [{ label: t('cash_countedBy', 'Counted by'), value: countedBy.trim() }] : []),
           { label: t('cash_totalNotes', 'Total notes'), value: formatNum(totalNotes) },
           { label: t('cash_total', 'Total'), value: formatCurr(totalAmount) },
         ],
