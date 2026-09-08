@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categoryDetail, expenseCategoryFields, needsExpenseCategory } from './loanUtils'
+import { categoryDetail, expenseCategoryFields, incomeSourceFields, needsExpenseCategory, needsIncomeSource } from './loanUtils'
 
 // These three decide where loan profit lands in the books, and they have a twin
 // on the server in shared/loanProfitMirror.ts. Keeping the two in step is the
@@ -76,6 +76,49 @@ describe('expenseCategoryFields', () => {
   })
 })
 
+describe('needsIncomeSource', () => {
+  it('asks for one only when profit was RECEIVED', () => {
+    expect(needsIncomeSource({ payment_category: 'profit', transaction_type: 'receive' })).toBe(true)
+    expect(needsIncomeSource({ payment_category: 'profit', transaction_type: 'payment' })).toBe(false)
+    expect(needsIncomeSource({ payment_category: 'principal', transaction_type: 'receive' })).toBe(false)
+  })
+
+  it('never agrees with needsExpenseCategory - a row has one side or neither', () => {
+    const rows = [
+      { payment_category: 'profit', transaction_type: 'receive' },
+      { payment_category: 'profit', transaction_type: 'payment' },
+      { payment_category: 'principal', transaction_type: 'receive' },
+      { payment_category: 'principal', transaction_type: 'payment' },
+    ]
+    for (const row of rows) {
+      expect(needsIncomeSource(row) && needsExpenseCategory(row)).toBe(false)
+    }
+  })
+})
+
+describe('incomeSourceFields', () => {
+  it('sends the trimmed source on a profit receipt', () => {
+    expect(incomeSourceFields({
+      payment_category: 'profit', transaction_type: 'receive', income_source_name: '  Loan Interest  ',
+    })).toEqual({ income_source_name: 'Loan Interest' })
+  })
+
+  it('sends an empty string when nothing was typed - the server falls back to the lender', () => {
+    expect(incomeSourceFields({
+      payment_category: 'profit', transaction_type: 'receive',
+    })).toEqual({ income_source_name: '' })
+  })
+
+  it('clears it when the row is not a profit receipt, even with a stale value in the form', () => {
+    expect(incomeSourceFields({
+      payment_category: 'profit', transaction_type: 'payment', income_source_name: 'Loan Interest',
+    })).toEqual({ income_source_name: '' })
+    expect(incomeSourceFields({
+      payment_category: 'principal', transaction_type: 'receive', income_source_name: 'Loan Interest',
+    })).toEqual({ income_source_name: '' })
+  })
+})
+
 describe('categoryDetail', () => {
   it('names where a profit row was filed', () => {
     expect(categoryDetail({
@@ -91,7 +134,14 @@ describe('categoryDetail', () => {
     })).toBe('')
   })
 
-  it('says nothing for a profit row with no category - a receipt, or an old row', () => {
+  it('names the income source on a profit receipt', () => {
+    expect(categoryDetail({
+      payment_category: 'profit', transaction_type: 'receive',
+      received_amount: 5000, income_source_name: 'Loan Interest',
+    })).toBe('Loan Interest')
+  })
+
+  it('says nothing for a profit row carrying neither - an old row', () => {
     expect(categoryDetail({
       payment_category: 'profit', transaction_type: 'receive', received_amount: 5000,
     })).toBe('')

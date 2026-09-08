@@ -9,7 +9,7 @@ import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { confirmAction } from '../../components/ConfirmDialog'
-import { buildLoanSummary, categoryDetail, expenseCategoryFields, lenderKey, loanBalanceColor, loanBalanceLabel, loanDisplayName, needsExpenseCategory, transactionAmounts, transactionLabel } from './loanUtils'
+import { buildLoanSummary, categoryDetail, expenseCategoryFields, incomeSourceFields, lenderKey, loanBalanceColor, loanBalanceLabel, loanDisplayName, needsExpenseCategory, needsIncomeSource, transactionAmounts, transactionLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
@@ -57,6 +57,9 @@ export default function LoanTransactions() {
   // Only ever read for a profit PAYMENT, which is filed as an expense and so
   // has to say which category.
   const [categories, setCategories] = useState<any[]>([])
+  // Source names already used in Other Income, offered on a profit receipt so
+  // repeat entries land under one name instead of four spellings of it.
+  const [incomeSources, setIncomeSources] = useState<string[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [usingFallback, setUsingFallback] = useState(false)
@@ -64,7 +67,7 @@ export default function LoanTransactions() {
   const [toDate, setToDate] = useState('')
   const [filterLenderName, setFilterLenderName] = useState('')
   const [errors, setErrors] = useState<LoanTransactionValidationErrors>({})
-  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', expense_category_id: '', amount: 0, account_id: '', notes: '' })
+  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', expense_category_id: '', income_source_name: '', amount: 0, account_id: '', notes: '' })
   const [business, setBusiness] = useState<any>(null)
   const [smsReceipt, setSmsReceipt] = useState(() => localStorage.getItem(SMS_RECEIPT_KEY) === '1')
 
@@ -84,17 +87,24 @@ export default function LoanTransactions() {
   }
 
   async function loadAll() {
-    const [loanRes, lenderRes, accountRes, businessRes, categoryRes] = await Promise.all([
+    const [loanRes, lenderRes, accountRes, businessRes, categoryRes, incomeRes] = await Promise.all([
       supabase.from('loans').select('*, loan_lenders(*)').order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('loan_lenders').select('*').eq('is_active', true).order('name'),
       supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
       supabase.from('business_settings').select('name_bn, name_en, phone').maybeSingle(),
       supabase.from('expense_categories').select('*').order('name'),
+      supabase.from('other_incomes').select('source_name'),
     ])
     setBusiness(businessRes.data || null)
     // Set before the fallback branch returns: a legacy database still has
     // expense categories even when it has no loan_lenders table.
     setCategories(categoryRes.data || [])
+    // Distinct and sorted, because this is a suggestion list rather than a
+    // table - the same name appears on every month's row.
+    const sourceNames: string[] = (incomeRes.data || [])
+      .map((row: any) => String(row.source_name || '').trim())
+      .filter(Boolean)
+    setIncomeSources([...new Set(sourceNames)].sort((a, b) => a.localeCompare(b)))
     if (isLoanLenderTableMissing(loanRes.error) || isLoanLenderTableMissing(lenderRes.error)) {
       const legacyLoanRes = await supabase.from('loans').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })
       const legacyLoans = legacyLoanRes.data || []
@@ -114,7 +124,7 @@ export default function LoanTransactions() {
     setEditingId(null)
     setShowModal(false)
     setErrors({})
-    setForm({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', expense_category_id: '', amount: 0, account_id: '', notes: '' })
+    setForm({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', expense_category_id: '', income_source_name: '', amount: 0, account_id: '', notes: '' })
   }
 
   function editRecord(record: any) {
@@ -133,6 +143,7 @@ export default function LoanTransactions() {
       // profit payment and saving it must not silently move its expense into a
       // different category, or out of one entirely.
       expense_category_id: record.expense_category_id || '',
+      income_source_name: record.income_source_name || '',
       amount: amounts.received || amounts.paid,
       account_id: record.account_id || '',
       notes: record.notes || '',
@@ -181,6 +192,16 @@ export default function LoanTransactions() {
   }, [lenders, records, editingId])
 
   const selectedLender = lenders.find(lender => lender.id === form.lender_id) || null
+
+  // The lender's own name first, because it is the default and the commonest
+  // answer; then everything Other Income has been filed under before.
+  const incomeSourceOptions = useMemo(() => {
+    const names = [selectedLender?.name, ...incomeSources]
+      .map(name => String(name || '').trim())
+      .filter(Boolean)
+    return [...new Set(names)].map(name => ({ value: name, label: name }))
+  }, [selectedLender, incomeSources])
+
   const balanceBefore = form.lender_id ? balanceBeforeFor(form.lender_id) : null
   // Paying them moves the balance up toward zero; taking money from them moves
   // it down. The same arithmetic transactionAmounts does on a saved record.
@@ -237,6 +258,8 @@ export default function LoanTransactions() {
       // and Prisma skips undefined, so an omission would leave a category on a
       // row that no longer has an expense behind it.
       ...expenseCategoryFields(form, categories),
+      // The receiving side's label, cleared the same way for the same reason.
+      ...incomeSourceFields(form),
       received_amount: form.transaction_type === 'receive' ? amount : 0,
       payment_amount: form.transaction_type === 'payment' ? amount : 0,
       interest_amount: 0,
@@ -728,6 +751,26 @@ export default function LoanTransactions() {
               {errors.expense_category_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.expense_category_id}</p>}
               <p className="mt-1 text-xs text-neutral-500">
                 Recorded as an expense under this category. The cash account moves once, from this transaction - not twice.
+              </p>
+            </div>
+          )}
+
+          {/* The receiving side. Other Income has no categories, so its source
+              name is the only label it carries - and left to the lender's name
+              alone, a row read six months later says who paid but not what for.
+              Past sources are offered; anything new can be typed. */}
+          {needsIncomeSource(form) && (
+            <div>
+              <label className="label">Income Source</label>
+              <SearchableSelect
+                value={form.income_source_name}
+                onChange={val => setForm({ ...form, income_source_name: val })}
+                options={incomeSourceOptions}
+                allowCustom
+                placeholder={selectedLender?.name || 'Type or pick a source'}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                Recorded as Other Income under this name. Left blank, {selectedLender?.name || 'the bank / person'} is used.
               </p>
             </div>
           )}

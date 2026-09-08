@@ -13,6 +13,7 @@ export default function SearchableSelect({
   placeholder = 'Select...',
   className = '',
   allowClear = true,
+  allowCustom = false,
 }: {
   value: string
   onChange: (value: string) => void
@@ -20,6 +21,15 @@ export default function SearchableSelect({
   placeholder?: string
   className?: string
   allowClear?: boolean
+  /**
+   * Let the typed text stand as the value when it matches no option.
+   *
+   * For fields whose list is a convenience rather than a closed set - an income
+   * source, say, where past entries are worth offering but a new one has to be
+   * possible. The value is then the text itself, not an id, so only use it
+   * where the column stores a name.
+   */
+  allowCustom?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -29,7 +39,10 @@ export default function SearchableSelect({
   // coordinates rather than offsets inside the form.
   const [panel, setPanel] = useState({ top: 0, left: 0, width: 0, dropUp: false })
 
-  const selected = options.find(o => o.value === value)
+  // A custom value is its own label: nothing in `options` matches it, but the
+  // trigger still has to show what was typed rather than the placeholder.
+  const matched = options.find(o => o.value === value)
+  const selected = matched || (allowCustom && value ? { value, label: value } : undefined)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -134,7 +147,19 @@ export default function SearchableSelect({
                 {o.label}
               </button>
             ))}
-            {filtered.length === 0 && <div className="px-3 py-6 text-center text-sm text-slate-400">No matches</div>}
+            {/* Offered whenever the typed text is not already an option, not
+                only when nothing matched: "Rent" should still be usable as a
+                new value while "Rent from Jowel Bhai" is on the list. */}
+            {allowCustom && query.trim() && !filtered.some(o => o.label.toLowerCase() === query.trim().toLowerCase()) && (
+              <button
+                type="button"
+                onClick={() => { onChange(query.trim()); setOpen(false); setQuery('') }}
+                className="block w-full truncate border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-700 hover:bg-neutral-100"
+              >
+                Use <span className="font-semibold">{query.trim()}</span>
+              </button>
+            )}
+            {filtered.length === 0 && !allowCustom && <div className="px-3 py-6 text-center text-sm text-slate-400">No matches</div>}
           </div>
         </div>,
         document.body

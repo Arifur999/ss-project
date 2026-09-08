@@ -75,6 +75,36 @@ export function needsExpenseCategory(form: { payment_category?: string; transact
 }
 
 /**
+ * Does this row carry an income source?
+ *
+ * The receiving side's counterpart. Other Income has no categories - a source
+ * name is its whole classification - so this is what the form asks for instead.
+ * Never required: an empty source falls back to the lender's name on the
+ * server, which is what every row written before the field existed does.
+ */
+export function needsIncomeSource(form: { payment_category?: string; transaction_type?: string }) {
+  return String(form.payment_category || 'principal') === 'profit'
+    && form.transaction_type === 'receive'
+}
+
+/**
+ * The income source, cleared when the row is not a profit receipt.
+ *
+ * Explicit empty string rather than an omission, for the same reason as the
+ * category fields below: Prisma skips undefined on a partial update, so a row
+ * corrected away from a profit receipt would keep a source it no longer has an
+ * other-income for.
+ */
+export function incomeSourceFields(form: {
+  payment_category?: string
+  transaction_type?: string
+  income_source_name?: string
+}) {
+  if (!needsIncomeSource(form)) return { income_source_name: '' }
+  return { income_source_name: String(form.income_source_name || '').trim() }
+}
+
+/**
  * The two category columns, cleared when the row is not a profit payment.
  *
  * Explicit nulls, not omissions: an update sends a partial payload and Prisma
@@ -97,10 +127,17 @@ export function expenseCategoryFields(
   }
 }
 
-/** Where a profit row was filed, for a Category cell that has room to say. */
+/**
+ * Where a profit row was filed, for a Category cell that has room to say.
+ *
+ * Either side: the expense category for a payment, the income source for a
+ * receipt. Only one is ever set, and both answer the same question - which is
+ * why one function returns whichever exists.
+ */
 export function categoryDetail(loan: any) {
-  const name = String(loan?.expense_category_name || '').trim()
-  return transactionAmounts(loan).isProfit && name ? name : ''
+  if (!transactionAmounts(loan).isProfit) return ''
+  return String(loan?.expense_category_name || '').trim()
+    || String(loan?.income_source_name || '').trim()
 }
 
 export function loanBalanceLabel(amount: number) {
