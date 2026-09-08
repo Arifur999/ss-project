@@ -10,6 +10,7 @@ import { addPurchaseItem, deletePurchase, deletePurchaseItem } from '../../servi
 import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { resolveBusinessName } from '../../lib/businessBrand'
+import { amountInWords } from '../../lib/amountWords'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -472,18 +473,24 @@ export default function PurchaseLedger() {
     }
   }
 
-  // What has already gone in against the open voucher, and what is left.
+  // The open voucher's account, in the order the Sales invoice states it:
+  // what was owed before this bill, what this bill came to, what has been paid,
+  // and what stands now.
   //
-  // The deposit is both channels money reaches a supplier - what was handed
+  // The paid figure is both channels money reaches a supplier - what was handed
   // over when the bill was entered plus every payment sent afterwards - which
   // loadLedger has already added together as paid_amount.
   //
-  // The balance comes off the SAME figure the voucher prints as its Total, not
-  // off total_bill the way the list's Due column does. Otherwise a printed page
-  // could show a Total, a Deposit and a Grand Total that do not subtract, which
-  // is the one thing a voucher must never do.
+  // Every subtraction is off the SAME figure the voucher prints as its Total,
+  // not off total_bill the way the list's Due column does. Otherwise a printed
+  // page could show a Total, a Paid and a Due that do not subtract, which is
+  // the one thing a voucher must never do.
+  const invoicePreviousDue = roundTaka(selectedInvoice?.previous_due)
+  const invoiceAmount = roundTaka(selectedInvoice?.actual_deposit_amount)
   const invoiceDeposit = roundTaka(selectedInvoice?.paid_amount)
-  const invoiceBalance = roundTaka(selectedInvoice?.actual_deposit_amount) - invoiceDeposit
+  const invoiceTotalDue = invoicePreviousDue + invoiceAmount
+  const invoiceBalance = invoiceAmount - invoiceDeposit
+  const invoiceCurrentDue = invoiceTotalDue - invoiceDeposit
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
@@ -662,31 +669,32 @@ export default function PurchaseLedger() {
                 {/* What was owed on this bill, and what has already gone in
                     against it. The space beside the totals was empty, and this
                     is the question anybody holding the voucher asks next. */}
-                <div className="mt-6 flex flex-wrap items-start justify-between gap-6 text-[12px]">
-                  <div className="min-w-[220px] rounded border border-slate-400 p-3">
-                    <p className="mb-2 border-b border-slate-300 pb-1.5 font-bold">Payment Status</p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between gap-6">
-                        <span>Total Deposit</span>
-                        <span className="font-semibold">{formatCurr(invoiceDeposit)}</span>
-                      </div>
-                      {/* One line either way, so a fully settled bill says so
-                          rather than printing "Balance Due Tk 0" and leaving
-                          the reader to work out that it means nothing is owed. */}
-                      <div className="flex justify-between gap-6 border-t border-slate-300 pt-2">
-                        <span>{invoiceBalance > 0 ? 'Balance Due' : invoiceBalance < 0 ? 'Advance Paid' : 'Fully Settled'}</span>
-                        <span className="font-semibold">{formatCurr(Math.abs(invoiceBalance))}</span>
-                      </div>
+                {/* The same two blocks the Sales invoice prints, so a shop
+                    handling both kinds of paperwork reads them the same way:
+                    the running account on the left, this bill's arithmetic on
+                    the right. */}
+                <div className="mt-4 grid grid-cols-2 gap-10 text-[11px] leading-tight">
+                  <div>
+                    <div className="max-w-sm space-y-1.5">
+                      <div className="flex justify-between"><span className="font-semibold">Previous Due:</span><span>{formatCurr(invoicePreviousDue)}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Invoice Amount:</span><span>{formatCurr(invoiceAmount)}</span></div>
+                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Total Due:</span><span>{formatCurr(invoiceTotalDue)}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Paid Amount:</span><span>{formatCurr(invoiceDeposit)}</span></div>
+                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Current Due:</span><span>{formatCurr(invoiceCurrentDue)}</span></div>
+                    </div>
+                    <div className="mt-3">
+                      <p className="font-bold">Amount In Words:</p>
+                      <p className="mt-1">{amountInWords(invoiceAmount)}</p>
                     </div>
                   </div>
 
-                  <div className="ml-auto w-full max-w-xs space-y-3">
+                  <div className="space-y-1.5">
                     <div className="flex justify-between"><span>Subtotal</span><span>{formatCurr(selectedInvoice.total_dp_amount)}</span></div>
-                    <div className="flex justify-between"><span>Discount</span><span>{formatCurr(selectedInvoice.discount_amount)}</span></div>
-                    <div className="flex justify-between"><span>SP Discount</span><span>{formatCurr(selectedInvoice.special_discount_amount)}</span></div>
-                    <div className="flex justify-between"><span>Total</span><span>{formatCurr(selectedInvoice.actual_deposit_amount)}</span></div>
-                    <div className="flex justify-between"><span>Deposit</span><span>- {formatCurr(invoiceDeposit)}</span></div>
-                    <div className="border-t border-slate-400 pt-3 flex justify-between font-bold"><span>Grand Total</span><span>{formatCurr(invoiceBalance)}</span></div>
+                    <div className="flex justify-between"><span>(-) Discount</span><span>{formatCurr(selectedInvoice.discount_amount)}</span></div>
+                    <div className="flex justify-between"><span>(-) SP Discount</span><span>{formatCurr(selectedInvoice.special_discount_amount)}</span></div>
+                    <div className="border-t border-slate-400 pt-1.5 flex justify-between font-bold text-[13px]"><span>Total</span><span>{formatCurr(invoiceAmount)}</span></div>
+                    <div className="flex justify-between"><span>Paid</span><span>{formatCurr(invoiceDeposit)}</span></div>
+                    <div className="border-t border-slate-400 pt-1.5 flex justify-between font-semibold"><span>Due</span><span>{formatCurr(invoiceBalance)}</span></div>
                   </div>
                 </div>
               </div>

@@ -3,6 +3,7 @@ import { PlusIcon as Plus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search
 import TableScroller from '../components/TableScroller'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateInvoiceNo, roundTaka, todayISO } from '../lib/utils'
+import { amountInWords } from '../lib/amountWords'
 import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
 import { confirmAction } from '../components/ConfirmDialog'
@@ -1824,45 +1825,6 @@ export default function Sales() {
   function invoiceDeliveryCharge(sale: any) {
     const beforeCharge = invoiceItemSubtotal(sale) - saleDiscount(sale)
     return Math.max(0, Number(sale.net_amount || 0) - beforeCharge)
-  }
-
-  function numberToWords(value: number): string {
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-
-    const belowHundred = (n: number) => {
-      if (n < 20) return ones[n]
-      return [tens[Math.floor(n / 10)], ones[n % 10]].filter(Boolean).join(' ')
-    }
-
-    const belowThousand = (n: number) => {
-      const hundred = Math.floor(n / 100)
-      const rest = n % 100
-      return [
-        hundred ? `${ones[hundred]} Hundred` : '',
-        rest ? belowHundred(rest) : '',
-      ].filter(Boolean).join(' ')
-    }
-
-    if (value === 0) return 'Zero'
-
-    return [
-      { label: 'Crore', amount: Math.floor(value / 10000000) },
-      { label: 'Lakh', amount: Math.floor((value % 10000000) / 100000) },
-      { label: 'Thousand', amount: Math.floor((value % 100000) / 1000) },
-      { label: '', amount: value % 1000 },
-    ]
-      .filter(part => part.amount > 0)
-      .map(part => `${belowThousand(part.amount)} ${part.label}`.trim())
-      .join(' ')
-  }
-
-  function amountInWords(amount: number): string {
-    const normalizedAmount = Math.max(Number(amount || 0), 0)
-    const taka = Math.floor(normalizedAmount)
-    const paisa = Math.round((normalizedAmount - taka) * 100)
-    const paisaText = paisa ? ` and ${numberToWords(paisa)} Paisa` : ''
-    return `${numberToWords(taka)} Taka${paisaText} Only`
   }
 
   function roleLabel(role?: string) {
