@@ -9,7 +9,7 @@ import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { confirmAction } from '../../components/ConfirmDialog'
-import { buildLoanSummary, lenderKey, loanBalanceColor, loanBalanceLabel, loanDisplayName, transactionAmounts, transactionLabel } from './loanUtils'
+import { buildLoanSummary, categoryDetail, expenseCategoryFields, lenderKey, loanBalanceColor, loanBalanceLabel, loanDisplayName, needsExpenseCategory, transactionAmounts, transactionLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { addRecycleItem } from '../../lib/recycleBin'
 import TableSkeleton from '../../components/TableSkeleton'
@@ -19,7 +19,7 @@ import { buildLoanTransactionSms } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
 import { isValidBdPhone } from '../../lib/phone'
 
-type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id', string>>
+type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id' | 'expense_category_id', string>>
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required!'
 
@@ -54,6 +54,9 @@ export default function LoanTransactions() {
   const [loading, setLoading] = useState(true)
   const [lenders, setLenders] = useState<any[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
+  // Only ever read for a profit PAYMENT, which is filed as an expense and so
+  // has to say which category.
+  const [categories, setCategories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [usingFallback, setUsingFallback] = useState(false)
@@ -61,7 +64,7 @@ export default function LoanTransactions() {
   const [toDate, setToDate] = useState('')
   const [filterLenderName, setFilterLenderName] = useState('')
   const [errors, setErrors] = useState<LoanTransactionValidationErrors>({})
-  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', amount: 0, account_id: '', notes: '' })
+  const [form, setForm] = useState({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', expense_category_id: '', amount: 0, account_id: '', notes: '' })
   const [business, setBusiness] = useState<any>(null)
   const [smsReceipt, setSmsReceipt] = useState(() => localStorage.getItem(SMS_RECEIPT_KEY) === '1')
 
@@ -81,13 +84,17 @@ export default function LoanTransactions() {
   }
 
   async function loadAll() {
-    const [loanRes, lenderRes, accountRes, businessRes] = await Promise.all([
+    const [loanRes, lenderRes, accountRes, businessRes, categoryRes] = await Promise.all([
       supabase.from('loans').select('*, loan_lenders(*)').order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('loan_lenders').select('*').eq('is_active', true).order('name'),
       supabase.from('accounts').select('*').eq('is_active', true).order('sort_order'),
       supabase.from('business_settings').select('name_bn, name_en, phone').maybeSingle(),
+      supabase.from('expense_categories').select('*').order('name'),
     ])
     setBusiness(businessRes.data || null)
+    // Set before the fallback branch returns: a legacy database still has
+    // expense categories even when it has no loan_lenders table.
+    setCategories(categoryRes.data || [])
     if (isLoanLenderTableMissing(loanRes.error) || isLoanLenderTableMissing(lenderRes.error)) {
       const legacyLoanRes = await supabase.from('loans').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })
       const legacyLoans = legacyLoanRes.data || []
@@ -107,7 +114,7 @@ export default function LoanTransactions() {
     setEditingId(null)
     setShowModal(false)
     setErrors({})
-    setForm({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', amount: 0, account_id: '', notes: '' })
+    setForm({ date: todayISO(), lender_id: '', transaction_type: '', payment_category: 'principal', expense_category_id: '', amount: 0, account_id: '', notes: '' })
   }
 
   function editRecord(record: any) {
@@ -122,6 +129,10 @@ export default function LoanTransactions() {
       // would otherwise turn it into principal and move a balance that should
       // not have moved.
       payment_category: record.payment_category === 'profit' ? 'profit' : 'principal',
+      // Carried through for the same reason as the category above: reopening a
+      // profit payment and saving it must not silently move its expense into a
+      // different category, or out of one entirely.
+      expense_category_id: record.expense_category_id || '',
       amount: amounts.received || amounts.paid,
       account_id: record.account_id || '',
       notes: record.notes || '',
@@ -221,6 +232,11 @@ export default function LoanTransactions() {
       // payment is still cash leaving the drawer, and the Balance Dashboard
       // reads these two. The category is what tells the principal apart.
       payment_category: form.payment_category,
+      // Where the profit lands in the books. Cleared - explicitly, not omitted -
+      // when this stops being a profit payment: an update is a partial payload
+      // and Prisma skips undefined, so an omission would leave a category on a
+      // row that no longer has an expense behind it.
+      ...expenseCategoryFields(form, categories),
       received_amount: form.transaction_type === 'receive' ? amount : 0,
       payment_amount: form.transaction_type === 'payment' ? amount : 0,
       interest_amount: 0,
@@ -239,6 +255,7 @@ export default function LoanTransactions() {
     if (!form.transaction_type) nextErrors.transaction_type = REQUIRED_FIELD_MESSAGE
     if (Number(form.amount || 0) <= 0) nextErrors.amount = REQUIRED_FIELD_MESSAGE
     if (!form.account_id) nextErrors.account_id = REQUIRED_FIELD_MESSAGE
+    if (needsExpenseCategory(form) && !form.expense_category_id) nextErrors.expense_category_id = REQUIRED_FIELD_MESSAGE
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -354,7 +371,7 @@ export default function LoanTransactions() {
           <td>${escapeHtml(formatDate(record.date))}</td>
           <td>${escapeHtml(loanDisplayName(record))}</td>
           <td class="${isPayment ? 'payment' : 'receive'}">${isPayment ? 'Paid' : 'Received'}</td>
-          <td>${amounts.isProfit ? 'Profit' : 'Principal'}</td>
+          <td>${amounts.isProfit ? escapeHtml(`Profit${categoryDetail(record) ? ` - ${categoryDetail(record)}` : ''}`) : 'Principal'}</td>
           <td>${escapeHtml(record.account_name || '-')}</td>
           <td class="amount receive">${formatPrintAmount(amounts.received || 0)}</td>
           <td class="amount payment">${formatPrintAmount(amounts.paid || 0)}</td>
@@ -514,7 +531,12 @@ export default function LoanTransactions() {
                       absence from the running balance needs explaining. */}
                   <td className="py-2.5 px-4">
                     {amounts.isProfit
-                      ? <span className="rounded bg-brand-orange-soft px-2 py-0.5 text-xs font-medium text-brand-orange">Profit</span>
+                      ? <>
+                          <span className="rounded bg-brand-orange-soft px-2 py-0.5 text-xs font-medium text-brand-orange">Profit</span>
+                          {/* Where it landed in Expenses. The question the
+                              owner asks next, answered without a second screen. */}
+                          {categoryDetail(record) && <div className="mt-0.5 text-xs text-slate-400">{categoryDetail(record)}</div>}
+                        </>
                       : <span className="text-slate-500">Principal</span>}
                   </td>
                   <td className="py-2.5 px-4 text-slate-500">{record.account_name || <NoValue />}</td>
@@ -683,6 +705,33 @@ export default function LoanTransactions() {
             </div>
             {errors.transaction_type && <p className="mt-1 text-xs font-medium text-red-600">{errors.transaction_type}</p>}
           </div>
+
+          {/* Only for profit that was PAID. That money is what borrowing cost,
+              so it is recorded as an expense - and every expense has to say
+              which category. Profit RECEIVED goes to Other Income instead,
+              which has no categories at all: the lender's name is its whole
+              classification, so nothing is asked for on that side.
+
+              Below both toggles because it depends on both of them. */}
+          {needsExpenseCategory(form) && (
+            <div>
+              <label className="label">{requiredLabel('Expense Category')}</label>
+              <SearchableSelect
+                value={form.expense_category_id}
+                onChange={val => {
+                  clearError('expense_category_id')
+                  setForm({ ...form, expense_category_id: val })
+                }}
+                options={categories.map(category => ({ value: category.id, label: category.name }))}
+                placeholder="Select Expense Category"
+              />
+              {errors.expense_category_id && <p className="mt-1 text-xs font-medium text-red-600">{errors.expense_category_id}</p>}
+              <p className="mt-1 text-xs text-neutral-500">
+                Recorded as an expense under this category. The cash account moves once, from this transaction - not twice.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="label">{requiredLabel('Account')}</label>
             <SearchableSelect

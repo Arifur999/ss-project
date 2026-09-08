@@ -55,6 +55,54 @@ export function categoryLabel(category: string) {
   return String(category || 'principal') === 'profit' ? 'Profit' : 'Principal'
 }
 
+/**
+ * Does this row need an expense category?
+ *
+ * Profit that was PAID is the cost of borrowing, so it lands in Expenses - and
+ * an expense with no category is invisible in every category breakdown and
+ * budget on the site. Profit RECEIVED goes to Other Income instead, which has
+ * no categories at all: the lender's name is its whole classification.
+ *
+ * Mirrors needsExpenseCategory in the server's shared/loanProfitMirror.ts, and
+ * has to: it decides whether the picker is shown, whether save() blocks, and
+ * what buildPayload sends - three places that would otherwise each keep their
+ * own copy of "profit AND paid", and a fourth on the server that would reject
+ * whatever they got wrong.
+ */
+export function needsExpenseCategory(form: { payment_category?: string; transaction_type?: string }) {
+  return String(form.payment_category || 'principal') === 'profit'
+    && form.transaction_type === 'payment'
+}
+
+/**
+ * The two category columns, cleared when the row is not a profit payment.
+ *
+ * Explicit nulls, not omissions: an update sends a partial payload and Prisma
+ * skips undefined, so leaving them out would keep a category on a row that has
+ * been corrected back to principal - and the next edit would file it as an
+ * expense all over again.
+ */
+export function expenseCategoryFields(
+  form: { payment_category?: string; transaction_type?: string; expense_category_id?: string },
+  categories: { id: string; name: string }[],
+) {
+  if (!needsExpenseCategory(form)) {
+    return { expense_category_id: null, expense_category_name: '' }
+  }
+
+  const category = categories.find(item => item.id === form.expense_category_id)
+  return {
+    expense_category_id: form.expense_category_id || null,
+    expense_category_name: category?.name || '',
+  }
+}
+
+/** Where a profit row was filed, for a Category cell that has room to say. */
+export function categoryDetail(loan: any) {
+  const name = String(loan?.expense_category_name || '').trim()
+  return transactionAmounts(loan).isProfit && name ? name : ''
+}
+
 export function loanBalanceLabel(amount: number) {
   if (amount < 0) return 'Dena'
   if (amount > 0) return 'Pawna'

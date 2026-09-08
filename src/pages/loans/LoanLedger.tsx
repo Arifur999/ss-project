@@ -6,7 +6,7 @@ import PageHeader from '../../components/PageHeader'
 import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import { useLang } from '../../context/LanguageContext'
-import { loanBalanceColor, loanBalanceLabel } from './loanUtils'
+import { categoryDetail, loanBalanceColor, loanBalanceLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import TableSkeleton from '../../components/TableSkeleton'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
@@ -264,7 +264,12 @@ export default function LoanLedger() {
                 </td>
                 <td className="py-2.5 px-4">
                   {entry.is_profit
-                    ? <span className="rounded bg-brand-orange-soft px-2 py-0.5 text-xs font-medium text-brand-orange">Profit</span>
+                    ? <>
+                        <span className="rounded bg-brand-orange-soft px-2 py-0.5 text-xs font-medium text-brand-orange">Profit</span>
+                        {/* This is the screen the owner reconciles against the
+                            Expenses page, so it answers the next question. */}
+                        {categoryDetail(entry.row) && <div className="mt-0.5 text-xs text-neutral-400">{categoryDetail(entry.row)}</div>}
+                      </>
                     : <span className="text-neutral-500">Principal</span>}
                 </td>
                 <td className="py-2.5 px-4 text-right tabular-nums text-brand-red">
@@ -367,7 +372,9 @@ export default function LoanLedger() {
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{formatDate(entry.row.date)}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{String(entry.row.id || '').slice(0, 8)}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{entry.row.notes || entry.row.account_name || '-'}</td>
-                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{entry.is_profit ? 'Profit' : 'Principal'}</td>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>
+                    {entry.is_profit ? `Profit${categoryDetail(entry.row) ? ` - ${categoryDetail(entry.row)}` : ''}` : 'Principal'}
+                  </td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{entry.debit ? formatCurr(entry.debit) : '-'}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{entry.credit ? formatCurr(entry.credit) : '-'}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd', textAlign: 'right' }}>{formatCurr(entry.running_principal)}</td>
