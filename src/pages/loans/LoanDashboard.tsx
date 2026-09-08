@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { PulseIcon as Activity, CalendarDotsIcon as CalendarDays, DownloadSimpleIcon as Download, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquareText, PlusIcon as Plus, ScalesIcon as Scale, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, UploadSimpleIcon as Upload, UsersIcon as Users, XIcon as X } from '@phosphor-icons/react'
-import { useNavigate } from 'react-router-dom'
+import { PulseIcon as Activity, DownloadSimpleIcon as Download, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquareText, ScalesIcon as Scale, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, UploadSimpleIcon as Upload, UsersIcon as Users, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import StatCard from '../../components/StatCard'
@@ -8,14 +7,12 @@ import { useLang } from '../../context/LanguageContext'
 import { buildLoanSummary, loanBalanceColor, loanBalanceLabel } from './loanUtils'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { readSmsTemplates, type SmsTemplate } from '../../lib/smsTemplates'
-import { formatDate } from '../../lib/utils'
 import { sendSms as sendSmsApi } from '../../services/sms.services'
 
 type SortBy = 'balance_desc' | 'balance_asc' | 'name_asc' | 'dena_first' | 'pawna_first'
 
 export default function LoanDashboard() {
   const { formatCurr } = useLang()
-  const navigate = useNavigate()
   const [lenders, setLenders] = useState<any[]>([])
   const [loans, setLoans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,7 +85,6 @@ export default function LoanDashboard() {
   const totalDena = summaries.filter((item: any) => item.balance < 0).reduce((s: number, item: any) => s + Math.abs(item.balance), 0)
   const totalPawna = summaries.filter((item: any) => item.balance > 0).reduce((s: number, item: any) => s + item.balance, 0)
   const activeAccounts = summaries.filter((item: any) => item.balance !== 0).length
-  const todayLabel = formatDate(new Date())
 
   // Displayed-row totals (reflect the current search filter).
   const shownOpening = displayed.reduce((s: number, i: any) => s + i.opening, 0)
@@ -179,23 +175,12 @@ export default function LoanDashboard() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-6">
-      <div className="mb-8 flex flex-shrink-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Loan Management Dashboard</h1>
-          <p className="mt-2 text-sm text-slate-500">Manage loans, track outstanding and transactions</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* A label, not a button. It was a styled button with no handler, so it
-              read as a date-range picker that did nothing. */}
-          <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">
-            <CalendarDays size={16} />
-            {todayLabel}
-          </span>
-          <button type="button" onClick={() => navigate('/loan-management/lenders')} className="btn-primary px-4">
-            <Plus size={16} />
-            Add Loan / Person
-          </button>
-        </div>
+      {/* Just the title. The date chip only ever printed today, and the Add
+          button went to Bank / Person List - which is one click away in the
+          menu and is where somebody adding an account already goes. */}
+      <div className="mb-8 flex-shrink-0">
+        <h1 className="text-2xl font-bold text-slate-900">Loan Management Dashboard</h1>
+        <p className="mt-2 text-sm text-slate-500">Manage loans, track outstanding and transactions</p>
       </div>
 
       <div className="mb-6 grid flex-shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">

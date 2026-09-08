@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase'
 import { addPurchaseItem, deletePurchase, deletePurchaseItem } from '../../services/purchase.services'
 import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
+import { resolveBusinessName } from '../../lib/businessBrand'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -114,6 +115,9 @@ export default function PurchaseLedger() {
   const [savingEdit, setSavingEdit] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [products, setProducts] = useState<any[]>([])
+  // Whose voucher this is. A printed page that leaves the shop off is a page
+  // the supplier receiving it cannot file.
+  const [business, setBusiness] = useState<any>(null)
   const invoiceRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({ content: () => invoiceRef.current })
 
@@ -121,10 +125,19 @@ export default function PurchaseLedger() {
     loadLedger()
   }, [])
 
+  // Phone and email on one line, and nothing at all when Settings holds
+  // neither - an empty "Phone:  Email:" is worse than no line.
+  function businessContactLine() {
+    return [
+      business?.phone ? `Phone: ${business.phone}` : '',
+      business?.email ? `Email: ${business.email}` : '',
+    ].filter(Boolean).join('  |  ')
+  }
+
   async function loadLedger() {
     try {
       setLoading(true)
-      const [purchaseRes, paymentRes, productRes] = await Promise.all([
+      const [purchaseRes, paymentRes, productRes, businessRes] = await Promise.all([
         supabase
           .from('purchases')
           .select('*, purchase_items(*, purchase_receives(*))')
@@ -137,10 +150,16 @@ export default function PurchaseLedger() {
           .from('products')
           .select('id, product_code, name, cost_price, dp_discount, discount')
           .eq('is_active', true),
+        supabase
+          .from('business_settings')
+          .select('name_bn, name_en, phone, email, address, logo_url')
+          .maybeSingle(),
       ])
 
       if (purchaseRes.error) throw purchaseRes.error
       if (paymentRes.error) throw paymentRes.error
+      // Not fatal either: the voucher still prints, just without a letterhead.
+      setBusiness(businessRes.data || null)
       // Not fatal: without these the ledger still lists and prints, only the
       // product picker on a new line comes up empty.
       setProducts(productRes.data || [])
@@ -453,6 +472,19 @@ export default function PurchaseLedger() {
     }
   }
 
+  // What has already gone in against the open voucher, and what is left.
+  //
+  // The deposit is both channels money reaches a supplier - what was handed
+  // over when the bill was entered plus every payment sent afterwards - which
+  // loadLedger has already added together as paid_amount.
+  //
+  // The balance comes off the SAME figure the voucher prints as its Total, not
+  // off total_bill the way the list's Due column does. Otherwise a printed page
+  // could show a Total, a Deposit and a Grand Total that do not subtract, which
+  // is the one thing a voucher must never do.
+  const invoiceDeposit = roundTaka(selectedInvoice?.paid_amount)
+  const invoiceBalance = roundTaka(selectedInvoice?.actual_deposit_amount) - invoiceDeposit
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white p-6">
       <PageHeader
@@ -555,6 +587,29 @@ export default function PurchaseLedger() {
           <>
             <div ref={invoiceRef} className="invoice-print-page bg-white text-slate-950">
               <div className="invoice-print-inner">
+                {/* The shop first, the way a letterhead reads - this page goes
+                    out to a supplier who needs to know who sent it. Same shape
+                    as the Sales invoice, scaled down: this is a voucher, not a
+                    customer-facing bill. */}
+                <div className="relative mb-4 border-b border-slate-400 pb-3">
+                  {business?.logo_url && (
+                    <img
+                      src={business.logo_url}
+                      alt={resolveBusinessName(business)}
+                      className="absolute left-0 top-0 h-14 w-14 object-contain"
+                    />
+                  )}
+                  <div className="mx-auto max-w-[6.8in] text-center">
+                    <h1 className="text-[28px] font-bold leading-tight text-slate-950">
+                      {resolveBusinessName(business)}
+                    </h1>
+                    <div className="mt-1 text-[12px] leading-tight text-slate-700">
+                      {business?.address && <p className="break-words">{business.address}</p>}
+                      {businessContactLine() && <p className="break-words">{businessContactLine()}</p>}
+                    </div>
+                  </div>
+                </div>
+
                 <h2 className="mb-4 text-center text-[24px] font-bold leading-none text-slate-950">Purchase Invoice / Voucher</h2>
                 {/* minmax(0,1fr) rather than a plain half-and-half split: a grid
                     track's default minimum is its content, so a long supplier name
@@ -604,11 +659,35 @@ export default function PurchaseLedger() {
                   </tbody>
                 </table>
 
-                <div className="ml-auto mt-6 w-full max-w-xs space-y-3 text-[12px]">
-                  <div className="flex justify-between"><span>Subtotal</span><span>{formatCurr(selectedInvoice.total_dp_amount)}</span></div>
-                  <div className="flex justify-between"><span>Discount</span><span>{formatCurr(selectedInvoice.discount_amount)}</span></div>
-                  <div className="flex justify-between"><span>SP Discount</span><span>{formatCurr(selectedInvoice.special_discount_amount)}</span></div>
-                  <div className="border-t border-slate-400 pt-3 flex justify-between font-bold"><span>Grand Total</span><span>{formatCurr(selectedInvoice.actual_deposit_amount)}</span></div>
+                {/* What was owed on this bill, and what has already gone in
+                    against it. The space beside the totals was empty, and this
+                    is the question anybody holding the voucher asks next. */}
+                <div className="mt-6 flex flex-wrap items-start justify-between gap-6 text-[12px]">
+                  <div className="min-w-[220px] rounded border border-slate-400 p-3">
+                    <p className="mb-2 border-b border-slate-300 pb-1.5 font-bold">Payment Status</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between gap-6">
+                        <span>Total Deposit</span>
+                        <span className="font-semibold">{formatCurr(invoiceDeposit)}</span>
+                      </div>
+                      {/* One line either way, so a fully settled bill says so
+                          rather than printing "Balance Due Tk 0" and leaving
+                          the reader to work out that it means nothing is owed. */}
+                      <div className="flex justify-between gap-6 border-t border-slate-300 pt-2">
+                        <span>{invoiceBalance > 0 ? 'Balance Due' : invoiceBalance < 0 ? 'Advance Paid' : 'Fully Settled'}</span>
+                        <span className="font-semibold">{formatCurr(Math.abs(invoiceBalance))}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="ml-auto w-full max-w-xs space-y-3">
+                    <div className="flex justify-between"><span>Subtotal</span><span>{formatCurr(selectedInvoice.total_dp_amount)}</span></div>
+                    <div className="flex justify-between"><span>Discount</span><span>{formatCurr(selectedInvoice.discount_amount)}</span></div>
+                    <div className="flex justify-between"><span>SP Discount</span><span>{formatCurr(selectedInvoice.special_discount_amount)}</span></div>
+                    <div className="flex justify-between"><span>Total</span><span>{formatCurr(selectedInvoice.actual_deposit_amount)}</span></div>
+                    <div className="flex justify-between"><span>Deposit</span><span>- {formatCurr(invoiceDeposit)}</span></div>
+                    <div className="border-t border-slate-400 pt-3 flex justify-between font-bold"><span>Grand Total</span><span>{formatCurr(invoiceBalance)}</span></div>
+                  </div>
                 </div>
               </div>
             </div>
