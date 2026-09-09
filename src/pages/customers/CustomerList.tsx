@@ -356,7 +356,6 @@ export default function CustomerList() {
   // The server applied the search already - filtering again here would only
   // let the two rules drift apart.
   const filtered = customers
-  const openingDueTotal = customers.reduce((sum, customer) => sum + Number(customer.opening_due || 0), 0)
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-6">
@@ -386,11 +385,9 @@ export default function CustomerList() {
         }
       />
 
-      <div className="mb-6 grid flex-shrink-0 grid-cols-2 gap-4">
-        <div className="card"><p className="text-xs text-slate-500">{t('customers_totalCustomers')}</p><p className="text-2xl font-bold mt-1">{customers.length}</p></div>
-        <div className="card"><p className="text-xs text-slate-500">{t('customerDash_openingDue')}</p><p className="text-2xl font-bold text-brand-red mt-1">{formatCurr(openingDueTotal)}</p></div>
-      </div>
-
+      {/* The two summary cards are gone. The count is already stated under the
+          table ("40 of 40 loaded") and the Opening Due total has its own column
+          on every row - both were repeating what the list below says. */}
       <div className="mb-4 flex flex-shrink-0 gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />

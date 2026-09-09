@@ -459,9 +459,15 @@ export default function CustomerLedger() {
     window.print()
   }
 
-  // Newest transaction first, but keep the product rows WITHIN a sale in their
-  // natural order (stable sort on the per-transaction index).
-  const visibleLedger = [...ledger].sort((a, b) => (b.txIndex ?? 0) - (a.txIndex ?? 0))
+  // Oldest first, which is the only order this table adds up in: every row
+  // carries Previous Due -> Current Due, and that chain reads forward. Shown
+  // newest-first, each row's Previous Due was the Current Due of the row BELOW
+  // it, so the ledger looked wrong to anyone checking it line by line.
+  //
+  // `ledger` is already in that order from sortLedgerEntries, and the PDF
+  // export at the top of this file walks the same array - so screen, print and
+  // download now agree.
+  const visibleLedger = ledger
 
   return (
     <div className="min-h-screen bg-white p-6">
@@ -596,7 +602,7 @@ export default function CustomerLedger() {
               <tbody>
                 {visibleLedger.map((entry, index) => (
                   <tr key={`print-${entry.id}`}>
-                    <td>{visibleLedger.length - index}</td>
+                    <td>{index + 1}</td>
                     <td>{formatDate(entry.date)}</td>
                     <td>{entry.entry_type === 'sale' ? 'Sale' : 'Payment'}</td>
                     <td>
@@ -674,7 +680,7 @@ export default function CustomerLedger() {
                 <tbody>
                   {visibleLedger.map((entry, index) => (
                     <tr key={entry.id} className="table-row">
-                      <td className="px-4 py-3 font-semibold text-slate-500">{visibleLedger.length - index}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
                       <td className="px-4 py-3 font-semibold text-slate-800">{formatDate(entry.date)}</td>
                       <td className="px-4 py-3">
                         <span className={entry.entry_type === 'sale' ? 'badge-green' : 'badge-blue'}>

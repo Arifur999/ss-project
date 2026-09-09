@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search } from '@phosphor-icons/react'
+import { TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search, PrinterIcon as Printer } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { formatDate, todayISO } from '../../lib/utils'
 import PageHeader from '../../components/PageHeader'
@@ -13,6 +13,7 @@ import { useLang } from '../../context/LanguageContext'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue } from '../../components/CellValue'
+import { printTable } from '../../lib/printTable'
 
 interface PendingProduct {
   id: string
@@ -36,6 +37,11 @@ interface PendingProduct {
   receive_note: string
 }
 
+function statusLabel(item: PendingProduct) {
+  if (item.undelivered_qty <= 0) return 'Received'
+  return item.received_qty > 0 ? 'Partial' : 'Pending'
+}
+
 function isUuid(value: unknown) {
   return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
@@ -48,6 +54,9 @@ export default function ReceiveProduct() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'partial' | 'received'>('all')
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<PendingProduct | null>(null)
+  // Ticked rows, for printing a subset. Kept as ids rather than rows so a
+  // reload does not resurrect a line that has since been received or deleted.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [receiveQty, setReceiveQty] = useState(0)
   const [receiverName, setReceiverName] = useState('')
   const [receiveNote, setReceiveNote] = useState('')
@@ -322,6 +331,75 @@ export default function ReceiveProduct() {
   // memory so the tabs and totals are unaffected.
   const shown = useProgressiveRows(filteredItems, { initial: 40, step: 40 })
 
+  // What Print sends: the ticked rows, or everything on screen when nothing is
+  // ticked - so the button always does something sensible rather than refusing.
+  const rowsToPrint = selectedIds.size > 0
+    ? filteredItems.filter(item => selectedIds.has(item.id))
+    : filteredItems
+
+  const allVisibleTicked = filteredItems.length > 0 && filteredItems.every(item => selectedIds.has(item.id))
+
+  function toggleAllVisible() {
+    setSelectedIds(current => {
+      if (allVisibleTicked) {
+        const next = new Set(current)
+        filteredItems.forEach(item => next.delete(item.id))
+        return next
+      }
+      return new Set([...current, ...filteredItems.map(item => item.id)])
+    })
+  }
+
+  function toggleOne(id: string) {
+    setSelectedIds(current => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // The browser's print dialog is also where "Save as PDF" lives, so one button
+  // covers printing and downloading - the same thing the Cash Counter does.
+  function printSelected() {
+    if (rowsToPrint.length === 0) return toast.error('Nothing to print')
+
+    printTable({
+      title: 'Product Received',
+      subtitle: selectedIds.size > 0
+        ? `${rowsToPrint.length} selected row${rowsToPrint.length === 1 ? '' : 's'}`
+        : `${statusTabs.find(tab => tab.key === statusFilter)?.label ?? 'All'} - ${rowsToPrint.length} row${rowsToPrint.length === 1 ? '' : 's'}`,
+      columns: [
+        { label: '#' },
+        { label: 'SI No' },
+        { label: 'Date' },
+        { label: 'Supplier' },
+        { label: 'Product' },
+        { label: 'Ordered', align: 'right' },
+        { label: 'Received', align: 'right' },
+        { label: 'Pending', align: 'right' },
+        { label: 'Status', align: 'center' },
+        { label: 'Receiving Date' },
+        { label: 'Receiver Name' },
+        { label: 'Duration' },
+      ],
+      rows: rowsToPrint.map((item, index) => [
+        index + 1,
+        item.si_no,
+        formatDate(item.date),
+        item.supplier_name || '-',
+        item.product_name || '-',
+        item.qty,
+        item.received_qty,
+        item.undelivered_qty,
+        statusLabel(item),
+        item.receive_date ? formatDate(item.receive_date) : '-',
+        item.receiver_name || '-',
+        item.durationLabel || '-',
+      ]),
+    })
+  }
+
   const totalPurchaseAmount = filteredItems.reduce(
     (sum, item) => sum + (Number(item.actual_dp || 0) * Number(item.qty || 0)),
     0
@@ -369,6 +447,12 @@ export default function ReceiveProduct() {
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm">
           Total Purchase: <strong className="text-brand-green">{formatCurr(totalPurchaseAmount)}</strong>
         </div>
+        {/* Says how many it will take, so ticking rows and pressing Print never
+            has to be tried twice to find out what it does. */}
+        <button type="button" onClick={printSelected} className="btn-primary h-10 shrink-0 justify-center whitespace-nowrap">
+          <Printer size={16} />
+          {selectedIds.size > 0 ? `Print ${selectedIds.size} selected` : 'Print'}
+        </button>
       </div>
 
       <div className="card min-h-0 flex-1 flex flex-col p-0">
@@ -376,6 +460,16 @@ export default function ReceiveProduct() {
         <table className="w-full min-w-[1560px] text-sm">
           <thead className="table-header">
             <tr>
+              <th className="w-10 px-3 py-2 text-center">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 cursor-pointer accent-brand-green"
+                  checked={allVisibleTicked}
+                  onChange={toggleAllVisible}
+                  title="Select all rows in this view"
+                  aria-label="Select all rows in this view"
+                />
+              </th>
               <th className="w-12 px-3 py-2 text-left">#</th>
               <th className="text-left py-2 px-3">SI No</th>
               <th className="text-left py-2 px-3">Date</th>
@@ -399,13 +493,22 @@ export default function ReceiveProduct() {
             </tr>
           </thead>
           <tbody>
-            {loading && <TableSkeleton rows={8} cols={15} />}
+            {loading && <TableSkeleton rows={8} cols={16} />}
             {/* The row carries the colour and the sticky Actions cell inherits
                 it, so the whole row is one shade - hover included. Hard-coding
                 bg-white on that cell left it white while the rest of the row
                 went slate on hover, which is the two-tone the table showed. */}
             {shown.visible.map((item, index) => (
               <tr key={item.id} className="table-row bg-white">
+                <td className="px-3 py-2.5 text-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 cursor-pointer accent-brand-green"
+                    checked={selectedIds.has(item.id)}
+                    onChange={() => toggleOne(item.id)}
+                    aria-label={`Select ${item.si_no}`}
+                  />
+                </td>
                 <td className="px-3 py-2.5 text-slate-400">{index + 1}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-700">{item.si_no}</td>
                 <td className="py-2.5 px-3">{formatDate(item.date)}</td>
