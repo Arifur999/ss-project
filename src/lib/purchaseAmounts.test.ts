@@ -8,6 +8,7 @@ import {
   spAmountFor,
   supplierBalance,
   supplierOpeningBalance,
+  supplierPositionBefore,
 } from './purchaseAmounts'
 
 describe('purchaseDeposit', () => {
@@ -238,5 +239,100 @@ describe('supplierBalance counts both ways money reaches a supplier', () => {
       supplier: { opening_due: 10000, due_type: 'dena' },
       items, payments: [], purchases: [{ paid_amount: 95000 }],
     })).toBe(-10000)
+  })
+})
+
+describe('supplierPositionBefore', () => {
+  // The voucher prints these above the bill they belong to, so they have to be
+  // as of the invoice's date - not as of today. Reprinting last month's voucher
+  // must produce last month's page.
+  const bill = (date: string, total: number, paid = 0) => ({
+    date, paid_amount: paid,
+    purchase_items: [{ total_amount: total, sp_amount: 0 }],
+  })
+
+  it('counts only what came strictly before the invoice date', () => {
+    const position = supplierPositionBefore({
+      supplier: null,
+      purchases: [bill('2026-08-01', 10_000), bill('2026-09-08', 39_420)],
+      payments: [{ date: '2026-08-05', amount: 4_000 }, { date: '2026-09-08', amount: 1_000 }],
+      before: '2026-09-08',
+    })
+    expect(position.previous_bill).toBe(10_000)
+    expect(position.previous_paid).toBe(4_000)
+    expect(position.previous_due).toBe(6_000)
+  })
+
+  it('adds both channels money reaches a supplier', () => {
+    // Settled on the older bill when it was entered, plus a payment sent later.
+    const position = supplierPositionBefore({
+      supplier: null,
+      purchases: [bill('2026-08-01', 10_000, 3_000)],
+      payments: [{ date: '2026-08-20', amount: 2_000 }],
+      before: '2026-09-08',
+    })
+    expect(position.previous_paid).toBe(5_000)
+    expect(position.previous_due).toBe(5_000)
+  })
+
+  it('ignores a payment sent after the invoice, so a reprint says the same thing', () => {
+    const position = supplierPositionBefore({
+      supplier: null,
+      purchases: [bill('2026-08-01', 10_000)],
+      payments: [{ date: '2026-10-01', amount: 10_000 }],
+      before: '2026-09-08',
+    })
+    expect(position.previous_paid).toBe(0)
+    expect(position.previous_due).toBe(10_000)
+  })
+
+  it('reads a dena opening as money we already owed them', () => {
+    // supplierOpeningBalance signs pawna positive; a purchase voucher counts a
+    // due the other way, so dena has to come out positive here.
+    const position = supplierPositionBefore({
+      supplier: { opening_due: 8_000, due_type: 'dena' },
+      purchases: [], payments: [], before: '2026-09-08',
+    })
+    expect(position.previous_due).toBe(8_000)
+  })
+
+  it('reads a pawna opening as an advance already sitting with them', () => {
+    const position = supplierPositionBefore({
+      supplier: { opening_due: 8_000, due_type: 'pawna' },
+      purchases: [], payments: [], before: '2026-09-08',
+    })
+    expect(position.previous_due).toBe(-8_000)
+  })
+
+  it('states nothing when the invoice has no date to be before', () => {
+    const position = supplierPositionBefore({
+      supplier: { opening_due: 8_000, due_type: 'dena' },
+      purchases: [bill('2026-08-01', 10_000)],
+      payments: [{ date: '2026-08-05', amount: 4_000 }],
+      before: '',
+    })
+    expect(position.previous_bill).toBe(0)
+    expect(position.previous_paid).toBe(0)
+    expect(position.previous_due).toBe(8_000)
+  })
+
+  it('reads a full timestamp the same as a plain date', () => {
+    const position = supplierPositionBefore({
+      supplier: null,
+      purchases: [{ date: '2026-08-01T10:30:00.000Z', paid_amount: 0, purchase_items: [{ total_amount: 10_000, sp_amount: 0 }] }],
+      payments: [],
+      before: '2026-09-08T00:00:00.000Z',
+    })
+    expect(position.previous_bill).toBe(10_000)
+  })
+
+  it('takes the SP incentive off, like every other deposit figure', () => {
+    const position = supplierPositionBefore({
+      supplier: null,
+      purchases: [{ date: '2026-08-01', paid_amount: 0, purchase_items: [{ total_amount: 10_000, sp_amount: 1_500 }] }],
+      payments: [],
+      before: '2026-09-08',
+    })
+    expect(position.previous_bill).toBe(8_500)
   })
 })

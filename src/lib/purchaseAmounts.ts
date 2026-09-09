@@ -131,6 +131,74 @@ export function paidOnPurchaseBills(purchases: { paid_amount?: unknown }[]): num
 }
 
 /**
+ * Where a supplier's account stood before one particular invoice.
+ *
+ * The Purchase voucher prints "Previous Due" and "Previous Deposit" above the
+ * bill it is about, so the reader can follow one ladder from what was owed
+ * before, through this bill, to what stands now. The purchases table has no
+ * previous_due column - the voucher used to read one and print Tk 0 on every
+ * page - so the figures are computed from the supplier's own history.
+ *
+ * "Before" means strictly earlier than the invoice's date, on both sides.
+ * A payment sent after this date against an older bill is deliberately not
+ * counted: the voucher states the position as it was when the bill was raised,
+ * which is what makes it reprintable and still say the same thing.
+ *
+ * The basis is purchaseItemDeposit, the same one supplierBalance uses, so the
+ * voucher and the Supplier Dashboard describe the same debt. Signs are flipped
+ * from supplierBalance: on a purchase document "due" means what WE owe THEM, so
+ * it reads positive.
+ */
+export function supplierPositionBefore(input: {
+  supplier: { opening_due?: unknown; due_type?: unknown } | null | undefined
+  /** Every purchase belonging to this supplier, this invoice included - it is filtered out by date. */
+  purchases: {
+    date?: unknown
+    paid_amount?: unknown
+    purchase_items?: { total_amount?: unknown; sp_amount?: unknown }[]
+  }[]
+  /** Every supplier_payments row belonging to this supplier. */
+  payments: { date?: unknown; amount?: unknown }[]
+  /** The invoice's date. Everything strictly before it counts as previous. */
+  before: unknown
+}): { previous_bill: number; previous_paid: number; previous_due: number } {
+  const cutoff = String(input.before || '').slice(0, 10)
+  const isEarlier = (date: unknown) => {
+    const value = String(date || '').slice(0, 10)
+    // No cutoff means no history to state - a voucher with no date cannot say
+    // what came before it, and guessing would put a figure on a printed page
+    // that nothing backs up.
+    return Boolean(cutoff) && Boolean(value) && value < cutoff
+  }
+
+  const earlier = input.purchases.filter(purchase => isEarlier(purchase.date))
+
+  const previousBill = earlier.reduce(
+    (sum, purchase) => sum + (purchase.purchase_items || []).reduce(
+      (lineSum, item) => lineSum + purchaseItemDeposit(item), 0
+    ),
+    0
+  )
+
+  // Both channels, the pair paidOnPurchaseBills documents: settled on the bill
+  // when it was entered, and sent afterwards as its own row.
+  const previousPaid =
+    paidOnPurchaseBills(earlier) +
+    input.payments.filter(payment => isEarlier(payment.date))
+      .reduce((sum, payment) => sum + roundTaka(payment.amount), 0)
+
+  // Negated: supplierOpeningBalance is positive when they owe us, and a
+  // purchase voucher counts a due as money going the other way.
+  const openingOwed = input.supplier ? -supplierOpeningBalance(input.supplier) : 0
+
+  return {
+    previous_bill: previousBill,
+    previous_paid: previousPaid,
+    previous_due: openingOwed + previousBill - previousPaid,
+  }
+}
+
+/**
  * What is still owed on a set of purchases, for the report tables.
  *
  * The same deposit basis as supplierBalance, minus payments - so the Due column

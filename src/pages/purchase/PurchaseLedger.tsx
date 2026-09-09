@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { addPurchaseItem, deletePurchase, deletePurchaseItem } from '../../services/purchase.services'
-import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
+import { actualDp, paidOnPurchaseBills, purchaseItemDeposit, supplierPositionBefore } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { resolveBusinessName } from '../../lib/businessBrand'
 import { amountInWords } from '../../lib/amountWords'
@@ -30,6 +30,8 @@ type LedgerInvoice = {
   discount_amount: number
   special_discount_amount: number
   actual_deposit_amount: number
+  previous_bill: number
+  previous_paid: number
   previous_due: number
   grand_total: number
   paid_amount: number
@@ -88,7 +90,6 @@ function invoiceMetrics(purchase: any) {
   }, 0)
   const specialDiscountAmount = items.reduce((sum: number, item: any) => sum + Number(item.sp_amount || 0), 0)
   const actualDepositAmount = items.reduce((sum: number, item: any) => sum + purchaseItemDeposit(item), 0)
-  const previousDue = Number(purchase.previous_due || 0)
 
   return {
     invoiceDp,
@@ -98,8 +99,13 @@ function invoiceMetrics(purchase: any) {
     discountAmount,
     specialDiscountAmount,
     actualDepositAmount,
-    previousDue,
-    grandTotal: previousDue + actualDepositAmount,
+    // This used to read `purchase.previous_due + actualDepositAmount`. There is
+    // no previous_due column - not in the Prisma model, not in the API - so the
+    // term was always 0 and the list's Grand Total has only ever been the
+    // deposit. Said plainly here rather than left as arithmetic that looks like
+    // it does something. The real previous position is computed per supplier by
+    // supplierPositionBefore, for the voucher that prints it.
+    grandTotal: actualDepositAmount,
   }
 }
 
@@ -138,15 +144,17 @@ export default function PurchaseLedger() {
   async function loadLedger() {
     try {
       setLoading(true)
-      const [purchaseRes, paymentRes, productRes, businessRes] = await Promise.all([
+      const [purchaseRes, paymentRes, productRes, businessRes, supplierRes] = await Promise.all([
         supabase
           .from('purchases')
           .select('*, purchase_items(*, purchase_receives(*))')
           .in('shipping_status', ['pending', 'partial', 'received'])
           .order('date', { ascending: false }),
         supabase
+          // supplier_id and date, so the voucher can state where the account
+          // stood BEFORE the bill it is about - see supplierPositionBefore.
           .from('supplier_payments')
-          .select('id, purchase_id, purchase_si_no, amount'),
+          .select('id, purchase_id, purchase_si_no, supplier_id, date, amount'),
         supabase
           .from('products')
           .select('id, product_code, name, cost_price, dp_discount, discount')
@@ -155,6 +163,10 @@ export default function PurchaseLedger() {
           .from('business_settings')
           .select('name_bn, name_en, phone, email, address, logo_url')
           .maybeSingle(),
+        // Only for the opening position each voucher's Previous Due starts from.
+        supabase
+          .from('suppliers')
+          .select('id, opening_due, due_type'),
       ])
 
       if (purchaseRes.error) throw purchaseRes.error
@@ -166,9 +178,30 @@ export default function PurchaseLedger() {
       setProducts(productRes.data || [])
 
       const payments = paymentRes.data || []
-      const nextInvoices = (purchaseRes.data || []).map((purchase: any) => {
+      const allPurchases = purchaseRes.data || []
+      const suppliersById = new Map<string, any>(
+        (supplierRes.data || []).map((supplier: any) => [supplier.id, supplier])
+      )
+
+      const nextInvoices = allPurchases.map((purchase: any) => {
         const totalBill = purchaseTotal(purchase)
         const metrics = invoiceMetrics(purchase)
+
+        // Where this supplier's account stood before this bill was raised.
+        // The purchases table has no previous_due column - the voucher used to
+        // read one and print Tk 0 on every page - so it is computed from the
+        // supplier's own earlier bills and payments.
+        const supplierId = purchase.supplier_id || ''
+        const position = supplierPositionBefore({
+          supplier: suppliersById.get(supplierId) || null,
+          purchases: supplierId
+            ? allPurchases.filter((row: any) => row.supplier_id === supplierId && row.id !== purchase.id)
+            : [],
+          payments: supplierId
+            ? payments.filter((payment: any) => payment.supplier_id === supplierId && payment.purchase_id !== purchase.id)
+            : [],
+          before: purchase.date,
+        })
         // Both channels, the same two the Supplier Dashboard adds: what was
         // settled on the bill when it was entered, plus every payment sent
         // afterwards. Counting only the payment rows left a bill that was paid
@@ -198,7 +231,9 @@ export default function PurchaseLedger() {
           discount_amount: metrics.discountAmount,
           special_discount_amount: metrics.specialDiscountAmount,
           actual_deposit_amount: metrics.actualDepositAmount,
-          previous_due: metrics.previousDue,
+          previous_bill: position.previous_bill,
+          previous_paid: position.previous_paid,
+          previous_due: position.previous_due,
           grand_total: metrics.grandTotal,
           paid_amount: paidAmount,
           due_amount: Math.max(0, totalBill - paidAmount),
@@ -485,6 +520,8 @@ export default function PurchaseLedger() {
   // not off total_bill the way the list's Due column does. Otherwise a printed
   // page could show a Total, a Paid and a Due that do not subtract, which is
   // the one thing a voucher must never do.
+  const invoicePreviousBill = roundTaka(selectedInvoice?.previous_bill)
+  const invoicePreviousPaid = roundTaka(selectedInvoice?.previous_paid)
   const invoicePreviousDue = roundTaka(selectedInvoice?.previous_due)
   const invoiceAmount = roundTaka(selectedInvoice?.actual_deposit_amount)
   const invoiceDeposit = roundTaka(selectedInvoice?.paid_amount)
@@ -594,7 +631,11 @@ export default function PurchaseLedger() {
           <>
             <div ref={invoiceRef} className="invoice-print-page bg-white text-slate-950">
               <div className="invoice-print-inner">
-                {/* The shop first, the way a letterhead reads - this page goes
+                {/* What the page IS, right at the top - the order the Sales
+                    invoice already prints "Invoice Bill" in. */}
+                <h2 className="m-0 text-center text-[20px] font-normal leading-none text-slate-950">Purchase Invoice / Voucher</h2>
+
+                {/* Then the shop, the way a letterhead reads - this page goes
                     out to a supplier who needs to know who sent it. Same shape
                     as the Sales invoice, scaled down: this is a voucher, not a
                     customer-facing bill. */}
@@ -617,7 +658,6 @@ export default function PurchaseLedger() {
                   </div>
                 </div>
 
-                <h2 className="mb-4 text-center text-[24px] font-bold leading-none text-slate-950">Purchase Invoice / Voucher</h2>
                 {/* minmax(0,1fr) rather than a plain half-and-half split: a grid
                     track's default minimum is its content, so a long supplier name
                     would widen its own column and push the dates off the page
@@ -676,10 +716,15 @@ export default function PurchaseLedger() {
                 <div className="mt-4 grid grid-cols-2 gap-10 text-[11px] leading-tight">
                   <div>
                     <div className="max-w-sm space-y-1.5">
-                      <div className="flex justify-between"><span className="font-semibold">Previous Due:</span><span>{formatCurr(invoicePreviousDue)}</span></div>
+                      {/* The two halves of Previous Due, said out loud, so the
+                          figure below is one the reader can check rather than
+                          one they have to take on trust. */}
+                      <div className="flex justify-between"><span className="font-semibold">Previous Bill:</span><span>{formatCurr(invoicePreviousBill)}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Previous Deposit:</span><span>- {formatCurr(invoicePreviousPaid)}</span></div>
+                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Previous Due:</span><span>{formatCurr(invoicePreviousDue)}</span></div>
                       <div className="flex justify-between"><span className="font-semibold">Invoice Amount:</span><span>{formatCurr(invoiceAmount)}</span></div>
                       <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Total Due:</span><span>{formatCurr(invoiceTotalDue)}</span></div>
-                      <div className="flex justify-between"><span className="font-semibold">Paid Amount:</span><span>{formatCurr(invoiceDeposit)}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Paid Amount:</span><span>- {formatCurr(invoiceDeposit)}</span></div>
                       <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Current Due:</span><span>{formatCurr(invoiceCurrentDue)}</span></div>
                     </div>
                     <div className="mt-3">
