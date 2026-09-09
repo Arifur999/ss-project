@@ -11,6 +11,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import PeriodFilter from '../../components/PeriodFilter'
+import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
 
 function escapeHtml(value: string) {
   return String(value || '')
@@ -32,6 +34,9 @@ export default function SupplierPayments() {
   const [accounts, setAccounts] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  // 'all' by default: the page opens on the whole list rather than on an empty
+  // range waiting for two dates to be typed.
+  const [period, setPeriod] = useState<Period>('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [supplierFilter, setSupplierFilter] = useState('')
@@ -193,12 +198,11 @@ export default function SupplierPayments() {
   const filteredPayments = useMemo(() => {
     return payments.filter(payment => {
       const date = payment.date || ''
-      if (dateFrom && date < dateFrom) return false
-      if (dateTo && date > dateTo) return false
+      if (!inPeriod(date, period, dateFrom, dateTo)) return false
       if (supplierFilter && payment.supplier_id !== supplierFilter) return false
       return true
     })
-  }, [payments, dateFrom, dateTo, supplierFilter])
+  }, [payments, period, dateFrom, dateTo, supplierFilter])
 
   // Draws a slice at a time as the reader scrolls. Every row stays in
   // memory, so totals, filters and exports above are untouched.
@@ -206,19 +210,18 @@ export default function SupplierPayments() {
 
   const totalPaid = filteredPayments.reduce((s, p) => s + Number(p.amount || 0), 0)
   const selectedSupplier = suppliers.find(supplier => supplier.id === supplierFilter)
-  const dateRangeLabel = dateFrom || dateTo
-    ? `Date range: ${dateFrom ? formatDate(dateFrom) : 'Start'} to ${dateTo ? formatDate(dateTo) : 'Today'}`
-    : 'Date range: All transactions'
+  const dateRangeLabel = `Date range: ${periodLabel(period, dateFrom, dateTo)}`
   const supplierLabel = selectedSupplier ? `Supplier: ${selectedSupplier.name}` : 'Supplier: All'
 
   function clearFilters() {
+    setPeriod('all')
     setDateFrom('')
     setDateTo('')
     setSupplierFilter('')
   }
 
   function printTransactions() {
-    if (dateFrom && dateTo && dateFrom > dateTo) return toast.error('From date cannot be after To date')
+    if (period === 'custom' && dateFrom && dateTo && dateFrom > dateTo) return toast.error('From date cannot be after To date')
     const printWindow = window.open('', '_blank', 'width=1100,height=760')
     if (!printWindow) return toast.error('Please allow popups to print')
 
@@ -320,13 +323,16 @@ export default function SupplierPayments() {
               {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </label>
+          {/* One dropdown, defaulting to All Time. The from/to pair only
+              appears under Custom Range - the same control the Transfer,
+              Invest and Profit lists already use. */}
           <label>
-            <span className="label">From Date</span>
-            <input type="date" className="input min-w-[180px]" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          </label>
-          <label>
-            <span className="label">To Date</span>
-            <input type="date" className="input min-w-[180px]" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            <span className="label">Period</span>
+            <PeriodFilter
+              period={period} setPeriod={setPeriod}
+              from={dateFrom} setFrom={setDateFrom}
+              to={dateTo} setTo={setDateTo}
+            />
           </label>
           <button onClick={clearFilters} className="btn-secondary h-10">Clear</button>
           <button onClick={printTransactions} className="btn-primary h-10"><Printer size={16} /> Print</button>

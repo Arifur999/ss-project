@@ -14,6 +14,8 @@ import { useLang } from '../../context/LanguageContext'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue } from '../../components/CellValue'
+import PeriodFilter from '../../components/PeriodFilter'
+import { inPeriod, type Period } from '../../lib/periodFilter'
 
 export default function ExpenseTransactions() {
   const { t, formatCurr } = useLang()
@@ -26,6 +28,9 @@ export default function ExpenseTransactions() {
   const [editItem, setEditItem] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
+  // 'all' by default: the page opens on every expense rather than on an empty
+  // range waiting for two dates to be typed.
+  const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const { user } = useAuth()
@@ -125,9 +130,8 @@ export default function ExpenseTransactions() {
   const filtered = expenses.filter(e => {
     const matchSearch = !search || e.category_name.toLowerCase().includes(search.toLowerCase()) || e.notes?.toLowerCase().includes(search.toLowerCase())
     const matchCat = !filterCat || e.category_id === filterCat
-    const matchFromDate = !fromDate || e.date >= fromDate
-    const matchToDate = !toDate || e.date <= toDate
-    return matchSearch && matchCat && matchFromDate && matchToDate
+    const matchPeriod = inPeriod(String(e.date || ''), period, fromDate, toDate)
+    return matchSearch && matchCat && matchPeriod
   })
 
   // Draws a slice at a time as the reader scrolls. Every row stays in
@@ -153,8 +157,14 @@ export default function ExpenseTransactions() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('expTx_searchPlaceholder')} className="input pl-9" />
         </div>
-        <input type="date" className="input xl:w-40" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-        <input type="date" className="input xl:w-40" value={toDate} min={fromDate || undefined} onChange={e => setToDate(e.target.value)} />
+        {/* One dropdown, defaulting to All Time. The from/to pair only appears
+            under Custom Range - the same control the Transfer, Invest and
+            Profit lists already use. */}
+        <PeriodFilter
+          period={period} setPeriod={setPeriod}
+          from={fromDate} setFrom={setFromDate}
+          to={toDate} setTo={setToDate}
+        />
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className="input w-48">
           <option value="">{t('expTx_allCategories')}</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

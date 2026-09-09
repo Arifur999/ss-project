@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import Modal from '../../components/Modal'
 import SearchableSelect from '../../components/SearchableSelect'
+import PeriodFilter from '../../components/PeriodFilter'
 import { supabase } from '../../lib/supabase'
 import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
@@ -18,6 +19,7 @@ import { NoValue, ZeroAmount } from '../../components/CellValue'
 import { buildLoanTransactionSms } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
 import { isValidBdPhone } from '../../lib/phone'
+import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
 
 type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id' | 'expense_category_id', string>>
 
@@ -63,6 +65,9 @@ export default function LoanTransactions() {
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [usingFallback, setUsingFallback] = useState(false)
+  // 'all' by default: opening this page should show the whole ledger, not an
+  // empty range waiting for two dates to be typed.
+  const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [filterLenderName, setFilterLenderName] = useState('')
@@ -352,13 +357,11 @@ export default function LoanTransactions() {
 
   const filteredRecords = useMemo(() => {
     return records.filter(record => {
-      const date = String(record.date || '')
-      if (fromDate && date < fromDate) return false
-      if (toDate && date > toDate) return false
+      if (!inPeriod(String(record.date || ''), period, fromDate, toDate)) return false
       if (filterLenderName && loanDisplayName(record) !== filterLenderName) return false
       return true
     })
-  }, [records, fromDate, toDate, filterLenderName])
+  }, [records, period, fromDate, toDate, filterLenderName])
 
   // Draws a slice at a time as the reader scrolls. Every row stays in
   // memory, so totals, filters and exports above are untouched.
@@ -369,19 +372,18 @@ export default function LoanTransactions() {
   const lenderFilterOptions = useMemo(() => {
     return Array.from(new Set(records.map(record => loanDisplayName(record)).filter(Boolean))).sort((a, b) => a.localeCompare(b))
   }, [records])
-  const rangeLabel = fromDate || toDate
-    ? `Date range: ${fromDate ? formatDate(fromDate) : 'Start'} to ${toDate ? formatDate(toDate) : 'Today'}`
-    : 'Date range: All transactions'
+  const rangeLabel = `Date range: ${periodLabel(period, fromDate, toDate)}`
   const lenderLabel = filterLenderName ? `Bank / Person: ${filterLenderName}` : 'Bank / Person: All'
 
   function clearDateFilter() {
+    setPeriod('all')
     setFromDate('')
     setToDate('')
     setFilterLenderName('')
   }
 
   function printTransactions() {
-    if (fromDate && toDate && fromDate > toDate) return toast.error('From date cannot be after To date')
+    if (period === 'custom' && fromDate && toDate && fromDate > toDate) return toast.error('From date cannot be after To date')
     const printWindow = window.open('', '_blank', 'width=1100,height=760')
     if (!printWindow) return toast.error('Please allow popups to print')
 
@@ -505,15 +507,19 @@ export default function LoanTransactions() {
                 {lenderFilterOptions.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
             </label>
-            <label className="min-w-36">
-              <span className="label">From Date</span>
-              <input type="date" className="input h-10" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            {/* One dropdown rather than two empty date boxes. All Time is the
+                default, which is what somebody opening this page wants to see;
+                the from/to pair only appears under Custom Range. Same control
+                the Transfer, Invest and Profit lists already use. */}
+            <label className="min-w-40">
+              <span className="label">Period</span>
+              <PeriodFilter
+                period={period} setPeriod={setPeriod}
+                from={fromDate} setFrom={setFromDate}
+                to={toDate} setTo={setToDate}
+              />
             </label>
-            <label className="min-w-36">
-              <span className="label">To Date</span>
-              <input type="date" className="input h-10" value={toDate} onChange={e => setToDate(e.target.value)} />
-            </label>
-            {(fromDate || toDate || filterLenderName) && (
+            {(period !== 'all' || filterLenderName) && (
               <button type="button" onClick={clearDateFilter} className="btn-secondary h-10 justify-center px-3" title="Clear filters" aria-label="Clear filters">
                 <X size={16} />
               </button>

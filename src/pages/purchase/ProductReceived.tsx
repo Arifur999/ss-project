@@ -390,13 +390,22 @@ export default function ReceiveProduct() {
               <th className="text-left py-2 px-3">Receiver Name</th>
               <th className="text-left py-2 px-3">Note</th>
               <th className="text-center py-2 px-3">Duration (Days)</th>
-              <th className="sticky right-0 min-w-[150px] bg-white px-3 py-2 text-right">Actions</th>
+              {/* No bg-white here. Tailwind's utility layer comes after the
+                  component layer, so it beat .table-header th's navy and left
+                  this one heading sitting white on the dark bar - the same
+                  header, two colours. .table-header th already paints every
+                  cell, sticky ones included. */}
+              <th className="sticky right-0 min-w-[150px] px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && <TableSkeleton rows={8} cols={15} />}
+            {/* The row carries the colour and the sticky Actions cell inherits
+                it, so the whole row is one shade - hover included. Hard-coding
+                bg-white on that cell left it white while the rest of the row
+                went slate on hover, which is the two-tone the table showed. */}
             {shown.visible.map((item, index) => (
-              <tr key={item.id} className="table-row">
+              <tr key={item.id} className="table-row bg-white">
                 <td className="px-3 py-2.5 text-slate-400">{index + 1}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-700">{item.si_no}</td>
                 <td className="py-2.5 px-3">{formatDate(item.date)}</td>
@@ -424,7 +433,7 @@ export default function ReceiveProduct() {
                 <td className="py-2.5 px-3">{item.receiver_name || <NoValue />}</td>
                 <td className="py-2.5 px-3 max-w-[220px] truncate" title={item.receive_note || ''}>{item.receive_note || <NoValue />}</td>
                 <td className="py-2.5 px-3 text-center text-slate-600">{item.durationLabel}</td>
-                <td className="sticky right-0 bg-white px-3 py-2.5 text-right">
+                <td className="sticky right-0 bg-inherit px-3 py-2.5 text-right">
                   <div className="flex min-w-[126px] items-center justify-end gap-1">
                     {/* Nothing left outstanding, nothing to receive. */}
                     {item.undelivered_qty > 0 && (
