@@ -313,34 +313,37 @@ export default function SupplierPayments() {
         actions={<button onClick={openNewPayment} className="btn-primary"><Plus size={16} /> {t('supplierPayments_new')}</button>}
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+      <div className="mb-6">
         <div className="card"><p className="text-xs text-slate-500">{t('supplierPayments_totalPaid')}</p><p className="text-2xl font-bold text-brand-green mt-1">{formatCurr(totalPaid)}</p></div>
-        <div className="card flex flex-wrap items-end gap-3">
-          <label>
-            <span className="label">Supplier</span>
-            <select className="input min-w-[200px]" value={supplierFilter} onChange={e => setSupplierFilter(e.target.value)}>
-              <option value="">All Supplier</option>
-              {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-            </select>
-          </label>
-          {/* One dropdown, defaulting to All Time. The from/to pair only
-              appears under Custom Range - the same control the Transfer,
-              Invest and Profit lists already use. */}
-          <label>
-            <span className="label">Period</span>
-            <PeriodFilter
-              period={period} setPeriod={setPeriod}
-              from={dateFrom} setFrom={setDateFrom}
-              to={dateTo} setTo={setDateTo}
-            />
-          </label>
-          <button onClick={clearFilters} className="btn-secondary h-10">Clear</button>
-          <button onClick={printTransactions} className="btn-primary h-10"><Printer size={16} /> Print</button>
-        </div>
       </div>
 
-      <div className="card overflow-x-auto p-0">
-        <div className="p-4 border-b border-slate-100 font-semibold text-slate-800">{t('supplierPayments_list')}</div>
+      <div className="card p-0">
+        {/* The filters sit with the table they filter, the way every other list
+            on the site keeps them - they used to live in a card at the top of
+            the page, a long way from the rows they were changing. */}
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 p-4">
+          <span className="font-semibold text-slate-800">{t('supplierPayments_list')}</span>
+          <div className="flex flex-wrap items-end gap-3">
+            <label>
+              <span className="label">Supplier</span>
+              <select className="input h-10 min-w-[180px]" value={supplierFilter} onChange={e => setSupplierFilter(e.target.value)}>
+                <option value="">All Supplier</option>
+                {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="label">Period</span>
+              <PeriodFilter
+                period={period} setPeriod={setPeriod}
+                from={dateFrom} setFrom={setDateFrom}
+                to={dateTo} setTo={setDateTo}
+              />
+            </label>
+            <button onClick={clearFilters} className="btn-secondary h-10">Clear</button>
+            <button onClick={printTransactions} className="btn-primary h-10"><Printer size={16} /> Print</button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="table-header">
             <tr>
@@ -396,6 +399,7 @@ export default function SupplierPayments() {
           )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm() }} title={editingId ? 'Edit Supplier Payment' : t('supplierPayments_newTitle')}>

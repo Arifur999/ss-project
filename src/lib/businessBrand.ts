@@ -4,6 +4,15 @@ import { supabase } from './supabase'
 export const DEFAULT_BUSINESS_NAME = 'My Business'
 export const BUSINESS_NAME_STORAGE_KEY = 'business_settings_name'
 export const BUSINESS_LOGO_STORAGE_KEY = 'business_settings_logo'
+// Phone, email and address, cached alongside the name so a printed page can
+// draw a letterhead without every page that prints having to fetch settings
+// first. ProfileMenu sits in the shared layout and refreshes this on every
+// page load, so it is never more than one navigation stale.
+export const BUSINESS_CONTACT_STORAGE_KEY = 'business_settings_contact'
+
+export type BusinessContact = { phone: string; email: string; address: string }
+
+const EMPTY_CONTACT: BusinessContact = { phone: '', email: '', address: '' }
 export const BUSINESS_NAME_UPDATED_EVENT = 'business-settings-name-updated'
 export const BUSINESS_BRAND_UPDATED_EVENT = 'business-settings-brand-updated'
 
@@ -21,9 +30,22 @@ export function rememberBusinessName(name: string) {
   window.dispatchEvent(new CustomEvent(BUSINESS_NAME_UPDATED_EVENT, { detail: safeName }))
 }
 
-export function rememberBusinessBrand(settings: { name_en?: string | null; name_bn?: string | null; logo_url?: string | null }) {
+export function rememberBusinessBrand(settings: {
+  name_en?: string | null
+  name_bn?: string | null
+  logo_url?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+}) {
   const name = resolveBusinessName(settings)
   const logoUrl = String(settings.logo_url || '').trim()
+  const contact: BusinessContact = {
+    phone: String(settings.phone || '').trim(),
+    email: String(settings.email || '').trim(),
+    address: String(settings.address || '').trim(),
+  }
+  localStorage.setItem(BUSINESS_CONTACT_STORAGE_KEY, JSON.stringify(contact))
   // Announce only a real change. Anything that re-reads the brand in response
   // to these events would otherwise be told to re-read after every write of
   // the same values, and a listener that writes back closes the circle into a
@@ -46,6 +68,29 @@ export function readRememberedBusinessName() {
 
 export function readRememberedBusinessLogo() {
   return String(localStorage.getItem(BUSINESS_LOGO_STORAGE_KEY) || '').trim()
+}
+
+/**
+ * The shop's phone, email and address as last seen.
+ *
+ * Wrapped in try/catch and defaulted field by field: this is read while
+ * building a page somebody is about to print, and a half-written cache entry
+ * must produce a header without contact details rather than an exception that
+ * loses the whole print.
+ */
+export function readRememberedBusinessContact(): BusinessContact {
+  try {
+    const raw = localStorage.getItem(BUSINESS_CONTACT_STORAGE_KEY)
+    if (!raw) return EMPTY_CONTACT
+    const parsed = JSON.parse(raw) as Partial<BusinessContact>
+    return {
+      phone: String(parsed?.phone || '').trim(),
+      email: String(parsed?.email || '').trim(),
+      address: String(parsed?.address || '').trim(),
+    }
+  } catch {
+    return EMPTY_CONTACT
+  }
 }
 
 // Used on the public Login page - deliberately does NOT call the API.
@@ -96,7 +141,7 @@ export function useBusinessBrand() {
     async function loadBusinessBrand() {
       const { data, error } = await supabase
         .from('business_settings')
-        .select('name_en, name_bn, logo_url')
+        .select('name_en, name_bn, logo_url, phone, email, address')
         .maybeSingle()
 
       if (cancelled || error) return

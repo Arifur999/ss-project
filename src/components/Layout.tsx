@@ -108,18 +108,27 @@ export default function Layout() {
         { key: 'updatePrice', label: t('nav_updatePrice'), icon: <Tag size={16} />, path: '/products/update-price' },
       ],
     },
+    // Nine entries under one "Supplier" heading was a list nobody could scan.
+    // Split by what each page is ABOUT: who we buy from, and what we bought.
+    // Every path is unchanged - this is a regrouping, not a move, so bookmarks
+    // and the recycle bin's links still land where they did.
     {
-      key: 'purchase', label: 'Supplier', icon: <Truck size={18} weight="duotone" />,
+      key: 'supplier', label: 'Supplier', icon: <Truck size={18} weight="duotone" />,
       children: [
-        { key: 'suppDash', label: t('nav_supplierDashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
-        { key: 'purchOrders', label: t('nav_purchaseOrders'), icon: <ShoppingCart size={16} />, path: '/purchase/orders' },
-        { key: 'purchDrafts', label: t('nav_draftPurchaseOrder', 'Draft Purchase Order'), icon: <FileText size={16} />, path: '/purchase/drafts' },
-        { key: 'purchaseLedger', label: t('nav_purchaseLedger', 'Purchase Ledger'), icon: <FileText size={16} />, path: '/purchase/ledger' },
-        { key: 'productReceived', label: t('nav_productReceived'), icon: <Package size={16} />, path: '/purchase/product-received' },
-        { key: 'purchPayments', label: t('nav_supplierPayments'), icon: <CreditCard size={16} />, path: '/purchase/payments' },
-        { key: 'purchaseHistory', label: t('nav_purchaseHistory'), icon: <BookOpen size={16} />, path: '/purchase/history' },
+        { key: 'suppDash', label: t('nav_dashboard', 'Dashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
+        { key: 'purchPayments', label: t('nav_transaction', 'Transaction'), icon: <CreditCard size={16} />, path: '/purchase/payments' },
         { key: 'otherIncome', label: t('nav_otherIncome', 'Others Income'), icon: <FileText size={16} />, path: '/purchase/other-income' },
         { key: 'supplierList', label: t('settings_supplierList', 'Suppliers list'), icon: <Truck size={16} />, path: '/purchase/suppliers-list' },
+      ],
+    },
+    {
+      key: 'purchase', label: 'Purchase', icon: <ShoppingCart size={18} weight="duotone" />,
+      children: [
+        { key: 'purchOrders', label: t('nav_purchase', 'Purchase'), icon: <ShoppingCart size={16} />, path: '/purchase/orders' },
+        { key: 'purchDrafts', label: t('nav_draftPurchase', 'Draft Purchase'), icon: <FileText size={16} />, path: '/purchase/drafts' },
+        { key: 'purchaseLedger', label: t('nav_invoiceLedger', 'Invoice Ledger'), icon: <FileText size={16} />, path: '/purchase/ledger' },
+        { key: 'productReceived', label: t('nav_productReceived'), icon: <Package size={16} />, path: '/purchase/product-received' },
+        { key: 'purchaseHistory', label: t('nav_productHistory', 'Product History'), icon: <BookOpen size={16} />, path: '/purchase/history' },
       ],
     },
     { key: 'inventory', label: t('nav_inventory'), icon: <Warehouse size={18} weight="duotone" />, path: '/inventory' },

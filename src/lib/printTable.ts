@@ -1,4 +1,5 @@
 import { formatDate } from './utils'
+import { readRememberedBusinessContact, readRememberedBusinessName } from './businessBrand'
 
 // Opens a clean print window for a simple data table and triggers the browser
 // print dialog. Self-contained (its own styles) so it never touches the app's
@@ -38,11 +39,40 @@ export function printTable(opts: {
   const now = new Date()
   const printedOn = `${formatDate(now)} ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
 
+  // The shop first, the way the Loan Statement and the Purchase Voucher already
+  // print it - these pages go out to suppliers and staff, and a page that does
+  // not say who issued it is a page nobody can file.
+  //
+  // Read from the cache rather than fetched: this runs at the moment somebody
+  // pressed Print, and five pages call it. ProfileMenu refreshes the cache from
+  // Settings on every page load.
+  const businessName = readRememberedBusinessName()
+  const contact = readRememberedBusinessContact()
+  // Nothing at all when Settings holds neither - an empty "Phone:  Email:" line
+  // is worse than no line.
+  const contactLine = [
+    contact.phone ? `Phone: ${contact.phone}` : '',
+    contact.email ? `Email: ${contact.email}` : '',
+  ].filter(Boolean).join('  |  ')
+
+  const letterhead = `
+    <div class="letterhead">
+      <p class="shop">${esc(businessName)}</p>
+      ${contactLine ? `<p class="shopline">${esc(contactLine)}</p>` : ''}
+      ${contact.address ? `<p class="shopline">${esc(contact.address)}</p>` : ''}
+    </div>`
+
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 24px; }
-    h1 { font-size: 20px; margin: 0 0 2px; }
+    /* Same proportions as the Loan Statement's header: the shop leads at 18px,
+       its details sit small beneath it, and a rule closes the block off before
+       the report's own title. */
+    .letterhead { border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin: 0 0 12px; }
+    .shop { font-size: 18px; font-weight: 700; margin: 0; }
+    .shopline { font-size: 11px; color: #334155; margin: 2px 0 0; }
+    h1 { font-size: 17px; margin: 0 0 2px; }
     .sub { color: #64748b; font-size: 12px; margin: 0 0 4px; }
     .meta { color: #94a3b8; font-size: 11px; margin: 0 0 16px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -51,6 +81,7 @@ export function printTable(opts: {
     tr.total td { font-weight: 700; background: #f8fafc; border-top: 2px solid #cbd5e1; }
     @media print { body { margin: 0; } }
   </style></head><body>
+    ${letterhead}
     <h1>${esc(title)}</h1>
     ${subtitle ? `<p class="sub">${esc(subtitle)}</p>` : ''}
     <p class="meta">Printed on ${esc(printedOn)}</p>
