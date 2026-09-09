@@ -19,6 +19,8 @@ export default function PeriodFilter({
     <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
       <select value={period} onChange={e => setPeriod(e.target.value as Period)} className="input h-10 w-auto shrink-0" title="Period">
         <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
         <option value="month">This Month</option>
         <option value="year">This Year</option>
         <option value="custom">Custom Range</option>

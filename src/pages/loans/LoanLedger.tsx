@@ -12,6 +12,8 @@ import TableSkeleton from '../../components/TableSkeleton'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
 import { getLenderStatement, type LenderStatement } from '../../services/finance.services'
 import { resolveBusinessName } from '../../lib/businessBrand'
+import PeriodFilter from '../../components/PeriodFilter'
+import { periodToRange, type Period } from '../../lib/periodFilter'
 
 /**
  * One account, one window, read like a passbook.
@@ -32,8 +34,12 @@ export default function LoanLedger() {
   const [lenderId, setLenderId] = useState('')
   const [lenderSearch, setLenderSearch] = useState('')
   const [showLenderOptions, setShowLenderOptions] = useState(false)
+  // 'all' by default: the statement opens on the whole account. To Date used
+  // to be pre-filled with today while From Date sat empty, which read as a
+  // range that had been chosen when it had not.
+  const [period, setPeriod] = useState<Period>('all')
   const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState(todayISO())
+  const [toDate, setToDate] = useState('')
   const [statement, setStatement] = useState<LenderStatement | null>(null)
   const [business, setBusiness] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -80,7 +86,10 @@ export default function LoanLedger() {
 
     try {
       setLoading(true)
-      setStatement(await getLenderStatement(lenderId, fromDate || undefined, toDate || undefined))
+      // periodToRange turns the dropdown into the bounds the server takes.
+      // All Time sends neither, which is what makes the whole history come back.
+      const range = periodToRange(period, fromDate, toDate)
+      setStatement(await getLenderStatement(lenderId, range.from, range.to))
     } catch (error: any) {
       toast.error(error?.message || 'Could not build the statement')
       setStatement(null)
@@ -92,7 +101,9 @@ export default function LoanLedger() {
   // The house print pattern, so this comes out on A4 like every invoice.
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: `statement-${statement?.lender.name || 'account'}-${toDate}`,
+    // todayISO(), not toDate: on All Time there is no to-date, and a file named
+    // "statement-Arif-" helps nobody find it again.
+    documentTitle: `statement-${statement?.lender.name || 'account'}-${statement?.to || todayISO()}`,
   })
 
   const filteredLenders = lenders.filter(lender =>
@@ -139,7 +150,8 @@ export default function LoanLedger() {
         }
       />
 
-      <div className="card grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))_auto] md:items-end">
+      {/* Three tracks now, not four: the two date boxes became one dropdown. */}
+      <div className="card grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] md:items-end">
         <div ref={lenderBoxRef} className="relative">
           <label className="label">Bank / Person</label>
           <div className="relative">
@@ -178,16 +190,18 @@ export default function LoanLedger() {
           )}
         </div>
 
+        {/* One dropdown, All Time by default - the same control every other
+            list uses. All Time sends no bounds at all, so the statement opens
+            on the account's whole history and the opening balance is simply the
+            account's own, with nothing folded into it. The from/to pair appears
+            only under Custom Range. */}
         <div>
-          <label className="label" htmlFor="loan-ledger-from">From Date</label>
-          {/* Blank means from the very beginning - the opening balance is then
-              simply the account's own, with nothing folded into it. */}
-          <input id="loan-ledger-from" type="date" className="input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="label" htmlFor="loan-ledger-to">To Date</label>
-          <input id="loan-ledger-to" type="date" className="input" value={toDate} onChange={e => setToDate(e.target.value)} />
+          <label className="label">Period</label>
+          <PeriodFilter
+            period={period} setPeriod={setPeriod}
+            from={fromDate} setFrom={setFromDate}
+            to={toDate} setTo={setToDate}
+          />
         </div>
 
         <button onClick={generate} disabled={loading} className="btn-primary h-11 justify-center disabled:opacity-60">

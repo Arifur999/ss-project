@@ -11,6 +11,8 @@ import { actualDp, paidOnPurchaseBills, purchaseItemDeposit, supplierPositionBef
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { resolveBusinessName } from '../../lib/businessBrand'
 import { amountInWords } from '../../lib/amountWords'
+import PeriodFilter from '../../components/PeriodFilter'
+import { inPeriod, type Period } from '../../lib/periodFilter'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -114,6 +116,11 @@ export default function PurchaseLedger() {
   const { touchOwnerActivity } = useAuth()
   const [invoices, setInvoices] = useState<LedgerInvoice[]>([])
   const [search, setSearch] = useState('')
+  // The Sales Ledger's date filter, on the buying side. 'all' by default, so
+  // the page still opens on every invoice.
+  const [period, setPeriod] = useState<Period>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [loading, setLoading] = useState(true)
   const [selectedInvoice, setSelectedInvoice] = useState<LedgerInvoice | null>(null)
   const [editingInvoice, setEditingInvoice] = useState<LedgerInvoice | null>(null)
@@ -251,12 +258,15 @@ export default function PurchaseLedger() {
 
   const filteredInvoices = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return invoices
-    return invoices.filter(invoice =>
-      invoice.si_no.toLowerCase().includes(q) ||
-      invoice.supplier_name.toLowerCase().includes(q)
-    )
-  }, [invoices, search])
+    return invoices.filter(invoice => {
+      // Filtered on the invoice date, which is the column the table shows and
+      // the one somebody asking "what came in this month" means.
+      if (!inPeriod(String(invoice.invoice_date || invoice.order_date || ''), period, dateFrom, dateTo)) return false
+      if (!q) return true
+      return invoice.si_no.toLowerCase().includes(q) ||
+        invoice.supplier_name.toLowerCase().includes(q)
+    })
+  }, [invoices, search, period, dateFrom, dateTo])
 
   const editTotal = editItems.reduce((sum, item) => sum + Number(item.total_amount || 0), 0)
   const editDue = Math.max(0, editTotal - Number(editingInvoice?.paid_amount || 0))
@@ -546,6 +556,11 @@ export default function PurchaseLedger() {
             placeholder="Search supplier or invoice..."
           />
         </div>
+        <PeriodFilter
+          period={period} setPeriod={setPeriod}
+          from={dateFrom} setFrom={setDateFrom}
+          to={dateTo} setTo={setDateTo}
+        />
         <div className="card px-4 py-2 text-sm text-slate-600">
           Invoices: <strong className="text-slate-800">{formatNum(filteredInvoices.length)}</strong>
         </div>
