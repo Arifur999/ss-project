@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
+import { openPrintDialog } from '../../lib/printTable'
 import PeriodFilter from '../../components/PeriodFilter'
 import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
 
@@ -293,16 +294,15 @@ export default function SupplierPayments() {
               ${rows || '<tr><td class="empty" colspan="6">No records found for selected filters.</td></tr>'}
             </tbody>
           </table>
-          <script>
-            window.onload = function () {
-              window.focus();
-              window.print();
-            };
-          </script>
         </body>
       </html>
     `)
     printWindow.document.close()
+    // Asked from here, not from an inline <script> in that window: the
+    // production CSP is script-src 'self' and a window.open('') document
+    // inherits it, so the embedded script never ran and the dialog never
+    // opened. See openPrintDialog.
+    openPrintDialog(printWindow)
   }
 
   return (

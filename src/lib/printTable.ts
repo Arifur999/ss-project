@@ -13,8 +13,18 @@ export function printTable(opts: {
   totalRow?: (string | number)[]
 }) {
   const { title, subtitle, columns, rows, totalRow } = opts
+  // Quotes escaped too, though every value below lands in a text node where
+  // they cannot break out. The page names, product names and supplier names
+  // that reach here are typed by users, and the day somebody moves one of them
+  // into an attribute this is the difference between a layout change and an
+  // injected script. Same set the two page-level printers escape.
   const esc = (v: any) =>
-    String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    String(v ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
   const align = (c: PrintColumn) => c.align || 'left'
 
   const head = columns.map(c => `<th style="text-align:${align(c)}">${esc(c.label)}</th>`).join('')
@@ -45,7 +55,6 @@ export function printTable(opts: {
     ${subtitle ? `<p class="sub">${esc(subtitle)}</p>` : ''}
     <p class="meta">Printed on ${esc(printedOn)}</p>
     <table><thead><tr>${head}</tr></thead><tbody>${body}${total}</tbody></table>
-    <script>window.onload = function(){ window.print(); }</script>
   </body></html>`
 
   const win = window.open('', '_blank', 'width=1000,height=700')
@@ -53,4 +62,33 @@ export function printTable(opts: {
   win.document.open()
   win.document.write(html)
   win.document.close()
+
+  openPrintDialog(win)
+}
+
+/**
+ * Ask a written-into window to print, from here rather than from an inline
+ * <script> inside it.
+ *
+ * The production CSP is `script-src 'self'` with no 'unsafe-inline', and a
+ * document opened with window.open('') inherits the opener's policy - so the
+ * `<script>window.print()</script>` these pages used to embed never ran, and
+ * every Print button silently opened a window and stopped there. Called from
+ * the parent, it is the same script origin as the app and the policy is happy.
+ *
+ * A document.write'd document is often already complete by the time we get
+ * here, in which case onload will never fire again - hence the readyState
+ * check, and the flag so the two paths cannot both fire.
+ */
+export function openPrintDialog(win: Window) {
+  let printed = false
+  const print = () => {
+    if (printed) return
+    printed = true
+    win.focus()
+    win.print()
+  }
+
+  if (win.document.readyState === 'complete') print()
+  else win.addEventListener('load', print)
 }

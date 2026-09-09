@@ -19,6 +19,7 @@ import { NoValue, ZeroAmount } from '../../components/CellValue'
 import { buildLoanTransactionSms } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
 import { isValidBdPhone } from '../../lib/phone'
+import { openPrintDialog } from '../../lib/printTable'
 import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
 
 type LoanTransactionValidationErrors = Partial<Record<'date' | 'lender_id' | 'transaction_type' | 'amount' | 'account_id' | 'expense_category_id', string>>
@@ -471,16 +472,15 @@ export default function LoanTransactions() {
               ${rows || '<tr><td class="empty" colspan="8">No loan transactions found for this date range.</td></tr>'}
             </tbody>
           </table>
-          <script>
-            window.onload = function () {
-              window.focus();
-              window.print();
-            };
-          </script>
         </body>
       </html>
     `)
     printWindow.document.close()
+    // Asked from here, not from an inline <script> in that window: the
+    // production CSP is script-src 'self' and a window.open('') document
+    // inherits it, so the embedded script never ran and the dialog never
+    // opened. See openPrintDialog.
+    openPrintDialog(printWindow)
   }
 
   return (
