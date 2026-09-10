@@ -24,6 +24,7 @@ const SubscriptionPlans = lazyWithReload(() => import('./pages/SubscriptionPlans
 const SubscriptionCheckout = lazyWithReload(() => import('./pages/SubscriptionPlans').then(m => ({ default: m.SubscriptionCheckout })))
 const Dashboard = lazyWithReload(() => import('./pages/Dashboard'))
 const Balance = lazyWithReload(() => import('./pages/Balance'))
+const AccountLedger = lazyWithReload(() => import('./pages/AccountLedger'))
 const InvestWithdraw = lazyWithReload(() => import('./pages/transactions/Invest'))
 const ProfitWithdraw = lazyWithReload(() => import('./pages/transactions/ProfitWithdraw'))
 const Adjustments = lazyWithReload(() => import('./pages/transactions/Adjustments'))
@@ -205,6 +206,7 @@ function AppRoutes() {
         <Route path="/super-admin/activity" element={<SuperAdminRoute><SuperAdminActivity /></SuperAdminRoute>} />
         <Route path="/balance" element={<Balance />} />
         <Route path="/balance/transfer" element={<Adjustments />} />
+        <Route path="/balance/ledger" element={<AccountLedger />} />
         <Route path="/transactions/dashboard" element={<ShareholderDashboard />} />
         <Route path="/transactions/invest" element={<InvestWithdraw />} />
         <Route path="/transactions/profit" element={<ProfitWithdraw />} />

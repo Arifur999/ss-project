@@ -7,6 +7,7 @@ import { readPageCache, writePageCache } from '../lib/pageCache'
 import { amountClass } from '../lib/utils'
 import { ZeroAmount } from '../components/CellValue'
 import { BALANCE_TABS, accountTotals, saleRemainderForAccount, splitPaymentCoverage, type BalanceColumn } from '../lib/balanceTabs'
+import { fallbackSalePayments } from '../lib/salePaymentsFallback'
 
 const BALANCE_CACHE_KEY = 'balance-accounts'
 
@@ -16,21 +17,6 @@ interface AccountRow {
   loan_received: number; loan_payment: number; supplier_payment: number
   cash_sales: number; customer_due_received: number; other_income: number; expense_pay: number
   transfer_in: number; transfer_out: number; current_balance: number
-}
-
-const salePaymentsFallbackKey = 'sales_split_payment_fallback_v1'
-
-function readStorageMap(key: string) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || '{}')
-  } catch {
-    return {}
-  }
-}
-
-function fallbackSalePayments() {
-  const map = readStorageMap(salePaymentsFallbackKey)
-  return Object.values(map).flatMap((value: any) => Array.isArray(value) ? value : value ? [value] : [])
 }
 
 /**

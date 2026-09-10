@@ -73,6 +73,7 @@ export default function Layout() {
       children: [
         { key: 'balanceOverview', label: t('nav_overview'), icon: <Wallet size={16} />, path: '/balance' },
         { key: 'balanceTransfer', label: t('nav_adjustments'), icon: <ArrowLeftRight size={16} />, path: '/balance/transfer' },
+        { key: 'balanceLedger', label: t('nav_accountLedger', 'Ledger'), icon: <BookOpen size={16} />, path: '/balance/ledger' },
         { key: 'balanceWallet', label: t('nav_wallet', 'Wallet'), icon: <Wallet size={16} />, path: '/balance/wallet' },
       ],
     },
