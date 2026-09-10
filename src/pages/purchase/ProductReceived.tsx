@@ -52,6 +52,7 @@ export default function ReceiveProduct() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'partial' | 'received'>('all')
+  const [supplierFilter, setSupplierFilter] = useState('')
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<PendingProduct | null>(null)
   // Ticked rows, for printing a subset. Kept as ids rather than rows so a
@@ -323,9 +324,17 @@ export default function ReceiveProduct() {
         item.product_name.toLowerCase().includes(q) ||
         String(item.product_code || '').toLowerCase().includes(q)
       const matchesStatus = statusFilter === 'all' || receiveStatus(item) === statusFilter
-      return matchesSearch && matchesStatus
+      const matchesSupplier = !supplierFilter || item.supplier_name === supplierFilter
+      return matchesSearch && matchesStatus && matchesSupplier
     })
-  }, [pendingItems, search, statusFilter])
+  }, [pendingItems, search, statusFilter, supplierFilter])
+
+  // Names, not ids: these rows carry the supplier name the purchase was saved
+  // with, and there is no supplier_id on a purchase_item to key off.
+  const supplierOptions = useMemo(() => {
+    const names = pendingItems.map(item => String(item.supplier_name || '').trim()).filter(Boolean)
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b))
+  }, [pendingItems])
 
   // Draws a slice at a time as the reader scrolls; every row stays in
   // memory so the tabs and totals are unaffected.
@@ -364,11 +373,24 @@ export default function ReceiveProduct() {
   function printSelected() {
     if (rowsToPrint.length === 0) return toast.error('Nothing to print')
 
+    // "Product Received" on a page listing lines that have NOT been received
+    // is the printout contradicting its own Status column. The heading follows
+    // the tab: print the Pending tab and the paper says Pending Products.
+    const tabTitle: Record<string, string> = {
+      all: 'Product Received',
+      pending: 'Pending Products',
+      partial: 'Partially Received Products',
+      received: 'Received Products',
+    }
+    const rowCount = `${rowsToPrint.length} row${rowsToPrint.length === 1 ? '' : 's'}`
+
     printTable({
-      title: 'Product Received',
-      subtitle: selectedIds.size > 0
-        ? `${rowsToPrint.length} selected row${rowsToPrint.length === 1 ? '' : 's'}`
-        : `${statusTabs.find(tab => tab.key === statusFilter)?.label ?? 'All'} - ${rowsToPrint.length} row${rowsToPrint.length === 1 ? '' : 's'}`,
+      title: selectedIds.size > 0 ? 'Product Received - Selected' : (tabTitle[statusFilter] ?? 'Product Received'),
+      subtitle: [
+        selectedIds.size > 0 ? `${rowCount} selected` : rowCount,
+        supplierFilter ? `Supplier: ${supplierFilter}` : '',
+        printablePendingAmount > 0 ? `Pending value: ${formatCurr(printablePendingAmount)}` : '',
+      ].filter(Boolean).join('  |  '),
       columns: [
         { label: '#' },
         { label: 'SI No' },
@@ -397,11 +419,35 @@ export default function ReceiveProduct() {
         item.receiver_name || '-',
         item.durationLabel || '-',
       ]),
+      // Each quantity totals under its own column. The money goes at the far
+      // end with its own label rather than under Pending, which counts pieces -
+      // a taka figure in a quantity column is how a total gets misread.
+      totalRow: [
+        '', '', '', '', 'Total',
+        rowsToPrint.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+        rowsToPrint.reduce((sum, item) => sum + Number(item.received_qty || 0), 0),
+        rowsToPrint.reduce((sum, item) => sum + Number(item.undelivered_qty || 0), 0),
+        '', '',
+        'Pending value',
+        formatCurr(printablePendingAmount),
+      ],
     })
   }
 
   const totalPurchaseAmount = filteredItems.reduce(
     (sum, item) => sum + (Number(item.actual_dp || 0) * Number(item.qty || 0)),
+    0
+  )
+
+  // What is still owed against these lines: the quantity not yet delivered, at
+  // the price it was ordered at. This is the figure the owner is chasing when
+  // they open the Pending tab, and it now prints with the page.
+  const pendingAmount = filteredItems.reduce(
+    (sum, item) => sum + (Number(item.actual_dp || 0) * Number(item.undelivered_qty || 0)),
+    0
+  )
+  const printablePendingAmount = rowsToPrint.reduce(
+    (sum, item) => sum + (Number(item.actual_dp || 0) * Number(item.undelivered_qty || 0)),
     0
   )
 
@@ -429,6 +475,17 @@ export default function ReceiveProduct() {
             placeholder="SI no, supplier or product name..."
           />
         </div>
+        {/* Narrows the list to one supplier, which is how somebody chasing a
+            late delivery reads this page. */}
+        <select
+          className="input h-10 w-auto min-w-[170px] shrink-0"
+          value={supplierFilter}
+          onChange={event => setSupplierFilter(event.target.value)}
+          title="Supplier"
+        >
+          <option value="">All Suppliers</option>
+          {supplierOptions.map(name => <option key={name} value={name}>{name}</option>)}
+        </select>
         <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
           {statusTabs.map(tab => (
             <button
@@ -447,6 +504,13 @@ export default function ReceiveProduct() {
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm">
           Total Purchase: <strong className="text-brand-green">{formatCurr(totalPurchaseAmount)}</strong>
         </div>
+        {/* Only when there is something outstanding - a permanent "Pending
+            Tk 0" teaches the eye to skip the row it sits in. */}
+        {pendingAmount > 0 && (
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm">
+            Pending: <strong className="text-brand-orange">{formatCurr(pendingAmount)}</strong>
+          </div>
+        )}
         {/* Says how many it will take, so ticking rows and pressing Print never
             has to be tried twice to find out what it does. */}
         <button type="button" onClick={printSelected} className="btn-primary h-10 shrink-0 justify-center whitespace-nowrap">
