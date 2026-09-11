@@ -1,11 +1,15 @@
 // Shared period filtering for list pages.
 //
-// The six choices are the Sales Ledger's, which is the one everybody already
-// knows: All / Today / Yesterday / This Month / This Year / Custom. Today and
-// Yesterday were only on that page, so every other list made the owner reach
-// for Custom Range and type the same date twice to answer "what happened
-// today" - the commonest question a shop asks its own books.
-export type Period = 'all' | 'today' | 'yesterday' | 'month' | 'year' | 'custom'
+// All / Today / Yesterday / This Week / This Month / This Year / Custom, on
+// every list that has a date column. Most of them used to offer only the last
+// three, so answering "what happened today" meant opening Custom Range and
+// typing the same date into both boxes - for the commonest question a shop
+// asks its own books.
+//
+// This Week runs Saturday to today. Saturday because that is where the working
+// week starts here, and "to today" rather than to Friday because a week-to-date
+// range must not promise rows from days that have not happened yet.
+export type Period = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom'
 
 /** Midnight-local YYYY-MM-DD, the shape every date column on the site stores. */
 function iso(d: Date): string {
@@ -15,6 +19,15 @@ function iso(d: Date): string {
 function daysAgo(n: number): Date {
   const d = new Date()
   d.setDate(d.getDate() - n)
+  return d
+}
+
+/** Saturday of the current week, at the start of the day. */
+function weekStart(): Date {
+  const d = new Date()
+  // getDay(): Sunday 0 ... Saturday 6. Saturday is day 0 of this week, Sunday
+  // day 1, so the offset is (getDay() + 1) % 7.
+  d.setDate(d.getDate() - ((d.getDay() + 1) % 7))
   return d
 }
 
@@ -28,6 +41,7 @@ export function inPeriod(dateStr: string, period: Period, from: string, to: stri
   // about either way.
   if (period === 'today') return iso(d) === iso(now)
   if (period === 'yesterday') return iso(d) === iso(daysAgo(1))
+  if (period === 'week') return iso(d) >= iso(weekStart()) && iso(d) <= iso(now)
   if (period === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
   if (period === 'year') return d.getFullYear() === now.getFullYear()
   // custom range - open-ended if only one bound is set
@@ -50,6 +64,11 @@ export function periodToRange(period: Period, from: string, to: string): { from?
     const day = iso(daysAgo(1))
     return { from: day, to: day }
   }
+  if (period === 'week') {
+    // Ends today, not on Friday: a week-to-date range must not promise rows
+    // from days that have not happened.
+    return { from: iso(weekStart()), to: iso(now) }
+  }
   if (period === 'month') {
     return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
   }
@@ -63,6 +82,7 @@ export function periodToRange(period: Period, from: string, to: string): { from?
 export function periodLabel(period: Period, from: string, to: string): string {
   if (period === 'today') return 'Today'
   if (period === 'yesterday') return 'Yesterday'
+  if (period === 'week') return 'This Week'
   if (period === 'month') return 'This Month'
   if (period === 'year') return 'This Year'
   if (period === 'custom') return `${from || '...'} to ${to || '...'}`

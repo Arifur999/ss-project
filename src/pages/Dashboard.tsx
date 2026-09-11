@@ -61,7 +61,7 @@ type DashboardData = {
   chartYear: number
   // Keyed by the whole date or by year-and-month, never by month number alone:
   // a window that crosses a year used to add last September into this one's bar.
-  monthlySales: { key: string; monthIndex: number; year: number; day: number; sales: number; profit: number; target: number }[]
+  monthlySales: { key: string; monthIndex: number; year: number; day: number; sales: number; profit: number; expense: number }[]
   // Money in against money out, by month. Both sides come from figures already
   // fetched for the cards, so this costs no extra request.
   monthlyCashflow: { key: string; monthIndex: number; year: number; day: number; moneyIn: number; moneyOut: number }[]
@@ -311,9 +311,9 @@ export default function Dashboard() {
   const salesAxis = useMemo(
     () => moneyAxisFormatter(
       Math.max(
-        seriesPeak(salesSeries, r => r.target),
         seriesPeak(salesSeries, r => r.sales),
         seriesPeak(salesSeries, r => r.profit),
+        seriesPeak(salesSeries, r => r.expense),
       ),
       { symbol: '', locale: 'en-US' },
     ),
@@ -356,7 +356,10 @@ export default function Dashboard() {
       supabase.from('supplier_payments').select('date, amount').gte('date', week.start).lte('date', week.end),
       // Purchase & Sales: the whole of the chosen year, against its targets.
       supabase.from('sales').select('date, subtotal, discount_amount, net_amount, sale_items(selling_price, actual_price, cost_price, qty)').eq('status', 'completed').gte('date', chartYear.start).lte('date', chartYear.end),
-      supabase.from('monthly_targets').select('year, month, sales_target'),
+      // Expenses for the same twelve months, so the chart can put what was
+      // spent beside what was sold. The target series it replaces was a figure
+      // most months never had set, so the bar was usually just absent.
+      supabase.from('expenses').select('date, amount').gte('date', chartYear.start).lte('date', chartYear.end),
     ])
 
     const [
@@ -436,7 +439,7 @@ export default function Dashboard() {
     const [
       weekSalesRes, weekIncomeRes, weekCollectionsRes,
       weekPurchasesRes, weekExpensesRes, weekSupplierPaymentsRes,
-      yearSalesRes, targetsRes,
+      yearSalesRes, yearExpensesRes,
     ] = await chartsPromise
 
     // Cashflow: the last seven days, one point each, whatever the picker says.
@@ -460,16 +463,18 @@ export default function Dashboard() {
     ;(weekSupplierPaymentsRes?.data || []).forEach((payment: any) => { const b = dayBucket(payment.date); if (b) b.moneyOut += Number(payment.amount || 0) })
 
     // Purchase & Sales: the twelve months of the chosen year, against target.
-    const monthlyMap: Record<number, { sales: number; profit: number }> = {}
+    const monthlyMap: Record<number, { sales: number; profit: number; expense: number }> = {}
+    const monthBucket = (month: number) => {
+      if (!monthlyMap[month]) monthlyMap[month] = { sales: 0, profit: 0, expense: 0 }
+      return monthlyMap[month]
+    }
     ;(yearSalesRes?.data || []).forEach((sale: any) => {
-      const month = new Date(sale.date).getMonth() + 1
-      if (!monthlyMap[month]) monthlyMap[month] = { sales: 0, profit: 0 }
-      monthlyMap[month].sales += getSaleAmount(sale)
-      monthlyMap[month].profit += getSaleProfit(sale)
+      const bucket = monthBucket(new Date(sale.date).getMonth() + 1)
+      bucket.sales += getSaleAmount(sale)
+      bucket.profit += getSaleProfit(sale)
     })
-    const targetByMonth: Record<number, number> = {}
-    ;(targetsRes?.data || []).forEach((target: any) => {
-      if (Number(target.year) === chartYear.year) targetByMonth[Number(target.month)] = Number(target.sales_target || 0)
+    ;(yearExpensesRes?.data || []).forEach((expense: any) => {
+      monthBucket(new Date(expense.date).getMonth() + 1).expense += Number(expense.amount || 0)
     })
 
     // Money in and money out by month, each broken down by where it came from
@@ -612,7 +617,7 @@ export default function Dashboard() {
         key: String(i + 1), monthIndex: i + 1, year: chartYear.year, day: 0,
         sales: monthlyMap[i + 1]?.sales || 0,
         profit: monthlyMap[i + 1]?.profit || 0,
-        target: targetByMonth[i + 1] || 0,
+        expense: monthlyMap[i + 1]?.expense || 0,
       })),
       monthlyCashflow: weekBuckets.map(b => ({
         ...b,
@@ -739,9 +744,9 @@ export default function Dashboard() {
               <p className="text-xs text-neutral-500">{data.chartYear}, month by month</p>
             </div>
             <div className="flex items-center gap-3 text-[11px] font-semibold text-neutral-500">
-              <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-neutral-300" /> Target</span>
               <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-navy-900" /> Sales</span>
               <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-brand-green" /> Profit</span>
+              <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-brand-red" /> Expense</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={250}>
@@ -758,9 +763,11 @@ export default function Dashboard() {
                 contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, fontSize: 12 }}
                 formatter={(value: any) => formatCurr(Number(value))}
               />
-              <Bar dataKey="target" name="Target" fill="#D1D5DB" radius={[4, 4, 0, 0]} />
               <Bar dataKey="sales" name="Sales" fill="#0F1117" radius={[4, 4, 0, 0]} />
               <Bar dataKey="profit" name="Profit" fill="#22C55E" radius={[4, 4, 0, 0]} />
+              {/* Red, because it is the one bar that being tall is bad news -
+                  the same colour Total Expenses wears on the card above. */}
+              <Bar dataKey="expense" name="Expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </section>

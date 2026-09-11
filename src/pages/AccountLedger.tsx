@@ -189,6 +189,7 @@ export default function AccountLedger() {
         <table className="w-full min-w-[900px] text-sm">
           <thead className="table-header">
             <tr>
+              <th className="w-12 text-left py-2.5 px-4">#</th>
               <th className="text-left py-2.5 px-4">Date</th>
               <th className="text-left py-2.5 px-4">Type</th>
               <th className="text-left py-2.5 px-4">Reference</th>
@@ -199,10 +200,11 @@ export default function AccountLedger() {
             </tr>
           </thead>
           <tbody>
-            {loading && <TableSkeleton rows={6} cols={7} />}
+            {loading && <TableSkeleton rows={6} cols={8} />}
 
             {!loading && ledger && (
               <tr className="border-t border-neutral-100 bg-neutral-50">
+                <td className="py-2.5 px-4" />
                 <td className="py-2.5 px-4 text-neutral-500">{fromDate && period === 'custom' ? formatDate(fromDate) : ''}</td>
                 <td className="py-2.5 px-4 font-semibold text-navy-900" colSpan={5}>Opening Balance</td>
                 <td className={`py-2.5 px-4 text-right font-bold tabular-nums ${balanceClass(ledger.opening)}`}>
@@ -213,6 +215,10 @@ export default function AccountLedger() {
 
             {!loading && ledger?.rows.map((row, index) => (
               <tr key={`${row.kind}-${row.date}-${index}`} className="border-t border-neutral-100">
+                {/* Counting up from the oldest, so the number means "how far
+                    into this account's history" rather than a position that
+                    shifts when the period changes. */}
+                <td className="py-2.5 px-4 text-neutral-400">{index + 1}</td>
                 <td className="py-2.5 px-4">{row.date ? formatDate(row.date) : <NoValue />}</td>
                 <td className="py-2.5 px-4 text-neutral-600">{row.kind}</td>
                 <td className="py-2.5 px-4 text-neutral-600">{row.reference || <NoValue />}</td>
@@ -231,7 +237,7 @@ export default function AccountLedger() {
 
             {!loading && !ledger && (
               <tr>
-                <td colSpan={7} className="py-16 text-center text-neutral-400">
+                <td colSpan={8} className="py-16 text-center text-neutral-400">
                   Choose an account to see its ledger.
                 </td>
               </tr>
@@ -239,7 +245,7 @@ export default function AccountLedger() {
 
             {!loading && ledger && ledger.rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-16 text-center text-neutral-400">
+                <td colSpan={8} className="py-16 text-center text-neutral-400">
                   No movements in this period.
                 </td>
               </tr>
@@ -265,10 +271,10 @@ export default function AccountLedger() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
             <thead>
               <tr>
-                {['Date', 'Type', 'Reference', 'Description', 'In', 'Out', 'Balance'].map((label, index) => (
+                {['#', 'Date', 'Type', 'Reference', 'Description', 'In', 'Out', 'Balance'].map((label, index) => (
                   <th
                     key={label}
-                    style={{ textAlign: index > 3 ? 'right' : 'left', padding: '6px 4px', borderBottom: '1.5px solid #000' }}
+                    style={{ textAlign: index > 4 ? 'right' : 'left', padding: '6px 4px', borderBottom: '1.5px solid #000' }}
                   >
                     {label}
                   </th>
@@ -277,6 +283,7 @@ export default function AccountLedger() {
             </thead>
             <tbody>
               <tr>
+                <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }} />
                 <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>
                   {fromDate && period === 'custom' ? formatDate(fromDate) : ''}
                 </td>
@@ -287,6 +294,7 @@ export default function AccountLedger() {
               </tr>
               {ledger?.rows.map((row, index) => (
                 <tr key={`print-${row.kind}-${row.date}-${index}`}>
+                  <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{index + 1}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{row.date ? formatDate(row.date) : '-'}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{row.kind}</td>
                   <td style={{ padding: '5px 4px', borderBottom: '1px solid #ddd' }}>{row.reference || '-'}</td>

@@ -14,6 +14,8 @@ import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue } from '../../components/CellValue'
 import { printTable } from '../../lib/printTable'
+import PeriodFilter from '../../components/PeriodFilter'
+import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
 
 interface PendingProduct {
   id: string
@@ -53,6 +55,9 @@ export default function ReceiveProduct() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'partial' | 'received'>('all')
   const [supplierFilter, setSupplierFilter] = useState('')
+  const [period, setPeriod] = useState<Period>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<PendingProduct | null>(null)
   // Ticked rows, for printing a subset. Kept as ids rather than rows so a
@@ -325,9 +330,13 @@ export default function ReceiveProduct() {
         String(item.product_code || '').toLowerCase().includes(q)
       const matchesStatus = statusFilter === 'all' || receiveStatus(item) === statusFilter
       const matchesSupplier = !supplierFilter || item.supplier_name === supplierFilter
-      return matchesSearch && matchesStatus && matchesSupplier
+      // Filtered on the ORDER date, which is the Date column on this table and
+      // the one "what did we order this week" means. A line's receiving date is
+      // its own column and often empty - that is the whole point of the page.
+      const matchesPeriod = inPeriod(String(item.date || ''), period, dateFrom, dateTo)
+      return matchesSearch && matchesStatus && matchesSupplier && matchesPeriod
     })
-  }, [pendingItems, search, statusFilter, supplierFilter])
+  }, [pendingItems, search, statusFilter, supplierFilter, period, dateFrom, dateTo])
 
   // Names, not ids: these rows carry the supplier name the purchase was saved
   // with, and there is no supplier_id on a purchase_item to key off.
@@ -388,6 +397,7 @@ export default function ReceiveProduct() {
       title: selectedIds.size > 0 ? 'Product Received - Selected' : (tabTitle[statusFilter] ?? 'Product Received'),
       subtitle: [
         selectedIds.size > 0 ? `${rowCount} selected` : rowCount,
+        periodLabel(period, dateFrom, dateTo),
         supplierFilter ? `Supplier: ${supplierFilter}` : '',
         printablePendingAmount > 0 ? `Pending value: ${formatCurr(printablePendingAmount)}` : '',
       ].filter(Boolean).join('  |  '),
@@ -475,6 +485,11 @@ export default function ReceiveProduct() {
             placeholder="SI no, supplier or product name..."
           />
         </div>
+        <PeriodFilter
+          period={period} setPeriod={setPeriod}
+          from={dateFrom} setFrom={setDateFrom}
+          to={dateTo} setTo={setDateTo}
+        />
         {/* Narrows the list to one supplier, which is how somebody chasing a
             late delivery reads this page. */}
         <select

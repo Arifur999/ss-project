@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { inPeriod, periodLabel, periodToRange, type Period } from './periodFilter'
 
-// Seven list pages filter through these three functions, so "This Month" has
+// Eight list pages filter through these three functions, so "This Month" has
 // to mean the same thing on all of them. The clock is frozen because half of
 // these answers are relative to today, and a test that only passes in
 // September is worse than no test.
@@ -35,6 +35,16 @@ describe('inPeriod', () => {
     expect(inPeriod('2026-09-08', 'yesterday', '', '')).toBe(true)
     expect(inPeriod('2026-09-09', 'yesterday', '', '')).toBe(false)
     expect(inPeriod('2026-09-07', 'yesterday', '', '')).toBe(false)
+  })
+
+  it('runs the week from Saturday to today', () => {
+    // NOW is Wednesday 09-Sep-2026, so this week started Saturday the 5th.
+    expect(inPeriod('2026-09-05', 'week', '', '')).toBe(true)
+    expect(inPeriod('2026-09-09', 'week', '', '')).toBe(true)
+    // Friday the 4th belongs to the week that ended.
+    expect(inPeriod('2026-09-04', 'week', '', '')).toBe(false)
+    // And nothing dated after today, even though Friday is still to come.
+    expect(inPeriod('2026-09-10', 'week', '', '')).toBe(false)
   })
 
   it('keeps this month and this year to the calendar, not a rolling window', () => {
@@ -73,6 +83,10 @@ describe('periodToRange', () => {
     expect(periodToRange('yesterday', '', '')).toEqual({ from: '2026-09-08', to: '2026-09-08' })
   })
 
+  it('sends Saturday through today for the week', () => {
+    expect(periodToRange('week', '', '')).toEqual({ from: '2026-09-05', to: '2026-09-09' })
+  })
+
   it('sends the whole calendar month and year', () => {
     expect(periodToRange('month', '', '')).toEqual({ from: '2026-09-01', to: '2026-09-30' })
     expect(periodToRange('year', '', '')).toEqual({ from: '2026-01-01', to: '2026-12-31' })
@@ -86,7 +100,7 @@ describe('periodToRange', () => {
   it('agrees with inPeriod on what falls inside each choice', () => {
     // The two are used by different pages for the same question - one filters a
     // loaded list, the other asks the server - so they cannot disagree.
-    for (const period of ['today', 'yesterday', 'month', 'year'] as Period[]) {
+    for (const period of ['today', 'yesterday', 'week', 'month', 'year'] as Period[]) {
       const range = periodToRange(period, '', '')
       expect(inPeriod(range.from as string, period, '', '')).toBe(true)
       expect(inPeriod(range.to as string, period, '', '')).toBe(true)
@@ -99,6 +113,7 @@ describe('periodLabel', () => {
     expect(periodLabel('all', '', '')).toBe('All Time')
     expect(periodLabel('today', '', '')).toBe('Today')
     expect(periodLabel('yesterday', '', '')).toBe('Yesterday')
+    expect(periodLabel('week', '', '')).toBe('This Week')
     expect(periodLabel('month', '', '')).toBe('This Month')
     expect(periodLabel('year', '', '')).toBe('This Year')
     expect(periodLabel('custom', '2026-08-01', '2026-08-31')).toBe('2026-08-01 to 2026-08-31')
