@@ -327,7 +327,7 @@ export default function Inventory() {
       t('inventory_colDp'), t('inventory_colTotalValue'), t('inventory_colStatus'),
     ]
     const csvRows = filtered.map(r => {
-      const dp = r.dp_price != null ? r.dp_price : (r.products?.cost_price || 0)
+      const dp = Number(r.fifo_average_dp || 0)
       const sup = r.products?.suppliers?.company_name || r.products?.suppliers?.name || ''
       const status = t(statusConfig[getStatus(r)].labelKey)
       return [r.products?.product_code || '', r.products?.name || '', sup, r.opening_qty, r.order_qty, r.received_qty, r.upcoming_qty, r.available_qty, dp, r.fifo_stock_value || 0, status].map(v => `"${v}"`).join(',')
@@ -359,7 +359,7 @@ export default function Inventory() {
         { label: t('inventory_colStatus') },
       ],
       rows: filtered.map((r, i) => {
-        const dp = r.dp_price != null ? r.dp_price : (r.products?.cost_price || 0)
+        const dp = Number(r.fifo_average_dp || 0)
         const sup = r.products?.suppliers?.company_name || r.products?.suppliers?.name || ''
         return [
           i + 1,
@@ -452,8 +452,14 @@ export default function Inventory() {
           </thead>
           <tbody>
             {filtered.map((row, index) => {
-              const dp = row.dp_price != null ? row.dp_price : (row.products?.cost_price || 0)
-              const totalVal = Number(row.available_qty || 0) * Number(dp || 0)
+              // The server's figure, not a re-derivation: it is the weighted
+              // average of the FIFO layers still holding stock, falling back to
+              // the DP after its discount. Reading dp_price ?? cost_price here
+              // showed the LIST rate - Tk 19,300 on goods costing Tk 17,370 -
+              // and disagreed with the Total Value column beside it, which has
+              // always used the server's own stock_value.
+              const dp = Number(row.fifo_average_dp || 0)
+              const totalVal = Number(row.fifo_stock_value || 0)
               const status = getStatus(row)
               const sc = statusConfig[status]
               return (
