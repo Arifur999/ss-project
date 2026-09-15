@@ -32,8 +32,6 @@ type LedgerInvoice = {
   discount_amount: number
   special_discount_amount: number
   actual_deposit_amount: number
-  previous_bill: number
-  previous_paid: number
   previous_due: number
   grand_total: number
   paid_amount: number
@@ -238,8 +236,6 @@ export default function PurchaseLedger() {
           discount_amount: metrics.discountAmount,
           special_discount_amount: metrics.specialDiscountAmount,
           actual_deposit_amount: metrics.actualDepositAmount,
-          previous_bill: position.previous_bill,
-          previous_paid: position.previous_paid,
           previous_due: position.previous_due,
           grand_total: metrics.grandTotal,
           paid_amount: paidAmount,
@@ -530,8 +526,6 @@ export default function PurchaseLedger() {
   // not off total_bill the way the list's Due column does. Otherwise a printed
   // page could show a Total, a Paid and a Due that do not subtract, which is
   // the one thing a voucher must never do.
-  const invoicePreviousBill = roundTaka(selectedInvoice?.previous_bill)
-  const invoicePreviousPaid = roundTaka(selectedInvoice?.previous_paid)
   const invoicePreviousDue = roundTaka(selectedInvoice?.previous_due)
   const invoiceAmount = roundTaka(selectedInvoice?.actual_deposit_amount)
   const invoiceDeposit = roundTaka(selectedInvoice?.paid_amount)
@@ -734,13 +728,23 @@ export default function PurchaseLedger() {
                       {/* The two halves of Previous Due, said out loud, so the
                           figure below is one the reader can check rather than
                           one they have to take on trust. */}
-                      <div className="flex justify-between"><span className="font-semibold">Previous Bill:</span><span>{formatCurr(invoicePreviousBill)}</span></div>
-                      <div className="flex justify-between"><span className="font-semibold">Previous Deposit:</span><span>- {formatCurr(invoicePreviousPaid)}</span></div>
-                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Previous Due:</span><span>{formatCurr(invoicePreviousDue)}</span></div>
+                      {/* The same five lines the Sales invoice prints, in the
+                          same order, so a shop reading both kinds of paperwork
+                          reads them the same way. The Previous Bill and
+                          Previous Deposit rows that used to sit above these are
+                          gone - they were working out the first figure in
+                          public, and the ladder says enough without them.
+
+                          Each label follows its own sign, and every figure is
+                          printed positive. This supplier has been paid ahead,
+                          so the old version printed "Previous Due: Tk -202,296"
+                          - money the shop is owed, wearing a minus sign and
+                          called a due. */}
+                      <div className="flex justify-between"><span className="font-semibold">{invoicePreviousDue >= 0 ? 'Previous Due:' : 'Previous Advance:'}</span><span>{formatCurr(Math.abs(invoicePreviousDue))}</span></div>
                       <div className="flex justify-between"><span className="font-semibold">Invoice Amount:</span><span>{formatCurr(invoiceAmount)}</span></div>
-                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Total Due:</span><span>{formatCurr(invoiceTotalDue)}</span></div>
-                      <div className="flex justify-between"><span className="font-semibold">Paid Amount:</span><span>- {formatCurr(invoiceDeposit)}</span></div>
-                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">Current Due:</span><span>{formatCurr(invoiceCurrentDue)}</span></div>
+                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">{invoiceTotalDue >= 0 ? 'Total Due:' : 'Total Advance:'}</span><span>{formatCurr(Math.abs(invoiceTotalDue))}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Paid Amount:</span><span>{formatCurr(invoiceDeposit)}</span></div>
+                      <div className="border-t border-slate-400 pt-1.5 flex justify-between"><span className="font-bold">{invoiceCurrentDue >= 0 ? 'Current Due:' : 'Current Advance:'}</span><span>{formatCurr(Math.abs(invoiceCurrentDue))}</span></div>
                     </div>
                     <div className="mt-3">
                       <p className="font-bold">Amount In Words:</p>
