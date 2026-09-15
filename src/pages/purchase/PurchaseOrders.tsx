@@ -464,6 +464,12 @@ export default function PlaceOrder() {
   const totalSpAmount = items.reduce((s, i) => s + Number(i.sp_amount || 0), 0)
   const totalActualDeposit = items.reduce((s, i) => s + Number(i.deposit_amount || 0), 0)
   const totalPayable = totalAmount - previousBalance
+  // supplierBalance signs a positive as money THEY hold for us - paid ahead -
+  // and a negative as money we still owe. The strip below turns that into
+  // words and an operator rather than showing a signed number, which read as
+  // a debt when it was the opposite.
+  const holdsAdvance = previousBalance > 0
+  const owesAfterOrder = totalPayable >= 0
   const productCategories = useMemo(() => {
     const set = new Set<string>()
     products.forEach((product: any) => {
@@ -862,7 +868,10 @@ export default function PlaceOrder() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-navy-800">{product.name}</p>
+                    {/* title, so a clipped name can still be read. These run
+                        long - "Wooden Cupboard-HCBH-314-3-10(Three Door)" - and
+                        the card is too narrow to widen. */}
+                    <p title={product.name} className="truncate text-xs font-bold text-navy-800">{product.name}</p>
                     <p className="mt-0.5 font-mono text-xs text-slate-500">{product.product_code}</p>
                     <p className="mt-1 text-xs font-semibold text-slate-500">
                       <span className="text-brand-green">৳</span> Stock: <span className={stock > 0 ? 'text-navy-800' : 'text-brand-red'}>{stock}</span>
@@ -975,7 +984,7 @@ export default function PlaceOrder() {
                             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md bg-white">
                               {productImage ? <img src={productImage} alt={item.product_name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Package size={16} className="text-slate-300" />}
                             </div>
-                            <span className="max-w-[180px] truncate font-semibold text-navy-800">{item.product_name || '-'}</span>
+                            <span title={item.product_name || ''} className="max-w-[180px] truncate font-semibold text-navy-800">{item.product_name || '-'}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3"><input type="number" min="0" className="input h-10 w-24 text-right text-xs" value={item.dp_price || ''} onChange={e => updateItem(idx, 'dp_price', Number(e.target.value))} /></td>
@@ -1013,12 +1022,18 @@ export default function PlaceOrder() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_420px]">
             <section className="card p-6">
               <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-5 text-center">
+                {/* Every figure here is shown as a magnitude and the OPERATOR
+                    carries the direction, because that is how the line is read
+                    aloud: "I have 114,335 with them, minus this 1,980 order,
+                    leaves 112,355". It used to print a fixed "+" over a
+                    subtraction and then show the answer as -112,355 - money
+                    the shop is owed, wearing a minus sign. */}
                 <div>
-                  <p className="text-xs font-bold text-navy-800">Previous Balance</p>
-                  <p className="mt-1 text-xs text-slate-500">Available supplier balance</p>
-                  <p className={`mt-3 text-2xl font-bold ${previousBalance >= 0 ? 'text-brand-green' : 'text-brand-red'}`}>{formatCurr(previousBalance)}</p>
+                  <p className="text-xs font-bold text-navy-800">{holdsAdvance ? 'Advance With Supplier' : 'Previous Due'}</p>
+                  <p className="mt-1 text-xs text-slate-500">{holdsAdvance ? 'Paid ahead, not yet used' : 'Owed from earlier orders'}</p>
+                  <p className={`mt-3 text-2xl font-bold ${holdsAdvance ? 'text-brand-green' : 'text-brand-red'}`}>{formatCurr(Math.abs(previousBalance))}</p>
                 </div>
-                <span className="text-2xl font-bold text-navy-800">+</span>
+                <span className="text-2xl font-bold text-navy-800">{holdsAdvance ? '-' : '+'}</span>
                 <div>
                   <p className="text-xs font-bold text-navy-800">Current Purchase Amount</p>
                   <p className="mt-1 text-xs text-slate-500">This order value</p>
@@ -1026,13 +1041,15 @@ export default function PlaceOrder() {
                 </div>
                 <span className="text-2xl font-bold text-navy-800">=</span>
                 <div>
-                  <p className="text-xs font-bold text-navy-800">Total Payable</p>
-                  <p className="mt-1 text-xs text-slate-500">{totalPayable >= 0 ? 'Amount to Pay' : 'Balance Remaining'}</p>
-                  <p className={`mt-3 text-2xl font-bold ${totalPayable >= 0 ? 'text-navy-800' : 'text-brand-green'}`}>{formatCurr(totalPayable)}</p>
+                  <p className="text-xs font-bold text-navy-800">{owesAfterOrder ? 'Total Payable' : 'Advance Remaining'}</p>
+                  <p className="mt-1 text-xs text-slate-500">{owesAfterOrder ? 'Amount to pay' : 'Still yours with them'}</p>
+                  <p className={`mt-3 text-2xl font-bold ${owesAfterOrder ? 'text-navy-800' : 'text-brand-green'}`}>{formatCurr(Math.abs(totalPayable))}</p>
                 </div>
               </div>
               <div className="mt-8 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs font-medium text-slate-600">
-                <Info size={15} className="mr-2 inline" /> Previous balance is based on Supplier Dashboard available balance. Total payable is current purchase amount minus previous balance.
+                <Info size={15} className="mr-2 inline" /> {holdsAdvance
+                  ? 'You have paid this supplier ahead. This order is taken off that advance; what is left stays yours with them.'
+                  : 'What was owed from earlier orders, plus this one. The balance comes from the Supplier Dashboard.'}
               </div>
             </section>
 
