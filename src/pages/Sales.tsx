@@ -203,7 +203,6 @@ export default function Sales() {
   // invoice. It is added to the payable total so one payment can cover both,
   // but it is never billed as goods - see save(), which books it as a customer
   // payment against the previous dues instead.
-  const [previousDuePay, setPreviousDuePay] = useState(0)
   // Set while this form stands in for a parked draft, so saving again overwrites
   // it rather than parking a second copy, and saving the sale knows what to clear.
   const [draftId, setDraftId] = useState<string | null>(null)
@@ -845,8 +844,22 @@ export default function Sales() {
   const subtotal = items.reduce((s, i) => s + (i.selling_price * i.qty), 0)
   const totalDiscount = items.reduce((s, i) => s + (i.discount_amount * i.qty), 0)
   const discountedSubtotal = items.reduce((s, i) => s + i.total_amount, 0)
-  // What the customer hands over today: this invoice plus whatever slice of
-  // their old balance they are clearing.
+  // The customer's outstanding balance, read rather than typed.
+  //
+  // It used to be a box the operator filled in, which meant remembering to,
+  // reading the figure off the card on the left, and typing it correctly - and
+  // a blank box quietly billed only the goods. Derived here, it is right by
+  // construction and cannot go stale when the customer changes.
+  //
+  // currentCustomerPreviousDue is a function declaration further down, so it is
+  // hoisted and callable here.
+  const customerPreviousDue = currentCustomerPreviousDue(form.customer_id)
+
+  // Zero while editing: the original collection is already its own customer
+  // payment, and re-opening it here would book the old due a second time.
+  const previousDuePay = editingSale ? 0 : customerPreviousDue
+
+  // What the customer hands over today: this invoice plus their old balance.
   const grandTotal = discountedSubtotal + previousDuePay
   const paymentRowsWithAmount = paymentRows.map(row => ({
     ...row,
@@ -1265,7 +1278,7 @@ export default function Sales() {
       amount: grandTotal,
       payload_version: SALE_DRAFT_VERSION,
       data: {
-        v: SALE_DRAFT_VERSION, form, items, paymentRows, previousDuePay,
+        v: SALE_DRAFT_VERSION, form, items, paymentRows,
       } as unknown as Record<string, unknown>,
     }
 
@@ -1304,21 +1317,15 @@ export default function Sales() {
         ? (payload.paymentRows as unknown as PaymentRow[])
         : [emptyPaymentRow()])
 
-      // The one figure in a draft that goes stale dangerously. Previous due is
-      // not part of the invoice - at save time it becomes a separate payment
-      // against the customer's OLD balance - and that balance moves. A draft
-      // written on Monday may claim 5,000 the customer settled on Tuesday, and
-      // publishing it unclamped books a payment against a due that no longer
-      // exists, pushing their ledger negative. The live figure always wins.
-      const liveDue = currentCustomerPreviousDue(savedForm.customer_id || '')
-      const wanted = Number(payload.previousDuePay || 0)
-      const clamped = Math.max(0, Math.min(wanted, liveDue))
-      setPreviousDuePay(clamped)
-
+      // Previous due needs no restoring and no clamping any more. It used to be
+      // saved into the draft and carefully trimmed back on open, because a
+      // draft written on Monday could claim 5,000 the customer settled on
+      // Tuesday - publishing it unclamped booked a payment against a due that
+      // no longer existed and pushed their ledger negative. Now it is read from
+      // the customer's live balance every render, so the stale figure it was
+      // guarding against cannot exist.
       setDraftId(draft.id)
-      toast.success(clamped < wanted
-        ? 'Draft loaded. The previous due has changed since it was saved, so that amount was reduced.'
-        : 'Draft loaded')
+      toast.success('Draft loaded')
     } catch (error: any) {
       toast.error(error?.message || 'Could not open that draft')
     }
@@ -1366,7 +1373,6 @@ export default function Sales() {
     setProductSearch('')
     setItems([emptyItem()])
     setPaymentRows([emptyPaymentRow()])
-    setPreviousDuePay(0)
   }
 
   function editSale(sale: any) {
@@ -1415,9 +1421,10 @@ export default function Sales() {
       : [emptyPaymentRow()]
     )
     
-    // Previous-due collection is booked as a separate customer payment, never as
-    // part of this invoice, so editing a sale never re-opens it here.
-    setPreviousDuePay(0)
+    // Previous-due collection is booked as a separate customer payment, never
+    // as part of this invoice, so editing a sale never re-opens it - which
+    // previousDuePay now expresses directly by reading 0 while editingSale is
+    // set, rather than by being reset here and hoping nothing sets it back.
 
     navigate('/sales')
   }
@@ -1987,7 +1994,6 @@ export default function Sales() {
   const selectedSaleCurrentDue = Math.max(0, selectedSaleTotalDue - selectedSalePaidAmount)
   const selectedSaleCustomerAddress = selectedSale ? saleCustomerAddress(selectedSale) : ''
   const selectedSalePaymentRows = selectedSale ? salePaymentRowsForInvoice(selectedSale) : []
-  const customerPreviousDue = currentCustomerPreviousDue(form.customer_id)
   const totalCustomerDue = Math.max(0, customerPreviousDue + due)
   const normalizedCustomerSearch = customerSearch.trim().toLowerCase()
   const customerSuggestions = normalizedCustomerSearch
@@ -2009,9 +2015,6 @@ export default function Sales() {
     }))
     setCustomerSearch(`${customer.name || ''}${customer.phone ? ` (${customer.phone})` : ''}`)
     setShowCustomerSuggestions(false)
-    // The old-due amount belongs to whoever was selected before, so never let it
-    // carry over to a different customer.
-    setPreviousDuePay(0)
   }
 
   useEffect(() => {
@@ -2536,27 +2539,16 @@ export default function Sales() {
                   </span>
                   <span className="font-semibold text-brand-red">-{formatCurr(totalDiscount)}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
-                  <span className="text-slate-500">
-                    Previous Due
-                    {customerPreviousDue > 0 && (
-                      <span className="ml-1 text-brand-red">(max {formatCurr(customerPreviousDue)})</span>
-                    )}
-                  </span>
-                  <div className="w-28">
-                    <input
-                      type="number"
-                      min="0"
-                      max={customerPreviousDue || undefined}
-                      className="input py-0.5 px-2 text-right text-xs"
-                      value={previousDuePay || ''}
-                      placeholder="0"
-                      disabled={customerPreviousDue <= 0}
-                      title={customerPreviousDue <= 0 ? 'This customer has no previous due' : 'How much of the old due they are paying now'}
-                      onChange={e => setPreviousDuePay(Math.min(customerPreviousDue, Math.max(0, Number(e.target.value))))}
-                    />
+                {/* Shown only when there IS one. A row reading "Previous Due
+                    Tk 0" on every invoice for every customer who owes nothing
+                    teaches the eye to skip the line - and it is the line that
+                    matters on the invoices that do carry one. */}
+                {previousDuePay > 0 && (
+                  <div className="flex justify-between items-center text-xs py-1 border-b border-slate-50">
+                    <span className="text-slate-500">Previous Due</span>
+                    <span className="font-semibold text-brand-red">+{formatCurr(previousDuePay)}</span>
                   </div>
-                </div>
+                )}
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
                   <span className="text-sm font-semibold text-slate-700">Grand Total</span>
                   <span className="text-lg font-bold text-brand-green">{formatCurr(grandTotal)}</span>
