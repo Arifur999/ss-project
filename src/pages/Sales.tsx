@@ -19,6 +19,7 @@ import { customerCurrentDue, saleDue } from './customers/customerDashboardData'
 import { createOpeningStockBatch, recalculateFifoSaleCosts, releaseFifoForSaleItem, setManualCostForSaleItem } from '../lib/fifoInventory'
 import { addSaleDelivery, createCustomerPayment, createSale as createSaleRequest, deleteSale as deleteSaleRequest, deleteSaleDelivery, setManualSaleItemCost, updateSale as updateSaleRequest } from '../services/sale.services'
 import { sendSms } from '../services/sms.services'
+import { canSendSms, smsFailureMessage } from '../lib/smsPermission'
 import { buildInvoiceSms, segmentsFor } from '../lib/smsTemplates'
 import { NoValue, ZeroAmount } from '../components/CellValue'
 import { DUPLICATE_PHONE_MESSAGE, INVALID_PHONE_MESSAGE, isValidBdPhone } from '../lib/phone'
@@ -38,6 +39,14 @@ interface SaleItem {
   selling_price: number
   discount_amount: number
   discount_pct: number
+  /**
+   * Whether the discount box is being typed in taka or in percent.
+   *
+   * An input mode, not a fact about the sale: discount_amount stays the money
+   * charged either way, and this never reaches the server - the payload names
+   * its fields one by one.
+   */
+  discount_mode?: 'amount' | 'pct'
   actual_price: number
   qty: number
   total_amount: number
@@ -635,6 +644,17 @@ export default function Sales() {
     }
     
     const item = newItems[idx]
+
+    // A percent typed in the box becomes money here, once, so everything
+    // downstream keeps reading one field. 10% of Tk 12,000 is stored as
+    // Tk 1,200 - the figure the invoice prints and the reports read back.
+    if (field === 'discount_input') {
+      const typed = Math.max(0, Number(value) || 0)
+      item.discount_amount = item.discount_mode === 'pct'
+        ? roundTaka((roundTaka(item.selling_price) * Math.min(typed, 100)) / 100)
+        : typed
+    }
+
     // Money to the whole taka before it is stored on the row: what is saved
     // here is what the invoice prints and what every report reads back, so a
     // paisa typed into the price would otherwise travel all the way through.
@@ -644,6 +664,19 @@ export default function Sales() {
     item.actual_price = Math.max(0, roundTaka(item.selling_price) - item.discount_amount)
     item.total_amount = roundTaka(item.actual_price * item.qty)
     setItems(newItems)
+  }
+
+  /**
+   * What the discount box shows, in the unit its switch is set to.
+   *
+   * In percent mode it is derived from the money rather than kept alongside it,
+   * so switching units never creates a second source of truth - and rounded,
+   * because 1200/12000 can come back as 9.999999999999998.
+   */
+  function discountBoxValue(item: SaleItem) {
+    if (item.discount_mode !== 'pct') return item.discount_amount || ''
+    if (!item.discount_amount || !item.selling_price) return ''
+    return Math.round((item.discount_amount / item.selling_price) * 1000) / 10
   }
 
   function clearCart() {
@@ -994,7 +1027,7 @@ export default function Sales() {
       await sendSms({ recipients: [form.customer_phone], message: invoiceSmsText(invoiceNo, finalPaid, finalDue) })
       toast.success('Invoice sent to the customer by SMS')
     } catch (error: any) {
-      toast.error(error?.message || 'Sale saved, but the invoice SMS could not be sent')
+      toast.error(smsFailureMessage(error, 'Sale saved'))
     }
   }
 
@@ -2139,6 +2172,12 @@ export default function Sales() {
             <div className="card space-y-4 bg-white p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-slate-800">Customer & Invoice Info</h3>
+                {/* Hidden from staff rather than left to fail. Every /sms
+                    route is owner-only - the credits come out of the owner's
+                    wallet - so a sales assistant who switched this on saved the
+                    invoice perfectly well and was then told they were
+                    forbidden, with nothing to say which half had failed. */}
+                {canSendSms(profile?.role) && (
                 <label className="flex cursor-pointer items-center gap-2" title="Text a copy of this invoice to the customer after saving">
                   <span className="text-xs font-semibold text-slate-600">SMS invoice to customer</span>
                   <button
@@ -2156,6 +2195,7 @@ export default function Sales() {
                     </span>
                   )}
                 </label>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
@@ -2328,7 +2368,14 @@ export default function Sales() {
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <p className="truncate px-2 py-0.5 text-xs font-medium text-slate-700" title={item.product_name || '-'}>
+                                {/* truncate needs something to truncate
+                                    AGAINST. A table cell sizes to its content,
+                                    so without this cap the long ones - "Wooden
+                                    Dining-HTDH-321-2-Marble Top(Crema Nuova
+                                    Premium-Turkey)(8 Seater)" - widened the
+                                    column instead of clipping. The full name is
+                                    on the title either way. */}
+                                <p className="max-w-[260px] truncate px-2 py-0.5 text-xs font-medium text-slate-700" title={item.product_name || '-'}>
                                   {item.product_name || '-'}
                                 </p>
                                 {item.product_code && (
@@ -2375,13 +2422,40 @@ export default function Sales() {
                             {formatCurr(item.selling_price * item.qty)}
                           </td>
                           <td className="py-3 px-3">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              className="input py-1 px-2 text-xs text-right w-full" 
-                              value={item.discount_amount || ''} 
-                              onChange={e => updateItem(idx, 'discount_amount', Number(e.target.value))} 
-                            />
+                            {/* Taka or percent, per line. Shopkeepers quote
+                                both - "Tk 500 off" and "10% off" - and working
+                                the second into the first by hand is where a
+                                wrong discount comes from. */}
+                            <div className="flex items-center gap-1">
+                              <div className="flex shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                {([
+                                  { key: 'amount', label: '৳' },
+                                  { key: 'pct', label: '%' },
+                                ] as const).map(mode => (
+                                  <button
+                                    key={mode.key}
+                                    type="button"
+                                    title={mode.key === 'pct' ? 'Discount in percent' : 'Discount in taka'}
+                                    onClick={() => updateItem(idx, 'discount_mode', mode.key)}
+                                    className={`px-1.5 py-1 text-[11px] font-semibold transition-colors ${
+                                      (item.discount_mode || 'amount') === mode.key
+                                        ? 'bg-navy-900 text-white'
+                                        : 'bg-white text-slate-500 hover:bg-neutral-100'
+                                    }`}
+                                  >
+                                    {mode.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                type="number"
+                                min="0"
+                                max={item.discount_mode === 'pct' ? 100 : undefined}
+                                className="input w-full py-1 px-2 text-xs text-right"
+                                value={discountBoxValue(item)}
+                                onChange={e => updateItem(idx, 'discount_input', Number(e.target.value))}
+                              />
+                            </div>
                           </td>
                           <td className="py-3 px-3 text-right font-medium text-slate-700">
                             {formatCurr(item.total_amount)}
