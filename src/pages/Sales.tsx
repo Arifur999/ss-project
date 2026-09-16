@@ -2465,15 +2465,24 @@ export default function Sales() {
                             </select>
                           </td>
                           <td className="py-3 px-3 text-center">
-                            {items.length > 1 && (
-                              <button 
-                                onClick={() => setItems(items.filter((_, i) => i !== idx))} 
-                                className="p-1.5 text-brand-red hover:bg-red-50 rounded-lg transition"
-                                title="Remove Item"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
+                            {/* Always offered, including on the only line. It
+                                used to be hidden while one row was left, so
+                                adding the wrong product first meant there was
+                                no way to take it off - the row stayed until
+                                something else was added beside it.
+
+                                The last row is emptied rather than removed:
+                                the table needs a line to type into, and
+                                removing it left the form with nothing at all. */}
+                            <button
+                              onClick={() => setItems(items.length > 1
+                                ? items.filter((_, i) => i !== idx)
+                                : [emptyItem()])}
+                              className="p-1.5 text-brand-red hover:bg-red-50 rounded-lg transition"
+                              title={items.length > 1 ? 'Remove item' : 'Clear this line'}
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </td>
                         </tr>
                       )
