@@ -2342,7 +2342,7 @@ export default function Sales() {
                       {/* Per unit, not for the line: 2 x 49,900 with 4,990 here
                           takes 9,980 off. "Discount" alone read as the line
                           total. */}
-                      <th className="py-3 px-3 text-slate-500 text-right w-24">Unit Discount</th>
+                      <th className="py-3 px-3 text-slate-500 text-right w-32">Unit Discount</th>
                       <th className="py-3 px-3 text-slate-500 text-right w-28">Subtotal</th>
                       <th className="py-3 px-3 text-slate-500 text-center w-32">Status</th>
                       <th className="py-3 px-3 text-center w-14">Action</th>
@@ -2426,32 +2426,26 @@ export default function Sales() {
                                 both - "Tk 500 off" and "10% off" - and working
                                 the second into the first by hand is where a
                                 wrong discount comes from. */}
+                            {/* ONE button that flips, not two side by side.
+                                Two ate the column and left the number squeezed
+                                into a few pixels - a discount you cannot read
+                                back is worse than no switch at all. The button
+                                shows the unit currently in force. */}
                             <div className="flex items-center gap-1">
-                              <div className="flex shrink-0 overflow-hidden rounded-md border border-slate-200">
-                                {([
-                                  { key: 'amount', label: '৳' },
-                                  { key: 'pct', label: '%' },
-                                ] as const).map(mode => (
-                                  <button
-                                    key={mode.key}
-                                    type="button"
-                                    title={mode.key === 'pct' ? 'Discount in percent' : 'Discount in taka'}
-                                    onClick={() => updateItem(idx, 'discount_mode', mode.key)}
-                                    className={`px-1.5 py-1 text-[11px] font-semibold transition-colors ${
-                                      (item.discount_mode || 'amount') === mode.key
-                                        ? 'bg-navy-900 text-white'
-                                        : 'bg-white text-slate-500 hover:bg-neutral-100'
-                                    }`}
-                                  >
-                                    {mode.label}
-                                  </button>
-                                ))}
-                              </div>
+                              <button
+                                type="button"
+                                title={item.discount_mode === 'pct' ? 'Percent - click for taka' : 'Taka - click for percent'}
+                                aria-label={item.discount_mode === 'pct' ? 'Discount in percent, switch to taka' : 'Discount in taka, switch to percent'}
+                                onClick={() => updateItem(idx, 'discount_mode', item.discount_mode === 'pct' ? 'amount' : 'pct')}
+                                className="h-7 w-7 shrink-0 rounded-md bg-navy-900 text-xs font-bold text-white transition-colors hover:bg-navy-800"
+                              >
+                                {item.discount_mode === 'pct' ? '%' : '৳'}
+                              </button>
                               <input
                                 type="number"
                                 min="0"
                                 max={item.discount_mode === 'pct' ? 100 : undefined}
-                                className="input w-full py-1 px-2 text-xs text-right"
+                                className="input min-w-0 flex-1 py-1 px-2 text-xs text-right"
                                 value={discountBoxValue(item)}
                                 onChange={e => updateItem(idx, 'discount_input', Number(e.target.value))}
                               />
