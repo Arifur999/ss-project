@@ -8,6 +8,7 @@ import { buildLoanSummary, loanBalanceColor, loanBalanceLabel } from './loanUtil
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loanFallback'
 import { readSmsTemplates, type SmsTemplate } from '../../lib/smsTemplates'
 import { sendSms as sendSmsApi } from '../../services/sms.services'
+import { smsFailureMessage } from '../../lib/smsPermission'
 
 type SortBy = 'balance_desc' | 'balance_asc' | 'name_asc' | 'dena_first' | 'pawna_first'
 
@@ -136,7 +137,7 @@ export default function LoanDashboard() {
       toast.success(`SMS sent to ${result.recipients} recipient${result.recipients === 1 ? '' : 's'} (${result.credits_used} credits used)`)
       setSmsOpen(false)
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to send SMS')
+      toast.error(smsFailureMessage(error))
     } finally {
       setSmsSending(false)
     }

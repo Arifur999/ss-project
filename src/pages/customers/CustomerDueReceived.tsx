@@ -16,6 +16,7 @@ import { buildDuePaymentSms } from '../../lib/smsTemplates'
 import { customerCurrentDue, saleDue } from './customerDashboardData'
 import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
+import { smsFailureMessage } from '../../lib/smsPermission'
 import TableSkeleton from '../../components/TableSkeleton'
 import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
@@ -352,10 +353,14 @@ export default function CustomerDueReceived() {
       if (expenseError) return toast.error(expenseError.message || 'Due received saved, but discount expense failed')
     }
 
-    // Receipt SMS, before resetForm() clears the customer and the amounts.
+    toast.success(editItem ? 'Due received updated!' : t('ledger_paymentSaved'))
+
+    // The receipt SMS goes out AFTER that toast and BEFORE resetForm(), which
+    // still holds the customer and the amounts. After, because the send can
+    // fail for reasons that have nothing to do with the payment, and a red
+    // toast arriving first made a saved payment look half-done.
     await textReceiptToCustomer(customer, currentPaymentTotal, remainingDueAfterThis)
 
-    toast.success(editItem ? 'Due received updated!' : t('ledger_paymentSaved'))
     resetForm()
     loadAll()
   }
@@ -379,7 +384,7 @@ export default function CustomerDueReceived() {
       })
       toast.success('Receipt sent to the customer by SMS')
     } catch (error: any) {
-      toast.error(error?.message || 'Saved, but the receipt SMS could not be sent')
+      toast.error(smsFailureMessage(error, 'Payment saved'))
     }
   }
 

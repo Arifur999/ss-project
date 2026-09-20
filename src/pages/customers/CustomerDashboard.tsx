@@ -9,6 +9,7 @@ import { loadCustomerDashboardDataset, subscribeCustomerDashboardDataset } from 
 import { supabase } from '../../lib/supabase'
 import { buildDueSms, segmentsFor } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
+import { smsFailureReason } from '../../lib/smsPermission'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { NoValue } from '../../components/CellValue'
 
@@ -139,18 +140,23 @@ export default function CustomerDashboard() {
     setSendingSms(true)
     let sent = 0
     let failed = 0
+    // The first failure is kept, not just counted. Every one of these fails for
+    // the same reason - the role, the credits, the gateway - and "3 reminders
+    // could not be sent" leaves the operator with nowhere to go.
+    let firstFailure: unknown = null
     for (const customer of smsTargets) {
       try {
         await sendSms({ recipients: [String(customer.phone).trim()], message: dueSmsFor(customer) })
         sent += 1
-      } catch {
+      } catch (error) {
+        if (firstFailure === null) firstFailure = error
         failed += 1
       }
     }
     setSendingSms(false)
 
     if (sent > 0) toast.success(`Due reminder sent to ${sent} customer${sent === 1 ? '' : 's'}`)
-    if (failed > 0) toast.error(`${failed} reminder${failed === 1 ? '' : 's'} could not be sent`)
+    if (failed > 0) toast.error(`${failed} reminder${failed === 1 ? '' : 's'} not sent - ${smsFailureReason(firstFailure)}.`)
     if (failed === 0) setSelectedIds([])
   }
 

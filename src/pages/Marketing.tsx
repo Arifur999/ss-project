@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CircleNotchIcon as Loader2, MegaphoneIcon as Megaphone, ChatTextIcon as MessageSquareText, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as Wallet, XIcon as X, XCircleIcon as XCircle } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
+import { smsFailureMessage } from '../lib/smsPermission'
 import { supabase } from '../lib/supabase'
 import { formatDate, roundTaka, todayISO } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
@@ -384,7 +385,7 @@ export default function Marketing() {
       setSelectedTemplate('')
       setSelectedIds([])
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to send SMS')
+      toast.error(smsFailureMessage(error))
     } finally {
       setSending(false)
     }

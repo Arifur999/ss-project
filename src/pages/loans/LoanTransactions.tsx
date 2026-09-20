@@ -18,6 +18,7 @@ import { useProgressiveRows } from '../../lib/useProgressiveRows'
 import { NoValue, ZeroAmount } from '../../components/CellValue'
 import { buildLoanTransactionSms } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
+import { smsFailureMessage } from '../../lib/smsPermission'
 import { isValidBdPhone } from '../../lib/phone'
 import { openPrintDialog } from '../../lib/printTable'
 import { inPeriod, periodLabel, type Period } from '../../lib/periodFilter'
@@ -295,10 +296,12 @@ export default function LoanTransactions() {
       : await supabase.from('loans').insert(payload)
     if (error) return toast.error(error.message)
 
-    // Before resetForm() clears the lender and the amount.
+    toast.success(editingId ? 'Transaction updated' : 'Transaction saved')
+
+    // After that toast, and before resetForm() clears the lender and the
+    // amount: the transaction is on the books whatever the gateway says.
     await textReceiptToLender(selectedLender, Number(form.amount || 0), balanceAfter)
 
-    toast.success(editingId ? 'Transaction updated' : 'Transaction saved')
     resetForm()
     loadAll()
   }
@@ -330,7 +333,7 @@ export default function LoanTransactions() {
       })
       toast.success('Receipt sent by SMS')
     } catch (smsError: any) {
-      toast.error(smsError?.message || 'Saved, but the receipt SMS could not be sent')
+      toast.error(smsFailureMessage(smsError, 'Transaction saved'))
     }
   }
 

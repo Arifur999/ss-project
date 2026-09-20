@@ -13,6 +13,7 @@ import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../../lib/phone'
 import { todayISO } from '../../lib/utils'
 import { buildLoanAccountSms } from '../../lib/smsTemplates'
 import { sendSms } from '../../services/sms.services'
+import { smsFailureMessage } from '../../lib/smsPermission'
 import { NoValue } from '../../components/CellValue'
 
 type LenderValidationErrors = Partial<Record<'name' | 'phone', string>>
@@ -148,7 +149,7 @@ export default function LoanLenderList() {
       })
       toast.success('Welcome SMS sent')
     } catch (error: any) {
-      toast.error(error?.message || 'Saved, but the welcome SMS could not be sent')
+      toast.error(smsFailureMessage(error, 'Bank / Person saved'))
     }
   }
 
@@ -277,10 +278,12 @@ export default function LoanLenderList() {
       ? current.map(item => item.id === data.id ? data : item)
       : [data, ...current.filter(item => item.id !== data.id)])
 
-    // Before resetForm() clears the name and the amount.
+    toast.success(editItem ? 'Bank / Person updated' : 'Bank / Person saved')
+
+    // After that toast, and before resetForm() clears the name and the amount:
+    // the account is on the books whatever the gateway says.
     await textWelcome(data, Number(data.opening_balance || 0))
 
-    toast.success(editItem ? 'Bank / Person updated' : 'Bank / Person saved')
     resetForm()
     loadAll()
   }
