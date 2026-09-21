@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { FunnelIcon as Filter, PlusIcon as Plus, PrinterIcon as Printer, FileTextIcon as FileText, PencilSimpleIcon as Pencil, TrashIcon as Trash2, MagnifyingGlassIcon as Search, XIcon as X } from '@phosphor-icons/react'
+import { FunnelIcon as Filter, EyeIcon as Eye, PlusIcon as Plus, PrinterIcon as Printer, FileTextIcon as FileText, PencilSimpleIcon as Pencil, TrashIcon as Trash2, MagnifyingGlassIcon as Search, XIcon as X } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import { useReactToPrint } from 'react-to-print'
 import PageHeader from '../../components/PageHeader'
@@ -53,6 +53,9 @@ export default function CustomerDueReceived() {
   const [employees, setEmployees] = useState<any[]>([])
   const [expenseCategories, setExpenseCategories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
+  // The row whose full record is open. Four columns that were only ever read
+  // on one row in ten live in here now instead of in the table.
+  const [viewItem, setViewItem] = useState<any>(null)
   const [editItem, setEditItem] = useState<any>(null)
   const [listSearch, setListSearch] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
@@ -640,17 +643,13 @@ export default function CustomerDueReceived() {
             </div>
           }
         >
-          <table className="w-full min-w-[1500px] text-sm">
+          <table className="w-full min-w-[1080px] text-sm">
             <thead className="table-header">
               <tr>
                 <th className="text-left py-2 px-4">#</th>
                 <th className="text-left py-2 px-4">Date</th>
                 <th className="text-left py-2 px-4">Customer Name</th>
                 <th className="text-left py-2 px-4">Customer Phone</th>
-                <th className="text-left py-2 px-4">Account 1</th>
-                <th className="text-right py-2 px-4">Amount</th>
-                <th className="text-left py-2 px-4">Account 2</th>
-                <th className="text-right py-2 px-4">Amount</th>
                 <th className="text-right py-2 px-4">Total Received</th>
                 <th className="text-right py-2 px-4">Discount</th>
                 <th className="text-left py-2 px-4">Discount Category</th>
@@ -669,14 +668,6 @@ export default function CustomerDueReceived() {
                     {payment.invoice_no && <p className="text-xs text-slate-400">{payment.invoice_no}</p>}
                   </td>
                   <td className="py-2.5 px-4 text-slate-500">{payment.customer_phone || <NoValue />}</td>
-                  <td className="py-2.5 px-4">{payment.payment_methods[0]?.account_name || <NoValue />}</td>
-                  <td className="py-2.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
-                    {payment.payment_methods[0]?.amount ? formatCurr(payment.payment_methods[0].amount) : <ZeroAmount />}
-                  </td>
-                  <td className="py-2.5 px-4">{payment.payment_methods[1]?.account_name || <NoValue />}</td>
-                  <td className="py-2.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
-                    {payment.payment_methods[1]?.amount ? formatCurr(payment.payment_methods[1].amount) : <ZeroAmount />}
-                  </td>
                   <td className="py-2.5 px-4 text-right font-semibold text-brand-green whitespace-nowrap">{formatCurr(payment.total_received)}</td>
                   <td className="py-2.5 px-4 text-right font-semibold text-brand-red whitespace-nowrap">
                     {payment.discount ? formatCurr(payment.discount) : <ZeroAmount />}
@@ -686,6 +677,14 @@ export default function CustomerDueReceived() {
                   <td className="py-2.5 px-4 text-slate-500">{payment.display_notes || <NoValue />}</td>
                   <td className="py-2.5 px-4">
                     <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setViewItem(payment)}
+                        className="text-slate-400 hover:text-slate-700 transition-colors"
+                        title="View full record"
+                        aria-label="View full record"
+                      >
+                        <Eye size={15} />
+                      </button>
                       <button
                         onClick={() => printDueReceipt(payment)}
                         className="text-slate-400 hover:text-slate-700 transition-colors"
@@ -704,10 +703,10 @@ export default function CustomerDueReceived() {
                   </td>
                 </tr>
               ))}
-              {loading && <TableSkeleton rows={6} cols={14} />}
+              {loading && <TableSkeleton rows={6} cols={10} />}
             {!loading && searchedPayments.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="text-center py-10 text-slate-400">
+                  <td colSpan={10} className="text-center py-10 text-slate-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
                     {listSearch.trim()
                       ? <>Nothing matches &ldquo;{listSearch.trim()}&rdquo;</>
@@ -1103,6 +1102,101 @@ export default function CustomerDueReceived() {
           </div>
         </div>
       </Modal>
+
+      {/* Everything about one collection, including the two things the table
+          used to spend four columns on: which account or accounts the money
+          landed in, and how much went into each.
+
+          Split payments are a list here rather than a fixed pair, so a third
+          account is shown instead of silently dropped - the table could only
+          ever hold two. Previous and current due are new: they were computed
+          for every row already (groupedPayments) and never displayed. */}
+      <Modal isOpen={!!viewItem} onClose={() => setViewItem(null)} title="Due received details" size="lg">
+        {viewItem && (
+          <div className="space-y-5 text-sm">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+              <p className="text-base font-semibold text-slate-800">{viewItem.customer_name || '-'}</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {viewItem.customer_phone || 'No phone'}
+                {viewItem.invoice_no ? ` · ${viewItem.invoice_no}` : ''}
+                {` · ${formatDate(viewItem.date)}`}
+              </p>
+            </div>
+
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Money received</h4>
+              <div className="space-y-1">
+                {viewItem.payment_methods.map((method: any, index: number) => (
+                  <Detail
+                    key={index}
+                    label={method.account_name || 'Unnamed account'}
+                    value={formatCurr(Number(method.amount || 0))}
+                  />
+                ))}
+                <div className="flex justify-between gap-4 border-t border-slate-200 px-3 pt-2">
+                  <span className="font-semibold text-slate-600">Total Received</span>
+                  <span className="font-bold text-brand-green">{formatCurr(Number(viewItem.total_received || 0))}</span>
+                </div>
+              </div>
+            </section>
+
+            {/* A ladder, not two loose figures. The discount belongs on this
+                side rather than under "money received" - no money came in for
+                it - and standing here it makes the subtraction check out on
+                sight: what was owed, less the cash, less the concession, is
+                what is still owed. */}
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Against the due</h4>
+              <div className="space-y-1">
+                <Detail label="Due before this" value={formatCurr(Number(viewItem.previous_due || 0))} />
+                <Detail label="Received" value={`- ${formatCurr(Number(viewItem.total_received || 0))}`} />
+                {Number(viewItem.discount || 0) > 0 && (
+                  <Detail
+                    label={viewItem.discount_category ? `Discount - ${viewItem.discount_category}` : 'Discount'}
+                    value={`- ${formatCurr(Number(viewItem.discount))}`}
+                  />
+                )}
+                <div className="flex justify-between gap-4 border-t border-slate-200 px-3 pt-2">
+                  <span className="font-semibold text-slate-600">Due after this</span>
+                  <span className={`font-bold ${Number(viewItem.current_due || 0) > 0 ? 'text-brand-red' : 'text-brand-green'}`}>
+                    {formatCurr(Number(viewItem.current_due || 0))}
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Record</h4>
+              <div className="space-y-1">
+                <Detail label="Payment Receiver" value={viewItem.payment_receiver || '-'} />
+                <Detail label="Notes" value={viewItem.display_notes || '-'} />
+              </div>
+            </section>
+
+            <div className="flex gap-2 border-t border-slate-100 pt-4">
+              <button onClick={() => { const row = viewItem; setViewItem(null); printDueReceipt(row) }} className="btn-secondary flex-1 justify-center">
+                <Printer size={15} /> Print receipt
+              </button>
+              <button onClick={() => { const row = viewItem; setViewItem(null); openModal(row) }} className="btn-primary flex-1 justify-center">
+                <Pencil size={15} /> Edit
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}
+
+// One labelled figure in the details dialog, the same shape as the one on
+// Other Income. The two figures that carry a colour - the total received and
+// the due left behind - are written inline where they are, because both of
+// them close a section rather than sit in one.
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4 rounded-lg bg-white px-3 py-2">
+      <span className="text-slate-500">{label}</span>
+      <span className="text-right font-semibold text-slate-800">{value}</span>
     </div>
   )
 }
