@@ -321,6 +321,11 @@ export default function Marketing() {
     .filter(row => row.status === 'sent')
     .reduce((sum, row) => sum + Number(row.recipient_count || 0), 0)
   const deliveryRate = totalAttempted > 0 ? (totalDelivered / totalAttempted) * 100 : 100
+  // Until now a rejected send left no trace anywhere in the app. The toast
+  // went away after four seconds and that was the whole record - even though
+  // the server had logged the attempt, and the gateway's own words with it,
+  // since the feature shipped. Nothing read them.
+  const failedSends = sentMessages.filter(row => row.status === 'failed').slice(0, 8)
   const smsCount = segmentsFor(message)
   const isUnicode = hasUnicode(message)
   // Credits this batch will cost = segments x recipients that actually have a phone.
@@ -681,6 +686,36 @@ export default function Marketing() {
               </button>
             </div>
           </div>
+
+          {/* Only when something has actually failed, so a healthy account
+              never carries an alarming empty panel. The gateway's reply is
+              printed verbatim: it is written for whoever has to act on it, and
+              paraphrasing the one line of evidence we have has already cost an
+              afternoon once. */}
+          {failedSends.length > 0 && (
+            <div className="card mb-4 border-l-4 border-brand-red p-0">
+              <div className="flex items-center gap-2 border-b border-slate-100 p-4">
+                <XCircle size={18} className="text-brand-red" />
+                <h2 className="font-bold text-slate-900">Rejected sends</h2>
+                <span className="text-xs font-semibold text-slate-500">no credits were charged for these</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {failedSends.map(row => (
+                  <div key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">
+                        {formatNum(row.recipient_count)} recipient{row.recipient_count === 1 ? '' : 's'}
+                        <span className="ml-2 text-xs font-medium text-slate-400">{formatDate(row.created_at)}</span>
+                      </p>
+                      {/* What MRAM said, word for word. */}
+                      <p className="mt-0.5 break-words font-mono text-xs text-brand-red">{row.response || 'The gateway said nothing'}</p>
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-slate-400">{formatNum(row.credits_used)} credits used</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="card overflow-x-auto p-0">
             <div className="flex items-center justify-between border-b border-slate-100 p-4">
