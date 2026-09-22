@@ -27,6 +27,46 @@ const badgeClass: Record<string, string> = {
 type PackageForm = { id?: string; name: string; sms_count: string; price: string; active: boolean }
 const emptyForm: PackageForm = { name: '', sms_count: '', price: '', active: true }
 
+/**
+ * Below this, say so loudly.
+ *
+ * There is no cheaper warning available: MRAM's getBalance answers a taka
+ * figure and nothing about the per-SMS rate, so the number of messages left
+ * cannot be worked out here. 500 taka is a few hundred messages at any BD
+ * rate - enough runway to top up before a shop finds out for us.
+ */
+const LOW_GATEWAY_BALANCE = 500
+
+const gatewayBalanceLow = (balance: number | null) => balance != null && balance < LOW_GATEWAY_BALANCE
+
+/**
+ * What the gateway figure actually means, said on the card.
+ *
+ * MRAM answers in TAKA. This card used to print it bare - "152.3" - in a row
+ * beside "Credits sold" and "Pending purchases", which are counts. So an
+ * account with a hundred and fifty taka of credit left read as an account with
+ * a hundred and fifty messages left, and a send failing with "Gateway balance
+ * insufficient" looked like a bug rather than an empty account.
+ *
+ * It is also the platform's money, not any one shop's: a shop's wallet is a
+ * counter in our own database, and this is the account the server's API key
+ * names. The two run out independently.
+ */
+function gatewayBalanceNote(state: { balance: number | null; raw: string } | null) {
+  if (!state) return 'Could not reach the gateway'
+  if (state.balance != null) {
+    return gatewayBalanceLow(state.balance)
+      ? 'Low - top up at msg.mram.com.bd, sends fail at zero'
+      : 'Taka left with MRAM, not a message count'
+  }
+  // Three different silences, and they were all one blank card before. Saying
+  // "no key" when MRAM in fact replied sends whoever is debugging to the env
+  // file for an hour over an answer we simply could not read.
+  if (state.raw === 'not configured') return 'MRAM_API_KEY is not set on the server'
+  if (state.raw) return `Gateway answered: ${state.raw.slice(0, 60)}`
+  return 'The gateway did not answer'
+}
+
 export default function SuperAdminSms() {
   const [packages, setPackages] = useState<SmsPackage[]>([])
   const [purchases, setPurchases] = useState<SmsPurchase[]>([])
@@ -141,7 +181,13 @@ export default function SuperAdminSms() {
       />
 
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Gateway balance" value={balance?.balance != null ? String(balance.balance) : <NoValue />} icon={<Wallet size={20} />} color="blue" />
+        <StatCard
+          title="Gateway balance (MRAM)"
+          value={balance?.balance != null ? formatBDT(balance.balance) : <NoValue />}
+          subtitle={gatewayBalanceNote(balance)}
+          icon={<Wallet size={20} />}
+          color={gatewayBalanceLow(balance?.balance ?? null) ? 'red' : 'blue'}
+        />
         <StatCard title="Pending purchases" value={String(pendingCount)} icon={<RefreshCcw size={20} />} color="orange" />
         <StatCard title="Credits sold" value={String(soldCredits)} icon={<MessageSquareText size={20} />} color="green" />
         <StatCard title="SMS revenue" value={formatBDT(revenue)} icon={<Package size={20} />} color="green" />
