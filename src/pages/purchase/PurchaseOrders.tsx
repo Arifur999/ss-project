@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { PlusIcon as Plus, FloppyDiskIcon as Save, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, TruckIcon as Truck, PencilSimpleIcon as Edit2, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, InfoIcon as Info, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { actualDp, purchaseDeposit, purchaseItemDeposit, spAmountFor, supplierBalance } from '../../lib/purchaseAmounts'
@@ -172,7 +172,20 @@ export default function PlaceOrder() {
     receiver_name: '', received_qty: 0, condition: 'good', notes: ''
   })
 
-  useEffect(() => { loadAll() }, [])
+  /**
+   * The first loadAll, kept so openDraft can wait for its suppliers.
+   *
+   * Both of this component's mount effects fire together, and openDraft asked
+   * the `suppliers` STATE whether the draft's supplier still existed. On a
+   * fresh page load that state is still the empty array the component started
+   * with, so the answer was always "gone" - and every reopened draft came back
+   * with its supplier cleared, which is what was reported.
+   *
+   * The refreshes further down keep calling loadAll() directly; only this one
+   * is held, because only this one is raced.
+   */
+  const firstLoad = useRef<Promise<any[]> | null>(null)
+  useEffect(() => { firstLoad.current = loadAll() }, [])
 
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -191,7 +204,15 @@ export default function PlaceOrder() {
 
   async function openDraft(id: string) {
     try {
-      const draft = await getDraft(id)
+      // Both requests at once, but the supplier check below waits for the
+      // list: asking a `suppliers` state that has not arrived yet reported
+      // every supplier as deleted.
+      const [draft, supplierList] = await Promise.all([
+        getDraft(id),
+        // null when the list could not be fetched at all, which is different
+        // from "fetched, and the supplier is not in it" - see below.
+        (firstLoad.current ?? loadAll()).catch(() => null),
+      ])
       const payload = draft.data
       if (!isPurchaseDraftPayload(payload)) {
         toast.error(STALE_DRAFT_MESSAGE)
@@ -202,8 +223,14 @@ export default function PlaceOrder() {
       // deleted - and the server would refuse the publish with "Supplier not
       // found" only after the whole form had been checked over again. Drop the
       // dead reference now and say so.
-      const supplierGone = payload.form.supplier_id
-        && !suppliers.some(supplier => supplier.id === payload.form.supplier_id)
+      //
+      // Only on a positive answer. An absent list means we do not know, and
+      // clearing the supplier on a guess is exactly what was going wrong.
+      const supplierGone = Boolean(
+        supplierList
+        && payload.form.supplier_id
+        && !supplierList.some(supplier => supplier.id === payload.form.supplier_id)
+      )
 
       setForm({
         ...payload.form,
@@ -289,7 +316,7 @@ export default function PlaceOrder() {
     setDraftId(null)
   }
 
-  async function loadAll() {
+  async function loadAll(): Promise<any[]> {
     const [poRes, supRes, proRes, accRes, invRes, balancePoRes, payRes] = await Promise.all([
       supabase.from('purchases').select('*, purchase_items(*, purchase_receives(*))').in('shipping_status', ['pending', 'partial']).order('date', { ascending: false }),
       supabase.from('suppliers').select('id, name, company_name, phone, opening_due, due_type').eq('is_active', true),
@@ -331,6 +358,10 @@ export default function PlaceOrder() {
       })
     })
     setSupplierBalanceById(balanceMap)
+
+    // For openDraft, which needs the list itself rather than the state that
+    // will hold it a render later.
+    return (supRes.data || [])
   }
 
   function resetQuickProductForm() {
