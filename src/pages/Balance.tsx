@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
+import AmountShieldButton from '../components/AmountShieldButton'
+import { useAmountShield } from '../lib/amountShield'
 import TableScroller from '../components/TableScroller'
 import { useLang } from '../context/LanguageContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
@@ -35,7 +37,12 @@ function ClosingDot({ column, value, onDark = false }: { column: BalanceColumn; 
 }
 
 export default function Balance() {
-  const { t, formatCurr } = useLang()
+  const { t, formatCurr: realFormatCurr } = useLang()
+
+  // Same shield as the Dashboard: thirteen account balances and the company
+  // total are not something to leave on screen by default.
+  const amounts = useAmountShield(realFormatCurr)
+  const formatCurr = amounts.formatCurr
   // Paint last-known accounts instantly; only show the spinner on a true cold
   // start (no cache yet). The background refetch below refreshes the numbers.
   const cachedAccounts = readPageCache<AccountRow[]>(BALANCE_CACHE_KEY)
@@ -157,7 +164,11 @@ export default function Balance() {
 
   return (
     <div className="p-6">
-      <PageHeader title={t('balance_title')} subtitle={t('balance_subtitle')} />
+      <PageHeader
+        title={t('balance_title')}
+        subtitle={t('balance_subtitle')}
+        actions={<AmountShieldButton visible={amounts.visible} onToggle={amounts.toggle} />}
+      />
 
       <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2 xl:grid-cols-4">
         <div className="card">

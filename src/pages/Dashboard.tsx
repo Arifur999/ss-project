@@ -17,6 +17,8 @@ import { readPageCache, writePageCache } from '../lib/pageCache'
 import { businessEarnings, profitLoss, type ProfitInputs } from '../lib/profit'
 import { firstAmount } from '../lib/utils'
 import { moneyAxisFormatter, seriesPeak } from '../lib/chartAxis'
+import AmountShieldButton from '../components/AmountShieldButton'
+import { useAmountShield } from '../lib/amountShield'
 import {
   Bar,
   BarChart,
@@ -269,7 +271,15 @@ const emptyDashboardData: DashboardData = {
 }
 
 export default function Dashboard() {
-  const { t, formatCurr, formatDateShort, monthShort } = useLang()
+  const { t, formatCurr: realFormatCurr, formatDateShort, monthShort } = useLang()
+
+  // Every figure below goes through formatCurr, so the shield is applied once
+  // here: hidden, this hands back a formatter that reads "****" whatever it is
+  // given. MonthlySpendings takes formatCurr as a prop and both charts hand it
+  // to their tooltips, so all three are covered by the same substitution - and
+  // a figure added to this page later is covered without anyone remembering to.
+  const amounts = useAmountShield(realFormatCurr)
+  const formatCurr = amounts.formatCurr
   const { touchOwnerActivity, profile, user } = useAuth()
   const ownerName = profile?.full_name?.trim() || user?.email || 'Owner'
   const navigate = useNavigate()
@@ -302,22 +312,29 @@ export default function Dashboard() {
   // every tick by 1000 drew "0k" the length of the axis for a shop turning over
   // a few thousand a day. No currency symbol: these axes have never carried one.
   const cashflowAxis = useMemo(
-    () => moneyAxisFormatter(
-      Math.max(seriesPeak(cashflowSeries, r => r.moneyIn), seriesPeak(cashflowSeries, r => r.moneyOut)),
-      { symbol: '', locale: 'en-US' },
-    ),
-    [cashflowSeries],
+    () => amounts.visible
+      ? moneyAxisFormatter(
+        Math.max(seriesPeak(cashflowSeries, r => r.moneyIn), seriesPeak(cashflowSeries, r => r.moneyOut)),
+        { symbol: '', locale: 'en-US' },
+      )
+      : () => '',
+    [cashflowSeries, amounts.visible],
   )
   const salesAxis = useMemo(
-    () => moneyAxisFormatter(
-      Math.max(
-        seriesPeak(salesSeries, r => r.sales),
-        seriesPeak(salesSeries, r => r.profit),
-        seriesPeak(salesSeries, r => r.expense),
-      ),
-      { symbol: '', locale: 'en-US' },
-    ),
-    [salesSeries],
+    () => amounts.visible
+      ? moneyAxisFormatter(
+        Math.max(
+          seriesPeak(salesSeries, r => r.sales),
+          seriesPeak(salesSeries, r => r.profit),
+          seriesPeak(salesSeries, r => r.expense),
+        ),
+        { symbol: '', locale: 'en-US' },
+      )
+      // Blank rather than "****": these are tick labels a few pixels apart, and
+      // four stars repeated down the axis is noise. The shape of the chart is
+      // not the secret - the figures are.
+      : () => '',
+    [salesSeries, amounts.visible],
   )
   const breakdownMonths = useMemo(
     () => (data.monthlyBreakdown || []).map(row => ({ ...row, label: `${monthShort(row.monthIndex)} ${row.year}` })),
@@ -681,6 +698,9 @@ export default function Dashboard() {
               <input type="date" className="input h-9 w-36 text-xs" value={range.end} min={range.start} onChange={e => setCustomEnd(e.target.value)} />
             </>
           )}
+          {/* Last in the row, after the date controls - it acts on what they
+              select rather than standing beside them as another filter. */}
+          <AmountShieldButton visible={amounts.visible} onToggle={amounts.toggle} />
         </div>
       </div>
 
