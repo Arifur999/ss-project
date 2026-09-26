@@ -18,10 +18,17 @@ import {
 } from '../services/sms.services'
 import { NoValue } from '../components/CellValue'
 
-// Buying credits is the same two-step manual flow as a subscription plan:
-// send the money over bKash, then hand in the transaction id for the super
-// admin to approve. Credits land in the wallet on approval, not on submit.
-type Step = 'pay' | 'submit' | 'done'
+// Buying credits is a manual bKash flow: send the money, then hand in the
+// transaction id for the super admin to approve. Credits land in the wallet on
+// approval, not on submit.
+//
+// Paying and reporting used to be two steps, and the second one hid the first.
+// The bKash number and the QR live on the left, the TrxID fields on the right,
+// both on screen at once - because that is how the job is actually done: the
+// bKash app is open in the other hand, and the TrxID is read off the
+// confirmation SMS while the QR is still needed. "I have paid - Next" was
+// ceremony anyway; a TrxID cannot be typed by somebody who has not paid.
+type Step = 'pay' | 'done'
 
 const badgeFor = (status: string) => {
   const value = String(status).toLowerCase()
@@ -300,10 +307,15 @@ export default function SmsPackages() {
             ? (bn ? 'জমা হয়েছে' : 'Submitted')
             : (bn ? 'এসএমএস প্যাকেজ কিনুন' : 'Buy SMS package')
         }
-        size="md"
+        size={step === 'done' ? 'md' : 'xl'}
       >
         {selected && step === 'pay' && (
-          <div className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Left: what to send, and where. */}
+            <div className="space-y-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              {bn ? '১. টাকা পাঠান' : '1. Send the money'}
+            </p>
             <div className="rounded-xl bg-white p-4">
               <p className="text-sm font-semibold text-slate-700">{selected.name}</p>
               <p className="mt-1 text-sm text-slate-500">
@@ -340,7 +352,7 @@ export default function SmsPackages() {
                       src={payment.bkash_qr_url}
                       alt="bKash QR"
                       loading="lazy"
-                      className="mx-auto h-40 w-40 rounded-lg border border-slate-200 object-contain"
+                      className="mx-auto h-44 w-44 rounded-lg border border-slate-200 object-contain"
                     />
                   </div>
                 )}
@@ -353,19 +365,14 @@ export default function SmsPackages() {
               </p>
             )}
 
-            <div className="flex gap-2 pt-1">
-              <button className="btn-secondary flex-1 justify-center" onClick={closeCheckout}>
-                {bn ? 'বাতিল' : 'Cancel'}
-              </button>
-              <button className="btn-primary flex-1 justify-center" onClick={() => setStep('submit')}>
-                {bn ? 'টাকা পাঠিয়েছি - পরবর্তী' : 'I have paid - Next'}
-              </button>
             </div>
-          </div>
-        )}
 
-        {selected && step === 'submit' && (
-          <div className="space-y-4">
+            {/* Right: what to tell us once it has gone. A rule on wide
+                screens, nothing at all when the columns stack. */}
+            <div className="space-y-4 md:border-l md:border-slate-100 md:pl-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              {bn ? '২. পেমেন্টের তথ্য দিন' : '2. Report the payment'}
+            </p>
             <p className="text-sm text-slate-500">
               {bn
                 ? 'যে বিকাশ নম্বর থেকে টাকা পাঠিয়েছেন সেটি এবং কনফার্মেশন এসএমএসের TrxID দিন।'
@@ -395,14 +402,15 @@ export default function SmsPackages() {
             </div>
 
             <div className="flex gap-2 pt-1">
-              <button className="btn-secondary flex-1 justify-center" onClick={() => setStep('pay')} disabled={submitting}>
-                {bn ? 'পেছনে' : 'Back'}
+              <button className="btn-secondary flex-1 justify-center" onClick={closeCheckout} disabled={submitting}>
+                {bn ? 'বাতিল' : 'Cancel'}
               </button>
               <button className="btn-primary flex-1 justify-center" onClick={handleSubmit} disabled={submitting}>
                 {submitting
                   ? (bn ? 'জমা হচ্ছে...' : 'Submitting...')
                   : (bn ? 'অনুমোদনের জন্য পাঠান' : 'Submit for approval')}
               </button>
+            </div>
             </div>
           </div>
         )}
