@@ -327,26 +327,39 @@ export default function SmsPackages() {
               <p className="text-2xl font-bold text-brand-green">{formatCurr(Number(selected.price || 0))}</p>
             </div>
 
-            {payment?.bkash_number ? (
+            {/* The number and the QR are set separately in Super Admin, and
+                either one on its own is enough to pay with. This used to be
+                gated on the NUMBER alone, so a QR uploaded without a number was
+                thrown away and the page reported "no payment number has been
+                set" while sitting on a perfectly good QR code. The plans
+                checkout has always shown them independently; this now matches. */}
+            {payment?.bkash_number || payment?.bkash_qr_url ? (
               <div>
-                <p className="mb-1.5 text-sm font-medium text-slate-700">
-                  {bn ? 'এই বিকাশ নম্বরে Send Money করুন' : 'Send Money to this bKash number'}
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-                    <Smartphone size={16} className="text-slate-400" />
-                    <span className="font-mono text-base font-bold tracking-wide text-slate-800">{payment.bkash_number}</span>
-                  </div>
-                  <button className="btn-secondary" onClick={copyNumber}>
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                    {copied ? (bn ? 'কপি হয়েছে' : 'Copied') : (bn ? 'কপি' : 'Copy')}
-                  </button>
-                </div>
+                {payment.bkash_number && (
+                  <>
+                    <p className="mb-1.5 text-sm font-medium text-slate-700">
+                      {bn ? 'এই বিকাশ নম্বরে Send Money করুন' : 'Send Money to this bKash number'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                        <Smartphone size={16} className="text-slate-400" />
+                        <span className="font-mono text-base font-bold tracking-wide text-slate-800">{payment.bkash_number}</span>
+                      </div>
+                      <button className="btn-secondary" onClick={copyNumber}>
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                        {copied ? (bn ? 'কপি হয়েছে' : 'Copied') : (bn ? 'কপি' : 'Copy')}
+                      </button>
+                    </div>
+                  </>
+                )}
 
                 {payment.bkash_qr_url && (
-                  <div className="mt-3 text-center">
+                  <div className={payment.bkash_number ? 'mt-3 text-center' : 'text-center'}>
+                    {/* "Or" only when there is something to scan INSTEAD of. */}
                     <p className="mb-2 text-xs text-slate-500">
-                      {bn ? 'অথবা বিকাশ অ্যাপে এই QR স্ক্যান করুন' : 'Or scan this QR in your bKash app'}
+                      {payment.bkash_number
+                        ? (bn ? 'অথবা বিকাশ অ্যাপে এই QR স্ক্যান করুন' : 'Or scan this QR in your bKash app')
+                        : (bn ? 'বিকাশ অ্যাপে এই QR স্ক্যান করুন' : 'Scan this QR in your bKash app')}
                     </p>
                     <img
                       src={payment.bkash_qr_url}
@@ -360,8 +373,8 @@ export default function SmsPackages() {
             ) : (
               <p className="rounded-lg bg-brand-blue-soft px-3 py-2.5 text-sm text-brand-blue">
                 {bn
-                  ? 'পেমেন্ট নম্বর এখনো সেট করা হয়নি। সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।'
-                  : 'No payment number has been set yet. Please contact the super admin.'}
+                  ? 'পেমেন্টের তথ্য এখনো সেট করা হয়নি। সুপার অ্যাডমিনের সাথে যোগাযোগ করুন।'
+                  : 'No payment details have been set yet. Please contact the super admin.'}
               </p>
             )}
 
