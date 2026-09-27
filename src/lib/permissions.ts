@@ -32,6 +32,7 @@ export type PermissionGroup = {
 /** Grouped for the Settings screen; the flat list below is what gets saved. */
 export const PERMISSION_GROUPS: PermissionGroup[] = [
   { title: 'Purchase', items: ['View Purchase', 'Add Purchase', 'Edit Purchase', 'Delete Purchase', 'Receive Stock'] },
+  { title: 'Damage', items: ['View Damage', 'Add Damage', 'Edit Damage', 'Delete Damage', 'Receive Damage'] },
   { title: 'Sales', items: ['View Sales', 'New Sale', 'Edit Sale', 'Delete Sale', 'Discount'] },
   { title: 'Due Management', items: ['View Due', 'Add Due', 'Edit Due', 'Delete Due'] },
   { title: 'Expenses', items: ['View Expense', 'Add Expense', 'Edit Expense', 'Delete Expense'] },
@@ -58,6 +59,7 @@ export const PERMISSION_TEMPLATES: Record<string, string[]> = {
   inventory_manager: [
     'Product List', 'Add Product', 'Edit Product', 'Delete Product', 'Stock Update', 'Stock History',
     'View Purchase', 'Add Purchase', 'Receive Stock',
+    'View Damage', 'Add Damage', 'Receive Damage',
     'View Supplier', 'Add Supplier', 'Edit Supplier',
   ],
   accountant: [
