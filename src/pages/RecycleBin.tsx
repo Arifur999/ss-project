@@ -27,6 +27,7 @@ type TabKey =
   | 'sales'
   | 'customers'
   | 'employees'
+  | 'damage'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'balance', label: 'Balance' },
@@ -38,6 +39,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'sales', label: 'Sales' },
   { key: 'customers', label: 'Customers' },
   { key: 'employees', label: 'Employees' },
+  { key: 'damage', label: 'Damage' },
 ]
 
 const recycleTypeToMenu: Record<string, TabKey> = {
@@ -48,6 +50,7 @@ const recycleTypeToMenu: Record<string, TabKey> = {
   // Suppliers live under the Purchase menu, so their deletions belong on that tab
   // rather than in a tab of their own.
   suppliers: 'purchase',
+  damage: 'damage',
 }
 
 const recycleTypeLabel: Record<string, string> = {
@@ -62,6 +65,7 @@ const recycleTypeLabel: Record<string, string> = {
   loanManagement: 'Loan Management',
   expenses: 'Expenses',
   employees: 'Employees',
+  damage: 'Damage',
   settings: 'Settings',
 }
 
