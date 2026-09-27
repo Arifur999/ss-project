@@ -801,5 +801,8 @@
   "history_what": "কী",
   "history_who": "কে / বিবরণ",
   "history_amount": "পরিমাণ",
-  "history_empty": "এই দিনে কিছু এন্ট্রি হয়নি।"
+  "history_empty": "এই দিনে কিছু এন্ট্রি হয়নি।",
+  "nav_damage": "ড্যামেজ",
+  "nav_damageEntries": "মেরামত/ফেরত/বদল",
+  "nav_damageReceive": "গ্রহণ"
 }

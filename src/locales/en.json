@@ -801,5 +801,8 @@
   "history_what": "What",
   "history_who": "Who / Detail",
   "history_amount": "Amount",
-  "history_empty": "Nothing was entered on this day."
+  "history_empty": "Nothing was entered on this day.",
+  "nav_damage": "Damage",
+  "nav_damageEntries": "Repair/Return/Change",
+  "nav_damageReceive": "Receive"
 }

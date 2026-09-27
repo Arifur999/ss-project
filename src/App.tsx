@@ -33,6 +33,10 @@ const ExpenseDashboard = lazyWithReload(() => import('./pages/expenses/ExpenseDa
 const ExpenseTransactions = lazyWithReload(() => import('./pages/expenses/ExpenseTransactions'))
 const ProductList = lazyWithReload(() => import('./pages/ProductList'))
 const UpdatePrice = lazyWithReload(() => import('./pages/products/UpdatePrice'))
+const DamageDashboard = lazyWithReload(() => import('./pages/damage/DamageDashboard'))
+const DamageEntries = lazyWithReload(() => import('./pages/damage/DamageEntries'))
+const DamageReceive = lazyWithReload(() => import('./pages/damage/DamageReceive'))
+const DamageTransactions = lazyWithReload(() => import('./pages/damage/DamageTransactions'))
 const PurchaseOrders = lazyWithReload(() => import('./pages/purchase/PurchaseOrders'))
 const ProductReceived = lazyWithReload(() => import('./pages/purchase/ProductReceived'))
 const SupplierPayments = lazyWithReload(() => import('./pages/purchase/SupplierPayments'))
@@ -221,6 +225,11 @@ function AppRoutes() {
         <Route path="/expenses/transactions" element={<ExpenseTransactions />} />
         <Route path="/products" element={<ProductList />} />
         <Route path="/products/update-price" element={<UpdatePrice />} />
+        <Route path="/damage" element={<Navigate to="/damage/dashboard" replace />} />
+        <Route path="/damage/dashboard" element={<DamageDashboard />} />
+        <Route path="/damage/entries" element={<DamageEntries />} />
+        <Route path="/damage/receive" element={<DamageReceive />} />
+        <Route path="/damage/transactions" element={<DamageTransactions />} />
         <Route path="/purchase/orders" element={<PurchaseOrders />} />
         <Route path="/purchase/ledger" element={<PurchaseLedger />} />
         <Route path="/purchase/drafts" element={<DraftPurchaseOrders />} />

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { GaugeIcon as Gauge, BankIcon as Bank, HandshakeIcon as Handshake, HandCoinsIcon as HandCoins,
+import { WrenchIcon as Wrench, GaugeIcon as Gauge, BankIcon as Bank, HandshakeIcon as Handshake, HandCoinsIcon as HandCoins,
   ReceiptIcon as Receipt, ArmchairIcon as Armchair, WarehouseIcon as Warehouse, ShoppingBagIcon as ShoppingBag,
   UsersThreeIcon as UsersThree, ChartLineUpIcon as ChartLineUp, RecycleIcon as Recycle,
   IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck, TagIcon as Tag, PlayCircleIcon as PlayCircle } from '@phosphor-icons/react'
@@ -134,6 +134,15 @@ export default function Layout() {
       ],
     },
     { key: 'inventory', label: t('nav_inventory'), icon: <Warehouse size={18} weight="duotone" />, path: '/inventory' },
+    {
+      key: 'damage', label: t('nav_damage', 'Damage'), icon: <Wrench size={18} weight="duotone" />,
+      children: [
+        { key: 'damageDash', label: t('nav_dashboard'), icon: <LayoutDashboard size={16} />, path: '/damage/dashboard' },
+        { key: 'damageEntries', label: t('nav_damageEntries', 'Repair/Return/Change'), icon: <Wrench size={16} />, path: '/damage/entries' },
+        { key: 'damageReceive', label: t('nav_damageReceive', 'Receive'), icon: <Package size={16} />, path: '/damage/receive' },
+        { key: 'damageTx', label: t('nav_transaction', 'Transactions'), icon: <CreditCard size={16} />, path: '/damage/transactions' },
+      ],
+    },
     {
       key: 'sales', label: t('nav_sales'), icon: <ShoppingBag size={18} weight="duotone" />,
       children: [
