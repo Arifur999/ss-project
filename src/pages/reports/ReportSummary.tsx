@@ -15,7 +15,7 @@ import { firstAmount, roundTaka, saleItemAmount } from '../../lib/utils'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
 import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
-import { CHART_GREEN, CHART_MUTED, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
+import { CHART_GREEN, CHART_MUTED, CompanySalesCard, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
 
 type BreakdownRow = {
   name: string
@@ -1132,13 +1132,22 @@ export default function ReportSummary() {
               report table beside it, and past this the table's last column
               stops fitting. */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
-            <PurchaseTargetDonut
-              title="Monthly Purchases Target"
-              target={monthlyPurchaseTotals.target}
-              achieved={monthlyPurchaseTotals.achieved}
-              rows={data.monthlyPurchaseRows || []}
-              emptyNote="No purchase target for this month"
-            />
+            {/* The buying target above, what those companies sold below - the
+                two halves of the same question, in one column. */}
+            <div className="flex flex-col gap-4">
+              <PurchaseTargetDonut
+                title="Monthly Purchases Target"
+                target={monthlyPurchaseTotals.target}
+                achieved={monthlyPurchaseTotals.achieved}
+                rows={data.monthlyPurchaseRows || []}
+                emptyNote="No purchase target for this month"
+              />
+              <CompanySalesCard
+                title="Sales by Company"
+                rows={data.companyWayRows || []}
+                emptyNote="No sales in this period"
+              />
+            </div>
 
             <div className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
               {/* Tabs on the right of the row. */}

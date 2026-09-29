@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CircleNotchIcon as Loader2, MegaphoneIcon as Megaphone, ChatTextIcon as MessageSquareText, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as Wallet, XIcon as X, XCircleIcon as XCircle } from '@phosphor-icons/react'
+import { CalendarCheckIcon as CalendarClock, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList, CircleNotchIcon as Loader2, MegaphoneIcon as Megaphone, ChatTextIcon as MessageSquareText, UserPlusIcon as UserPlus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, TrashIcon as Trash2, UsersIcon as Users, WalletIcon as Wallet, XIcon as X, XCircleIcon as XCircle } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import { smsFailureMessage } from '../lib/smsPermission'
 import { supabase } from '../lib/supabase'
 import { formatDate, roundTaka, todayISO } from '../lib/utils'
+import Modal from '../components/Modal'
+import { createLead, getLeads, type Lead } from '../services/lead.services'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { isLoanLenderTableMissing, mergeStoredAndLegacyLoanLenders, mergeStoredAndLoanLenders } from './loans/loanFallback'
@@ -28,7 +30,7 @@ import {
 
 const money = (n: number) => 'Tk ' + roundTaka(n).toLocaleString('en-US')
 
-type ContactType = 'customer' | 'supplier' | 'employee' | 'contact'
+type ContactType = 'customer' | 'supplier' | 'employee' | 'contact' | 'lead'
 
 type Contact = {
   id: string
@@ -75,6 +77,11 @@ function initials(name: string) {
     .toUpperCase()
 }
 
+// Five is enough to see a pattern without the panel pushing the page down;
+// the rest are one click away.
+const FAILED_PREVIEW = 5
+const DISMISSED_FAILURES_KEY = 'marketing_failed_sms_seen_v1'
+
 export default function Marketing() {
   const { formatNum } = useLang()
   const { user, profile } = useAuth()
@@ -85,10 +92,21 @@ export default function Marketing() {
     supplier: false,
     employee: false,
     contact: false,
+    lead: false,
   })
   const [contactFilter, setContactFilter] = useState<'all' | 'selected' | 'with_phone'>('all')
   // Hand-typed numbers that are not customers / suppliers / employees.
   const [customContacts, setCustomContacts] = useState<MarketingContact[]>([])
+  const [leadOpen, setLeadOpen] = useState(false)
+  const [savingLead, setSavingLead] = useState(false)
+  const [leadForm, setLeadForm] = useState({
+    date: todayISO(),
+    organization: '',
+    designation: '',
+    name: '',
+    phone: '',
+    address: '',
+  })
   const [newContactName, setNewContactName] = useState('')
   const [newContactPhone, setNewContactPhone] = useState('')
   const [addingContact, setAddingContact] = useState(false)
@@ -102,6 +120,10 @@ export default function Marketing() {
   // campaign list below still uses the local copy, because it carries the campaign
   // NAME the operator typed and the server log does not store one.
   const [sentMessages, setSentMessages] = useState<SmsMessage[]>([])
+  const [showAllFailures, setShowAllFailures] = useState(false)
+  const [dismissedFailuresAt, setDismissedFailuresAt] = useState(() => {
+    try { return localStorage.getItem(DISMISSED_FAILURES_KEY) || '' } catch { return '' }
+  })
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
 
@@ -147,7 +169,7 @@ export default function Marketing() {
   async function loadContacts() {
     setLoading(true)
     try {
-      const [customerRes, supplierRes, employeeRes, contactContacts, customRows] = await Promise.all([
+      const [customerRes, supplierRes, employeeRes, contactContacts, customRows, leadRows] = await Promise.all([
         supabase.from('customers').select('id, name, phone, address').eq('is_active', true).order('name'),
         supabase.from('suppliers').select('id, name, company_name, phone').eq('is_active', true).order('company_name'),
         supabase.from('employees').select('*').order('join_date', { ascending: false }),
@@ -155,6 +177,9 @@ export default function Marketing() {
         // Never let the manual numbers take the rest of the contact list down
         // with them - the other four sources are the important ones.
         listMarketingContacts(user?.id).catch(() => [] as MarketingContact[]),
+        // Same reason as the line above: a failure here must not empty the
+        // whole composer.
+        getLeads().catch(() => [] as Lead[]),
       ])
 
       const customerContacts = (customerRes.data || []).map((item: any): Contact => ({
@@ -197,7 +222,18 @@ export default function Marketing() {
         subtitle: item.note || 'Added manually',
       }))
 
-      setContacts([...customerContacts, ...supplierContacts, ...employeeContacts, ...contactContacts, ...customContactRows])
+      // The organization is the name worth showing: on a lead it is the shop
+      // being courted, and the person is who was spoken to there.
+      const leadContacts = leadRows.map((item): Contact => ({
+        id: `lead:${item.id}`,
+        sourceId: item.id,
+        type: 'lead',
+        name: item.organization || item.name,
+        phone: item.phone,
+        subtitle: [item.name, item.designation].filter(Boolean).join(' - ') || 'Lead',
+      }))
+
+      setContacts([...customerContacts, ...supplierContacts, ...employeeContacts, ...contactContacts, ...customContactRows, ...leadContacts])
     } catch (error: any) {
       toast.error(error.message || 'Failed to load contacts')
     } finally {
@@ -325,7 +361,32 @@ export default function Marketing() {
   // went away after four seconds and that was the whole record - even though
   // the server had logged the attempt, and the gateway's own words with it,
   // since the feature shipped. Nothing read them.
-  const failedSends = sentMessages.filter(row => row.status === 'failed').slice(0, 8)
+  // Everything the gateway rejected, newest first, minus anything dismissed.
+  //
+  // "Clear" is a watermark, not a delete: it remembers the newest failure the
+  // operator has seen and hides everything up to it. The server's log keeps
+  // every row - that log is the only evidence of what the gateway actually
+  // said - and a failure AFTER the watermark still raises the panel, so
+  // clearing a fixed problem cannot hide the next one.
+  const failedSends = useMemo(() => {
+    const all = sentMessages.filter(row => row.status === 'failed')
+    return dismissedFailuresAt
+      ? all.filter(row => String(row.created_at) > dismissedFailuresAt)
+      : all
+  }, [sentMessages, dismissedFailuresAt])
+
+  const shownFailures = showAllFailures ? failedSends : failedSends.slice(0, FAILED_PREVIEW)
+
+  function clearFailures() {
+    const newest = failedSends.reduce(
+      (latest, row) => (String(row.created_at) > latest ? String(row.created_at) : latest),
+      ''
+    )
+    if (!newest) return
+    try { localStorage.setItem(DISMISSED_FAILURES_KEY, newest) } catch { /* private window */ }
+    setDismissedFailuresAt(newest)
+    setShowAllFailures(false)
+  }
   const smsCount = segmentsFor(message)
   const isUnicode = hasUnicode(message)
   // Credits this batch will cost = segments x recipients that actually have a phone.
@@ -354,6 +415,35 @@ export default function Marketing() {
     // Re-read the server log so the three stat cards move on this send too,
     // rather than only after the next page load.
     loadSentMessages()
+  }
+
+  async function saveLead() {
+    if (!leadForm.organization.trim()) return toast.error('Which organization?')
+    if (!leadForm.name.trim()) return toast.error('Who did you speak to?')
+    if (!/^01[0-9]{9}$/.test(leadForm.phone.trim())) return toast.error('Enter a valid 11-digit phone number')
+
+    try {
+      setSavingLead(true)
+      await createLead({
+        date: leadForm.date,
+        organization: leadForm.organization.trim(),
+        designation: leadForm.designation.trim(),
+        name: leadForm.name.trim(),
+        phone: leadForm.phone.trim(),
+        address: leadForm.address.trim(),
+      })
+      toast.success('Lead saved')
+      setLeadOpen(false)
+      setLeadForm({ date: todayISO(), organization: '', designation: '', name: '', phone: '', address: '' })
+      // Turn the filter on, or the lead just saved is invisible behind a
+      // checkbox that is off by default.
+      setTypeFilters(current => ({ ...current, lead: true }))
+      await loadContacts()
+    } catch (error: any) {
+      toast.error(error?.message || 'Could not save this lead')
+    } finally {
+      setSavingLead(false)
+    }
   }
 
   async function sendSms() {
@@ -448,15 +538,24 @@ export default function Marketing() {
     <div className="min-h-screen bg-white p-6">
       <PageHeader
         title="Marketing"
-        subtitle="Send SMS campaigns to customers, suppliers, employees and contact list"
+        subtitle="Send SMS campaigns to customers, suppliers, employees, leads and contact list"
         actions={
-          <button
-            type="button"
-            onClick={() => setBuyOpen(true)}
-            className="btn-primary"
-          >
-            <MessageSquareText size={16} /> Buy SMS
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLeadOpen(true)}
+              className="btn-secondary"
+            >
+              <UserPlus size={16} /> Lead
+            </button>
+            <button
+              type="button"
+              onClick={() => setBuyOpen(true)}
+              className="btn-primary"
+            >
+              <MessageSquareText size={16} /> Buy SMS
+            </button>
+          </div>
         }
       />
 
@@ -480,7 +579,7 @@ export default function Marketing() {
           <div className="border-b border-slate-100 p-4">
             <h2 className="text-base font-bold text-slate-900">1. Select Recipients</h2>
             <div className="mt-4 flex flex-wrap gap-4">
-              {(['customer', 'supplier', 'employee', 'contact'] as ContactType[]).map(type => (
+              {(['customer', 'supplier', 'employee', 'contact', 'lead'] as ContactType[]).map(type => (
                 <label key={type} className="flex items-center gap-2 text-sm font-medium capitalize text-slate-700">
                   <input
                     type="checkbox"
@@ -694,13 +793,21 @@ export default function Marketing() {
               afternoon once. */}
           {failedSends.length > 0 && (
             <div className="card mb-4 border-l-4 border-brand-red p-0">
-              <div className="flex items-center gap-2 border-b border-slate-100 p-4">
+              <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-4">
                 <XCircle size={18} className="text-brand-red" />
                 <h2 className="font-bold text-slate-900">Rejected sends</h2>
                 <span className="text-xs font-semibold text-slate-500">no credits were charged for these</span>
+                <button
+                  type="button"
+                  onClick={clearFailures}
+                  className="btn-secondary ml-auto !px-3 !py-1.5 text-xs"
+                  title="Hide these - the server keeps the log, and a new failure will show again"
+                >
+                  Clear
+                </button>
               </div>
               <div className="divide-y divide-slate-100">
-                {failedSends.map(row => (
+                {shownFailures.map(row => (
                   <div key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-800">
@@ -714,6 +821,17 @@ export default function Marketing() {
                   </div>
                 ))}
               </div>
+              {failedSends.length > FAILED_PREVIEW && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllFailures(value => !value)}
+                  className="w-full border-t border-slate-100 py-2.5 text-center text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+                >
+                  {showAllFailures
+                    ? 'Show less'
+                    : `Show ${formatNum(failedSends.length - FAILED_PREVIEW)} more`}
+                </button>
+              )}
             </div>
           )}
 
@@ -767,6 +885,60 @@ export default function Marketing() {
           </div>
         </section>
       </div>
+
+      {/* Noting a prospect down. Organization, who was spoken to and their
+          number are required, because those three are what make the note worth
+          anything when somebody picks it up a month later. */}
+      <Modal isOpen={leadOpen} onClose={() => setLeadOpen(false)} title="Add lead" size="md">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <label>
+              <span className="label">Date <span className="text-brand-red">*</span></span>
+              <input type="date" className="input" value={leadForm.date} onChange={event => setLeadForm({ ...leadForm, date: event.target.value })} />
+            </label>
+            <label>
+              <span className="label">Phone <span className="text-brand-red">*</span></span>
+              <input
+                className="input" inputMode="numeric" maxLength={11} placeholder="01712345678"
+                value={leadForm.phone}
+                onChange={event => setLeadForm({ ...leadForm, phone: event.target.value.replace(/\D/g, '').slice(0, 11) })}
+              />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="label">Organization <span className="text-brand-red">*</span></span>
+            <input className="input" value={leadForm.organization} onChange={event => setLeadForm({ ...leadForm, organization: event.target.value })} placeholder="Shop or office name" />
+          </label>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label>
+              <span className="label">Name <span className="text-brand-red">*</span></span>
+              <input className="input" value={leadForm.name} onChange={event => setLeadForm({ ...leadForm, name: event.target.value })} placeholder="Who you spoke to" />
+            </label>
+            <label>
+              <span className="label">Designation</span>
+              <input className="input" value={leadForm.designation} onChange={event => setLeadForm({ ...leadForm, designation: event.target.value })} placeholder="Manager, owner..." />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="label">Address</span>
+            <input className="input" value={leadForm.address} onChange={event => setLeadForm({ ...leadForm, address: event.target.value })} placeholder="Where the place is" />
+          </label>
+
+          <p className="rounded-lg bg-brand-blue-soft px-3 py-2.5 text-sm text-brand-blue">
+            Leads get their own tick in the recipient list, so a campaign can reach them without them being added as customers.
+          </p>
+
+          <div className="flex gap-2">
+            <button className="btn-secondary flex-1 justify-center" onClick={() => setLeadOpen(false)} disabled={savingLead}>Cancel</button>
+            <button className="btn-primary flex-1 justify-center" onClick={saveLead} disabled={savingLead}>
+              {savingLead ? 'Saving...' : 'Save lead'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {buyOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center">

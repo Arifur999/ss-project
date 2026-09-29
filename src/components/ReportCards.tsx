@@ -250,3 +250,81 @@ export function PurchaseTargetDonut({
     </div>
   )
 }
+
+/**
+ * Sales traced back to the company whose goods they were.
+ *
+ * The pair to PurchaseTargetDonut above it: that one says how much money is
+ * going OUT to each company against its buying target, this says how much is
+ * coming back IN from that company's goods. Side by side they answer the
+ * question a dealer actually has - which brands are earning their shelf space.
+ *
+ * The rows were already computed for this page and had nowhere to go; only the
+ * card was missing.
+ */
+export function CompanySalesCard({
+  title,
+  rows,
+  emptyNote,
+}: {
+  title: string
+  rows: { company: string; sales: number }[]
+  emptyNote: string
+}) {
+  const { formatCurr } = useLang()
+
+  // Only companies that actually sold something. A brand with no sales in the
+  // period is not a zero worth a line - it is simply not in this story.
+  const selling = rows
+    .filter(row => Number(row.sales || 0) > 0)
+    .sort((a, b) => Number(b.sales || 0) - Number(a.sales || 0))
+
+  const total = selling.reduce((sum, row) => sum + Number(row.sales || 0), 0)
+
+  return (
+    <div className="self-start overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+      <div className="bg-slate-800 px-4 py-3 text-center">
+        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">{title}</h2>
+      </div>
+
+      {selling.length === 0 ? (
+        <p className="px-4 py-8 text-center text-xs font-medium text-slate-400">{emptyNote}</p>
+      ) : (
+        <>
+          <div className="divide-y divide-slate-100">
+            {selling.map(row => {
+              const share = total > 0 ? (Number(row.sales || 0) / total) * 100 : 0
+              return (
+                <div key={row.company} className="px-4 py-2.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-xs font-semibold text-slate-700" title={row.company}>
+                      {row.company}
+                    </span>
+                    <span className="shrink-0 text-xs font-bold tabular-nums text-navy-900">
+                      {formatCurr(Number(row.sales || 0))}
+                    </span>
+                  </div>
+                  {/* The bar is the share, so a long list is scannable without
+                      reading every figure. */}
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full" style={{ width: `${share}%`, background: CHART_GREEN }} />
+                    </div>
+                    <span className="w-9 shrink-0 text-right text-[10px] font-semibold tabular-nums text-slate-400">
+                      {Math.round(share)}%
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex items-baseline justify-between gap-3 border-t-2 border-slate-800 bg-slate-50 px-4 py-3">
+            <span className="text-[11px] font-black uppercase tracking-wide text-slate-600">Total</span>
+            <span className="text-base font-black tabular-nums text-navy-900">{formatCurr(total)}</span>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
