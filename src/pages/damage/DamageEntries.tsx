@@ -23,9 +23,9 @@ import {
 } from '../../services/damage.services'
 import { ACTION_LABELS, needsSupplier, SOURCE_LABELS, STATUS_BADGE, STATUS_LABELS } from './damageRules'
 
-type FormItem = { product_id: string; product_code: string; product_name: string; qty: number }
+type FormItem = { product_id: string; product_code: string; product_name: string; qty: number; unit_cost: string }
 
-const emptyItem = (): FormItem => ({ product_id: '', product_code: '', product_name: '', qty: 1 })
+const emptyItem = (): FormItem => ({ product_id: '', product_code: '', product_name: '', qty: 1, unit_cost: '' })
 
 /**
  * Recording damage: what broke, how many, and what happens to it next.
@@ -112,7 +112,16 @@ export default function DamageEntries() {
         supplier_id: form.supplier_id || null,
         supplier_name: supplier?.name || supplier?.company_name || '',
         notes: form.notes,
-        items: validItems,
+        // A blank price means "work it out" - the server draws the real FIFO
+        // cost off the batches, which is the normal case. A typed one wins,
+        // and is the only figure there is when the batches hold nothing.
+        items: validItems.map(item => ({
+          product_id: item.product_id,
+          product_code: item.product_code,
+          product_name: item.product_name,
+          qty: item.qty,
+          ...(Number(item.unit_cost) > 0 ? { unit_cost: Number(item.unit_cost) } : {}),
+        })),
       })
       toast.success('Damage recorded - stock updated')
       void touchOwnerActivity(true)
@@ -303,7 +312,8 @@ export default function DamageEntries() {
               <thead className="table-header">
                 <tr>
                   <th className="px-3 py-2.5 text-left">Product</th>
-                  <th className="px-3 py-2.5 text-right w-28">Qty</th>
+                  <th className="px-3 py-2.5 text-right w-24">Qty</th>
+                  <th className="px-3 py-2.5 text-right w-36">Unit cost</th>
                   <th className="px-3 py-2.5 text-center w-14"></th>
                 </tr>
               </thead>
@@ -326,6 +336,21 @@ export default function DamageEntries() {
                         value={item.qty}
                         onChange={event => setItems(current => current.map((row, position) =>
                           position === index ? { ...row, qty: Number(event.target.value) || 0 } : row))}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      {/* Optional on purpose. Left alone it is drawn FIFO from
+                          the batches, which is the figure worth trusting;
+                          typing one is for the case where the batches hold
+                          nothing to draw from. */}
+                      <input
+                        type="number"
+                        min={0}
+                        className="input text-right"
+                        placeholder="Auto"
+                        value={item.unit_cost}
+                        onChange={event => setItems(current => current.map((row, position) =>
+                          position === index ? { ...row, unit_cost: event.target.value } : row))}
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -355,7 +380,7 @@ export default function DamageEntries() {
           </label>
 
           <p className="rounded-lg bg-brand-blue-soft px-3 py-2.5 text-sm text-brand-blue">
-            Saving takes these off sellable stock straight away, at what they cost you.
+            Saving takes these off sellable stock straight away. Leave the unit cost blank and it is worked out from what you actually paid for that stock.
           </p>
 
           <div className="flex gap-2">

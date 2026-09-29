@@ -6,11 +6,9 @@ import PeriodFilter from '../../components/PeriodFilter'
 import StatCard from '../../components/StatCard'
 import TableScroller from '../../components/TableScroller'
 import TableSkeleton from '../../components/TableSkeleton'
-import AmountShieldButton from '../../components/AmountShieldButton'
 import { NoValue } from '../../components/CellValue'
 import { formatDate } from '../../lib/utils'
 import { inPeriod, type Period } from '../../lib/periodFilter'
-import { useAmountShield } from '../../lib/amountShield'
 import { useLang } from '../../context/LanguageContext'
 import { getDamageEntries, getDamageTransactions, type DamageEntry } from '../../services/damage.services'
 import { ACTION_LABELS, outstandingQty, SOURCE_LABELS, STATUS_BADGE, STATUS_LABELS } from './damageRules'
@@ -23,9 +21,7 @@ import { ACTION_LABELS, outstandingQty, SOURCE_LABELS, STATUS_BADGE, STATUS_LABE
  * work it out before, because the goods that left stock were never valued.
  */
 export default function DamageDashboard() {
-  const { formatCurr: realFormatCurr, formatNum } = useLang()
-  const amounts = useAmountShield(realFormatCurr)
-  const formatCurr = amounts.formatCurr
+  const { formatCurr, formatNum } = useLang()
 
   const [entries, setEntries] = useState<DamageEntry[]>([])
   const [money, setMoney] = useState<{ paidOut: number; cameIn: number; writtenOff: number }>({ paidOut: 0, cameIn: 0, writtenOff: 0 })
@@ -86,10 +82,7 @@ export default function DamageDashboard() {
         title="Damage Dashboard"
         subtitle="What broke, what came back, and what it cost"
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <PeriodFilter period={period} setPeriod={setPeriod} from={fromDate} setFrom={setFromDate} to={toDate} setTo={setToDate} />
-            <AmountShieldButton visible={amounts.visible} onToggle={amounts.toggle} />
-          </div>
+          <PeriodFilter period={period} setPeriod={setPeriod} from={fromDate} setFrom={setFromDate} to={toDate} setTo={setToDate} />
         }
       />
 

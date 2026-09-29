@@ -61,7 +61,8 @@ export const createDamageEntry = (payload: {
   supplier_id?: string | null
   supplier_name?: string
   notes?: string
-  items: Array<{ product_id: string; product_code?: string; product_name: string; qty: number }>
+  /** unit_cost is optional: left out, the server draws the real FIFO cost. */
+  items: Array<{ product_id: string; product_code?: string; product_name: string; qty: number; unit_cost?: number }>
 }) => http.post<DamageEntry>('/damage', payload)
 
 export const updateDamageEntry = (id: string, payload: Record<string, unknown>) =>
