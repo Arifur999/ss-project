@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { PlusIcon as Plus, TrashIcon as Trash2, UsersIcon as Users, CreditCardIcon as CreditCard, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays } from '@phosphor-icons/react'
+import { PlusIcon as Plus, TrashIcon as Trash2, UsersIcon as Users, CreditCardIcon as CreditCard, TruckIcon as Truck, UserGearIcon as UserCog, EyeIcon as Eye, EyeSlashIcon as EyeOff, ShieldCheckIcon as ShieldCheck, ShieldWarningIcon as ShieldX, PencilSimpleIcon as Pencil, CameraIcon as Camera, CrownIcon as Crown, BriefcaseIcon as Briefcase, PackageIcon as Package, CalculatorIcon as Calculator, ShoppingCartSimpleIcon as ShoppingCart, UserPlusIcon as UserRoundPlus, ChartBarIcon as BarChart3, GearSixIcon as Cog, CheckIcon as Check, XIcon as X, CalendarDotsIcon as CalendarDays, GaugeIcon as Gauge, HandshakeIcon as Handshake, HandCoinsIcon as HandCoins, ArmchairIcon as Armchair, WrenchIcon as Wrench, ShoppingBagIcon as ShoppingBag, ChartLineUpIcon as ChartLineUp, MegaphoneIcon as Megaphone } from '@phosphor-icons/react'
 import { createTeamUser, deleteTeamUser, listTeamUsers, updateTeamUser } from '../services/admin.services'
-import { ALL_PERMISSIONS, PERMISSION_GROUPS, PERMISSION_TEMPLATES } from '../lib/permissions'
+import { ALL_PERMISSIONS, PERMISSION_GROUPS, PERMISSION_TEMPLATES, groupIsOpen, pruneOrphanDeletes } from '../lib/permissions'
 import { uploadImage } from '../services/product.services'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
@@ -297,22 +297,29 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
   // list - the server drops anything it does not recognise, so a name invented
   // here alone would tick a box that grants nothing. Icons stay here because
   // they are presentation.
+  //
+  // Keyed by group.key rather than by group.title: the titles are display copy
+  // that will be translated one day, the keys will not.
   const groupIcons: Record<string, React.ReactNode> = {
-    'Purchase': <ShoppingCart size={17} />,
-    'Sales': <ShoppingCart size={17} />,
-    'Due Management': <CreditCard size={17} />,
-    'Expenses': <Calculator size={17} />,
-    'Contacts - Customers': <Users size={17} />,
-    'Contacts - Suppliers': <Truck size={17} />,
-    'Contacts - Employees': <UserCog size={17} />,
-    'Inventory': <Package size={17} />,
-    'Money': <BarChart3 size={17} />,
-    'Reports & System': <Cog size={17} />,
+    dashboard: <Gauge size={17} />,
+    balance: <BarChart3 size={17} />,
+    shareholders: <Handshake size={17} />,
+    loans: <HandCoins size={17} />,
+    expenses: <Calculator size={17} />,
+    products: <Armchair size={17} />,
+    supplier: <Truck size={17} />,
+    purchase: <ShoppingCart size={17} />,
+    inventory: <Package size={17} />,
+    damage: <Wrench size={17} />,
+    sales: <ShoppingBag size={17} />,
+    customers: <Users size={17} />,
+    reports: <ChartLineUp size={17} />,
+    marketing: <Megaphone size={17} />,
+    employees: <UserCog size={17} />,
   }
   const permissionGroups = PERMISSION_GROUPS.map(group => ({
-    title: group.title,
-    icon: groupIcons[group.title] ?? <Cog size={17} />,
-    items: group.items,
+    ...group,
+    icon: groupIcons[group.key] ?? <Cog size={17} />,
   }))
   const templatePermissions = PERMISSION_TEMPLATES
   const [selectedTemplate, setSelectedTemplate] = useState('sales_staff')
@@ -334,7 +341,12 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
 
   function togglePermission(permission: string) {
     setSelectedTemplate('custom')
-    setPermissions(prev => prev.includes(permission) ? prev.filter(item => item !== permission) : [...prev, permission])
+    // pruneOrphanDeletes mirrors sanitizePermissions on the server, so the
+    // screen can never show a state the save would silently change: unticking a
+    // box's last page takes its "can delete" tick with it.
+    setPermissions(prev => pruneOrphanDeletes(
+      prev.includes(permission) ? prev.filter(item => item !== permission) : [...prev, permission]
+    ))
   }
 
   async function save() {
@@ -510,16 +522,35 @@ function CreateUserModalV2({ onClose }: { onClose: () => void }) {
             </div>
             <div className="grid max-h-[calc(100vh-420px)] min-h-[420px] grid-cols-1 gap-3 overflow-y-auto pr-1 lg:grid-cols-2 2xl:grid-cols-3">
               {permissionGroups.map(group => (
-                <div key={group.title} className="rounded-xl border border-slate-200 bg-white/40 p-3">
+                <div key={group.key} className="rounded-xl border border-slate-200 bg-white/40 p-3">
                   <h5 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700">{group.icon}</span>{group.title}</h5>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {group.items.map(item => (
-                      <label key={item} className="flex items-center gap-2 text-xs text-slate-600">
-                        <input type="checkbox" checked={permissions.includes(item)} onChange={() => togglePermission(item)} className="h-4 w-4 accent-brand-green" />
-                        <span>{item}</span>
+                      <label key={item.name} className="flex items-center gap-2 text-xs text-slate-600">
+                        <input type="checkbox" checked={permissions.includes(item.name)} onChange={() => togglePermission(item.name)} className="h-4 w-4 accent-brand-green" />
+                        <span>{item.label}</span>
                       </label>
                     ))}
                   </div>
+                  {/* Only on the nine boxes where a non-owner can actually reach
+                      a delete endpoint. Disabled until a page in this box is
+                      ticked, because deleting a record on a screen you cannot
+                      open is a hole rather than a permission. */}
+                  {group.deletePermission && (
+                    <label
+                      className={`mt-3 flex items-center gap-2 border-t border-slate-200 pt-2 text-xs font-semibold ${groupIsOpen(group, permissions) ? 'text-brand-red' : 'cursor-not-allowed text-slate-300'}`}
+                      title={groupIsOpen(group, permissions) ? 'May delete records in this menu' : 'Tick a page in this box first'}
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={!groupIsOpen(group, permissions)}
+                        checked={permissions.includes(group.deletePermission)}
+                        onChange={() => togglePermission(group.deletePermission as string)}
+                        className="h-4 w-4 accent-brand-red"
+                      />
+                      <span>Can delete</span>
+                    </label>
+                  )}
                 </div>
               ))}
             </div>

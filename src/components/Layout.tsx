@@ -5,7 +5,8 @@ import { WrenchIcon as Wrench, GaugeIcon as Gauge, BankIcon as Bank, HandshakeIc
   UsersThreeIcon as UsersThree, ChartLineUpIcon as ChartLineUp, RecycleIcon as Recycle,
   IdentificationBadgeIcon as IdentificationBadge, SquaresFourIcon as LayoutDashboard, GearSixIcon as Settings, WalletIcon as Wallet, TrendUpIcon as TrendingUp, ArrowsLeftRightIcon as ArrowLeftRight, CreditCardIcon as CreditCard, PackageIcon as Package, ShoppingCartSimpleIcon as ShoppingCart, CubeIcon as Boxes, UsersIcon as Users, ChartBarIcon as BarChart3, CalendarBlankIcon as Calendar, SignOutIcon as LogOut, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, ListIcon as Menu, XIcon as X, FileTextIcon as FileText, BuildingsIcon as Building2, GlobeIcon as Globe, BriefcaseIcon as Briefcase, PlusIcon as Plus, BookOpenIcon as BookOpen, TrashIcon as Trash2, ShieldCheckIcon as ShieldCheck, BellIcon as Bell, PulseIcon as Activity, MegaphoneIcon as Megaphone, FileTextIcon as FileBarChart, SparkleIcon as Sparkles, UserCheckIcon as UserCheck, UserMinusIcon as UserX, ChatTextIcon as MessageSquareText, TargetIcon as Target, UserGearIcon as UserCog, TruckIcon as Truck, TagIcon as Tag, PlayCircleIcon as PlayCircle } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
-import { ROUTE_PERMISSIONS, hasPermission } from '../lib/permissions'
+import { canReach } from '../lib/permissions'
+import RequirePage from './RequirePage'
 import { useSupportBadge } from '../lib/useSupportBadge'
 import { useLang } from '../context/LanguageContext'
 import NotificationBell from './NotificationBell'
@@ -212,27 +213,39 @@ export default function Layout() {
     ],
   } as any)
 
-  const adminChildren: any[] = []
+  // Admin is the owner's alone, all of it.
+  //
+  // Only User Management used to be behind the role check while Recycle Bin was
+  // pushed unconditionally - so every staff member saw an Admin menu, and the
+  // Recycle Bin inside it listed everything the workspace had ever deleted.
+  // Restoring a row was owner-and-manager on the server and permanently
+  // deleting one was ungated entirely.
+  //
+  // There is deliberately no permission for this. A tick an owner could grant
+  // would be a way to hand out the undo history of the whole business, so the
+  // role is the boundary and there is no box in the Permissions screen at all.
   if (profile?.role === 'owner') {
-    adminChildren.push({ key: 'settings', label: t('settings_userManagement'), icon: <UserCog size={16} />, path: '/user-management' })
+    businessNavGroups.push({
+      key: 'admin', label: t('nav_admin'), icon: <UserCog size={18} weight="duotone" />,
+      children: [
+        { key: 'settings', label: t('settings_userManagement'), icon: <UserCog size={16} />, path: '/user-management' },
+        { key: 'recycleBin', label: t('nav_recycleBin'), icon: <Recycle size={16} />, path: '/recycle-bin' },
+      ],
+    } as any)
   }
-  adminChildren.push({ key: 'recycleBin', label: t('nav_recycleBin'), icon: <Recycle size={16} />, path: '/recycle-bin' })
-  businessNavGroups.push({
-    key: 'admin', label: t('nav_admin'), icon: <UserCog size={18} weight="duotone" />,
-    children: adminChildren,
-  } as any)
 
   /**
    * Hide the menu entries this user cannot use.
    *
-   * The sidebar was never filtered at all, so a Sales Staff member saw the whole
-   * app and discovered what they could not do by clicking it and getting a 403.
+   * `canReach` is the SAME function the route guard calls, which is the point:
+   * while the sidebar read one table and App.tsx read nothing, the menu and what
+   * the app actually let you open were two independent opinions. Now a link
+   * appearing here and the page opening are the same decision.
    *
-   * This is presentation only - the server decides what is allowed, and every one
-   * of these routes is guarded there too. Anything not named in ROUTE_PERMISSIONS
-   * is always shown, and hasPermission returns true for an owner and for anyone
-   * with no permissions stored, so the default sidebar is unchanged for everyone
-   * who has not had boxes ticked for them.
+   * Still presentation only - the server is what decides, and every route is
+   * gated there too. canReach passes an owner, a super_admin and anyone with no
+   * permissions stored, so the default sidebar is unchanged for everyone who has
+   * not had boxes ticked for them.
    *
    * A group whose children all disappear disappears with them, rather than
    * sitting there opening onto nothing.
@@ -245,10 +258,7 @@ export default function Layout() {
    * one of them. Inventory vanished from the menu and the whole super-admin
    * sidebar went blank.
    */
-  const allowedPath = (path?: string) => {
-    const needed = path ? ROUTE_PERMISSIONS[path] : undefined
-    return !needed || hasPermission(profile?.role, profile?.permissions, needed)
-  }
+  const allowedPath = (path?: string) => canReach(profile?.role, profile?.permissions, path)
 
   const navGroups = (profile?.role === 'super_admin' ? superAdminNavGroups : businessNavGroups)
     .map((group: any) => {
@@ -400,7 +410,9 @@ export default function Layout() {
 
         <main ref={mainRef} className="flex-1 overflow-auto">
           <ErrorBoundary resetKey={location.pathname}>
-            <Outlet />
+            {/* Inside the shell, so a refusal keeps the sidebar, the header and
+                somewhere to go next. See RequirePage for why it never navigates. */}
+            <RequirePage><Outlet /></RequirePage>
           </ErrorBoundary>
         </main>
       </div>

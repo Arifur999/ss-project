@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { updateOwnProfile, updateTeamUser } from '../services/admin.services'
 import { uploadImage } from '../services/product.services'
 import { isValidBdPhone, INVALID_PHONE_MESSAGE } from '../lib/phone'
-import { PERMISSION_GROUPS } from '../lib/permissions'
+import { PERMISSION_GROUPS, groupIsOpen, pruneOrphanDeletes } from '../lib/permissions'
 
 const ROLE_OPTIONS = [
   { value: 'manager', label: 'Manager' },
@@ -41,6 +41,13 @@ export default function EditUserModal({ user, onClose }: { user: any; onClose: (
   // modal on an untouched user shows nothing ticked and saving without touching
   // the boxes leaves them exactly as they were.
   const [permissions, setPermissions] = useState<string[]>(user?.permissions ?? [])
+
+  // Ticking is a set operation plus the orphan rule - see pruneOrphanDeletes.
+  function togglePermission(name: string) {
+    setPermissions(current => pruneOrphanDeletes(
+      current.includes(name) ? current.filter(value => value !== name) : [...current, name]
+    ))
+  }
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -207,27 +214,44 @@ export default function EditUserModal({ user, onClose }: { user: any; onClose: (
                   : `${permissions.length} selected`}
               </span>
             </div>
+            {/* One box per sidebar menu, one tick per sub-page inside it, and
+                where deleting is reachable at all, one more tick under a rule.
+                pruneOrphanDeletes keeps the state the server would actually
+                store: unticking a box's last page takes its delete tick with
+                it, because a delete permission for a screen you cannot open is
+                a hole, not a grant. */}
             <div className="max-h-56 space-y-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
               {PERMISSION_GROUPS.map(group => (
-                <div key={group.title}>
+                <div key={group.key}>
                   <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">{group.title}</p>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {group.items.map(item => (
-                      <label key={item} className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+                      <label key={item.name} className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
                         <input
                           type="checkbox"
                           className="h-3.5 w-3.5 rounded border-slate-300 text-brand-green focus:ring-brand-green"
-                          checked={permissions.includes(item)}
-                          onChange={() => setPermissions(current =>
-                            current.includes(item)
-                              ? current.filter(value => value !== item)
-                              : [...current, item]
-                          )}
+                          checked={permissions.includes(item.name)}
+                          onChange={() => togglePermission(item.name)}
                         />
-                        {item}
+                        {item.label}
                       </label>
                     ))}
                   </div>
+                  {group.deletePermission && (
+                    <label
+                      className={`mt-1 flex items-center gap-1.5 border-t border-slate-100 pt-1 text-xs ${groupIsOpen(group, permissions) ? 'cursor-pointer text-brand-red' : 'cursor-not-allowed text-slate-300'}`}
+                      title={groupIsOpen(group, permissions) ? undefined : 'Tick a page in this box first'}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-brand-red focus:ring-brand-red"
+                        disabled={!groupIsOpen(group, permissions)}
+                        checked={permissions.includes(group.deletePermission)}
+                        onChange={() => togglePermission(group.deletePermission as string)}
+                      />
+                      Can delete
+                    </label>
+                  )}
                 </div>
               ))}
             </div>
