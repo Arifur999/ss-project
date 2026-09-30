@@ -91,20 +91,33 @@ interface AuthContextType {
   resendOtp: (email: string) => Promise<{ error: Error | null }>
   refreshAccount: () => Promise<void>
   touchOwnerActivity: (force?: boolean) => Promise<void>
-  canAccess: (permission: string) => boolean
+  /**
+   * How much the profile on screen can be trusted, which is NOT what `loading`
+   * answers. `profile` is seeded synchronously from a localStorage hint so a
+   * reload paints at once, and setLoading(false) also fires on an unreachable
+   * server while retries are still scheduled - so `!loading` can mean "stale
+   * hint" or even "nobody, but we could not ask".
+   *
+   * A route guard needs the difference: denying a page on a hint is fine (the
+   * server gates every request anyway), denying one because the API was down
+   * for two seconds would sign people out of their own app mid-deploy.
+   */
+  profileSource: ProfileSource
+  /** The last profile load failed for a reason that was NOT a 401. */
+  profileError: boolean
 }
+
+export type ProfileSource =
+  /** Nobody is signed in as far as this tab knows. */
+  | 'none'
+  /** Read from the localStorage hint; /auth/me has not answered yet. */
+  | 'hint'
+  /** Confirmed by the server. */
+  | 'server'
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export const SUBSCRIPTION_EXPIRED_LOGIN_MESSAGE = 'Your subscription has expired! Please purchase a dynamic renewal plan or request an administrator to grant a free trial extension to regain system access.'
-
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  super_admin: ['*'],
-  owner: ['*'],
-  manager: ['sales', 'purchase', 'reports', 'customers', 'inventory', 'suppliers', 'expenses'],
-  sales_staff: ['sales', 'customers', 'inventory_view'],
-  accountant: ['reports', 'expenses', 'customers_view', 'balance_view'],
-}
 
 function effectiveSubscriptionStatus(subscription: OwnerSubscription | null): EffectiveSubscriptionStatus {
   if (!subscription) return 'none'
@@ -168,6 +181,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(hint?.profile ?? null)
   const [subscription, setSubscription] = useState<OwnerSubscription | null>(hint?.subscription ?? null)
   const [loading, setLoading] = useState(true)
+  // 'hint' from the first paint, never 'server' until /auth/me has answered.
+  const [profileSource, setProfileSource] = useState<ProfileSource>(hint?.profile ? 'hint' : 'none')
+  const [profileError, setProfileError] = useState(false)
   const lastActivityTouch = useRef(0)
   const profileRef = useRef<Profile | null>(null)
   // Cleared on unmount and whenever a load succeeds, so retries cannot stack.
@@ -219,6 +235,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(account.user)
       setProfile(account.profile)
       setSubscription(account.subscription)
+      setProfileSource('server')
+      setProfileError(false)
       writeSessionHint(account)
       window.clearTimeout(retryTimer.current)
       setLoading(false)
@@ -228,6 +246,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setProfile(null)
         setSubscription(null)
+        setProfileSource('none')
+        setProfileError(false)
         setLoading(false)
         return
       }
@@ -238,6 +258,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const delay = Math.min(2000 * 2 ** attempt, 60_000)
         retryTimer.current = window.setTimeout(() => loadAccount(attempt + 1), delay)
       }
+      // Raised for the route guard, which must show "retrying" rather than
+      // "no access" while this is true - the two look identical from `loading`
+      // alone, and getting it wrong locks a legitimate user out during a deploy.
+      setProfileError(true)
       // Never leaves the app stuck on a loading screen, even while retrying.
       setLoading(false)
     }
@@ -257,6 +281,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(result.user)
       setProfile(result.profile)
       setSubscription(result.subscription)
+      setProfileSource('server')
+      setProfileError(false)
       writeSessionHint(result)
       return { error: null }
     } catch (error) {
@@ -296,6 +322,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(account.user)
       setProfile(account.profile)
       setSubscription(account.subscription)
+      setProfileSource('server')
+      setProfileError(false)
       writeSessionHint(account)
       return { error: null }
     } catch (error) {
@@ -321,6 +349,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     setProfile(null)
     setSubscription(null)
+    setProfileSource('none')
+    setProfileError(false)
     try {
       await logoutRequest()
     } catch {
@@ -346,13 +376,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Activity tracking must never break the app.
     }
   }, [])
-
-  function canAccess(permission: string): boolean {
-    if (!profile) return false
-    const perms = ROLE_PERMISSIONS[profile.role] || []
-    if (perms.includes('*')) return true
-    return perms.includes(permission)
-  }
 
   const subscriptionStatus = effectiveSubscriptionStatus(subscription)
   const subscriptionLocked = profile?.role === 'owner' && (
@@ -383,7 +406,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resendOtp,
       refreshAccount,
       touchOwnerActivity,
-      canAccess,
+      profileSource,
+      profileError,
     }}>
       {children}
     </AuthContext.Provider>

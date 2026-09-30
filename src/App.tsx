@@ -3,6 +3,7 @@ import { lazyWithReload } from './lib/lazyWithReload'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { canReach, firstAllowedPath } from './lib/permissions'
 import { LanguageProvider } from './context/LanguageContext'
 import ConfirmDialogHost from './components/ConfirmDialog'
 import Layout from './components/Layout'
@@ -194,7 +195,18 @@ function AppRoutes() {
       <Route path="/choose-plan" element={user ? <SubscriptionPlans /> : <Navigate to="/register" replace />} />
       <Route path="/subscription-checkout" element={user ? <SubscriptionCheckout /> : <Navigate to="/login" replace />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route path="/" element={profile?.role === 'super_admin' ? <Navigate to="/super-admin" replace /> : <Dashboard />} />
+        {/* The Dashboard is a permission like any other now, so somebody may not
+            hold it - and meeting a refusal on every sign-in would read as a
+            broken account. firstAllowedPath walks the access table in sidebar
+            order and falls back to Support, which every role can reach, so this
+            always resolves to a page that renders. */}
+        <Route path="/" element={
+          profile?.role === 'super_admin'
+            ? <Navigate to="/super-admin" replace />
+            : canReach(profile?.role, profile?.permissions, '/')
+              ? <Dashboard />
+              : <Navigate to={firstAllowedPath(profile?.role, profile?.permissions)} replace />
+        } />
         <Route path="/super-admin" element={<SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute>} />
         <Route path="/super-admin/owners" element={<SuperAdminRoute><SuperAdminOwners /></SuperAdminRoute>} />
         <Route path="/super-admin/free-trial" element={<SuperAdminRoute><SuperAdminFreeTrial /></SuperAdminRoute>} />
@@ -216,7 +228,10 @@ function AppRoutes() {
         <Route path="/transactions/invest" element={<InvestWithdraw />} />
         <Route path="/transactions/profit" element={<ProfitWithdraw />} />
         <Route path="/transactions/loans" element={<Navigate to="/loan-management/transactions" replace />} />
-        <Route path="/transactions/adjustments" element={<Adjustments />} />
+        {/* Was a second mount of the same Adjustments screen, under a path the
+            sidebar has never offered. Kept as a redirect in case a deep link to
+            it exists; /balance/transfer is the real one. */}
+        <Route path="/transactions/adjustments" element={<Navigate to="/balance/transfer" replace />} />
         <Route path="/loan-management" element={<Navigate to="/loan-management/dashboard" replace />} />
         <Route path="/loan-management/lenders" element={<LoanLenderList />} />
         <Route path="/loan-management/transactions" element={<LoanTransactions />} />
