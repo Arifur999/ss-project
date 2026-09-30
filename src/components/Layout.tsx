@@ -118,6 +118,7 @@ export default function Layout() {
       key: 'supplier', label: 'Supplier', icon: <Truck size={18} weight="duotone" />,
       children: [
         { key: 'suppDash', label: t('nav_dashboard', 'Dashboard'), icon: <Building2 size={16} />, path: '/purchase/suppliers' },
+          { key: 'supplierReport', label: t('nav_supplierReport', 'Report'), icon: <BarChart3 size={16} />, path: '/purchase/supplier-report' },
         { key: 'purchPayments', label: t('nav_transaction', 'Transaction'), icon: <CreditCard size={16} />, path: '/purchase/payments' },
         { key: 'otherIncome', label: t('nav_otherIncome', 'Others Income'), icon: <FileText size={16} />, path: '/purchase/other-income' },
         { key: 'supplierList', label: t('settings_supplierList', 'Suppliers list'), icon: <Truck size={16} />, path: '/purchase/suppliers-list' },

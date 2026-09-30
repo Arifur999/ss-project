@@ -41,6 +41,7 @@ const PurchaseOrders = lazyWithReload(() => import('./pages/purchase/PurchaseOrd
 const ProductReceived = lazyWithReload(() => import('./pages/purchase/ProductReceived'))
 const SupplierPayments = lazyWithReload(() => import('./pages/purchase/SupplierPayments'))
 const SupplierDashboard = lazyWithReload(() => import('./pages/purchase/SupplierDashboard'))
+const SupplierReport = lazyWithReload(() => import('./pages/purchase/SupplierReport'))
 const PurchaseHistory = lazyWithReload(() => import('./pages/purchase/PurchaseHistory'))
 const PurchaseLedger = lazyWithReload(() => import('./pages/purchase/PurchaseLedger'))
 const DraftPurchaseOrders = lazyWithReload(() => import('./pages/purchase/DraftPurchaseOrders'))
@@ -236,6 +237,7 @@ function AppRoutes() {
         <Route path="/purchase/product-received" element={<ProductReceived />} />
         <Route path="/purchase/payments" element={<SupplierPayments />} />
         <Route path="/purchase/suppliers" element={<SupplierDashboard />} />
+        <Route path="/purchase/supplier-report" element={<SupplierReport />} />
         <Route path="/purchase/history" element={<PurchaseHistory />} />
         <Route path="/purchase/other-income" element={<OtherIncome />} />
         <Route path="/inventory" element={<Inventory />} />
