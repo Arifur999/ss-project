@@ -81,6 +81,19 @@ type DashboardData = {
   topCustomers: { name: string; totalSales: number; dueAmount: number }[]
   recentTransactions: { id: string; title: string; ref: string; amount: number; date: string; tone: CardTone }[]
   dueCollectionRows: { id: string; customerName: string; amount: number; date: string; accountName: string }[]
+  /**
+   * The tables the server refused to hand over, if any.
+   *
+   * This page reads seven of them and adds up what comes back. Once those reads
+   * are gated per page, a team member who holds the Dashboard but not, say, the
+   * Expenses pages gets an empty array for expenses - and a reduce over an empty
+   * array is 0, not "unknown". "Total Expenses: 0" on the landing page is a
+   * claim about the books, and a false one.
+   *
+   * So the refusals are collected and the figures that depend on them are shown
+   * as unavailable instead of as zero. Silence would be the actual bug here.
+   */
+  denied: string[]
 }
 
 type CardTone = 'green' | 'blue' | 'orange' | 'purple' | 'red'
@@ -268,6 +281,7 @@ const emptyDashboardData: DashboardData = {
   topCustomers: [],
   recentTransactions: [],
   dueCollectionRows: [],
+  denied: [],
 }
 
 export default function Dashboard() {
@@ -311,6 +325,18 @@ export default function Dashboard() {
   // One unit for a whole axis, from the tallest point it has to draw. Dividing
   // every tick by 1000 drew "0k" the length of the axis for a shop turning over
   // a few thousand a day. No currency symbol: these axes have never carried one.
+  /**
+   * A figure, or a dash when the figures behind it were refused.
+   *
+   * Every card on this page is a sum over rows the server may decline to send.
+   * A reduce over an empty array is 0, so without this a team member who cannot
+   * see the expense pages would read "Total Expenses: 0" on the landing page -
+   * a precise, confident, wrong number. An em dash says "not yours to see",
+   * which is true, and the banner below says why.
+   */
+  const needs = (...tables: string[]) => tables.some(table => data.denied.includes(table))
+  const figure = (value: number, ...tables: string[]) => (needs(...tables) ? '—' : formatCurr(value))
+
   const cashflowAxis = useMemo(
     () => amounts.visible
       ? moneyAxisFormatter(
@@ -418,6 +444,22 @@ export default function Dashboard() {
       supabase.from('purchases').select('id, si_no, date, supplier_name, net_amount').order('date', { ascending: false }).limit(6),
       supabase.from('expenses').select('id, date, category_name, amount').order('date', { ascending: false }).limit(6),
     ])
+
+    // Which of this page's reads were refused. 403 only: a 500 is a breakage and
+    // belongs in the error path, not in "you may not see this".
+    const denied = [...new Set(
+      ([
+        ['sales', salesRes], ['sales', previousSalesRes],
+        ['expenses', expensesRes], ['expenses', previousExpensesRes],
+        ['purchases', purchasesRes], ['purchases', previousPurchasesRes],
+        ['supplier_payments', supplierPaymentsRes],
+        ['other_incomes', otherIncomeRes],
+        ['customer_payments', dueCollectionsRes],
+        ['customers', customersRes],
+      ] as [string, { error?: { code?: number } | null }][])
+        .filter(([, response]) => Number(response.error?.code) === 403)
+        .map(([table]) => table)
+    )]
 
     const sales = salesRes.data || []
     const previousSales = previousSalesRes.data || []
@@ -646,6 +688,7 @@ export default function Dashboard() {
       recentTransactions: [...recentSales, ...recentPurchases, ...recentExpenses, ...recentSupplierPayments, ...recentOtherIncome]
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 6),
+      denied,
       dueCollectionRows: dueCollections.slice(0, 10).map((payment: any) => ({
         id: payment.id,
         customerName: payment.customer_name || '-',
@@ -705,20 +748,30 @@ export default function Dashboard() {
       </div>
 
 
+      {/* Said once, plainly. A dash with no explanation reads as a bug, and the
+          person looking at it cannot tell a missing permission from a broken
+          server unless somebody tells them which it is. */}
+      {data.denied.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          Some figures are hidden because your account does not have access to them.
+          Ask the owner to enable the pages you need.
+        </div>
+      )}
+
       {/* Row 1 - the headline, the four figures, and where the money moved. */}
       <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.35fr)_minmax(0,1fr)]">
         <HeroCard
           label="Net Profit"
-          value={formatCurr(data.netProfit)}
+          value={figure(data.netProfit, 'sales', 'purchases', 'expenses', 'other_incomes')}
           onWithdraw={() => navigate("/transactions/profit")}
           onSavings={() => navigate("/balance")}
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="Total Purchase" icon={<Truck size={17} weight="duotone" />} value={formatCurr(data.totalPurchases)} />
-          <StatCard label="Total Sales" icon={<CashRegister size={17} weight="duotone" />} value={formatCurr(data.totalSales)} />
-          <StatCard label="Total Profit" icon={<Coins size={17} weight="duotone" />} value={formatCurr(data.totalProfit)} />
-          <StatCard label="Total Expenses" icon={<CreditCard size={17} weight="duotone" />} value={formatCurr(data.totalExpenses)} />
+          <StatCard label="Total Purchase" icon={<Truck size={17} weight="duotone" />} value={figure(data.totalPurchases, 'purchases')} />
+          <StatCard label="Total Sales" icon={<CashRegister size={17} weight="duotone" />} value={figure(data.totalSales, 'sales')} />
+          <StatCard label="Total Profit" icon={<Coins size={17} weight="duotone" />} value={figure(data.totalProfit, 'sales', 'purchases', 'expenses', 'other_incomes')} />
+          <StatCard label="Total Expenses" icon={<CreditCard size={17} weight="duotone" />} value={figure(data.totalExpenses, 'expenses')} />
         </div>
 
         <section className="card border-navy-900 bg-navy-900 p-5">

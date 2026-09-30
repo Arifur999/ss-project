@@ -9,6 +9,7 @@
 
 import { api } from './httpClient'
 import { consumeRecycleMeta } from './recycleBin'
+import { isForbidden, noticeForbidden } from './accessNotice'
 // One home for what a query means - see queryEngine.ts and its tests.
 import { applyFilters, applyOrder, applyRange, type Filter, type Row } from './queryEngine'
 
@@ -288,7 +289,13 @@ async function runQuery(state: QueryState): Promise<{ data: any; error: any; cou
     throw new Error(`Unsupported action: ${state.action}`)
   } catch (error: any) {
     const message = error?.response?.data?.message || error?.message || 'Request failed'
-    return { data: state.single || state.maybe ? null : [], error: { message, code: error?.response?.status } }
+    const code = error?.response?.status
+    // The one failure that must not stay silent. Every caller here ignores
+    // `error` and renders `data`, so without this a refusal is indistinguishable
+    // from an empty table - see accessNotice.ts for why that went unnoticed for
+    // months on the Sales page.
+    if (isForbidden(code)) noticeForbidden(state.table, message)
+    return { data: state.single || state.maybe ? null : [], error: { message, code } }
   }
 }
 
