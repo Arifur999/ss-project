@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CalendarDotsIcon as CalendarDays, CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList,  ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards, WarningIcon as Warning } from '@phosphor-icons/react'
+import { CheckCircleIcon as CheckCircle2, ClipboardTextIcon as ClipboardList,  ArrowsClockwiseIcon as RefreshCw, TargetIcon as Target, TrendUpIcon as TrendingUp, WalletIcon as WalletCards, WarningIcon as Warning } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import PageHeader from '../../components/PageHeader'
 import { useAuth } from '../../context/AuthContext'
@@ -15,6 +15,8 @@ import { firstAmount, roundTaka, saleItemAmount } from '../../lib/utils'
 import toast from 'react-hot-toast'
 import { NoValue } from '../../components/CellValue'
 import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
+import PeriodFilter from '../../components/PeriodFilter'
+import { periodLabel, periodToRange, type Period } from '../../lib/periodFilter'
 import { CHART_GREEN, CHART_MUTED, CompanySalesCard, KpiCard, PeriodCard, PurchaseTargetDonut } from '../../components/ReportCards'
 
 type BreakdownRow = {
@@ -89,15 +91,6 @@ type DailyPerformanceRow = {
   /** What the following day is being asked to do; null on the month's last day. */
   nextTarget: number | null
 }
-
-type MonthlyTargetOption = {
-  month: number
-  year: number
-  sales_target: number
-  profit_target: number
-}
-
-type FilterMode = 'monthly' | 'custom'
 
 /**
  * The five reports, shown one at a time.
@@ -206,13 +199,13 @@ function monthProgress(year: number, month: number, today: string) {
 
 export default function ReportSummary() {
   const { user } = useAuth()
-  const { t, formatCurr, formatNum, formatDateShort, monthName } = useLang()
+  const { t, formatCurr, formatNum, formatDateShort } = useLang()
   const currentDate = useMemo(() => new Date(), [])
   const initialMonthRange = useMemo(() => monthRange(currentDate.getFullYear(), currentDate.getMonth() + 1), [currentDate])
-  const [filterMode, setFilterMode] = useState<FilterMode>('monthly')
-  const [targetOptions, setTargetOptions] = useState<MonthlyTargetOption[]>([])
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+  // The same period control every list page carries. It replaced a Filter
+  // Mode / Month / Year trio that took three clicks to answer "and today?" and
+  // could not answer "all time" at all.
+  const [period, setPeriod] = useState<Period>('month')
   const [customStart, setCustomStart] = useState(initialMonthRange.start)
   const [customEnd, setCustomEnd] = useState(initialMonthRange.end)
   const [data, setData] = useState<ReportData>(emptyReport)
@@ -221,90 +214,39 @@ export default function ReportSummary() {
   const [reportTab, setReportTab] = useState<ReportTabKey>(REPORT_TABS[0].key)
 
   const range = useMemo(() => {
-    if (filterMode === 'custom') {
+    if (period === 'custom') {
       const customStartValue = customStart || initialMonthRange.start
       const customEndValue = customEnd || initialMonthRange.end
       const start = customStartValue <= customEndValue ? customStartValue : customEndValue
       const end = customStartValue <= customEndValue ? customEndValue : customStartValue
       return { start, end, label: 'Custom' }
     }
-    return { ...monthRange(selectedYear, selectedMonth), label: `${monthName(selectedMonth)} ${selectedYear}` }
-  }, [filterMode, customStart, customEnd, initialMonthRange.start, initialMonthRange.end, selectedMonth, selectedYear, monthName])
-
-  const yearOptions = useMemo(() => {
-    return Array.from(new Set(targetOptions.map(option => option.year))).sort((a, b) => b - a)
-  }, [targetOptions])
-
-  const monthOptions = useMemo(() => {
-    const monthsForYear = targetOptions.filter(option => option.year === selectedYear).map(option => option.month)
-    const source = monthsForYear.length ? monthsForYear : targetOptions.map(option => option.month)
-    return Array.from(new Set(source)).sort((a, b) => a - b)
-  }, [targetOptions, selectedYear])
-
-  useEffect(() => {
-    loadTargetOptions()
-  }, [])
+    // All Time deliberately has no bounds: withDateRange below leaves the
+    // query alone when start and end are empty, which is what makes "every
+    // sale ever" a filter rather than a very wide guess at one.
+    const bounds = periodToRange(period, customStart, customEnd)
+    return { start: bounds.from || '', end: bounds.to || '', label: periodLabel(period, customStart, customEnd) }
+  }, [period, customStart, customEnd, initialMonthRange.start, initialMonthRange.end])
 
   useEffect(() => {
     loadReport()
-  }, [filterMode, range.start, range.end])
-
-  async function loadTargetOptions() {
-    try {
-      const { data: rows, error } = await supabase
-        .from('monthly_targets')
-        .select('month, year, sales_target, profit_target')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false })
-
-      if (error) throw error
-
-      const options = (rows || [])
-        .map((row: any) => ({
-          month: Number(row.month || 0),
-          year: Number(row.year || 0),
-          sales_target: amount(row.sales_target),
-          profit_target: amount(row.profit_target),
-        }))
-        .filter(option => option.month >= 1 && option.month <= 12 && option.year > 0)
-
-      setTargetOptions(options)
-
-      if (options.length > 0) {
-        const currentMonth = currentDate.getMonth() + 1
-        const currentYear = currentDate.getFullYear()
-        const currentOption = options.find(option => option.month === currentMonth && option.year === currentYear)
-        const fallbackOption = currentOption || options[0]
-        setSelectedMonth(fallbackOption.month)
-        setSelectedYear(fallbackOption.year)
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to load monthly target filters')
-    }
-  }
-
-  function handleYearChange(year: number) {
-    setSelectedYear(year)
-    const monthsForYear = targetOptions.filter(option => option.year === year).map(option => option.month)
-    if (monthsForYear.length > 0 && !monthsForYear.includes(selectedMonth)) {
-      setSelectedMonth(monthsForYear.sort((a, b) => a - b)[0])
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, range.start, range.end])
 
   async function loadReport() {
     try {
       setLoading(true)
-      const targetQuery = filterMode === 'monthly'
+      // Every target whose month touches the range. Unbounded when the range
+      // is - All Time means all of them.
+      const targetQuery = range.start && range.end
         ? supabase
-          .from('monthly_targets')
-          .select('month, year, sales_target, profit_target')
-          .eq('year', selectedYear)
-          .eq('month', selectedMonth)
-        : supabase
           .from('monthly_targets')
           .select('month, year, sales_target, profit_target')
           .gte('year', Number(range.start.slice(0, 4)))
           .lte('year', Number(range.end.slice(0, 4)))
+        : supabase
+          .from('monthly_targets')
+          .select('month, year, sales_target, profit_target')
 
       const [salesRes, purchasesRes, expensesRes, supplierPaymentsRes, targetsRes, withdrawRes, otherIncomeRes, productsRes, purchaseTargetsRes, allPurchasesRes] = await Promise.all([
         withDateRange(
@@ -381,10 +323,10 @@ export default function ReportSummary() {
       const targets = targetsRes.data || []
       const withdrawals = withdrawRes.data || []
       const otherIncomes = otherIncomeRes.error
-        ? readOtherIncomeFallbackRows(user?.id).filter(row => row.date >= range.start && row.date <= range.end)
+        ? readOtherIncomeFallbackRows(user?.id).filter(row => !range.start || !range.end || (row.date >= range.start && row.date <= range.end))
         : otherIncomeRes.data || []
 
-      const activeTargets = filterMode === 'monthly'
+      const activeTargets = !range.start || !range.end
         ? targets
         : targets.filter((target: any) => {
           const targetYear = Number(target.year || 0)
@@ -553,7 +495,9 @@ export default function ReportSummary() {
        * ("August 2026" in the overview), and a range that stops mid-month is
        * still reporting on that month.
        */
-      const reportMonthDate = new Date(`${range.end}T12:00:00`)
+      // With no end date - All Time - the month being reported on is this
+      // one, because that is the buying target still open.
+      const reportMonthDate = new Date(`${range.end || isoDate(new Date())}T12:00:00`)
       const reportYear = reportMonthDate.getFullYear()
       const reportMonth = reportMonthDate.getMonth() + 1
 
@@ -624,9 +568,12 @@ export default function ReportSummary() {
       // day. The Target bar is filled in further down by the rolling engine.
       const dailyMap: Record<string, { sales: number; profit: number; expense: number }> = {}
       const ensureDay = (key: string) => (dailyMap[key] || (dailyMap[key] = { sales: 0, profit: 0, expense: 0 }))
+      // Seeded only when there are bounds, so an empty day still draws a gap
+      // in the chart. Over All Time the days come from the data alone - four
+      // hundred empty bars would say nothing.
       let cursor = range.start
       let guard = 0
-      while (cursor <= range.end && guard < 400) {
+      while (range.start && range.end && cursor <= range.end && guard < 400) {
         ensureDay(cursor)
         const step = new Date(`${cursor}T12:00:00`)
         step.setDate(step.getDate() + 1)
@@ -975,42 +922,11 @@ export default function ReportSummary() {
         subtitle="Global sales, purchase and profit analytics"
         actions={(
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-              <span className="text-[11px] font-bold uppercase text-slate-500">Filter Mode</span>
-              <select className="min-w-[96px] bg-transparent outline-none" value={filterMode} onChange={event => setFilterMode(event.target.value as FilterMode)}>
-                <option value="monthly">Monthly</option>
-                <option value="custom">Custom</option>
-              </select>
-            </label>
-            {filterMode === 'monthly' ? (
-              <>
-                <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                  <CalendarDays size={16} className="text-slate-400" />
-                  <select className="min-w-[120px] flex-1 bg-transparent outline-none" value={selectedMonth} onChange={event => setSelectedMonth(Number(event.target.value))}>
-                    {monthOptions.map(month => <option key={month} value={month}>{monthName(month)}</option>)}
-                    {monthOptions.length === 0 && <option value={selectedMonth}>{monthName(selectedMonth)}</option>}
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                  <CalendarDays size={16} className="text-slate-400" />
-                  <select className="min-w-[120px] flex-1 bg-transparent outline-none" value={selectedYear} onChange={event => handleYearChange(Number(event.target.value))}>
-                    {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
-                    {yearOptions.length === 0 && <option value={selectedYear}>{selectedYear}</option>}
-                  </select>
-                </label>
-              </>
-            ) : (
-              <>
-                <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                  <span className="text-[11px] font-bold uppercase text-slate-500">Start Date</span>
-                  <input type="date" className="bg-transparent outline-none" value={customStart} onChange={event => setCustomStart(event.target.value)} />
-                </label>
-                <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                  <span className="text-[11px] font-bold uppercase text-slate-500">End Date</span>
-                  <input type="date" className="bg-transparent outline-none" value={customEnd} onChange={event => setCustomEnd(event.target.value)} />
-                </label>
-              </>
-            )}
+            <PeriodFilter
+              period={period} setPeriod={setPeriod}
+              from={customStart} setFrom={setCustomStart}
+              to={customEnd} setTo={setCustomEnd}
+            />
             <button onClick={loadReport} className="btn-secondary h-10">
               <RefreshCw size={16} />
               Refresh
