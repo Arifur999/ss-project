@@ -1134,7 +1134,7 @@ export default function ReportSummary() {
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[370px_minmax(0,1fr)]">
             {/* The buying target above, what those companies sold below - the
                 two halves of the same question, in one column. */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 self-start">
               <PurchaseTargetDonut
                 title="Monthly Purchases Target"
                 target={monthlyPurchaseTotals.target}

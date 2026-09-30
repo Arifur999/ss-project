@@ -421,6 +421,7 @@ export default function Marketing() {
     if (!leadForm.organization.trim()) return toast.error('Which organization?')
     if (!leadForm.name.trim()) return toast.error('Who did you speak to?')
     if (!/^01[0-9]{9}$/.test(leadForm.phone.trim())) return toast.error('Enter a valid 11-digit phone number')
+    if (!leadForm.address.trim()) return toast.error('Where is the place?')
 
     try {
       setSavingLead(true)
@@ -891,39 +892,37 @@ export default function Marketing() {
           anything when somebody picks it up a month later. */}
       <Modal isOpen={leadOpen} onClose={() => setLeadOpen(false)} title="Add lead" size="md">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <label>
-              <span className="label">Date <span className="text-brand-red">*</span></span>
-              <input type="date" className="input" value={leadForm.date} onChange={event => setLeadForm({ ...leadForm, date: event.target.value })} />
-            </label>
-            <label>
-              <span className="label">Phone <span className="text-brand-red">*</span></span>
-              <input
-                className="input" inputMode="numeric" maxLength={11} placeholder="01712345678"
-                value={leadForm.phone}
-                onChange={event => setLeadForm({ ...leadForm, phone: event.target.value.replace(/\D/g, '').slice(0, 11) })}
-              />
-            </label>
-          </div>
+          <label className="block">
+            <span className="label">Date <span className="text-brand-red">*</span></span>
+            <input type="date" className="input" value={leadForm.date} onChange={event => setLeadForm({ ...leadForm, date: event.target.value })} />
+          </label>
 
           <label className="block">
             <span className="label">Organization <span className="text-brand-red">*</span></span>
             <input className="input" value={leadForm.organization} onChange={event => setLeadForm({ ...leadForm, organization: event.target.value })} placeholder="Shop or office name" />
           </label>
 
-          <div className="grid grid-cols-2 gap-4">
-            <label>
-              <span className="label">Name <span className="text-brand-red">*</span></span>
-              <input className="input" value={leadForm.name} onChange={event => setLeadForm({ ...leadForm, name: event.target.value })} placeholder="Who you spoke to" />
-            </label>
-            <label>
-              <span className="label">Designation</span>
-              <input className="input" value={leadForm.designation} onChange={event => setLeadForm({ ...leadForm, designation: event.target.value })} placeholder="Manager, owner..." />
-            </label>
-          </div>
+          <label className="block">
+            <span className="label">Designation</span>
+            <input className="input" value={leadForm.designation} onChange={event => setLeadForm({ ...leadForm, designation: event.target.value })} placeholder="Manager, owner..." />
+          </label>
 
           <label className="block">
-            <span className="label">Address</span>
+            <span className="label">Name <span className="text-brand-red">*</span></span>
+            <input className="input" value={leadForm.name} onChange={event => setLeadForm({ ...leadForm, name: event.target.value })} placeholder="Who you spoke to" />
+          </label>
+
+          <label className="block">
+            <span className="label">Phone <span className="text-brand-red">*</span></span>
+            <input
+              className="input" inputMode="numeric" maxLength={11} placeholder="01712345678"
+              value={leadForm.phone}
+              onChange={event => setLeadForm({ ...leadForm, phone: event.target.value.replace(/\D/g, '').slice(0, 11) })}
+            />
+          </label>
+
+          <label className="block">
+            <span className="label">Address <span className="text-brand-red">*</span></span>
             <input className="input" value={leadForm.address} onChange={event => setLeadForm({ ...leadForm, address: event.target.value })} placeholder="Where the place is" />
           </label>
 

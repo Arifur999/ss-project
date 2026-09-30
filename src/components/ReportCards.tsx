@@ -160,7 +160,7 @@ export function PurchaseTargetDonut({
     // it. As a plain grid item it stretched to whatever sat beside it, and
     // beside a 130-row report table that meant a 2,700px card with the ring in
     // the top corner and nothing under it.
-    <div className="self-start overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+    <div className="w-full self-start overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
       <div className="bg-slate-800 px-4 py-3 text-center">
         <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">{title}</h2>
       </div>
@@ -252,16 +252,23 @@ export function PurchaseTargetDonut({
 }
 
 /**
- * Sales traced back to the company whose goods they were.
+ * A slice per company for the colours, and a list under it for the figures.
  *
- * The pair to PurchaseTargetDonut above it: that one says how much money is
- * going OUT to each company against its buying target, this says how much is
- * coming back IN from that company's goods. Side by side they answer the
- * question a dealer actually has - which brands are earning their shelf space.
+ * Deliberately built like PurchaseTargetDonut above it, because the two are
+ * read together: that one says how much money is going OUT to each company
+ * against its buying target, this says how much came back IN from that
+ * company's goods. Two cards answering halves of one question should not look
+ * like two different kinds of thing.
  *
- * The rows were already computed for this page and had nowhere to go; only the
- * card was missing.
+ * The ring is a share, not an achievement, so the middle carries the total
+ * rather than a percentage - there is no target here to be a percentage of.
  */
+// Ordered so NEIGHBOURING slices never share a hue: the two biggest sellers
+// sit next to each other on the ring, and a green beside a teal reads as one
+// slice with a seam in it.
+const COMPANY_SLICE_COLORS = ['#0E9F6E', '#2563EB', '#D97706', '#7C3AED', '#0F766E', '#DC2626']
+const COMPANY_LIST_LIMIT = 4
+
 export function CompanySalesCard({
   title,
   rows,
@@ -274,54 +281,97 @@ export function CompanySalesCard({
   const { formatCurr } = useLang()
 
   // Only companies that actually sold something. A brand with no sales in the
-  // period is not a zero worth a line - it is simply not in this story.
+  // period is not a zero worth a slice - it is simply not in this story.
   const selling = rows
     .filter(row => Number(row.sales || 0) > 0)
     .sort((a, b) => Number(b.sales || 0) - Number(a.sales || 0))
 
   const total = selling.reduce((sum, row) => sum + Number(row.sales || 0), 0)
 
+  const slices = selling.map((row, index) => ({
+    name: row.company,
+    value: Number(row.sales || 0),
+    fill: COMPANY_SLICE_COLORS[index % COMPANY_SLICE_COLORS.length],
+  }))
+
+  const listed = selling.slice(0, COMPANY_LIST_LIMIT)
+  const rest = selling.slice(COMPANY_LIST_LIMIT)
+  const restSales = rest.reduce((sum, row) => sum + Number(row.sales || 0), 0)
+
   return (
-    <div className="self-start overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
+    <div className="w-full self-start overflow-hidden rounded-lg border border-surface-border bg-surface shadow-sm">
       <div className="bg-slate-800 px-4 py-3 text-center">
         <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">{title}</h2>
       </div>
 
-      {selling.length === 0 ? (
+      {total <= 0 ? (
         <p className="px-4 py-8 text-center text-xs font-medium text-slate-400">{emptyNote}</p>
       ) : (
         <>
-          <div className="divide-y divide-slate-100">
-            {selling.map(row => {
-              const share = total > 0 ? (Number(row.sales || 0) / total) * 100 : 0
+          <div className="relative px-4 pt-5">
+            <ResponsiveContainer width="100%" height={225}>
+              <PieChart>
+                <Pie
+                  data={slices}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={81}
+                  outerRadius={94}
+                  startAngle={90}
+                  endAngle={-270}
+                  paddingAngle={slices.length > 1 ? 2 : 0}
+                  stroke="none"
+                >
+                  {slices.map(slice => <Cell key={slice.name} fill={slice.fill} />)}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            {/* The total, where the achievement percentage sits on the card
+                above. A share of a share would say nothing. */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 pt-5 text-center">
+              <p className="text-2xl font-black leading-none tracking-tight text-navy-900">{formatCurr(total)}</p>
+              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">Total Sales</p>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-slate-200">
+            {listed.map((row, index) => {
+              const share = total > 0 ? Math.round((Number(row.sales || 0) / total) * 100) : 0
               return (
-                <div key={row.company} className="px-4 py-2.5">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-xs font-semibold text-slate-700" title={row.company}>
-                      {row.company}
-                    </span>
-                    <span className="shrink-0 text-xs font-bold tabular-nums text-navy-900">
-                      {formatCurr(Number(row.sales || 0))}
-                    </span>
-                  </div>
-                  {/* The bar is the share, so a long list is scannable without
-                      reading every figure. */}
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full" style={{ width: `${share}%`, background: CHART_GREEN }} />
-                    </div>
-                    <span className="w-9 shrink-0 text-right text-[10px] font-semibold tabular-nums text-slate-400">
-                      {Math.round(share)}%
-                    </span>
-                  </div>
+                <div
+                  key={row.company}
+                  className="flex items-center gap-2 px-4 py-2 text-[11px] hover:bg-white/70"
+                  title={`${row.company} · ${formatCurr(Number(row.sales || 0))}`}
+                >
+                  {/* The dot ties the row to its slice; without it a four-colour
+                      ring is decoration. */}
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: COMPANY_SLICE_COLORS[index % COMPANY_SLICE_COLORS.length] }}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{row.company}</span>
+                  <span className="shrink-0 tabular-nums text-slate-500">{formatCurr(Number(row.sales || 0))}</span>
+                  <span className="w-9 shrink-0 text-right font-bold tabular-nums text-slate-500">{share}%</span>
                 </div>
               )
             })}
+            {/* What is not named is still in the ring, so the card never reads
+                as though these four were the whole month's selling. */}
+            {rest.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 text-[11px] text-slate-400">
+                <span className="h-2 w-2 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">
+                  {rest.length} more {rest.length === 1 ? 'company' : 'companies'}
+                </span>
+                <span className="shrink-0 tabular-nums">{formatCurr(restSales)}</span>
+                <span className="w-9 shrink-0" />
+              </div>
+            )}
           </div>
 
-          <div className="flex items-baseline justify-between gap-3 border-t-2 border-slate-800 bg-slate-50 px-4 py-3">
-            <span className="text-[11px] font-black uppercase tracking-wide text-slate-600">Total</span>
-            <span className="text-base font-black tabular-nums text-navy-900">{formatCurr(total)}</span>
+          <div className="flex items-baseline justify-between gap-3 border-t border-slate-200 px-4 py-3">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Total</span>
+            <span className="text-sm font-black tabular-nums text-slate-800">{formatCurr(total)}</span>
           </div>
         </>
       )}
