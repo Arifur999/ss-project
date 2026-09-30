@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ArrowsClockwiseIcon as RefreshCw } from '@phosphor-icons/react'
+import { ArrowsClockwiseIcon as RefreshCw, PrinterIcon as Printer } from '@phosphor-icons/react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
@@ -10,6 +10,7 @@ import { CHART_GREEN } from '../../components/ReportCards'
 import { supabase } from '../../lib/supabase'
 import { moneyAxisFormatter, seriesPeak } from '../../lib/chartAxis'
 import { supplierYearlyPurchase } from '../../lib/supplierYearlyPurchase'
+import { printTable } from '../../lib/printTable'
 import { useLang } from '../../context/LanguageContext'
 
 // The primary series colour the Yearly report uses for "actual", against which
@@ -113,6 +114,39 @@ export default function SupplierReport() {
     })()
     : 'All suppliers'
 
+  // The same five columns and the same total, on paper. printTable is the
+  // house printer for a list page: it opens a window, writes a clean table and
+  // calls print. The incentive keeps its minus sign, because a column headed
+  // "- Incentive" that prints a bare number reads as an addition.
+  function printReport() {
+    const signed = (value: number) => (value === 0 ? '0' : `-${formatCurr(value)}`)
+    printTable({
+      title: 'Yearly Purchase Overview',
+      subtitle: `${supplierName} · ${year}`,
+      columns: [
+        { label: 'Month' },
+        { label: 'Total Order Value', align: 'right' },
+        { label: '- Incentive', align: 'right' },
+        { label: 'Actual Deposit Amount', align: 'right' },
+        { label: 'Deposit Amount', align: 'right' },
+      ],
+      rows: report.months.map(row => [
+        monthShort(row.monthIndex),
+        formatCurr(row.orderValue),
+        signed(row.incentive),
+        formatCurr(row.actualDeposit),
+        formatCurr(row.depositPaid),
+      ]),
+      totalRow: [
+        'Total',
+        formatCurr(report.total.orderValue),
+        signed(report.total.incentive),
+        formatCurr(report.total.actualDeposit),
+        formatCurr(report.total.depositPaid),
+      ],
+    })
+  }
+
   const money = (value: number) => (value === 0 ? <ZeroAmount /> : formatCurr(value))
 
   return (
@@ -147,8 +181,17 @@ export default function SupplierReport() {
                 {yearOptions.map(option => <option key={option} value={option}>{option}</option>)}
               </select>
             </label>
-            <button onClick={loadData} className="btn-secondary h-10">
+            <button onClick={loadData} className="btn-secondary h-10" title="Reload this year">
               <RefreshCw size={16} /> Refresh
+            </button>
+            <button
+              onClick={printReport}
+              className="btn-secondary h-10"
+              disabled={loading}
+              title="Print this table"
+              aria-label="Print this table"
+            >
+              <Printer size={16} /> Print
             </button>
           </div>
         )}
