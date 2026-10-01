@@ -111,6 +111,8 @@ export default function PurchaseLedger() {
   const { touchOwnerActivity } = useAuth()
   const [invoices, setInvoices] = useState<LedgerInvoice[]>([])
   const [search, setSearch] = useState('')
+  const [supplierFilter, setSupplierFilter] = useState('')
+  const [suppliers, setSuppliers] = useState<any[]>([])
   // The Sales Ledger's date filter, on the buying side. 'all' by default, so
   // the page still opens on every invoice.
   const [period, setPeriod] = useState<Period>('all')
@@ -146,7 +148,7 @@ export default function PurchaseLedger() {
   async function loadLedger() {
     try {
       setLoading(true)
-      const [purchaseRes, paymentRes, productRes, businessRes] = await Promise.all([
+      const [purchaseRes, paymentRes, productRes, businessRes, supplierRes] = await Promise.all([
         supabase
           .from('purchases')
           .select('*, purchase_items(*, purchase_receives(*))')
@@ -165,14 +167,21 @@ export default function PurchaseLedger() {
           .from('business_settings')
           .select('name_bn, name_en, phone, email, address, logo_url')
           .maybeSingle(),
-        // Only for the opening position each voucher's Previous Due starts from.
+        // Feeds the Supplier filter. This request was already being made for
+        // the Previous Due ladder and its result thrown away when the ladder was
+        // removed from the voucher - so the filter costs no extra round trip.
         supabase
           .from('suppliers')
-          .select('id, opening_due, due_type'),
+          .select('id, name, company_name')
+          .eq('is_active', true)
+          .order('company_name'),
       ])
 
       if (purchaseRes.error) throw purchaseRes.error
       if (paymentRes.error) throw paymentRes.error
+      // Not fatal: without it the filter offers only "All Supplier", and every
+      // invoice still lists.
+      setSuppliers(supplierRes.data || [])
       // Not fatal either: the voucher still prints, just without a letterhead.
       setBusiness(businessRes.data || null)
       // Not fatal: without these the ledger still lists and prints, only the
@@ -229,9 +238,29 @@ export default function PurchaseLedger() {
     }
   }
 
+  /**
+   * Which invoices belong to the chosen supplier.
+   *
+   * By id where the bill has one. Older bills carry a supplier_name and no
+   * supplier_id at all, and dropping them would make a supplier's own ledger
+   * quietly miss its oldest invoices - so those fall back to matching the name
+   * the dropdown is showing, which is the same string the table prints.
+   */
+  const chosenSupplier = useMemo(
+    () => suppliers.find(row => row.id === supplierFilter),
+    [suppliers, supplierFilter]
+  )
+
   const filteredInvoices = useMemo(() => {
     const q = search.trim().toLowerCase()
+    const chosenName = chosenSupplier ? (chosenSupplier.company_name || chosenSupplier.name) : ''
     return invoices.filter(invoice => {
+      if (supplierFilter) {
+        const mine = invoice.supplier_id
+          ? invoice.supplier_id === supplierFilter
+          : Boolean(chosenName) && invoice.supplier_name === chosenName
+        if (!mine) return false
+      }
       // Filtered on the invoice date, which is the column the table shows and
       // the one somebody asking "what came in this month" means.
       if (!inPeriod(String(invoice.invoice_date || invoice.order_date || ''), period, dateFrom, dateTo)) return false
@@ -239,7 +268,7 @@ export default function PurchaseLedger() {
       return invoice.si_no.toLowerCase().includes(q) ||
         invoice.supplier_name.toLowerCase().includes(q)
     })
-  }, [invoices, search, period, dateFrom, dateTo])
+  }, [invoices, search, period, dateFrom, dateTo, supplierFilter, chosenSupplier])
 
   const editTotal = editItems.reduce((sum, item) => sum + Number(item.total_amount || 0), 0)
   const editDue = Math.max(0, editTotal - Number(editingInvoice?.paid_amount || 0))
@@ -524,6 +553,20 @@ export default function PurchaseLedger() {
             placeholder="Search supplier or invoice..."
           />
         </div>
+        {/* Same classes as the period select beside it, so the two line up.
+            "All Supplier" first, and it is the default - the page is a ledger of
+            everything until somebody narrows it. */}
+        <select
+          className="input h-10 w-auto shrink-0"
+          value={supplierFilter}
+          onChange={event => setSupplierFilter(event.target.value)}
+          title="Filter by supplier"
+        >
+          <option value="">All Supplier</option>
+          {suppliers.map(row => (
+            <option key={row.id} value={row.id}>{row.company_name || row.name}</option>
+          ))}
+        </select>
         <PeriodFilter
           period={period} setPeriod={setPeriod}
           from={dateFrom} setFrom={setDateFrom}
