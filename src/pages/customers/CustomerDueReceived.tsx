@@ -428,6 +428,24 @@ export default function CustomerDueReceived() {
     })
     const { error } = await supabase.from('customer_payments').delete().in('id', paymentIds)
     if (error) return toast.error(error.message || t('common_error'))
+
+    // The discount was booked as an expense of its own when the collection was
+    // taken, and nothing took it away with the collection - so a deleted one
+    // left its discount counted as spent. It is found the way this page already
+    // finds its category: same day, same amount, written for this customer.
+    const discount = Number(payment.discount || 0)
+    const twin = discount > 0
+      ? expenses.find(expense =>
+          String(expense.date || '').slice(0, 10) === String(payment.date || '').slice(0, 10) &&
+          Number(expense.amount || 0) === discount &&
+          String(expense.notes || '').startsWith('Automatically generated from Customer Due Discount') &&
+          String(expense.notes || '').includes(payment.customer_name || ''))
+      : null
+    if (twin) {
+      const { error: expenseError } = await supabase.from('expenses').delete().eq('id', twin.id)
+      if (expenseError) toast.error('Due received deleted, but its discount expense could not be removed - delete it from Expenses.')
+    }
+
     toast.success('Due received deleted!')
     loadAll()
   }
