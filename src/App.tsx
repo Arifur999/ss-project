@@ -15,6 +15,9 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 const Register = lazyWithReload(() => import('./pages/Register'))
 const ForgotPassword = lazyWithReload(() => import('./pages/ForgotPassword'))
+// Public: the app stores link to these, so they open signed in or out.
+const PrivacyPolicy = lazyWithReload(() => import('./pages/legal/PrivacyPolicy'))
+const AccountDeletion = lazyWithReload(() => import('./pages/legal/AccountDeletion'))
 
 // Each screen is its own chunk, fetched the first time it is opened. Before
 // this, App.tsx imported all 56 of them up front, so every visit downloaded
@@ -192,6 +195,8 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
       <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/account-deletion" element={<AccountDeletion />} />
       <Route path="/choose-plan" element={user ? <SubscriptionPlans /> : <Navigate to="/register" replace />} />
       <Route path="/subscription-checkout" element={user ? <SubscriptionCheckout /> : <Navigate to="/login" replace />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
