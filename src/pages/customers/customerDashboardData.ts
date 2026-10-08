@@ -41,8 +41,19 @@ export function parseMetaValue(notes: string, label: string) {
   return line ? line.slice(label.length + 1).trim() : ''
 }
 
+const BANGLA_DIGITS = '০১২৩৪৫৬৭৮৯'
+
+/**
+ * The figure in a note's amount text - "Tk 1,500", or "৳১,৫০০" as a Bangla
+ * screen wrote it.
+ *
+ * Bangla digits are read as digits. The pattern below keeps only ASCII ones,
+ * so a discount written from a Bangla screen read as 0: its expense was booked
+ * and it never came off the customer's due.
+ */
 export function parseAmountText(value: string) {
-  return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0
+  const western = String(value || '').replace(/[০-৯]/g, digit => String(BANGLA_DIGITS.indexOf(digit)))
+  return Number(western.replace(/[^\d.-]/g, '')) || 0
 }
 
 /**

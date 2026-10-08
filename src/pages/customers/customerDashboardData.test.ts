@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCustomerDashboard, customerCurrentDue, saleDue } from './customerDashboardData'
+import { buildCustomerDashboard, customerCurrentDue, parseAmountText, saleDue } from './customerDashboardData'
 
 /**
  * A Due Received does NOT touch the sale it helps pay off.
@@ -203,6 +203,20 @@ describe('customerCurrentDue', () => {
     expect(customerCurrentDue(null, [], [])).toBe(0)
     expect(customerCurrentDue(undefined, [], [])).toBe(0)
     expect(customerCurrentDue('', [], [])).toBe(0)
+  })
+})
+
+describe('parseAmountText', () => {
+  it('reads the taka a note was written in, in either script', () => {
+    expect(parseAmountText('Tk 1,500')).toBe(1500)
+    expect(parseAmountText('৳১,৫০০')).toBe(1500)
+    expect(parseAmountText('৳ ১২,৩৪৫.৫০')).toBe(12345.5)
+    expect(parseAmountText('')).toBe(0)
+  })
+
+  it("takes a Bangla-written discount off the customer's due", () => {
+    const payments = [{ customer_id: 'c1', amount: 1000, notes: 'Discount Amount: ৳১,৫০০' }]
+    expect(customerCurrentDue(5000, [], payments)).toBe(2500)
   })
 })
 
