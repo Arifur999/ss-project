@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import { confirmAction } from '../../components/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { addPurchaseItem, deletePurchase, deletePurchaseItem } from '../../services/purchase.services'
-import { actualDp, paidOnPurchaseBills, purchaseItemDeposit } from '../../lib/purchaseAmounts'
+import { actualDp, paidOnPurchaseBills, purchaseItemDeposit, spAmountFor } from '../../lib/purchaseAmounts'
 import { firstAmount, formatDate, roundTaka } from '../../lib/utils'
 import { resolveBusinessName } from '../../lib/businessBrand'
 import PeriodFilter from '../../components/PeriodFilter'
@@ -48,6 +48,8 @@ type EditablePurchaseItem = {
   actual_dp: number
   qty: number
   total_amount: number
+  /** The order's SP percentage the line was priced at; 0 on older lines that carry an amount only. */
+  sp_pct: number
   sp_amount: number
   received_qty: number
 }
@@ -290,6 +292,7 @@ export default function PurchaseLedger() {
       actual_dp: Number(item.actual_dp || item.dp_price || 0),
       qty: Number(item.qty || 0),
       total_amount: Number(item.total_amount || 0),
+      sp_pct: Number(item.sp_pct || 0),
       sp_amount: Number(item.sp_amount || 0),
       received_qty: Number(item.received_qty || 0),
     })))
@@ -395,6 +398,8 @@ export default function PurchaseLedger() {
       actual_dp: 0,
       qty: 1,
       total_amount: 0,
+      // A new line takes the order's SP percentage, as its other lines carry it.
+      sp_pct: current.find(item => item.sp_pct > 0)?.sp_pct || 0,
       sp_amount: 0,
       received_qty: 0,
     }])
@@ -425,6 +430,11 @@ export default function PurchaseLedger() {
       // cannot produce a different unit price from the one that created it.
       next.actual_dp = actualDp(next.dp_price, next.discount_pct)
       next.total_amount = roundTaka(next.actual_dp * qty)
+      // The incentive follows the new total at the line's own percentage, as
+      // the Purchase Orders page works it. It used to keep the old amount
+      // against the new total, so the deposit owed went wrong. A line saved
+      // with an amount and no percentage keeps its amount.
+      if (next.sp_pct > 0) next.sp_amount = spAmountFor(next.total_amount, next.sp_pct)
       return next
     }))
   }
@@ -472,6 +482,7 @@ export default function PurchaseLedger() {
           actual_dp: item.actual_dp,
           qty: item.qty,
           total_amount: item.total_amount,
+          sp_pct: item.sp_pct,
           sp_amount: item.sp_amount,
         })
       }
@@ -494,6 +505,13 @@ export default function PurchaseLedger() {
         if (itemError) throw itemError
       }
 
+      // Where the order stands after the edit: changing a quantity does not
+      // move it on the server, so lowering a line to what has arrived used to
+      // leave a fully received order reading Partial, and raising one left it
+      // reading Received.
+      const allIn = editItems.every(item => Number(item.received_qty || 0) >= Number(item.qty || 0))
+      const someIn = editItems.some(item => Number(item.received_qty || 0) > 0)
+
       const { error: purchaseError } = await supabase
         .from('purchases')
         .update({
@@ -503,6 +521,7 @@ export default function PurchaseLedger() {
           total_amount: editTotal,
           net_amount: editTotal,
           due_amount: editDue,
+          shipping_status: allIn ? 'received' : someIn ? 'partial' : 'pending',
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingInvoice.id)
