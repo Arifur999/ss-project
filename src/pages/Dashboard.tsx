@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext'
 import { readPageCache, writePageCache } from '../lib/pageCache'
 import { businessEarnings, profitLoss, type ProfitInputs } from '../lib/profit'
 import { firstAmount } from '../lib/utils'
+import { parseAmountText, parseMetaValue } from './customers/customerDashboardData'
 import { moneyAxisFormatter, seriesPeak } from '../lib/chartAxis'
 import AmountShieldButton from '../components/AmountShieldButton'
 import { useAmountShield } from '../lib/amountShield'
@@ -257,15 +258,6 @@ function getSaleAmount(sale: any) {
   const gross = items.length ? itemGrossTotal : firstAmount(sale.subtotal, sale.net_amount)
   const discount = Number(sale.discount_amount || 0)
   return Math.max(0, gross - discount)
-}
-
-function parseMetaValue(notes: string, label: string) {
-  const line = String(notes || '').split('\n').find(item => item.toLowerCase().startsWith(`${label.toLowerCase()}:`))
-  return line ? line.slice(label.length + 1).trim() : ''
-}
-
-function parseAmountText(value: string) {
-  return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0
 }
 
 const dashboardCacheKey = (rangeType: RangeType, customStart: string, customEnd: string) =>
