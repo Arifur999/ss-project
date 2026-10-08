@@ -202,7 +202,11 @@ export default function YearlyReport() {
         : otherIncomeRes.data || []
       const productCompanyMap = new Map<string, string>()
       ;(productsRes.data || []).forEach((product: any) => {
-        const supplier = Array.isArray(product.suppliers) ? product.suppliers[0] : product.suppliers
+        // GET /products sends the relation as `supplier`. Reading only
+        // `suppliers` found nothing, so every company's sales landed under
+        // Unassigned.
+        const relation = product.supplier ?? product.suppliers
+        const supplier = Array.isArray(relation) ? relation[0] : relation
         const name = companyName(supplier?.company_name || supplier?.name)
         if (product.id) productCompanyMap.set(product.id, name)
         if (product.product_code) productCompanyMap.set(product.product_code, name)
