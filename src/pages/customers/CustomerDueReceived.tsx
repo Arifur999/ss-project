@@ -126,6 +126,12 @@ export default function CustomerDueReceived() {
   }
 
   function openModal(payment?: any) {
+    // A collection split across accounts is one receipt of several rows, and
+    // saving an edit wrote only the first - the others kept their old figures.
+    if (payment && (payment.payment_ids?.length || 1) > 1) {
+      toast.error('A collection split across accounts cannot be edited - delete it and take it again.')
+      return
+    }
     setEditItem(payment || null)
     const selectedCustomer = payment?.customer_id
       ? customers.find(customer => customer.id === payment.customer_id)
@@ -281,13 +287,22 @@ export default function CustomerDueReceived() {
 
     if (Object.keys(paymentRowErrors).length > 0) nextErrors.paymentRows = paymentRowErrors
 
-    if (Number(discountAmount || 0) > 0 && !discountCategoryId) {
+    // An edit keeps its discount as it was (see the notes below), so only a new
+    // collection is asked for a category.
+    if (!editItem && Number(discountAmount || 0) > 0 && !discountCategoryId) {
       nextErrors.discount_category = REQUIRED_FIELD_MESSAGE
     }
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
       return toast.error(t('ledger_fillAllFields'))
+    }
+
+    // Every row of a split collection carries the same notes, and every reader
+    // of them counts the discount once per row - so a discount on a collection
+    // into two accounts came off the customer's due twice.
+    if (!editItem && Number(discountAmount || 0) > 0 && validPaymentRows.length > 1) {
+      return toast.error('A discount can only go on a collection into one account. Take the money into one account, or the discount on a collection of its own.')
     }
 
     // A receipt can only settle what is actually owed. Taking more than the
@@ -311,12 +326,20 @@ export default function CustomerDueReceived() {
     const customer = customers.find(c => c.id === form.customer_id)
     const discountCategory = expenseCategories.find(category => category.id === discountCategoryId)
     const paymentReceiver = receiverName.trim()
+    // An edit keeps the discount exactly as it was written. Its expense was
+    // booked when the collection was taken, and writing it afresh here - and
+    // booking it again below - counted the same discount twice.
+    const discountLines = editItem
+      ? String(editItem.notes || '').split('\n').filter(line => /^discount (amount|category):/i.test(line.trim()))
+      : [
+          // Always in English figures, whatever the screen's language: a Bangla
+          // screen wrote "৳১,৫০০" here, which every reader of these notes took for 0.
+          Number(discountAmount || 0) > 0 ? `Discount Amount: Tk ${roundTaka(discountAmount).toLocaleString('en-US')}` : '',
+          Number(discountAmount || 0) > 0 && discountCategory ? `Discount Category: ${discountCategory.name}` : '',
+        ]
     const notes = [
       form.notes.trim(),
-      // Always in English figures, whatever the screen's language: a Bangla
-      // screen wrote "৳১,৫০০" here, which every reader of these notes took for 0.
-      Number(discountAmount || 0) > 0 ? `Discount Amount: Tk ${roundTaka(discountAmount).toLocaleString('en-US')}` : '',
-      Number(discountAmount || 0) > 0 && discountCategory ? `Discount Category: ${discountCategory.name}` : '',
+      ...discountLines,
       paymentReceiver ? `Received by: ${paymentReceiver}` : '',
     ].filter(Boolean).join('\n')
     const buildPayload = (row: typeof validPaymentRows[number]) => {
@@ -339,7 +362,7 @@ export default function CustomerDueReceived() {
 
     if (error) return toast.error(error.message || t('common_error'))
 
-    if (Number(discountAmount || 0) > 0 && discountCategory) {
+    if (!editItem && Number(discountAmount || 0) > 0 && discountCategory) {
       // A "discount allowed" is a non-cash cost: it still counts toward
       // total expenses / net profit and the "Discount Allowed" report, but it
       // must NOT reduce any cash/bank account balance (no money left the till).
@@ -1038,8 +1061,9 @@ export default function CustomerDueReceived() {
                 <input id="customer-due-received-f3"
                   type="number"
                   min="0"
-                  className="input h-11 rounded-xl shadow-sm"
+                  className="input h-11 rounded-xl shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
                   value={discountAmount || ''}
+                  disabled={!!editItem}
                   onChange={e => {
                     const nextDiscount = Number(e.target.value)
                     setDiscountAmount(nextDiscount)
@@ -1050,8 +1074,11 @@ export default function CustomerDueReceived() {
                   }}
                   placeholder="0"
                 />
+                {editItem && Number(discountAmount || 0) > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">The discount stays as it was. To change it, delete this receipt and take it again.</p>
+                )}
               </div>
-              {Number(discountAmount || 0) > 0 && (
+              {Number(discountAmount || 0) > 0 && !editItem && (
                 <div>
                   <label className="label" htmlFor="customer-due-received-f4">Expense Category</label>
                   <select id="customer-due-received-f4"
