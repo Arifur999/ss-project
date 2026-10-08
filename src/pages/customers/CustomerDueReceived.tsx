@@ -10,10 +10,10 @@ import { confirmAction } from '../../components/ConfirmDialog'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { supabase } from '../../lib/supabase'
-import { formatDate, todayISO } from '../../lib/utils'
+import { formatDate, roundTaka, todayISO } from '../../lib/utils'
 import { addRecycleItem } from '../../lib/recycleBin'
 import { buildDuePaymentSms } from '../../lib/smsTemplates'
-import { customerCurrentDue, saleDue } from './customerDashboardData'
+import { customerCurrentDue, parseAmountText, parseMetaValue, saleDue } from './customerDashboardData'
 import { isValidBdPhone } from '../../lib/phone'
 import { sendSms } from '../../services/sms.services'
 import { smsFailureMessage } from '../../lib/smsPermission'
@@ -313,7 +313,9 @@ export default function CustomerDueReceived() {
     const paymentReceiver = receiverName.trim()
     const notes = [
       form.notes.trim(),
-      Number(discountAmount || 0) > 0 ? `Discount Amount: ${formatCurr(discountAmount)}` : '',
+      // Always in English figures, whatever the screen's language: a Bangla
+      // screen wrote "৳১,৫০০" here, which every reader of these notes took for 0.
+      Number(discountAmount || 0) > 0 ? `Discount Amount: Tk ${roundTaka(discountAmount).toLocaleString('en-US')}` : '',
       Number(discountAmount || 0) > 0 && discountCategory ? `Discount Category: ${discountCategory.name}` : '',
       paymentReceiver ? `Received by: ${paymentReceiver}` : '',
     ].filter(Boolean).join('\n')
@@ -405,15 +407,6 @@ export default function CustomerDueReceived() {
     if (error) return toast.error(error.message || t('common_error'))
     toast.success('Due received deleted!')
     loadAll()
-  }
-
-  function parseMetaValue(notes: string, label: string) {
-    const line = String(notes || '').split('\n').find(item => item.toLowerCase().startsWith(`${label.toLowerCase()}:`))
-    return line ? line.slice(label.length + 1).trim() : ''
-  }
-
-  function parseAmountText(value: string) {
-    return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0
   }
 
   function displayNotes(notes: string) {
